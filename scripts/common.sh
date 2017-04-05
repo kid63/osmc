@@ -75,7 +75,7 @@ function install_package()
 	then
 		if [ "$2" -eq 1 ]; then EMD=$(find /usr/lib | grep libeatmydata | tail -n 1); fi
 	fi
-	LD_PRELOAD=${EMD} apt-get -y --no-install-recommends install $1
+	LD_PRELOAD=${EMD} apt-get -y --force-yes --no-install-recommends install $1
 		if [ $? != 0 ]; then echo -e "Failed to install" && return 1; else echo -e "Package installed successfully" && return 0; fi
 	fi
 }
