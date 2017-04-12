@@ -16,7 +16,7 @@ index 0a9e9d3..f5c45f2 100644
                            --disable-securetransport)
  elseif(CORE_SYSTEM_NAME STREQUAL rbpi)
 -  list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau)
-+  list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-x11grab --disable-xlib)
++  list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib)
  endif()
 
  if(CPU MATCHES arm OR CORE_SYSTEM_NAME STREQUAL rbpi)
