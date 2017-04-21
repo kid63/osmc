@@ -301,7 +301,8 @@ then
             -DCMAKE_PREFIX_PATH=/opt/vc \
             -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
             -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
-            -DENABLE_X11=0 \
+            -DASS_INCLUDE_DIR=/usr/osmc/include \
+	    -DENABLE_X11=0 \
             -DENABLE_OPENGLES=ON \
             -DENABLE_OPENGL=OFF \
             -DENABLE_OPTICAL=1 \
@@ -385,6 +386,7 @@ then
             -DOPENGLES_egl_LIBRARY=/opt/vero3/lib \
             -DENABLE_X11=0 \
             -DENABLE_AML=ON \
+	    -DASS_INCLUDE_DIR=/usr/osmc/include \
             -DAML_INCLUDE_DIR=/opt/vero3/include \
             -DRapidJSON_INCLUDE_DIR=/opt/vero3/include \
 	    -DENABLE_OPENGLES=ON \
