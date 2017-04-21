@@ -9,10 +9,10 @@ Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
  xbmc/windowing/egl/EGLNativeTypeRaspberryPI.cpp | 15 +++++++++++++++
  1 file changed, 15 insertions(+)
 
-diff --git a/xbmc/windowing/egl/EGLNativeTypeRaspberryPI.cpp b/xbmc/windowing/egl/EGLNativeTypeRaspberryPI.cpp
+diff --git a/xbmc/windowing/rpi/RPIUtils.cpp b/xbmc/windowing/rpi/RPIUtils.cpp
 index bbe501d..cbb3cfb 100644
---- a/xbmc/windowing/egl/EGLNativeTypeRaspberryPI.cpp
-+++ b/xbmc/windowing/egl/EGLNativeTypeRaspberryPI.cpp
+--- a/xbmc/windowing/rpi/RPIUtils.cpp
++++ b/xbmc/windowing/rpi/RPIUtils.cpp
 @@ -32,6 +32,7 @@
  #include "guilib/StereoscopicsManager.h"
  #include "rendering/RenderSystem.h"
@@ -21,7 +21,7 @@ index bbe501d..cbb3cfb 100644
  #ifdef TARGET_POSIX                     
  #include "linux/XTimeUtils.h"           
  #endif 
-@@ -111,6 +112,20 @@ void CEGLNativeTypeRaspberryPI::Initialize()
+@@ -111,6 +112,20 @@ 
  
    m_DllBcmHost = new DllBcmHost;
    m_DllBcmHost->Load();
@@ -39,9 +39,9 @@ index bbe501d..cbb3cfb 100644
 + {
 +      CLog::Log(LOGDEBUG, "Could not open vtcon1 for writing. You probably ran this independent of the watchdog!");
 + }
- #endif
- }
- 
+
+  m_dispman_element = DISPMANX_NO_HANDLE;
+  m_dispman_display = DISPMANX_NO_HANDLE;
 -- 
 2.7.4
 
