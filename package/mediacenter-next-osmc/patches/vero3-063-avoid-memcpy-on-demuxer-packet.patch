@@ -1,21 +1,19 @@
-From 1d172388f32bab83975efc896733b0a308d23878 Mon Sep 17 00:00:00 2001
-From: popcornmix <popcornmix@gmail.com>
-Date: Sat, 13 Dec 2014 18:35:20 +0000
-Subject: [PATCH] [demuxer] Avoid memcpy on every demuxer packet
+From edbd43a11176b8abd04cfa885860702d46f38b58 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Sat, 22 Apr 2017 16:09:56 +0100
+Subject: [PATCH] Fix patch
 
-Avoids an unnecessary memcpy on every demuxer packet which for
-high bitrate videos can be significant.
 ---
- xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp | 17 ++++++++++++-----
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp | 16 +++++++++++-----
  xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h   |  3 +++
- xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp  |  7 ++++++-
- 3 files changed, 21 insertions(+), 6 deletions(-)
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp  |  9 +++++++--
+ 3 files changed, 21 insertions(+), 7 deletions(-)
 
 diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
-index d4886d2..ada11d8 100644
+index 66ee2ed..7e74c9e 100644
 --- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
-@@ -922,7 +922,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
+@@ -927,7 +927,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
            {
              if(m_pkt.pkt.stream_index == (int)m_pFormatContext->programs[m_program]->stream_index[i])
              {
@@ -24,7 +22,7 @@ index d4886d2..ada11d8 100644
                break;
              }
            }
-@@ -931,7 +931,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
+@@ -936,7 +936,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
              bReturnEmpty = true;
          }
          else
@@ -33,7 +31,7 @@ index d4886d2..ada11d8 100644
        }
        else
          bReturnEmpty = true;
-@@ -961,9 +961,13 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
+@@ -966,9 +966,12 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
          // copy contents into our own packet
          pPacket->iSize = m_pkt.pkt.size;
  
@@ -45,11 +43,10 @@ index d4886d2..ada11d8 100644
 +          // so we can free AVPacket when DemuxPacket is freed
 +          pPacket->pkt = new AVPacket(m_pkt.pkt);
 +        }
-+
  
          pPacket->pts = ConvertTimestamp(m_pkt.pkt.pts, stream->time_base.den, stream->time_base.num);
          pPacket->dts = ConvertTimestamp(m_pkt.pkt.dts, stream->time_base.den, stream->time_base.num);
-@@ -1017,7 +1021,10 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
+@@ -1022,7 +1025,10 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
          pPacket->iStreamId = m_pkt.pkt.stream_index;
        }
        m_pkt.result = -1;
@@ -57,7 +54,7 @@ index d4886d2..ada11d8 100644
 +      if (pPacket && pPacket->pkt)
 +        memset(&m_pkt.pkt, 0, sizeof(AVPacket));
 +      else
-+        av_packet_unref(&m_pkt.pkt);
++        av_packet_unref(&m_pkt.pkt);      
      }
    }
    } // end of lock scope
@@ -83,20 +80,25 @@ index 4f47118..2280578 100644
    int dispTime;
  } DemuxPacket;
 diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp
-index 403d75f..66774e4 100644
+index 403d75f..0fddb76 100644
 --- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp
-@@ -36,7 +36,12 @@ void CDVDDemuxUtils::FreeDemuxPacket(DemuxPacket* pPacket)
+@@ -36,8 +36,13 @@ void CDVDDemuxUtils::FreeDemuxPacket(DemuxPacket* pPacket)
    if (pPacket)
    {
      try {
 -      if (pPacket->pData) _aligned_free(pPacket->pData);
+-      delete pPacket;
 +      if (pPacket->pkt)
 +      {
 +        av_free_packet(pPacket->pkt);
 +        delete pPacket->pkt;
 +      }
 +      else if (pPacket->pData) _aligned_free(pPacket->pData);
-       delete pPacket;
++delete pPacket;
      }
      catch(...) {
+       CLog::Log(LOGERROR, "%s - Exception thrown while freeing packet", __FUNCTION__);
+-- 
+2.1.4
+
