@@ -408,7 +408,7 @@ then
 	#ADDONS_ADSP="adsp.basic adsp.biquad.filters adsp.freesurround"
  	ADDONS_AUDIO_DECODERS="audiodecoder.modplug audiodecoder.nosefart audiodecoder.sidplay audiodecoder.snesapu"
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
-	ADDONS_INPUTSTREAM="inputstream.mpd inputstream.adaptive inputstream.rtmp"
+	ADDONS_INPUTSTREAM="inputstream.mpd inputstream.rtmp" #inputstream.adaptive
 	ADDONS_PERIPHERAL="peripheral.joystick peripheral.xarcade"
 	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
 game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy game.libretro.handy game.libretro.hatari \
