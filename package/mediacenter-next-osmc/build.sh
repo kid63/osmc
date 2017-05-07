@@ -8,12 +8,12 @@
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "atv" ] || [ "$1" == "pc" ]   
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/421ceaab1b57a0271ed54c3712632202b03be6e1.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/6cc30be06889591bc81a34f94fb8f090bda1ed63.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/b8ad238aa8010063eaf7d608d139002a50075e8d.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/ed057680f4bc08bc2662ce88ca1b4f792d9ad14a.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
@@ -429,7 +429,7 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	# game.libretro.genplus game.libretro.mupen64plus 
 	#game.libretro.scummvm 
 
-	ADDONS_PVR="pvr.argustv pvr.demo pvr.dvblink pvr.dvbviewer pvr.filmon pvr.hdhomerun pvr.hts pvr.iptvsimple pvr.mediaportal.tvserver pvr.nextpvr pvr.njoy pvr.pctv pvr.stalker pvr.vbox pvr.vuplus pvr.wmc pvr.vdr.vnsi" #pvr.mythtv
+	ADDONS_PVR="pvr.argustv pvr.demo pvr.dvblink pvr.dvbviewer pvr.filmon pvr.hdhomerun pvr.hts pvr.iptvsimple pvr.mediaportal.tvserver pvr.nextpvr pvr.njoy pvr.pctv pvr.stalker pvr.vbox pvr.vuplus pvr.wmc pvr.vdr.vnsi pvr.octonet" #pvr.mythtv
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
