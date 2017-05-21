@@ -21,35 +21,6 @@ index bd96235..f03cceb 100644
    CLog::Log(LOGINFO, "%s: Opened Amlogic Codec", __MODULE_NAME__);
    return true;
  }
-@@ -310,24 +308,13 @@ int CDVDVideoCodecAmlogic::Decode(uint8_t *pData, int iSize, double dts, double
-       if (!m_bitstream->Convert(pData, iSize))
-         return VC_ERROR;
- 
--      if (!m_bitstream->HasKeyframe())
--      {
--        CLog::Log(LOGDEBUG, "%s::Decode waiting for keyframe (bitstream)", __MODULE_NAME__);
--        return VC_BUFFER;
--      }
-       pData = m_bitstream->GetConvertBuffer();
-       iSize = m_bitstream->GetConvertSize();
-     }
--    else if (!m_has_keyframe && m_bitparser)
--    {
--      if (!m_bitparser->HasKeyframe(pData, iSize))
--      {
--        CLog::Log(LOGDEBUG, "%s::Decode waiting for keyframe (bitparser)", __MODULE_NAME__);
--        return VC_BUFFER;
--      }
--      else
--        m_has_keyframe = true;
--    }
-+
-+    if (m_bitparser)
-+      m_bitparser->HasKeyframe(pData, iSize);
-+
-     FrameRateTracking( pData, iSize, dts, pts);
- 
-     if (!m_opened)
 @@ -354,7 +341,6 @@ void CDVDVideoCodecAmlogic::Reset(void)
  
    m_Codec->Reset();
@@ -63,9 +34,9 @@ index d519d28..ff1f984 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
 @@ -105,7 +105,6 @@ protected:
+   double          m_mpeg2_sequence_pts;
    h264_sequence  *m_h264_sequence;
    double          m_h264_sequence_pts;
-   bool            m_drop;
 -  bool            m_has_keyframe;
  
    CBitstreamParser *m_bitparser;
