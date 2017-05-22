@@ -58,8 +58,8 @@ index a44b7f27bf..22c4f4361b 100644
 -        m_has_keyframe = true;
 -    }
 +
-+    if (m_bitparser)
-+      m_bitparser->HasKeyframe(pData, iSize);
++    //if (m_bitparser)
++    //  m_bitparser->HasKeyframe(pData, iSize);
 +
      FrameRateTracking( pData, iSize, packet.dts, packet.pts);
  
