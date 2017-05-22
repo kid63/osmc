@@ -54,7 +54,7 @@ index da46973..4173d93 100644
      m_aspect_ratio = m_mpeg2_sequence->ratio;
  
 +  // check for h264 aspect ratio changes
-+  if (m_h264_sequence && pDvdVideoPicture->pts >= m_h264_sequence_pts)
++  if (m_h264_sequence && pVideoPicture->pts >= m_h264_sequence_pts)
 +    m_aspect_ratio = m_h264_sequence->ratio;
 +
    pVideoPicture->iDisplayWidth  = pVideoPicture->iWidth;
