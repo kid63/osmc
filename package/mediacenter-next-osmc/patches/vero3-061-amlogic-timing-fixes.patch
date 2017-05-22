@@ -1,18 +1,32 @@
-From 3efbc38b1d18ce8fab7a0e4afe465f37754d81f3 Mon Sep 17 00:00:00 2001
-From: kszaq <kszaquitto@gmail.com>
-Date: Sun, 5 Feb 2017 11:01:23 +0100
-Subject: [PATCH 1/2] aml: remove waiting for a keyframe
+From 18296541250712dff7acbc645b1d1eb68ce96ff1 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Mon, 22 May 2017 14:12:46 +0100
+Subject: [PATCH] Fixes to vero3-061
 
 ---
+ .../cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp |  2 +-
  .../DVDCodecs/Video/DVDVideoCodecAmlogic.cpp       | 22 ++++------------------
  .../DVDCodecs/Video/DVDVideoCodecAmlogic.h         |  1 -
- 2 files changed, 4 insertions(+), 19 deletions(-)
+ 3 files changed, 5 insertions(+), 20 deletions(-)
 
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index dc2a22b85b..f42da345ea 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -1888,7 +1888,7 @@ int CAMLCodec::DequeueBuffer()
+   //Driver change from 10 to 0ms latency, throttle here
+   std::chrono::time_point<std::chrono::system_clock> now(std::chrono::system_clock::now());
+ 
+-  unsigned int waitTime(10);
++  unsigned int waitTime(25);
+ DRAIN:
+   if (m_amlVideoFile->IOControl(VIDIOC_DQBUF, &vbuf) < 0)
+   {
 diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
-index bd96235..f03cceb 100644
+index a44b7f27bf..22c4f4361b 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
-@@ -266,8 +266,6 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
+@@ -255,8 +255,6 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
    m_processInfo.SetVideoDeintMethod("hardware");
    m_processInfo.SetVideoDAR(m_hints.aspect);
  
@@ -20,55 +34,56 @@ index bd96235..f03cceb 100644
 -
    CLog::Log(LOGINFO, "%s: Opened Amlogic Codec", __MODULE_NAME__);
    return true;
- }
-@@ -354,7 +341,6 @@ void CDVDVideoCodecAmlogic::Reset(void)
+ FAIL:
+@@ -310,24 +308,13 @@ bool CDVDVideoCodecAmlogic::AddData(const DemuxPacket &packet)
+       if (!m_bitstream->Convert(pData, iSize))
+         return true;
+ 
+-      if (!m_bitstream->CanStartDecode())
+-      {
+-        CLog::Log(LOGDEBUG, "%s::Decode waiting for keyframe (bitstream)", __MODULE_NAME__);
+-        return true;
+-      }
+       pData = m_bitstream->GetConvertBuffer();
+       iSize = m_bitstream->GetConvertSize();
+     }
+-    else if (!m_has_keyframe && m_bitparser)
+-    {
+-      if (!m_bitparser->CanStartDecode(pData, iSize))
+-      {
+-        CLog::Log(LOGDEBUG, "%s::Decode waiting for keyframe (bitparser)", __MODULE_NAME__);
+-        return true;
+-      }
+-      else
+-        m_has_keyframe = true;
+-    }
++
++    if (m_bitparser)
++      m_bitparser->HasKeyframe(pData, iSize);
++
+     FrameRateTracking( pData, iSize, packet.dts, packet.pts);
+ 
+     if (!m_opened)
+@@ -351,7 +338,6 @@ void CDVDVideoCodecAmlogic::Reset(void)
  
    m_Codec->Reset();
    m_mpeg2_sequence_pts = 0;
 -  m_has_keyframe = false;
    if (m_bitstream && m_hints.codec == AV_CODEC_ID_H264)
-     m_bitstream->ResetKeyframe();
+     m_bitstream->ResetStartDecode();
  }
 diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
-index d519d28..ff1f984 100644
+index c7661b04b2..0d40873d68 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
-@@ -105,7 +105,6 @@ protected:
+@@ -102,7 +102,6 @@ protected:
+   float           m_aspect_ratio;
+   mpeg2_sequence *m_mpeg2_sequence;
    double          m_mpeg2_sequence_pts;
-   h264_sequence  *m_h264_sequence;
-   double          m_h264_sequence_pts;
 -  bool            m_has_keyframe;
  
    CBitstreamParser *m_bitparser;
    CBitstreamConverter *m_bitstream;
 -- 
-2.7.4
-
-
-From a8573c515756fd263f55820639bd163d85f5fa3a Mon Sep 17 00:00:00 2001
-From: kszaq <kszaquitto@gmail.com>
-Date: Sun, 5 Feb 2017 12:29:12 +0100
-Subject: [PATCH 2/2] aml: EXP: throttle up to 25 ms
-
----
- xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
-index 11b08b5..7e0ccc1 100644
---- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
-+++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
-@@ -1975,8 +1975,8 @@ int CAMLCodec::DequeueBuffer()
- 
-     std::chrono::milliseconds elapsed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now).count());
- 
--    if (elapsed < std::chrono::milliseconds(waitTime))
--      std::this_thread::sleep_for(std::chrono::milliseconds(waitTime) - elapsed);
-+    if (elapsed < std::chrono::milliseconds(25))
-+      std::this_thread::sleep_for(std::chrono::milliseconds(25) - elapsed);
- 
-     if (m_drain && elapsed < std::chrono::milliseconds(100))
-     {
--- 
-2.7.4
+2.12.0
 
