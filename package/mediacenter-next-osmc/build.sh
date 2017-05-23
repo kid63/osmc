@@ -410,20 +410,20 @@ then
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.mpd inputstream.rtmp"
 	ADDONS_PERIPHERAL="peripheral.joystick peripheral.xarcade"
-	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
-game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy game.libretro.handy game.libretro.hatari \
-game.libretro.beetle-lynx game.libretro.beetle-ngp game.libretro.beetle-pce-fast \
-game.libretro.beetle-pcfx game.libretro.beetle-psx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
-game.libretro.beetle-wswan game.libretro.bluemsx game.libretro.bnes \
-game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance game.libretro.cap32 \
-game.libretro.dosbox game.libretro.fbalpha2012 game.libretro.fceumm \
-game.libretro.fmsx game.libretro.fuse game.libretro.picodrive \
-game.libretro.gambatte game.libretro.gw game.libretro.prboom game.libretro.handy game.libretro.hatari \
-game.libretro.lutro game.libretro.meteor game.libretro.mgba game.libretro.nestopia game.libretro.nx \
-game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.quicknes \
-game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
-game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro.vba-next \
-game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw"
+#	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
+#game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy game.libretro.handy game.libretro.hatari \
+#game.libretro.beetle-lynx game.libretro.beetle-ngp game.libretro.beetle-pce-fast \
+#game.libretro.beetle-pcfx game.libretro.beetle-psx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
+#game.libretro.beetle-wswan game.libretro.bluemsx game.libretro.bnes \
+#game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance game.libretro.cap32 \
+#game.libretro.dosbox game.libretro.fbalpha2012 game.libretro.fceumm \
+#game.libretro.fmsx game.libretro.fuse game.libretro.picodrive \
+#game.libretro.gambatte game.libretro.gw game.libretro.prboom game.libretro.handy game.libretro.hatari \
+#game.libretro.lutro game.libretro.meteor game.libretro.mgba game.libretro.nestopia game.libretro.nx \
+#game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.quicknes \
+#game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
+#game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro.vba-next \
+#game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw"
 	# game.moonlight "
 	#Broken game.libretro.reicast game.libretro.pcem 	
 	# game.libretro.genplus game.libretro.mupen64plus 
