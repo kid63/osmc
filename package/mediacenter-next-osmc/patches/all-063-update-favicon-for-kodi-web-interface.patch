@@ -1,15 +1,14 @@
-From 710c52d8d930e935d30df60f428025a4abec0235 Mon Sep 17 00:00:00 2001
-From: Sam Nazarko <email@samnazarko.co.uk>
-Date: Wed, 18 May 2016 10:06:08 +0100
-Subject: [PATCH] update favicon for kodi web interface
+From 592f597af8c6ebc9dedd99979b1fd2808a4e0a11 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Wed, 31 May 2017 20:29:09 +0100
+Subject: [PATCH] Add favicon
 
-Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- favicon.png | Bin 1446 -> 9309 bytes
- 1 files changed, 0 insertions(+), 0 deletions(-)
+ addons/webinterface.default/favicon.png | Bin 898 -> 9309 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
 
 diff --git a/addons/webinterface.default/favicon.png b/addons/webinterface.default/favicon.png
-index 2454bec6bd80d8a685ea4d32d519687bfa838285..613c0d1f92fe27030fd0b3f36040095a9d03ae42 100644
+index 79a4b18a2586560e3e41f05349a20a33ea125b24..613c0d1f92fe27030fd0b3f36040095a9d03ae42 100644
 GIT binary patch
 literal 9309
 zcmchd_cvT`)b{lnEqd>r=)Fg;(KBi=qtECiS}=&-OOzl8g28ALz4xeL7=|DrQ6tf#
@@ -189,31 +188,21 @@ zQ^35rudye|%ClH+@>?GdIF-+uk+RQMc)D9_#C)mnqjWD*aGODOP_jkNPm|U--B?df
 zFUBZ`Xd>y_#Me_b+Yd5xnJc7Jm8J==kzXSlQSG)Cp;1EjFTo%3TA|a|awo?J=Bg$o
 vxaRubkqj6Z{WM(6SpT<8F=-F94j5P*ix^K2z3LyEa4>W=jWimbJ3#**uja%Y
 
-literal 1446
-zcmeAS@N?(olHy`uVBq!ia0vp^3LwnE1|*BCs=fdz$r9IylHmNblJdl&R0hYC{G?O`
-z&)mfH)S%SFl*+=BsWuD@%u1Od5hW46K32*3xq68pHF_1f1wh>l3^w)^1&PVosU-?Y
-zsp*+{wo31J?^jaDOtDo8H}y5}EpSfF$n>ZxN)4{^3rViZPPR-@vbR&PsjvbXkegbP
-zs8ErclUHn2VXFi-*9yo63F|8<fR&VF+bTgE72zA8;GAESs$i;Tteb3LXsBRjre|nk
-zYG!7rqhMrUXryldL}t2%CRV0qRz~IuP@n{~ttchUD#*nRY8Q}atCUevQedU8UtV6W
-zS8lAAUzDzIXlZE)GQ-G77pOwFxH7LKu|hYmSQ%!5OKNd)QD#9&W`3Rm$i&2?{L&Iz
-zC7??oUdSzg8=F@Q4JKfK=~pBc=o{)8fV>1#=<ADLX>KlDb#X~hD#E>34K5C;EJ)Q4
-zN-fSWElLJPT$(b-ssbzLqSVBa{GyQj{2W*)24v)y<QHe;7brLfn<;37XXd5kmltb-
-z)%*HddFB<DB<3Zjdb-#u0Zq`$%uKN|FgG=}aCS3way2$LG;}qwbaHfbbTu+GGjTSz
-zG<0@^>2=9ZF3nBND}m`vLFhHZsTY(KatnYqyQCInmZhe+73JqDfW2&$iQ6s4IL(9V
-zO~LIJ6P$YWfsWA!MJ!T8!-RmT2gHOYTObFX@Kf`Esl5o8tQYq>)G{zINqM?BhE&|z
-zGu_kMDNyA2Ri#XYE)9c>i@Of&bJ&tCn4zhwx?;g0*A}+~R}tS^8@RHBx8y{yY|W7L
-zx~$c)&t)}NG>7jk%ObfLx%XA<>t%m@mRa}y|L48Ncb@0%t|*);n7x4S0?Uiw=PXxK
-zXRL1$dr>N@v55KMMU(psx<>EY9hWP-uV+|LdFbJ1M_G>0hSEMu?!rY(3z-c3g^mh1
-zn#^G9&{*TzVRxC~K38_WBmc6~2KqbS@rkhP4d2A$J(FGL%x;HJEruC6ciYaCJDgu&
-zy!_RNf?L|tqE|D1jt!VobI4CMi#;Oo*6V)8&l1aB_WCh+tHkXP)vxxspq>@c!1A~H
-zYPH;x8OK$B9Wh)X#yD-|{_aHw_Uu#tY<_!|C1<g=fjXaU*U2=HMTW0L&tL6exV*r&
-z^Qi8E<3i8ESY<tD#W%YNJeaP)$71inb!Kgutsdh<wpN4s8(JM)3f~;R{gr-p-tt8H
-z>8U{inNqjq{WdFjO*PasRKJn)o`u(-L5$^?#`!tsJ<A*{4;tLumRimKqKmolxZ$qn
-zir4nsh%qTUnqhbP=ev_^iLUyp1?%o)Mx2_nSIF-6b929ES_~Fm!A!;0F1t_ub=d6G
-zzFFayFVh~cJdc|>`%QML9`?DX^uYJvEgs(4IjY-IJP#H-w!N~^u6CMhtH|$kb58~L
-zzE677)m$3;t|f4;o+Zxs$M+Wh3C$|0Z_Q~XXAJ+bNHFBAZc1T3o96^7IXzwdT-G@y
-GGywph$OA(F
+literal 898
+zcmeAS@N?(olHy`uVBq!ia0vp^3LwnE3?yBabR7dyEa{HEjtmSN`?>!lvVtU&J%W50
+z7^>757#dm_7=8hT8eT9klo~KFyh>nTu$sZZAYL$MSD+10;%$IWh^yGf=K|}W+wXr3
+zWDE}k^bQ08Jq1A!KmPy!Ki-i^4Cry6k|4ieAl<T%y?J%phSv2}JlDK09u_)(L{OVq
+zr|0il$KFQUx(jTToDE0ImQLL~>CqY1d3&d2Niy!|TQ{T6pnEP?r<BN_go*?F<$L)H
+z=JRWcZoUdMk1@&H-NjEbvG6{S!(QU)>&pI+RgRlYMAJSH7)gwxo-U3d7N=_`y$oYA
+z<Z)|m;98-<+|$9OwO~=srX3IVbwB(Y-#&Ah_bJW4|ITE-e`|75vte$E7Vo|_%6UI}
+ze0wH&{@!`~#3G+_xj75{@@}iXkzo9+mw5fd-X?Dj6a8riv<39r_w1`x6Id@3;;Zjz
+zW5V=N`QBT@Bwy~f?8SX5b2j{6T{*|C+c?E(;{nU0t&F}QP9?71ABxR3a_>lC`nW@F
+zu31aC*N%55ewJ3x`u=zlThI>4RomQ8N%$YBa%l4ST$aIelJVV<1u1_U%}m&L)Gv5%
+zV&{HL`5SNe%u8nvHQc(awXWxB%lT!$9~@QOvv1?iJ=QIPvp?MU`Q(A~$MgCO^EXcN
+zPVQ7+Q*$1e-mdYjx%qSU-`mpMZ3StP(-%0l0>ezT#5JNMC9x#cD!C{XNHG{07@F%E
+znCcoEgcurH8JJla8E6{-83sq!&6h>dkei>9nO2Eg!<NtL3xOIWK{f>Er<If^7Ns&c
+irsOB3DtP85rl$s_CZ<#to=gR03<ghEKbLh*2~7Z`zJvJy
 
 -- 
-2.7.4
+2.12.3
 
