@@ -425,10 +425,10 @@ game.libretro.lutro game.libretro.meteor game.libretro.mgba game.libretro.nestop
 game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.quicknes \
 game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
 game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro.vba-next \
-game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw"
+game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw game.libretro.genplus"
 	# game.moonlight "
 	#Broken game.libretro.reicast game.libretro.pcem 	
-	# game.libretro.genplus game.libretro.mupen64plus 
+	#game.libretro.mupen64plus 
 	#game.libretro.scummvm 
 
 	ADDONS_PVR="pvr.mythtv pvr.octonet pvr.dvbviewer pvr.iptvsimple pvr.mediaportal.tvserver pvr.argustv pvr.demo pvr.dvblink pvr.filmon pvr.hdhomerun pvr.hts pvr.nextpvr pvr.njoy pvr.pctv pvr.stalker pvr.vbox pvr.vuplus pvr.wmc pvr.vdr.vnsi vfs.rar"
