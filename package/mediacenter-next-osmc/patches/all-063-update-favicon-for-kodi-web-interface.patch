@@ -1,14 +1,52 @@
-From 592f597af8c6ebc9dedd99979b1fd2808a4e0a11 Mon Sep 17 00:00:00 2001
+From e02df639f8bba72f6196f58be737b12450a1215a Mon Sep 17 00:00:00 2001
 From: Greg McCarthy <greg@gjmccarthy.co.uk>
-Date: Wed, 31 May 2017 20:29:09 +0100
-Subject: [PATCH] Add favicon
+Date: Wed, 31 May 2017 20:53:57 +0100
+Subject: [PATCH 1/2] Remove favicon
 
 ---
- addons/webinterface.default/favicon.png | Bin 898 -> 9309 bytes
+ addons/webinterface.default/favicon.png | Bin 898 -> 0 bytes
  1 file changed, 0 insertions(+), 0 deletions(-)
+ delete mode 100644 addons/webinterface.default/favicon.png
 
 diff --git a/addons/webinterface.default/favicon.png b/addons/webinterface.default/favicon.png
-index 79a4b18a2586560e3e41f05349a20a33ea125b24..613c0d1f92fe27030fd0b3f36040095a9d03ae42 100644
+deleted file mode 100644
+index 79a4b18a2586560e3e41f05349a20a33ea125b24..0000000000000000000000000000000000000000
+GIT binary patch
+literal 0
+HcmV?d00001
+
+literal 898
+zcmeAS@N?(olHy`uVBq!ia0vp^3LwnE3?yBabR7dyEa{HEjtmSN`?>!lvVtU&J%W50
+z7^>757#dm_7=8hT8eT9klo~KFyh>nTu$sZZAYL$MSD+10;%$IWh^yGf=K|}W+wXr3
+zWDE}k^bQ08Jq1A!KmPy!Ki-i^4Cry6k|4ieAl<T%y?J%phSv2}JlDK09u_)(L{OVq
+zr|0il$KFQUx(jTToDE0ImQLL~>CqY1d3&d2Niy!|TQ{T6pnEP?r<BN_go*?F<$L)H
+z=JRWcZoUdMk1@&H-NjEbvG6{S!(QU)>&pI+RgRlYMAJSH7)gwxo-U3d7N=_`y$oYA
+z<Z)|m;98-<+|$9OwO~=srX3IVbwB(Y-#&Ah_bJW4|ITE-e`|75vte$E7Vo|_%6UI}
+ze0wH&{@!`~#3G+_xj75{@@}iXkzo9+mw5fd-X?Dj6a8riv<39r_w1`x6Id@3;;Zjz
+zW5V=N`QBT@Bwy~f?8SX5b2j{6T{*|C+c?E(;{nU0t&F}QP9?71ABxR3a_>lC`nW@F
+zu31aC*N%55ewJ3x`u=zlThI>4RomQ8N%$YBa%l4ST$aIelJVV<1u1_U%}m&L)Gv5%
+zV&{HL`5SNe%u8nvHQc(awXWxB%lT!$9~@QOvv1?iJ=QIPvp?MU`Q(A~$MgCO^EXcN
+zPVQ7+Q*$1e-mdYjx%qSU-`mpMZ3StP(-%0l0>ezT#5JNMC9x#cD!C{XNHG{07@F%E
+znCcoEgcurH8JJla8E6{-83sq!&6h>dkei>9nO2Eg!<NtL3xOIWK{f>Er<If^7Ns&c
+irsOB3DtP85rl$s_CZ<#to=gR03<ghEKbLh*2~7Z`zJvJy
+
+-- 
+2.12.3
+
+
+From df6c1b385cf5f96fb52a4fe0ad6669a5bef67e5e Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Wed, 31 May 2017 20:54:59 +0100
+Subject: [PATCH 2/2] Add favicon
+
+---
+ addons/webinterface.default/favicon.png | Bin 0 -> 9309 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 addons/webinterface.default/favicon.png
+
+diff --git a/addons/webinterface.default/favicon.png b/addons/webinterface.default/favicon.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..613c0d1f92fe27030fd0b3f36040095a9d03ae42
 GIT binary patch
 literal 9309
 zcmchd_cvT`)b{lnEqd>r=)Fg;(KBi=qtECiS}=&-OOzl8g28ALz4xeL7=|DrQ6tf#
@@ -188,20 +226,8 @@ zQ^35rudye|%ClH+@>?GdIF-+uk+RQMc)D9_#C)mnqjWD*aGODOP_jkNPm|U--B?df
 zFUBZ`Xd>y_#Me_b+Yd5xnJc7Jm8J==kzXSlQSG)Cp;1EjFTo%3TA|a|awo?J=Bg$o
 vxaRubkqj6Z{WM(6SpT<8F=-F94j5P*ix^K2z3LyEa4>W=jWimbJ3#**uja%Y
 
-literal 898
-zcmeAS@N?(olHy`uVBq!ia0vp^3LwnE3?yBabR7dyEa{HEjtmSN`?>!lvVtU&J%W50
-z7^>757#dm_7=8hT8eT9klo~KFyh>nTu$sZZAYL$MSD+10;%$IWh^yGf=K|}W+wXr3
-zWDE}k^bQ08Jq1A!KmPy!Ki-i^4Cry6k|4ieAl<T%y?J%phSv2}JlDK09u_)(L{OVq
-zr|0il$KFQUx(jTToDE0ImQLL~>CqY1d3&d2Niy!|TQ{T6pnEP?r<BN_go*?F<$L)H
-z=JRWcZoUdMk1@&H-NjEbvG6{S!(QU)>&pI+RgRlYMAJSH7)gwxo-U3d7N=_`y$oYA
-z<Z)|m;98-<+|$9OwO~=srX3IVbwB(Y-#&Ah_bJW4|ITE-e`|75vte$E7Vo|_%6UI}
-ze0wH&{@!`~#3G+_xj75{@@}iXkzo9+mw5fd-X?Dj6a8riv<39r_w1`x6Id@3;;Zjz
-zW5V=N`QBT@Bwy~f?8SX5b2j{6T{*|C+c?E(;{nU0t&F}QP9?71ABxR3a_>lC`nW@F
-zu31aC*N%55ewJ3x`u=zlThI>4RomQ8N%$YBa%l4ST$aIelJVV<1u1_U%}m&L)Gv5%
-zV&{HL`5SNe%u8nvHQc(awXWxB%lT!$9~@QOvv1?iJ=QIPvp?MU`Q(A~$MgCO^EXcN
-zPVQ7+Q*$1e-mdYjx%qSU-`mpMZ3StP(-%0l0>ezT#5JNMC9x#cD!C{XNHG{07@F%E
-znCcoEgcurH8JJla8E6{-83sq!&6h>dkei>9nO2Eg!<NtL3xOIWK{f>Er<If^7Ns&c
-irsOB3DtP85rl$s_CZ<#to=gR03<ghEKbLh*2~7Z`zJvJy
+literal 0
+HcmV?d00001
 
 -- 
 2.12.3
