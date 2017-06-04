@@ -16,8 +16,8 @@ index b6b7035..ce2a211 100644
 --- a/xbmc/platform/posix/main.cpp
 +++ b/xbmc/platform/posix/main.cpp
 @@ -42,6 +42,18 @@
+ #include "input/linux/LIRC.h"
  #endif
- #include "platform/XbmcContext.h"
  
 +#include "Application.h"
 +#include "messaging/ApplicationMessenger.h"
@@ -31,9 +31,9 @@ index b6b7035..ce2a211 100644
 +          CApplicationMessenger::GetInstance().PostMsg(TMSG_QUIT);
 +}
 +
- #ifdef __cplusplus
- extern "C"
- #endif
+
+ namespace
+ {
 -- 
 2.7.4
 
