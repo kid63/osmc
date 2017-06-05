@@ -19,6 +19,6 @@ index ef36bdc..3b0ce5c 100755
 +        --disable-thumb \
         ${FLAGS}
  
-make -j ${BUILDTHREADS}
+ make -j ${BUILDTHREADS}
 -- 
 2.7.4
