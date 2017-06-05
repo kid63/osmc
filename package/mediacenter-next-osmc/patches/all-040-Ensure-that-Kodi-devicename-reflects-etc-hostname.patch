@@ -24,9 +24,9 @@ index 0e6bd95..07ee861 100644
 @@ -652,6 +652,7 @@ bool CApplication::Create()
      return false;
    }
-   m_ServiceManager->GetSettings().SetLoaded();                                     
-+  m_ServiceManager->GetSettings().SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);                     
- 
+   m_ServiceManager->GetSettings().SetLoaded();
++  m_ServiceManager->GetSettings().SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
+
    CLog::Log(LOGINFO, "creating subdirectories");
    CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(CProfilesManager::GetInstance().GetProfileUserDataFolder()).c_str());
 diff --git a/xbmc/GUIInfoManager.cpp b/xbmc/GUIInfoManager.cpp
@@ -76,7 +76,7 @@ index 6c58426..07babe9 100644
  bool CNetworkServices::OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
 diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
 index 7d6bd35..4ed74a4 100644
---- a/xbmc/settings/Settings.cpp
+--- a/xbmc/settings/Settings.cpp 
 +++ b/xbmc/settings/Settings.cpp
 @@ -1168,6 +1168,7 @@ void CSettings::InitializeISettingCallbacks()
    settingSet.insert(CSettings::SETTING_SERVICES_ESCONTINUOUSDELAY);
@@ -86,6 +86,5 @@ index 7d6bd35..4ed74a4 100644
    GetSettingsManager()->RegisterCallback(&CNetworkServices::GetInstance(), settingSet);
  
    settingSet.clear();
--- 
+--
 2.7.4
-
