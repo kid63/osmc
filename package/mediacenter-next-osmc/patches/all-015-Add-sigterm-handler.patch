@@ -12,9 +12,9 @@ index bee93da11a..e8b827988c 100644
 --- a/xbmc/platform/posix/main.cpp
 +++ b/xbmc/platform/posix/main.cpp
 @@ -49,6 +49,17 @@
- #include "input/linux/LIRC.h"
  #endif
- 
+ #include "platform/XbmcContext.h" 
+
 +#include "Application.h"
 +#include "messaging/ApplicationMessenger.h"
 +
@@ -26,7 +26,7 @@ index bee93da11a..e8b827988c 100644
 +       if (! g_application.isShuttingDown())
 +          CApplicationMessenger::GetInstance().PostMsg(TMSG_QUIT);
 +}
- 
+ #if defined(TARGET_POSIX) 
  namespace
  {
 -- 
