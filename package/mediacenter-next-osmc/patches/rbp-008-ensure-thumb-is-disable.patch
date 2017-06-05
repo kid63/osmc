@@ -17,8 +17,8 @@ index ef36bdc..3b0ce5c 100755
  	--disable-mipsdsp \
  	--disable-mipsdspr2 \
 +        --disable-thumb \
-	--extra-cflags="-DRPI=1" \                                                
-        ${FLAGS}                                                          
-                                                       
+        ${FLAGS}
+ 
+make -j ${BUILDTHREADS}
 -- 
 2.7.4
