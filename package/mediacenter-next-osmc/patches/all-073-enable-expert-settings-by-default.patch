@@ -13,11 +13,11 @@ index a608a82..9ec76f8 100644
 --- a/xbmc/view/ViewStateSettings.cpp
 +++ b/xbmc/view/ViewStateSettings.cpp
 @@ -128,7 +128,7 @@ bool CViewStateSettings::Load(const TiXmlNode *settings)
-     if (XMLUtils::GetInt(pElement, XML_SETTINGLEVEL, settingLevel, (const int)SettingLevelBasic, (const int)SettingLevelExpert))
+     if (XMLUtils::GetInt(pElement, XML_SETTINGLEVEL, settingLevel, (const int)SettingLevel::Basic, (const int)SettingLevel::Expert))
        m_settingLevel = (SettingLevel)settingLevel;
      else
--      m_settingLevel = SettingLevelStandard;
-+      m_settingLevel = SettingLevelExpert;
+-      m_settingLevel = SettingLevel::Standard;
++      m_settingLevel = SettingLevel::Expert;
  
      const TiXmlNode* pEventLogNode = pElement->FirstChild(XML_EVENTLOG);
      if (pEventLogNode != NULL)
