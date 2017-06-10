@@ -28,7 +28,7 @@ index 14ca09e..fe15811 100644
    if (i != m_props.extrainfo.end())
      provides = i->second;
    SetProvides(provides);
-+  if (props.type == ADDON_SCRIPT) {
++  if (Type() == ADDON_SCRIPT) {
 +    /* Allow this add-on to load their own fonts */
 +     CLog::Log(LOGINFO, "PluginSource - %s - add-on %s can load its own fonts", __FUNCTION__, props.name.c_str());
 +     g_fontManager.LoadFonts("Default", props.path); /* For now, use <fontset id="Default"> and you can load whatever you want */
