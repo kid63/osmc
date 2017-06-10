@@ -23,7 +23,7 @@ index 3b94e5a..0cd38dc 100644
  {
    if (m_props.libname.empty())
      return "";
--  return URIUtils::AddFileToFolder(m_props.path, m_props.libname);
+-  return URIUtils::AddFileToFolder(m_addonInfo.Path(), m_addonInfo.LibName()); 
 +
 +  std::string strLibPath = URIUtils::AddFileToFolder(m_props.path, m_props.libname);
 +
