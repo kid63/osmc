@@ -42,8 +42,8 @@ index eafc12b..1946f3d 100644
 +++ b/xbmc/addons/PluginSource.h
 @@ -34,7 +34,6 @@ public:
  
-   explicit CPluginSource(AddonProps props);
-   CPluginSource(AddonProps props, const std::string& provides);
+   explicit CPluginSource(CAddonInfo addonInfo); 
+   CPluginSource(CAddonInfo addonInfo, const std::string& provides);
 -
    virtual TYPE FullType() const;
    virtual bool IsType(TYPE type) const;
