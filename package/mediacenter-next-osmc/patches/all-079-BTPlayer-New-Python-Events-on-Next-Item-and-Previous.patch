@@ -21,7 +21,7 @@ index 1570714..a493970 100644
 @@ -2174,6 +2174,17 @@ bool CApplication::OnAction(const CAction &action)
      return true;
    }
- 
+
 +   // fire python events
 +   if (action.GetID() == ACTION_PREV_ITEM)
 +     {
@@ -34,7 +34,7 @@ index 1570714..a493970 100644
 +     }
 +
    // Now check with the playlist player if action can be handled.
-   // In case of the action PREV_ITEM, we only allow the playlist player to take it if we're less than 3 seconds into playback.
+   // In case of the action PREV_ITEM, we only allow the playlist player to take it if we're less than 3 seconds into playbac
    if (!(action.GetID() == ACTION_PREV_ITEM && m_pPlayer->CanSeek() && GetTime() > 3) )
 @@ -3724,6 +3735,21 @@ void CApplication::OnPlayBackSeekChapter(int iChapter)
  #endif
@@ -42,7 +42,7 @@ index 1570714..a493970 100644
  
 +void CApplication::OnPreviousItem()
 +{
-+  
++
 +#ifdef HAS_PYTHON
 +  g_pythonParser.OnPreviousItem();
 +#endif
@@ -63,15 +63,15 @@ index a9d9bf5..b975385 100644
 --- a/xbmc/Application.h
 +++ b/xbmc/Application.h
 @@ -179,7 +179,9 @@ public:
-   virtual void OnPlayBackSeek(int iTime, int seekOffset) override;
-   virtual void OnPlayBackSeekChapter(int iChapter) override;
-   virtual void OnPlayBackSpeedChanged(int iSpeed) override;
+   void OnPlayBackSeek(int iTime, int seekOffset) override;
+   void OnPlayBackSeekChapter(int iChapter) override;
+   void OnPlayBackSpeedChanged(int iSpeed) override;
 -
-+  virtual void OnPreviousItem() override;
-+  virtual void OnNextItem() override;
-+  
-   virtual int  GetMessageMask() override;
-   virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
++  void OnPreviousItem() override;
++  void OnNextItem() override;
++
+   int  GetMessageMask() override;
+   void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
  
 diff --git a/xbmc/cores/IPlayerCallback.h b/xbmc/cores/IPlayerCallback.h
 index a89d8b7..0698564 100644
@@ -93,13 +93,13 @@ index 6934a59..7932975 100644
      }
  
 +    void Player::OnPreviousItem()
-+    { 
++    {
 +      XBMC_TRACE;
 +      invokeCallback(new CallbackFunction<Player>(this,&Player::onPreviousItem));
 +    }
 +
 +    void Player::OnNextItem()
-+    { 
++    {
 +      XBMC_TRACE;
 +      invokeCallback(new CallbackFunction<Player>(this,&Player::onNextItem));
 +    }
@@ -112,12 +112,12 @@ index 6934a59..7932975 100644
      }
  
 +    void Player::onPreviousItem()
-+    { 
++    {
 +      XBMC_TRACE;
 +    }
 +
 +    void Player::onNextItem()
-+    { 
++    {
 +      XBMC_TRACE;
 +    }
 +
@@ -165,11 +165,11 @@ index 4d97d76..9a4ea07 100644
  
  #ifdef DOXYGEN_SHOULD_USE_THIS
 @@ -720,6 +749,8 @@ namespace XBMCAddon
-       SWIGHIDDENVIRTUAL void    OnPlayBackSpeedChanged(int iSpeed);
-       SWIGHIDDENVIRTUAL void    OnPlayBackSeek(int iTime, int seekOffset);
-       SWIGHIDDENVIRTUAL void    OnPlayBackSeekChapter(int iChapter);
-+      SWIGHIDDENVIRTUAL void OnPreviousItem();
-+      SWIGHIDDENVIRTUAL void OnNextItem();
+       SWIGHIDDENVIRTUAL void OnPlayBackSpeedChanged(int iSpeed) override;
+       SWIGHIDDENVIRTUAL void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
+       SWIGHIDDENVIRTUAL void OnPlayBackSeekChapter(int iChapter) override;
++      SWIGHIDDENVIRTUAL void OnPreviousItem() override;
++      SWIGHIDDENVIRTUAL void OnNextItem() override;
  #endif
  
      protected:
@@ -213,14 +213,14 @@ index 2689451..a035188 100644
 --- a/xbmc/interfaces/python/XBPython.h
 +++ b/xbmc/interfaces/python/XBPython.h
 @@ -77,6 +77,8 @@ public:
-   virtual void OnPlayBackSeek(int iTime, int seekOffset);
-   virtual void OnPlayBackSeekChapter(int iChapter);
-   virtual void OnQueueNextItem();
-+  virtual void OnPreviousItem();
-+  virtual void OnNextItem();
+   void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
+   void OnPlayBackSeekChapter(int iChapter) override;
+   void OnQueueNextItem() override;
++  void OnPreviousItem() override;
++  void OnNextItem() override;
  
-   virtual void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data);
+   void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data) override
    void RegisterPythonPlayerCallBack(IPlayerCallback* pCallback);
--- 
+--
 2.5.0
 
