@@ -45,8 +45,8 @@ index eafc12b..1946f3d 100644
    explicit CPluginSource(CAddonInfo addonInfo); 
    CPluginSource(CAddonInfo addonInfo, const std::string& provides);
 -
-   virtual TYPE FullType() const;
-   virtual bool IsType(TYPE type) const;
+   TYPE FullType() const;
+   bool IsType(TYPE type) const;
    bool Provides(const Content& content) const
 diff --git a/xbmc/guilib/GUIFontManager.cpp b/xbmc/guilib/GUIFontManager.cpp
 index 3235a40..da78f4a 100644
