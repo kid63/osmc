@@ -34,7 +34,7 @@ index 1570714..a493970 100644
 +     }
 +
    // Now check with the playlist player if action can be handled.
-   // In case of the action PREV_ITEM, we only allow the playlist player to take it if we're less than 3 seconds into playbac
+   // In case of the action PREV_ITEM, we only allow the playlist player to take it if we're less than 3 seconds into playback.
    if (!(action.GetID() == ACTION_PREV_ITEM && m_pPlayer->CanSeek() && GetTime() > 3) )
 @@ -3724,6 +3735,21 @@ void CApplication::OnPlayBackSeekChapter(int iChapter)
  #endif
@@ -219,7 +219,7 @@ index 2689451..a035188 100644
 +  void OnPreviousItem() override;
 +  void OnNextItem() override;
  
-   void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data) override
+   void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data) override;
    void RegisterPythonPlayerCallBack(IPlayerCallback* pCallback);
 --
 2.5.0
