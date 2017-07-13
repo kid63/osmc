@@ -14,7 +14,7 @@ index 41bc15c..1d83eff 100644
 --- a/xbmc/addons/RepositoryUpdater.cpp
 +++ b/xbmc/addons/RepositoryUpdater.cpp
 @@ -193,6 +193,11 @@ void CRepositoryUpdater::ScheduleUpdate()
-   if (CSettings::GetInstance().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_NEVER)
+   if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_NEVER)
      return;
  
 +  if (g_application.m_eOSMCWalkthroughState != 2) {
@@ -22,7 +22,7 @@ index 41bc15c..1d83eff 100644
 +       return;
 +  }
 +
-   if (!CAddonMgr::GetInstance().HasAddons(ADDON_REPOSITORY))
+   if (!m_addonMgr.HasAddons(ADDON_REPOSITORY))
      return;
  
 -- 
