@@ -20,13 +20,13 @@ index da46973..4173d93 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 @@ -51,6 +51,7 @@ CDVDVideoCodecAmlogic::CDVDVideoCodecAmlogic(CProcessInfo &processInfo) : CDVDVi
-   m_framerate(0.0),
-   m_video_rate(0),
-   m_mpeg2_sequence(NULL),
-+  m_h264_sequence(NULL),
-   m_has_keyframe(false),
-   m_bitparser(NULL),
-   m_bitstream(NULL)
+   , m_framerate(0.0)
+   , m_video_rate(0)
+   , m_mpeg2_sequence(NULL)
++  , m_h264_sequence(NULL)
+   , m_has_keyframe(false)
+   , m_bitparser(NULL)
+   , m_bitstream(NULL)
 @@ -120,6 +121,12 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
          // 4K is supported only on Amlogic S802/S812 chip
          return false;
