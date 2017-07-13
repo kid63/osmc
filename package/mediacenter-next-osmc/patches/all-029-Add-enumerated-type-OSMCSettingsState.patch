@@ -28,7 +28,7 @@ index 137bed7..34a0615 100644
 +void CApplication::SetOSMCWalkthroughState(OSMCWalkthroughState state)
 +{
 + m_eOSMCWalkthroughState = state;
-+ CRepositoryUpdater::GetInstance().ScheduleUpdate();
++ CServiceBroker::GetRepositoryUpdater().ScheduleUpdate();
 +}
 +
  bool CApplication::PlayMedia(const CFileItem& item, const std::string &player, int iPlaylist)
