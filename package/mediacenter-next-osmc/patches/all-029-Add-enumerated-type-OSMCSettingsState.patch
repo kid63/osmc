@@ -39,7 +39,7 @@ index 22a6026..a59f4c5 100644
 --- a/xbmc/Application.h
 +++ b/xbmc/Application.h
 @@ -159,6 +159,18 @@ public:
-   void StopPVRManager();
+   
    bool IsCurrentThread() const;
    void Stop(int exitCode);
 +
@@ -54,9 +54,9 @@ index 22a6026..a59f4c5 100644
 +  OSMCWalkthroughState m_eOSMCWalkthroughState;
 +  void SetOSMCWalkthroughState(OSMCWalkthroughState state);
 +
-   void RestartApp();
    void UnloadSkin(bool forReload = false);
-   bool LoadUserWindows();
+   bool LoadCustomWindows();
+   void ReloadSkin(bool confirm = false);
 -- 
 2.7.4
 
