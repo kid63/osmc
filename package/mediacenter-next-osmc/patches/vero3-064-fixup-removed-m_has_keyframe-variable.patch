@@ -13,13 +13,13 @@ index 9fd10f8..446a104 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 @@ -52,7 +52,7 @@ CDVDVideoCodecAmlogic::CDVDVideoCodecAmlogic(CProcessInfo &processInfo) : CDVDVi
-   m_video_rate(0),
-   m_mpeg2_sequence(NULL),
-   m_h264_sequence(NULL),
--  m_has_keyframe(false),
-+//  m_has_keyframe(false),
-   m_bitparser(NULL),
-   m_bitstream(NULL)
+   ,m_video_rate(0)
+   ,m_mpeg2_sequence(NULL)
+   ,m_h264_sequence(NULL)
+-  ,m_has_keyframe(false)
++// ,m_has_keyframe(false)
+   ,m_bitparser(NULL)
+   ,m_bitstream(NULL)
  {
 -- 
 2.7.4
