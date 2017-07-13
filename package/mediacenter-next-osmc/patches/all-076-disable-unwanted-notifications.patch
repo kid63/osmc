@@ -13,13 +13,13 @@ index 2d6e82a..666fbb9 100644
 --- a/xbmc/addons/AddonManager.cpp
 +++ b/xbmc/addons/AddonManager.cpp
 @@ -24,6 +24,7 @@
- #include <iterator>
- #include <memory>
- #include <utility>
+ #include "utils/URIUtils.h"
+ #include "utils/XMLUtils.h"
+
 +#include <regex>
- 
- #include "Addon.h"
- #include "addons/AddonBuilder.h"
+ #include <array>
+
+ using namespace XFILE; 
 @@ -796,6 +797,9 @@ bool CAddonMgr::EnableAddon(const std::string& id)
  bool CAddonMgr::IsAddonDisabled(const std::string& ID)
  {
