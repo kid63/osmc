@@ -408,7 +408,7 @@ then
 	mkdir build
 	cd build
 	#ADDONS_ADSP="adsp.basic adsp.biquad.filters adsp.freesurround"
- 	ADDONS_AUDIO_DECODERS="audiodecoder.modplug audiodecoder.sidplay" #audiodecoder.nosefart audiodecoder.snesapu
+ 	#ADDONS_AUDIO_DECODERS="audiodecoder.modplug audiodecoder.sidplay" #audiodecoder.nosefart audiodecoder.snesapu
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
 	ADDONS_PERIPHERAL="peripheral.joystick peripheral.xarcade"
