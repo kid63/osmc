@@ -18,7 +18,7 @@ index 02c613e..3751cae 100644
 +  /* This shouldn't be very busy and timing is important so increase priority */
 +  CThread::GetCurrentThread()->SetPriority(CThread::GetCurrentThread()->GetPriority()+1);
 +
-   while (!stop && !m_abort)
+   while (!stopEvent.Signaled() && !m_abort)
    {
      int countVSyncs(1);
 -- 
