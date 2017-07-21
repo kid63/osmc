@@ -1,24 +1,24 @@
-From 86bcaefc39adb87052a3ea4eea736deb839fbfe9 Mon Sep 17 00:00:00 2001
+From 30c2ace8bc09772253830c12bae8ad6f74a176bd Mon Sep 17 00:00:00 2001
 From: Greg McCarthy <greg@gjmccarthy.co.uk>
-Date: Mon, 6 Mar 2017 19:52:06 +0000
-Subject: [PATCH] Rbp: Do not build with x-libs
+Date: Fri, 21 Jul 2017 08:57:37 +0100
+Subject: [PATCH] Update patch for treat rbpi as linux not a separate platform
 
 ---
  tools/depends/target/ffmpeg/CMakeLists.txt | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
-index 0a9e9d3..f5c45f2 100644
+index 0522bdaa95..f46367acd5 100644
 --- a/tools/depends/target/ffmpeg/CMakeLists.txt
 +++ b/tools/depends/target/ffmpeg/CMakeLists.txt
-@@ -57,7 +57,7 @@ elseif(CORE_SYSTEM_NAME STREQUAL osx)
-                           --target-os=darwin
-                           --disable-securetransport)
- elseif(CORE_PLATFORM_NAME STREQUAL rbpi)
--  list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau)
-+  list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib)
+@@ -39,7 +39,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Release)
  endif()
 
- if(CPU MATCHES arm OR CORE_SYSTEM_NAME STREQUAL rbpi)
+ if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
+-  list(APPEND ffmpeg_conf --enable-vdpau --enable-vaapi --enable-pic)
++  list(APPEND ffmpeg_conf --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib)
+ elseif(CORE_SYSTEM_NAME STREQUAL android)
+   if(CPU MATCHES arm64)
+     list(APPEND ffmpeg_conf --cpu=cortex-a53 --arch=aarch64)
 -- 
-2.1.4
+2.12.3
