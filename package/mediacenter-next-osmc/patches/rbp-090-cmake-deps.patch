@@ -9,8 +9,8 @@ Subject: [PATCH] Add deps to cmake
 
 diff --git a/cmake/platform/linux/aml.cmake b/cmake/platform/linux/aml.cmake
 index c1d464d2d2..bfeecf4a20 100644
---- a/cmake/platform/rbpi/rbpi.cmake
-+++ b/cmake/platform/rbpi/rbpi.cmake
+--- a/cmake/platform/linux/rbpi.cmake
++++ b/cmake/platform/linux/rbpi.cmake
 @@ -1 +1,2 @@
  set(PLATFORM_REQUIRED_DEPS OpenGLES EGL MMAL) 
 +set(PLATFORM_OPTIONAL_DEPS CEC Bluray NFS)

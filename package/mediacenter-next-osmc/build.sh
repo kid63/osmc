@@ -307,7 +307,8 @@ then
             -DENABLE_OPENGL=OFF \
             -DENABLE_OPTICAL=1 \
             -DENABLE_DVDCSS=1 \
-            -DCORE_SYSTEM_NAME=rbpi \
+            -DCORE_SYSTEM_NAME=linux \
+	    -DCORE_PLATFORM_NAME=rbpi \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
 	.
