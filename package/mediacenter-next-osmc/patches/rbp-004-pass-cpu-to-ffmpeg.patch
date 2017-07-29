@@ -1,0 +1,23 @@
+From 5317763f5775b32bb736543fa417aab5bf5a9373 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Fri, 28 Jul 2017 16:43:16 +0100
+Subject: [PATCH] Pass cpu to ffmpeg
+
+---
+ tools/depends/target/ffmpeg/CMakeLists.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
+index 0522bdaa95..b8361ab110 100644
+--- a/tools/depends/target/ffmpeg/CMakeLists.txt
++++ b/tools/depends/target/ffmpeg/CMakeLists.txt
+@@ -40,6 +40,7 @@ endif()
+
+ if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
+   list(APPEND ffmpeg_conf --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-li
++  list(APPEND ffmpeg_conf --cpu=${CPU})
+ elseif(CORE_SYSTEM_NAME STREQUAL android)
+   if(CPU MATCHES arm64)
+     list(APPEND ffmpeg_conf --cpu=cortex-a53 --arch=aarch64)
+--
+2.12.3
