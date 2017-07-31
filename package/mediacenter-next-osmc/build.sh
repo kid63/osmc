@@ -412,7 +412,7 @@ then
  	#ADDONS_AUDIO_DECODERS="audiodecoder.modplug audiodecoder.sidplay" #audiodecoder.nosefart audiodecoder.snesapu
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
-	ADDONS_PERIPHERAL="peripheral.joystick peripheral.xarcade"
+	ADDONS_PERIPHERAL="peripheral.xarcade" #peripheral.joystick
 	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
 game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy game.libretro.handy game.libretro.hatari \
 game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
@@ -434,7 +434,8 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	#game.libretro.fmsx
 	# game.libretro.bluemsx 
 
-	ADDONS_PVR="pvr.hdhomerun pvr.mythtv pvr.octonet pvr.dvbviewer pvr.iptvsimple pvr.mediaportal.tvserver pvr.argustv pvr.demo pvr.dvblink pvr.filmon pvr.hts pvr.nextpvr pvr.njoy pvr.pctv pvr.stalker pvr.vbox pvr.vuplus pvr.wmc pvr.vdr.vnsi" # vfs.rar
+	#pvr.mythtv pvr.iptvsimple pvr.mediaportal.tvserver pvr.argustv pvr.stalker pvr.pctv
+	ADDONS_PVR="pvr.hdhomerun pvr.octonet pvr.dvbviewer pvr.demo pvr.dvblink pvr.filmon pvr.hts pvr.nextpvr pvr.njoy pvr.vbox pvr.vuplus pvr.wmc pvr.vdr.vnsi" # vfs.rar
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]

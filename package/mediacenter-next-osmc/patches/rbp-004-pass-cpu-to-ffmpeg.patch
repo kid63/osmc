@@ -14,7 +14,7 @@ index 0522bdaa95..b8361ab110 100644
 @@ -40,6 +40,7 @@ endif()
 
  if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
-   list(APPEND ffmpeg_conf --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib) 
+   list(APPEND ffmpeg_conf --disable-vaapi --disable-vdpau --disable-libxcb --disable-libxcb-shape --disable-thumb --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib) 
 +  list(APPEND ffmpeg_conf --cpu=${CPU})
  elseif(CORE_SYSTEM_NAME STREQUAL android)
    if(CPU MATCHES arm64)
