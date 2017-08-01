@@ -281,7 +281,7 @@ then
 	if [ "$1" == "rbp1" ]
 	then
 		CPU="arm1176jzf-s";
-		COMPFLAGS="-O3 -fomit-frame-pointer "
+		COMPFLAGS="-O3 -fomit-frame-pointer -mfpu=neon-vfp"
 	fi
 	if [ "$1" == "rbp2" ]
 	then
