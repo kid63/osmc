@@ -429,7 +429,6 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	#Broken game.libretro.reicast game.libretro.pcem 	
 	#game.libretro.mupen64plus 
 	#game.libretro.scummvm 
-	#game.libretro.fmsx
 	# game.libretro.bluemsx 
 
 	# pvr.vuplus pvr.wmc pvr.nextpvr pvr.njoy pvr.mythtv pvr.iptvsimple pvr.mediaportal.tvserver pvr.argustv pvr.stalker pvr.pctv pvr.demo pvr.filmon pvr.hdhomerun
