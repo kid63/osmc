@@ -83,8 +83,8 @@ index 7d6bd35..4ed74a4 100644
    settingSet.insert(CSettings::SETTING_SMB_WINSSERVER);
    settingSet.insert(CSettings::SETTING_SMB_WORKGROUP);
 +  settingSet.insert(CSettings::SETTING_SERVICES_DEVICENAME);
+   settingSet.insert(CSettings::SETTING_SMB_MAXPROTOCOL);
    GetSettingsManager()->RegisterCallback(&CNetworkServices::GetInstance(), settingSet); 
    
-   settingSet.clear();
 --
 2.7.4
