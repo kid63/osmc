@@ -410,7 +410,7 @@ then
  	#ADDONS_AUDIO_DECODERS="audiodecoder.modplug audiodecoder.sidplay" #audiodecoder.nosefart audiodecoder.snesapu
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
-	ADDONS_PERIPHERAL="peripheral.xarcade" #peripheral.joystick
+	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick"
 	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
 game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy \
 game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
