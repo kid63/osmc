@@ -423,10 +423,10 @@ game.libretro.gambatte game.libretro.gw game.libretro.prboom game.libretro.handy
 game.libretro.lutro game.libretro.meteor game.libretro.mgba game.libretro.nestopia game.libretro.nx \
 game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.quicknes \
 game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
-game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro.vba-next \
+game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake \
 game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw game.libretro.genplus"
 	# game.moonlight "
-	#Broken game.libretro.reicast game.libretro.pcem 	
+	#Broken game.libretro.reicast game.libretro.pcem game.libretro.vba-next 	
 	#game.libretro.mupen64plus 
 	#game.libretro.scummvm 
 	# game.libretro.bluemsx 
