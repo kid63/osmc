@@ -431,8 +431,8 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	#game.libretro.scummvm 
 	# game.libretro.bluemsx 
 
-	# pvr.vuplus pvr.wmc pvr.nextpvr pvr.njoy pvr.vdr.vnsi pvr.hts pvr.mediaportal.tvserver pvr.argustv pvr.stalker pvr.pctv pvr.demo pvr.filmon pvr.hdhomerun
-	ADDONS_PVR="pvr.iptvsimple pvr.octonet pvr.dvbviewer pvr.dvblink pvr.vbox pvr.mythtv" # vfs.rar
+	# pvr.vuplus pvr.wmc pvr.nextpvr pvr.njoy pvr.vdr.vnsi pvr.hts pvr.mediaportal.tvserver pvr.stalker pvr.pctv pvr.filmon pvr.hdhomerun
+	ADDONS_PVR="pvr.vuplus pvr.iptvsimple pvr.octonet pvr.dvbviewer pvr.dvblink pvr.vbox pvr.demo pvr.mythtv pvr.argustv" # vfs.rar
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
