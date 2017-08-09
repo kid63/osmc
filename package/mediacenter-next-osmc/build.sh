@@ -466,13 +466,27 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	$BUILD kodiplatform_DIR=$(pwd) CMAKE_PREFIX_PATH=/usr/osmc -C build/
 	if [ $? != 0 ]; then echo "Building binary addons failed" && exit 1; fi
 	popd
-        # Languages
+        
+	# Widevine
+        echo "widevine"                                                
+        mkdir widevine/      
+        pushd widevine           
+        handle_dep "wget" # We do not usually use wget in the build environment
+        wget http://odroidxu.leeharris.me.uk/xu3/chromium-widevine-1.4.8.823-2-armv7h.pkg.tar.xz               
+        tar xJf chromium-widevine-1.4.8.823-2-armv7h.pkg.tar.xz usr/lib/chromium/libwidevinecdm.so --strip-components=3
+        chmod 755 libwidevinecdm.so                       
+        mkdir -p ${out}/home/osmc/.kodi/cdm/
+        cp -ar libwidevinecdm.so ${out}/home/osmc/.kodi/cdm/    
+        ln -fs /usr/lib/kodi/addons/inputstream.adaptive/libssd_wv.so ${out}/home/osmc/.kodi/cdm/libssd_wv.so
+        popd  
+
+	# Languages
         mkdir languages/
         pushd languages
         if [ "$API_VERSION" = "18" ]; then api_name="leia"; fi
         if [ "$API_VERSION" = "19" ]; then api_name="tbc"; fi
         base_url="http://mirror.us.leaseweb.net/xbmc/addons/${api_name}"
-	handle_dep "wget" # We do not usually use wget in the build environment
+	#handle_dep "wget" # We do not usually use wget in the build environment
         languages=$(wget ${base_url} -O- | grep resource.language. | sed -e 's/<a/\n<a/g' | sed -e 's/<a .*href=['"'"'"]//' -e 's/["'"'"'].*$//' -e '/^$/ d' | sed '/tr/d' | sed 's/resource.language.//' | tr -d /)
         if [ $? != 0 ]; then echo "Can't get list of languages" && exit 1; fi
         for language in ${languages}
