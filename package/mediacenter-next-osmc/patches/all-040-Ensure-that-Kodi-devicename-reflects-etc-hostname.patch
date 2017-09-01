@@ -25,7 +25,7 @@ index af16cab..469a612 100644
      return false;
    }
    m_ServiceManager->GetSettings().SetLoaded();
-+  m_ServiceManager->GetCSettings()GetInstance().SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
++  m_ServiceManager->GetSettings()GetInstance().SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
  
    CLog::Log(LOGINFO, "creating subdirectories");
    CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(CProfilesManager::GetInstance().GetProfileUserDataFolder()).c_str());
