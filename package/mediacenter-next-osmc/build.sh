@@ -89,7 +89,7 @@ then
 	handle_dep "python-dev"
 	handle_dep "python-imaging"
 	handle_dep "python-sqlite"
-	#handle_dep "swig"
+	handle_dep "swig3.0"
 	handle_dep "unzip"
 	handle_dep "yasm"
 	handle_dep "zip"
