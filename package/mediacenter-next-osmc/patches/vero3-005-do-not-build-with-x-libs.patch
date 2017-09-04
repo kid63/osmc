@@ -1,25 +1,24 @@
-From 2c4417226fbdcf3df4755c935829645dc33b736b Mon Sep 17 00:00:00 2001
+From 221cdc6a4541915cd4562de6cdd72d75e819dd1b Mon Sep 17 00:00:00 2001
 From: Greg McCarthy <greg@gjmccarthy.co.uk>
-Date: Sun, 5 Mar 2017 14:06:07 +0000
-Subject: [PATCH] Vero3: Do not build with xlibs
+Date: Sat, 2 Sep 2017 09:24:25 +0100
+Subject: [PATCH] Update ffmpeg for rbpi
 
 ---
  tools/depends/target/ffmpeg/CMakeLists.txt | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
-index 0a9e9d3..682eb92 100644
+index f8009fcd06..fec752be3a 100644
 --- a/tools/depends/target/ffmpeg/CMakeLists.txt
 +++ b/tools/depends/target/ffmpeg/CMakeLists.txt
-@@ -35,7 +35,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Release)
- endif()
- 
- if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
--  list(APPEND ffmpeg_conf --enable-vdpau --enable-vaapi --enable-pic)
-+  list(APPEND ffmpeg_conf --disable-vdpau --disable-vaapi --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib --enable-pic)
- elseif(CORE_SYSTEM_NAME STREQUAL android)
-   if(CPU MATCHES arm64)
-     list(APPEND ffmpeg_conf --cpu=cortex-a53 --arch=aarch64)
--- 
-2.1.4
+@@ -40,7 +40,7 @@ endif()
 
+ if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
+   if(CORE_PLATFORM_NAME STREQUAL rbpi)
+-    list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau)
++    list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau --disable-neon --disable-libxcb --disable-libxcb-shape --disable-thumb --disable-libxcb-shm --disable-libxcb-xfixes --disable-xlib)
+   else()
+     list(APPEND ffmpeg_conf --enable-vdpau --enable-vaapi --enable-pic)
+   endif()
+-- 
+2.12.3
