@@ -21,9 +21,10 @@ function verify_action()
 function enable_nw_chroot()
 {
 	echo -e "Enabling networking"
-	cp /etc/resolv.conf $1/etc/
+	cp /etc/resolv.conf $1/etc/resolv.conf
 	if [ $? != 0 ]; then echo -e "Can't copy networking file" && return 1; fi
-	cp /etc/network/interfaces $1/etc/network
+	mkdir -p $1/etc/network
+	cp /etc/network/interfaces $1/etc/network/interfaces
 	if [ $? != 0 ]; then echo -e "Can't copy networking file" && return 1; fi
 }
 
@@ -75,7 +76,7 @@ function install_package()
 	then
 		if [ "$2" -eq 1 ]; then EMD=$(find /usr/lib | grep libeatmydata | tail -n 1); fi
 	fi
-	LD_PRELOAD=${EMD} apt-get -y --force-yes --no-install-recommends install $1
+	LD_PRELOAD=${EMD} apt-get -y --no-install-recommends install $1
 		if [ $? != 0 ]; then echo -e "Failed to install" && return 1; else echo -e "Package installed successfully" && return 0; fi
 	fi
 }
