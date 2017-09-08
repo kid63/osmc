@@ -1,0 +1,73 @@
+From 09f19d6860e04706be7dc30481ed7cb560720eeb Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Thu, 7 Sep 2017 11:24:12 +0200
+Subject: [PATCH] VideoPlayer: fix video freeze caused by audio delay
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp             |  2 +-
+ xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp | 10 +---------
+ xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h   |  1 -
+ 3 files changed, 2 insertions(+), 11 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp b/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp
+index c12890f8fb..9c4d1822b9 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayerVideo.cpp
+@@ -693,7 +693,7 @@ bool CVideoPlayerVideo::ProcessDecoderOutput(double &frametime, double &pts)
+       msg.player = VideoPlayer_VIDEO;
+       msg.cachetime = DVD_MSEC_TO_TIME(50); //! @todo implement
+       msg.cachetotal = DVD_MSEC_TO_TIME(100); //! @todo implement
+-      msg.timestamp = hasTimestamp ? pts : DVD_NOPTS_VALUE;
++      msg.timestamp = hasTimestamp ? (pts + m_renderManager.GetDelay() * 1000) : DVD_NOPTS_VALUE;
+       m_messageParent.Put(new CDVDMsgType<SStartMsg>(CDVDMsg::PLAYER_STARTED, msg));
+     }
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
+index be73a0bfe0..b34010a5d8 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
+@@ -224,7 +224,6 @@ bool CRenderManager::Configure()
+       m_free.push_back(i);
+ 
+     m_bRenderGUI = true;
+-    m_waitForBufferCount = 0;
+     m_bTriggerUpdateResolution = true;
+     m_presentstep = PRESENT_IDLE;
+     m_presentpts = DVD_NOPTS_VALUE;
+@@ -1037,23 +1036,16 @@ int CRenderManager::WaitForBuffer(volatile std::atomic_bool&bStop, int timeout)
+   while(m_free.empty())
+   {
+     m_presentevent.wait(lock, std::min(50, timeout));
+-    if(endtime.IsTimePast() || bStop)
++    if (endtime.IsTimePast() || bStop)
+     {
+       if (timeout != 0 && !bStop)
+       {
+         CLog::Log(LOGWARNING, "CRenderManager::WaitForBuffer - timeout waiting for buffer");
+-        m_waitForBufferCount++;
+-        if (m_waitForBufferCount > 2)
+-        {
+-          m_bRenderGUI = false;
+-        }
+       }
+       return -1;
+     }
+   }
+ 
+-  m_waitForBufferCount = 0;
+-
+   // make sure overlay buffer is released, this won't happen on AddOverlay
+   m_overlays.Release(m_free.front());
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h
+index c240c16b16..4f2a634faa 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h
+@@ -159,7 +159,6 @@ class CRenderManager
+   CCriticalSection m_datalock;
+   bool m_bTriggerUpdateResolution = false;
+   bool m_bRenderGUI = true;
+-  int m_waitForBufferCount = 0;
+   int m_rendermethod = 0;
+   bool m_renderedOverlay = false;
+   bool m_renderDebug = false;
