@@ -1,4 +1,4 @@
-From a0e51196850f73bea8be9b03141e2dad95ea869e Mon Sep 17 00:00:00 2001
+From 6008dedf2255f1940603bbbae826c88ee8b5d675 Mon Sep 17 00:00:00 2001
 From: anaconda <anaconda@menakite.eu>
 Date: Wed, 25 Feb 2015 18:22:21 +0100
 Subject: [PATCH] Load OSD dialogs on startup.
@@ -16,19 +16,19 @@ See http://forum.kodi.tv/showthread.php?tid=211501&pid=1938811#pid1938811
  6 files changed, 10 insertions(+), 4 deletions(-)
 
 diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
-index d7e8ac4..76b8c5a 100644
+index 4e7996f..e5ed8de 100644
 --- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
 +++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
-@@ -50,6 +50,7 @@ CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD() :
-     CGUIDialog(WINDOW_DIALOG_PVR_OSD_CHANNELS, "DialogPVRChannelsOSD.xml"),
-     Observer()
+@@ -44,6 +44,7 @@ using namespace KODI::MESSAGING;
+ CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD() :
+     CGUIDialog(WINDOW_DIALOG_PVR_OSD_CHANNELS, "DialogPVRChannelsOSD.xml")
  {
 +  m_loadType = LOAD_ON_GUI_INIT;
    m_vecItems = new CFileItemList;
  }
  
 diff --git a/xbmc/pvr/dialogs/GUIDialogPVRGuideOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRGuideOSD.cpp
-index 81dbc27..0462310 100644
+index 99a7517..81355ff 100644
 --- a/xbmc/pvr/dialogs/GUIDialogPVRGuideOSD.cpp
 +++ b/xbmc/pvr/dialogs/GUIDialogPVRGuideOSD.cpp
 @@ -36,6 +36,7 @@ using namespace PVR;
@@ -40,11 +40,11 @@ index 81dbc27..0462310 100644
  }
  
 diff --git a/xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp b/xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
-index 8d57767..60b6461 100644
+index ac501f7..0a0cf76 100644
 --- a/xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 +++ b/xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
-@@ -68,7 +68,9 @@ CGUIDialogAudioSubtitleSettings::CGUIDialogAudioSubtitleSettings()
-   : CGUIDialogSettingsManualBase(WINDOW_DIALOG_AUDIO_OSD_SETTINGS, "VideoOSDSettings.xml"),
+@@ -69,7 +69,9 @@ CGUIDialogAudioSubtitleSettings::CGUIDialogAudioSubtitleSettings()
+   : CGUIDialogSettingsManualBase(WINDOW_DIALOG_AUDIO_OSD_SETTINGS, "DialogSettings.xml"),
      m_passthrough(false),
      m_dspEnabled(false)
 -{ }
@@ -55,10 +55,10 @@ index 8d57767..60b6461 100644
  CGUIDialogAudioSubtitleSettings::~CGUIDialogAudioSubtitleSettings()
  { }
 diff --git a/xbmc/video/dialogs/GUIDialogSubtitles.cpp b/xbmc/video/dialogs/GUIDialogSubtitles.cpp
-index 3db982a..dd35664 100644
+index 09ac499..72da62e 100644
 --- a/xbmc/video/dialogs/GUIDialogSubtitles.cpp
 +++ b/xbmc/video/dialogs/GUIDialogSubtitles.cpp
-@@ -103,7 +103,7 @@ CGUIDialogSubtitles::CGUIDialogSubtitles(void)
+@@ -104,7 +104,7 @@ CGUIDialogSubtitles::CGUIDialogSubtitles(void)
      , m_pausedOnRun(false)
      , m_updateSubsList(false)
  {
@@ -68,7 +68,7 @@ index 3db982a..dd35664 100644
  
  CGUIDialogSubtitles::~CGUIDialogSubtitles(void)
 diff --git a/xbmc/video/dialogs/GUIDialogVideoOSD.cpp b/xbmc/video/dialogs/GUIDialogVideoOSD.cpp
-index c1e99cf..5e3a31b 100644
+index e498e1f..a6648d0 100644
 --- a/xbmc/video/dialogs/GUIDialogVideoOSD.cpp
 +++ b/xbmc/video/dialogs/GUIDialogVideoOSD.cpp
 @@ -30,7 +30,7 @@ using namespace PVR;
@@ -81,12 +81,12 @@ index c1e99cf..5e3a31b 100644
  
  CGUIDialogVideoOSD::~CGUIDialogVideoOSD(void)
 diff --git a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-index b248566..96c63cd 100644
+index 7f10c52..072c7be 100644
 --- a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 +++ b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-@@ -66,7 +66,9 @@
+@@ -67,7 +67,9 @@
  CGUIDialogVideoSettings::CGUIDialogVideoSettings()
-     : CGUIDialogSettingsManualBase(WINDOW_DIALOG_VIDEO_OSD_SETTINGS, "VideoOSDSettings.xml"),
+     : CGUIDialogSettingsManualBase(WINDOW_DIALOG_VIDEO_OSD_SETTINGS, "DialogSettings.xml"),
        m_viewModeChanged(false)
 -{ }
 +{
@@ -95,6 +95,3 @@ index b248566..96c63cd 100644
  
  CGUIDialogVideoSettings::~CGUIDialogVideoSettings()
  { }
--- 
-2.1.0
-

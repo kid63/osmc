@@ -1,25 +1,34 @@
-From 2c4417226fbdcf3df4755c935829645dc33b736b Mon Sep 17 00:00:00 2001
-From: Greg McCarthy <greg@gjmccarthy.co.uk>
-Date: Sun, 5 Mar 2017 14:06:07 +0000
-Subject: [PATCH] Vero3: Do not build with xlibs
+From 0f509ba3a88a421693d07ef14c6e82e7d9321ed2 Mon Sep 17 00:00:00 2001
+From: Sam Nazarko <email@samnazarko.co.uk>
+Date: Tue, 15 Sep 2015 05:38:51 +0100
+Subject: [PATCH 1/2] Ensure that Kodi is not built against any X libraries
 
+Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- tools/depends/target/ffmpeg/CMakeLists.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ tools/depends/target/ffmpeg/autobuild.sh | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
-index 0a9e9d3..682eb92 100644
---- a/tools/depends/target/ffmpeg/CMakeLists.txt
-+++ b/tools/depends/target/ffmpeg/CMakeLists.txt
-@@ -35,7 +35,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Release)
- endif()
- 
- if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
--  list(APPEND ffmpeg_conf --enable-vdpau --enable-vaapi --enable-pic)
-+  list(APPEND ffmpeg_conf --disable-vdpau --disable-vaapi --disable-libxcb --disable-libxcb-shape --disable-libxcb-shm --disable-libxcb-xfixes --disable-x11grab --disable-xlib --enable-pic)
- elseif(CORE_SYSTEM_NAME STREQUAL android)
-   if(CPU MATCHES arm64)
-     list(APPEND ffmpeg_conf --cpu=cortex-a53 --arch=aarch64)
+diff --git a/tools/depends/target/ffmpeg/autobuild.sh b/tools/depends/target/ffmpeg/autobuild.sh
+index 196c347..7804609 100755
+--- a/tools/depends/target/ffmpeg/autobuild.sh
++++ b/tools/depends/target/ffmpeg/autobuild.sh
+@@ -138,8 +138,14 @@ CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" \
+ 	--enable-gpl \
+ 	--enable-runtime-cpudetect \
+ 	--enable-postproc \
+-	--enable-vaapi \
+-	--enable-vdpau \
++	--disable-vaapi \
++	--disable-vdpau \
++	--disable-libxcb \
++	--disable-libxcb-shape \
++	--disable-libxcb-shm \
++	--disable-libxcb-xfixes \
++	--disable-x11grab \
++	--disable-xlib \
+ 	--enable-bzlib \
+ 	--enable-gnutls \
+ 	--enable-muxer=spdif \
 -- 
-2.1.4
+2.1.0
 

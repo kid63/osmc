@@ -1,15 +1,15 @@
-From 235953746845906012e25b5dd4d6278f5a95554d Mon Sep 17 00:00:00 2001
+From 8ecb89576dd33a6e59cc1793e85975aaa10f9453 Mon Sep 17 00:00:00 2001
 From: Sam Nazarko <email@samnazarko.co.uk>
 Date: Sat, 13 Feb 2016 04:32:53 +0000
 Subject: [PATCH] Hacky way to enable passthrough on Vero 2
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp | 36 ++++++++++++++++++++++++++++-
- 1 file changed, 35 insertions(+), 1 deletion(-)
+ xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp | 35 +++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
 
 diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
-index f52d54a..fab4151 100644
+index 531f308..2d4af06 100644
 --- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 +++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 @@ -38,6 +38,7 @@
@@ -20,11 +20,10 @@ index f52d54a..fab4151 100644
  #endif
  
  #ifdef TARGET_POSIX
-@@ -538,7 +539,40 @@ bool CAESinkALSA::Initialize(AEAudioFormat &format, std::string &device)
+@@ -538,6 +539,40 @@ bool CAESinkALSA::Initialize(AEAudioFormat &format, std::string &device)
    if (aml_present())
    {
      aml_set_audio_passthrough(m_passthrough);
--    device = "default";
 +
 +    int aml_digital_codec;
 +    switch(format.m_dataFormat)
