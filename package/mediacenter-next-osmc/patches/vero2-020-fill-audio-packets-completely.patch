@@ -15,7 +15,7 @@ index 3ca667c..304cff8 100644
 @@ -162,7 +162,11 @@ CActiveAEBufferPoolResample::CActiveAEBufferPoolResample(AEAudioFormat inputForm
      m_inputFormat.m_channelLayout += AE_CH_FC;
    }
-   m_resampler = NULL;
+   m_resampler = nullptr;
 +#ifdef HAS_LIBAMCODEC
 +  m_fillPackets = true;
 +#else
