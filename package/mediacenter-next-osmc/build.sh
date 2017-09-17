@@ -340,36 +340,34 @@ then
 		--with-platform=vero \
 		--build=arm-linux
 	fi
-		if [ "$1" == "vero2" ]; then
+	if [ "$1" == "vero2" ]; then
 		LIBRARY_PATH+="/opt/vero2/lib" && \
 		COMPFLAGS="-I/opt/vero2/include -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
 		export CFLAGS+=${COMPFLAGS} && \
 		export CXXFLAGS+=${COMPFLAGS} && \
 		export CPPFLAGS+=${COMPFLAGS} && \
 		export LDFLAGS="-L/opt/vero2/lib" && \
-	./configure \
-                --prefix=/usr \
-                --disable-x11 \
-                --disable-openmax \
-                --disable-vdpau \
-                --disable-vaapi \
-                --enable-gles \
-                --enable-codec=amcodec \
-		--enable-player=amplayer \
-		--enable-alsa \
-                --enable-libcec \
-                --disable-debug \
-                --disable-texturepacker \
-                --enable-optical-drive \
-                --enable-dvdcss \
-                --enable-libbluray \
-                --disable-joystick \
-                --disable-vtbdecoder \
-                --disable-pulse \
-                --disable-optimizations \
-                --with-platform=vero2 \
-                --build=arm-linux
-	 fi
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_LIBDIR=/usr/lib \
+            -DCMAKE_PREFIX_PATH=/opt/vero3 \
+            -DCMAKE_INCLUDE_PATH=/opt/vero3/include \
+            -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
+            -DOPENGLES_gl_LIBRARY=/opt/vero3/lib \
+            -DOPENGLES_egl_LIBRARY=/opt/vero3/lib \
+            -DENABLE_AML=ON \
+            -DASS_INCLUDE_DIR=/usr/osmc/lib \
+            -DAML_INCLUDE_DIR=/opt/vero3/include \
+            -DRapidJSON_INCLUDE_DIR=/opt/vero3/include \
+            -DENABLE_OPENGLES=ON \
+            -DENABLE_OPENGL=OFF \
+            -DENABLE_OPTICAL=1 \
+            -DENABLE_DVDCSS=1 \
+            -DWITH_ARCH=arm \
+            -DWITH_CPU=${CPU} \
+            -DCORE_PLATFORM_NAME=aml \
+            -DCORE_SYSTEM_NAME=linux \
+	. 
+	fi
          if [ "$1" == "vero3" ]; then
          LIBRARY_PATH+="/opt/vero3/lib" && \
          COMPFLAGS="-I/opt/vero3/include -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
@@ -377,7 +375,7 @@ then
          export CXXFLAGS+=${COMPFLAGS} && \
          export CPPFLAGS+=${COMPFLAGS} && \
          export LDFLAGS="-L/opt/vero3/lib" && \
-           cmake -DCMAKE_INSTALL_PREFIX=/usr \
+         cmake -DCMAKE_INSTALL_PREFIX=/usr \
             -DCMAKE_INSTALL_LIBDIR=/usr/lib \
             -DCMAKE_PREFIX_PATH=/opt/vero3 \
             -DCMAKE_INCLUDE_PATH=/opt/vero3/include \
@@ -447,8 +445,8 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	fi
 	if [ "$1" == "vero2" ]
 	then
-	   ADDONS_TO_BUILD="${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_VISUALIZATIONS}"
-  	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero2/lib -DCMAKE_LIBRARY_PATH=/opt/vero2/include"
+	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR}"
+  	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero2/include -DCMAKE_LIBRARY_PATH=/opt/vero2/lib"
 	fi
 	if [ "$1" == "vero3" ]
  	then
