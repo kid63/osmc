@@ -474,7 +474,7 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
         tar xJf chromium-widevine-1.4.8.823-2-armv7h.pkg.tar.xz usr/lib/chromium/libwidevinecdm.so --strip-components=3
         chmod 755 libwidevinecdm.so                       
         mkdir -p ${out}/home/osmc/.kodi/cdm/
-	chown -R osmc:osmc {out}/home/osmc/.kodi/cdm/
+	#chown -R osmc:osmc {out}/home/osmc/.kodi/cdm/
         cp -ar libwidevinecdm.so ${out}/home/osmc/.kodi/cdm/    
         ln -fs /usr/lib/kodi/addons/inputstream.adaptive/libssd_wv.so ${out}/home/osmc/.kodi/cdm/libssd_wv.so
         popd  
