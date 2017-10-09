@@ -13,7 +13,7 @@ index 8ea3617..abfb580 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
 @@ -45,7 +45,6 @@ CDVDVideoCodecAmlogic::CDVDVideoCodecAmlogic(CProcessInfo &processInfo) : CDVDVi
-   ,m_Codec(NULL)
+   : CDVDVideoCodec(processInfo)
    ,m_pFormatName("amcodec")
    ,m_opened(false)
 -  ,m_last_pts(0.0)
