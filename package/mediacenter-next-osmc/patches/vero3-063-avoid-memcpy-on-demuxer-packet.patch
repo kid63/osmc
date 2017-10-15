@@ -61,10 +61,10 @@ index d4886d2..ada11d8 100644
      }
    }
    } // end of lock scope
-diff --git a/xbmc/cores/VideoPlayer/Interface/Addons/DemuxPacket.h b/xbmc/cores/VideoPlayer/Interface/Addons/DemuxPacket.h
+diff --git a/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h b/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h
 index 4f47118..2280578 100644
---- a/xbmc/cores/VideoPlayer/Interface/Addons/DemuxPacket.h
-+++ b/xbmc/cores/VideoPlayer/Interface/Addons/DemuxPacket.h
+--- a/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h
++++ b/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h
 @@ -25,6 +25,8 @@
  #define DMX_SPECIALID_STREAMINFO    -10
  #define DMX_SPECIALID_STREAMCHANGE  -11
