@@ -7,7 +7,7 @@ Avoids an unnecessary memcpy on every demuxer packet which for
 high bitrate videos can be significant.
 ---
  xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp | 17 ++++++++++++-----
- xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h   |  3 +++
+ xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h   |  3 +++
  xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp  |  7 ++++++-
  3 files changed, 21 insertions(+), 6 deletions(-)
 
@@ -61,10 +61,10 @@ index d4886d2..ada11d8 100644
      }
    }
    } // end of lock scope
-diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
+diff --git a/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h b/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h
 index 4f47118..2280578 100644
---- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
-+++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
+--- a/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h
++++ b/xbmc/cores/VideoPlayer/Interface/Addon/DemuxPacket.h
 @@ -25,6 +25,8 @@
  #define DMX_SPECIALID_STREAMINFO    -10
  #define DMX_SPECIALID_STREAMCHANGE  -11
