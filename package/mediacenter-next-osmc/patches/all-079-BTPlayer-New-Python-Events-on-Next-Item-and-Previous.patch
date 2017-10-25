@@ -63,9 +63,9 @@ index a9d9bf5..b975385 100644
 --- a/xbmc/Application.h
 +++ b/xbmc/Application.h
 @@ -179,7 +179,9 @@ public:
-   void OnPlayBackSeek(int iTime, int seekOffset) override;
-   void OnPlayBackSeekChapter(int iChapter) override;
    void OnPlayBackSpeedChanged(int iSpeed) override;
+   void RequestVideoSettings(const CFileItem &fileItem) override; 
+   void StoreVideoSettings(const CFileItem &fileItem, CVideoSettings vs) override; 
 -
 +  void OnPreviousItem() override;
 +  void OnNextItem() override;
@@ -78,9 +78,9 @@ index a89d8b7..0698564 100644
 --- a/xbmc/cores/IPlayerCallback.h
 +++ b/xbmc/cores/IPlayerCallback.h
 @@ -33,4 +33,6 @@ public:
-   virtual void OnPlayBackSeek(int iTime, int seekOffset) {};
-   virtual void OnPlayBackSeekChapter(int iChapter) {};
    virtual void OnPlayBackSpeedChanged(int iSpeed) {};
+   virtual void RequestVideoSettings(const CFileItem &fileItem) {};
+   virtual void StoreVideoSettings(const CFileItem &fileItem, CVideoSettings vs) {};
 +  virtual void OnPreviousItem() {};
 +  virtual void OnNextItem() {};
  };
