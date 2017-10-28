@@ -1,0 +1,141 @@
+From 66619f0baff7a5fce844b2c55025169c8cd060a1 Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Fri, 27 Oct 2017 19:43:04 +0200
+Subject: [PATCH] MediaSettings AML compile fix
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp      | 16 +++++++++-------
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h        |  5 ++++-
+ .../VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp |  2 +-
+ .../VideoRenderers/HwDecRender/RendererAML.cpp           |  2 +-
+ 4 files changed, 15 insertions(+), 10 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index fe9362afe34d..e2e0c01c0f7c 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -24,6 +24,7 @@
+ #include "DynamicDll.h"
+ 
+ #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
++#include "cores/VideoPlayer/Process/ProcessInfo.h"
+ #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
+ #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
+ #include "settings/AdvancedSettings.h"
+@@ -1320,7 +1321,7 @@ int set_header_info(am_private_t *para)
+ }
+ 
+ /*************************************************************************/
+-CAMLCodec::CAMLCodec()
++CAMLCodec::CAMLCodec(CProcessInfo &processInfo)
+   : m_opened(false)
+   , m_ptsIs64us(false)
+   , m_speed(DVD_PLAYSPEED_NORMAL)
+@@ -1330,6 +1331,7 @@ CAMLCodec::CAMLCodec()
+   , m_bufferIndex(-1)
+   , m_state(0)
+   , m_frameSizeSum(0)
++  , m_processInfo(processInfo)
+ {
+   am_private = new am_private_t;
+   memset(am_private, 0, sizeof(am_private_t));
+@@ -2090,14 +2092,14 @@ std::string CAMLCodec::GetStereoMode()
+ {
+   std::string  stereo_mode;
+ 
+-  switch(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_StereoMode)
++  switch(m_processInfo.GetVideoSettings().m_StereoMode)
+   {
+     case RENDER_STEREO_MODE_SPLIT_VERTICAL:   stereo_mode = "left_right"; break;
+     case RENDER_STEREO_MODE_SPLIT_HORIZONTAL: stereo_mode = "top_bottom"; break;
+     default:                                  stereo_mode = m_hints.stereo_mode; break;
+   }
+ 
+-  if(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_StereoInvert)
++  if(m_processInfo.GetVideoSettings().m_StereoInvert)
+     stereo_mode = RenderManager::GetStereoModeInvert(stereo_mode);
+   return stereo_mode;
+ }
+@@ -2110,20 +2112,20 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+   bool update = false;
+ 
+   // video zoom adjustment.
+-  float zoom = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_CustomZoomAmount;
++  float zoom = m_processInfo.GetVideoSettings().m_CustomZoomAmount;
+   if ((int)(zoom * 1000) != (int)(m_zoom * 1000))
+   {
+     m_zoom = zoom;
+   }
+   // video contrast adjustment.
+-  int contrast = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast;
++  int contrast = m_processInfo.GetVideoSettings().m_Contrast;
+   if (contrast != m_contrast)
+   {
+     SetVideoContrast(contrast);
+     m_contrast = contrast;
+   }
+   // video brightness adjustment.
+-  int brightness = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness;
++  int brightness = m_processInfo.GetVideoSettings().m_Brightness;
+   if (brightness != m_brightness)
+   {
+     SetVideoBrightness(brightness);
+@@ -2131,7 +2133,7 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
+   }
+ 
+   // video view mode
+-  int view_mode = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode;
++  int view_mode = m_processInfo.GetVideoSettings().m_ViewMode;
+   if (m_view_mode != view_mode)
+   {
+     m_view_mode = view_mode;
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
+index 40483ff23948..3be628a7f9fb 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.h
+@@ -36,10 +36,12 @@ class DllLibAmCodec;
+ class PosixFile;
+ typedef std::shared_ptr<PosixFile> PosixFilePtr;
+ 
++class CProcessInfo;
++
+ class CAMLCodec
+ {
+ public:
+-  CAMLCodec();
++  CAMLCodec(CProcessInfo &processInfo);
+   virtual ~CAMLCodec();
+ 
+   bool          OpenDecoder(CDVDStreamInfo &hints);
+@@ -114,4 +116,5 @@ class CAMLCodec
+ 
+   static std::atomic_flag  m_pollSync;
+   static int m_pollDevice;
++  CProcessInfo &m_processInfo;
+ };
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
+index bbcde610095a..8b1fdb94ee76 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.cpp
+@@ -267,7 +267,7 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
+ 
+   m_aspect_ratio = m_hints.aspect;
+ 
+-  m_Codec = std::shared_ptr<CAMLCodec>(new CAMLCodec());
++  m_Codec = std::shared_ptr<CAMLCodec>(new CAMLCodec(m_processInfo));
+   if (!m_Codec)
+   {
+     CLog::Log(LOGERROR, "%s: Failed to create Amlogic Codec", __MODULE_NAME__);
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererAML.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererAML.cpp
+index f5a6bc20f704..68f21ad96a99 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererAML.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererAML.cpp
+@@ -68,7 +68,7 @@ bool CRendererAML::Configure(const VideoPicture &picture, float fps, unsigned fl
+ 
+   // Calculate the input frame aspect ratio.
+   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
+-  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
++  SetViewMode(m_videoSettings.m_ViewMode);
+   ManageRenderArea();
+ 
+   m_bConfigured = true;
