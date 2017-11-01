@@ -41,9 +41,9 @@ Subject: [PATCH] VideoPlayer: SD channels assume 16:9
      default:
        CLog::Log(LOGDEBUG, "%s: Unknown hints.codec(%d", __MODULE_NAME__, m_hints.codec);
 @@ -560,6 +565,7 @@
-       m_hints.width    = m_mpeg2_sequence->width;
-       m_hints.height   = m_mpeg2_sequence->height;
-       m_hints.aspect   = m_mpeg2_sequence->ratio;
+
+       m_processInfo.SetVideoFps(m_framerate);
+       m_processInfo.SetVideoDAR(m_hints.aspect);
 +      m_processInfo.SetVideoDAR(m_mpeg2_sequence->ratio);
      }
      return;
