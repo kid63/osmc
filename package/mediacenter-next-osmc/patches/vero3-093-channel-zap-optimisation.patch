@@ -62,9 +62,9 @@ index ce0f01a..1adf29d 100644
          else
 -          clock = m_CurrentAudio.starttime - m_CurrentAudio.cachetime;
 +          clock = m_CurrentAudio.starttime - m_CurrentAudio.cachetime - DVD_MSEC_TO_TIME(750);
-         if (m_CurrentVideo.starttime != DVD_NOPTS_VALUE &&
-             (m_CurrentVideo.packets > 0) &&
-             m_CurrentVideo.starttime - m_CurrentVideo.cachetotal < clock)
+
+         if (m_CurrentVideo.starttime != DVD_NOPTS_VALUE && (m_CurrentVideo.packets > 0)) 
+         {
 diff --git a/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp b/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
 index 38428e2..4279440 100644
 --- a/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
