@@ -84,7 +84,7 @@ index 38428e2..4279440 100644
 +        CLog::Log(LOGNOTICE, "CVideoPlayerAudio::Process - sleep 0.05 sec");
 +        usleep(50000);
 +      }
+
        continue;
      }
- 
 --
