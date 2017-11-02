@@ -79,7 +79,7 @@ index 4f47118..2280578 100644
    double dts = DVD_NOPTS_VALUE; 
    double duration; // duration in DVD_TIME_BASE if available
 +  AVPacket *pkt; // to allow packet to be freed
-   int dispTime;
+   int dispTime = 0;
    bool recoveryPoint = false;
 
 diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp
