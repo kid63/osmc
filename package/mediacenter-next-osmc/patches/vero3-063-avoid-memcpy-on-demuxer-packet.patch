@@ -77,7 +77,7 @@ index 4f47118..2280578 100644
 @@ -36,6 +38,7 @@ typedef struct DemuxPacket
    double pts = DVD_NOPTS_VALUE; 
    double dts = DVD_NOPTS_VALUE; 
-   double duration; // duration in DVD_TIME_BASE if available
+   double duration = 0; // duration in DVD_TIME_BASE if available
 +  AVPacket *pkt; // to allow packet to be freed
    int dispTime = 0;
    bool recoveryPoint = false;
