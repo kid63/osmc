@@ -1,30 +1,29 @@
-From cb549b768b3fe4f482f92ea527fd2bed7aa7ca59 Mon Sep 17 00:00:00 2001
-From: Sam Nazarko <email@samnazarko.co.uk>
-Date: Tue, 22 Dec 2015 04:16:21 +0000
-Subject: [PATCH] Use OSMC user agent as OSMC version is always tied to a Kodi
- version
+From 4eafe1c646375028ce25e7fcf69299bea2e1c13d Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Thu, 2 Nov 2017 17:40:54 +0000
+Subject: [PATCH] Fixup all-016
 
-Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- xbmc/utils/SystemInfo.cpp | 132 +---------------------------------------------
- 1 file changed, 1 insertion(+), 131 deletions(-)
+ xbmc/utils/SystemInfo.cpp | 132 ----------------------------------------------
+ 1 file changed, 132 deletions(-)
 
 diff --git a/xbmc/utils/SystemInfo.cpp b/xbmc/utils/SystemInfo.cpp
-index f0a6ac5..894923d 100644
+index 5f494ae396..5fb7dcf049 100644
 --- a/xbmc/utils/SystemInfo.cpp
 +++ b/xbmc/utils/SystemInfo.cpp
-@@ -1090,137 +1090,7 @@ std::string CSysInfo::GetUserAgent()
-   static std::string result;
+@@ -1073,138 +1073,6 @@ std::string CSysInfo::GetUserAgent()
    if (!result.empty())
      return result;
--
+ 
 -  result = GetAppName() + "/" + CSysInfo::GetVersionShort() + " (";
 -#if defined(TARGET_WINDOWS)
 -  result += GetKernelName() + " " + GetKernelVersion();
+-#ifndef TARGET_WINDOWS_STORE
 -  BOOL bIsWow = FALSE;
 -  if (IsWow64Process(GetCurrentProcess(), &bIsWow) && bIsWow)
 -      result.append("; WOW64");
 -  else
+-#endif
 -  {
 -    SYSTEM_INFO si = {};
 -    GetSystemInfo(&si);
@@ -148,10 +147,9 @@ index f0a6ac5..894923d 100644
 -  StringUtils::Replace(fullVer, ' ', '-');
 -  result += " Version/" + fullVer;
 -
-+  result = "OSMC (Linux; OSMC " + GetOsVersion() + ")";
    return result;
  }
  
 -- 
-2.1.0
+2.12.3
 
