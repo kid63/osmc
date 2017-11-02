@@ -75,13 +75,13 @@ index 4f47118..2280578 100644
  {
    unsigned char* pData;   // data
 @@ -36,6 +38,7 @@ typedef struct DemuxPacket
-   double pts; // pts in DVD_TIME_BASE
-   double dts; // dts in DVD_TIME_BASE
+   double pts = DVD_NOPTS_VALUE; 
+   double dts = DVD_NOPTS_VALUE; 
    double duration; // duration in DVD_TIME_BASE if available
 +  AVPacket *pkt; // to allow packet to be freed
- 
    int dispTime;
- } DemuxPacket;
+   bool recoveryPoint = false;
+
 diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp
 index 403d75f..66774e4 100644
 --- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.cpp
