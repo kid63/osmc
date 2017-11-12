@@ -310,6 +310,7 @@ then
 	    -DCORE_PLATFORM_NAME=rbpi \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
+	    -DENABLE_APP_AUTONAME=OFF \
 	.
 	fi
 	if [ "$1" == "vero" ]; then
@@ -366,6 +367,7 @@ then
             -DWITH_CPU=${CPU} \
             -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
+	    -DENABLE_APP_AUTONAME=OFF \
 	. 
 	fi
          if [ "$1" == "vero3" ]; then
@@ -394,7 +396,8 @@ then
             -DWITH_CPU=${CPU} \
 	    -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
-        .
+            -DENABLE_APP_AUTONAME=OFF \
+	.
 	fi
 	if [ $? != 0 ]; then echo -e "Configure failed!" && umount /proc/ > /dev/null 2>&1 && exit 1; fi
 	umount /proc/ > /dev/null 2>&1
