@@ -416,7 +416,7 @@ then
 game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy \
 game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
 game.libretro.beetle-pcfx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
-game.libretro.beetle-wswan game.libretro.bnes \
+game.libretro.beetle-wswan game.libretro.bnes game.libretro.beetle-psx \
 game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance game.libretro.cap32 \
 game.libretro.dosbox game.libretro.fbalpha2012 \
 game.libretro.fuse game.libretro.picodrive game.libretro.beetle-ngp \
@@ -426,7 +426,7 @@ game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.
 game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
 game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake \
 game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw game.libretro.genplus"
-	# game.libretro.beetle-psx game.libretro.beetle-psx game.moonlight game.libretro.fceumm"
+	# game.libretro.beetle-psx game.moonlight game.libretro.fceumm"
 	#Broken game.libretro.reicast game.libretro.pcem game.libretro.vba-next 	
 	#game.libretro.mupen64plus 
 	#game.libretro.scummvm 
