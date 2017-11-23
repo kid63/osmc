@@ -14,13 +14,13 @@ index 137bed7..34a0615 100644
 --- a/xbmc/Application.cpp
 +++ b/xbmc/Application.cpp
 @@ -264,6 +264,7 @@ CApplication::CApplication(void)
+   , m_musicInfoScanner(new CMusicInfoScanner)
+   , m_muted(false)
    , m_volumeLevel(VOLUME_MAXIMUM)
-   , m_pInertialScrollingHandler(new CInertialScrollingHandler())
-   , m_network(nullptr)
 +  , m_eOSMCWalkthroughState(OSMC_WALKTHROUGH_NOTRUNNING)
+   , m_pInertialScrollingHandler(new CInertialScrollingHandler())
    , m_WaitingExternalCalls(0)
    , m_ProcessedExternalCalls(0)
- {
 @@ -2981,6 +2982,12 @@ void CApplication::Stop(int exitCode)
    Sleep(200);
  }
