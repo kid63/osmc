@@ -40,7 +40,7 @@ index d683351..17bb28b 100644
 -    strLabel = CSysInfo::GetDeviceName();
 +    {
 +      std::string hostname("osmc");
-+      g_application.getNetwork().GetHostName(hostname);
++      CServiceBroker::getNetwork().GetHostName(hostname);
 +      strLabel = hostname.c_str();
 +    }
      break;
