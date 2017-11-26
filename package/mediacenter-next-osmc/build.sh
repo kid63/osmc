@@ -103,7 +103,7 @@ then
 	handle_dep "uuid-dev"
 	handle_dep "libcrossguid-dev"
 	handle_dep "cmake"
-	handle_dep "rapidjson-dev-osmc"
+	handle_dep "rapidjson-dev"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
 		handle_dep "rbp-userland-dev-osmc"
