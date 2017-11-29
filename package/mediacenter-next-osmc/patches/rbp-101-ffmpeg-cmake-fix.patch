@@ -1,0 +1,25 @@
+From 68b4bbafc04ada4b53de986953dcb119c75b0bc0 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Wed, 29 Nov 2017 20:12:06 +0000
+Subject: [PATCH] Fixup ffmpeg cmake file
+
+---
+ cmake/modules/FindFFMPEG.cmake | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmake/modules/FindFFMPEG.cmake b/cmake/modules/FindFFMPEG.cmake
+index 82e4f971d8..9cb267b2c5 100644
+--- a/cmake/modules/FindFFMPEG.cmake
++++ b/cmake/modules/FindFFMPEG.cmake
+@@ -266,7 +266,7 @@ if(NOT FFMPEG_FOUND)
+                                     patch -p1 < ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/0001-ffmpeg-Call-get_format-to-fix-an-issue-with-MMAL-ren.patch &&
+                                     patch -p1 < ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/0001-mpeg4video-Signal-unsupported-GMC-with-more-than-one.patch &&
+                                     patch -p1 < ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/pfcd_hevc_optimisations.patch &&
+-                                    patch -p1 < ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/added_upstream_mvc_patches.patch &&
++                                    patch -p1 < ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/added_upstream_mvc_patches.patch 
+                      )
+ 
+   file(WRITE ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/ffmpeg/ffmpeg-link-wrapper
+-- 
+2.12.3
+
