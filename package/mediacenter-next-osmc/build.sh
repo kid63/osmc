@@ -397,7 +397,7 @@ then
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
 	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick"
 	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
-game.libretro.beetle-gba game.libretro.bsnes-mercury-accuracy \
+game.libretro.beetle-gba \
 game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
 game.libretro.beetle-pcfx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
 game.libretro.beetle-wswan game.libretro.bnes game.libretro.beetle-psx \
@@ -413,7 +413,7 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	#game.moonlight game.libretro.fceumm"
 	#Broken game.libretro.reicast game.libretro.pcem game.libretro.vba-next 	
 	#game.libretro.mupen64plus 
-	#game.libretro.scummvm 
+	#game.libretro.scummvm  game.libretro.bsnes-mercury-accuracy
 	# game.libretro.bluemsx 
 
 	# pvr.argustv  
