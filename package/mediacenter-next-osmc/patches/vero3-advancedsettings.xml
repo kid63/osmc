@@ -10,8 +10,12 @@
     <samba>
        <clienttimeout>30</clienttimeout>
     </samba>
+    <cache>
+       <buffermode>1</buffermode>
+       <memorysize>52488000</memorysize>
+       <readfactor>5.0</readfactor>
+    </cache>
     <gamesgeneral>
        <enable>true</enable>
     </gamesgeneral>
 </advancedsettings>
-
