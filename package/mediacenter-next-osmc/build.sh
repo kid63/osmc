@@ -63,7 +63,7 @@ then
 	handle_dep "libmodplug-dev"
 	handle_dep "libmpeg2-4-dev"
 	handle_dep "libmpeg3-dev"
-	handle_dep "libmariadbclient-dev"
+	handle_dep "libmariadbclient-dev-compat" 
 	handle_dep "libpcre3-dev"
 	handle_dep "libplist-dev"
 	handle_dep "libpng-dev"
