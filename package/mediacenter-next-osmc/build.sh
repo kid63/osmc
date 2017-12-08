@@ -420,24 +420,25 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	ADDONS_PVR="pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.iptvsimple pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
+	ADDONS_GLES_EXCL="screensaver.shadertoy visualization.shadertoy"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
-	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_VISUALIZATIONS}"
+	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
 	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vc/include:/opt/vc/include/interface:/opt/vc/include/interface/vcos/pthreads:/opt/vc/include/interface/vmcs_host/linux -DCMAKE_LIBRARY_PATH=/opt/vc/lib"
   	fi
 	if [ "$1" == "vero" ]
 	then
-           ADDONS_TO_BUILD="${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_VISUALIZATIONS}"
+           ADDONS_TO_BUILD="${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
 	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero/lib -DCMAKE_LIBRARY_PATH=/opt/vero/include"
 	fi
 	if [ "$1" == "vero2" ]
 	then
-	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR}"
+	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
   	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero2/include -DCMAKE_LIBRARY_PATH=/opt/vero2/lib"
 	fi
 	if [ "$1" == "vero3" ]
  	then
- 	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR}" 
+ 	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}" 
  	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero3/include -DCMAKE_LIBRARY_PATH=/opt/vero3/lib"
  	fi
 	if [ "$1" == "atv" ]
