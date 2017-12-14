@@ -294,7 +294,7 @@ then
 	    -DCORE_PLATFORM_NAME=rbpi \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
-	    -DENable_app_autoname=OFF \
+	    -DENABLE_APP_AUTONAME=OFF \
 	.
 	fi
 	if [ "$1" == "vero" ]; then
