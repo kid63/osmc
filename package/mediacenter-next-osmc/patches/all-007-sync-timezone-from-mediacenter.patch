@@ -6,7 +6,7 @@ Subject: [PATCH] When the timezone is changed in Kodi, synchronise the system
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- xbmc/linux/LinuxTimezone.cpp | 17 +++++++++++++++++
+ xbmc/platform/linux/LinuxTimezone.cpp | 17 +++++++++++++++++
  1 file changed, 17 insertions(+)
 
 diff --git a/xbmc/platform/linux/LinuxTimezone.cpp b/xbmc/platform/linux/LinuxTimezone.cpp
