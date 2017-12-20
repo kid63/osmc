@@ -400,7 +400,7 @@ then
 game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw game.libretro.beetle-ps \
 game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
 game.libretro.beetle-pcfx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
-game.libretro.beetle-wswan game.libretro.bnes \
+game.libretro.beetle-wswan game.libretro.bnes game.libretro.nestopia \
 game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance game.libretro.cap32 \
 game.libretro.dosbox game.libretro.fbalpha2012 game.libretro.beetle-psx \
 game.libretro.fuse game.libretro.picodrive game.libretro.beetle-ngp \
