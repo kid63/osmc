@@ -396,7 +396,7 @@ then
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
 	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick"
-	ADDONS_GAME="game.libretro.2048 game.libretro game.libretro.4do game.libretro.beetle-bsnes \
+	ADDONS_GAME="game.libretro.2048 game.libretro.4do game.libretro.beetle-bsnes \
 game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw game.libretro.beetle-ps \
 game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
 game.libretro.beetle-pcfx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
@@ -410,7 +410,7 @@ game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.
 game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
 game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake \
 game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw game.libretro.genplus"
-	#game.moonlight game.libretro.nestopia 
+	#game.moonlight game.libretro.nestopia game.libretro 
 	#Broken game.libretro.reicast game.libretro.pcem game.libretro.vba-next 	
 	#game.libretro.mupen64plus 
 	#game.libretro.scummvm  game.libretro.bsnes-mercury-accuracy
