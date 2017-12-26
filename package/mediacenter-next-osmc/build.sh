@@ -13,7 +13,7 @@ API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/bc8b6d3479a544cf11bab8fef436c338113e6a1a.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/8a1d57aae059c1cb11a2f0ef9b0fa3c86b7de4ed.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
@@ -408,7 +408,7 @@ game.libretro.gambatte game.libretro.prboom game.libretro.handy game.libretro.ha
 game.libretro.lutro game.libretro.meteor game.libretro.mgba game.libretro.nx \
 game.libretro.o2em game.libretro.pokemini game.libretro.prosystem game.libretro.quicknes \
 game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
-game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake \
+game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro \
 game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw game.libretro.genplus"
 	#game.moonlight game.libretro.nestopia game.libretro 
 	#Broken game.libretro.reicast game.libretro.pcem game.libretro.vba-next 	
