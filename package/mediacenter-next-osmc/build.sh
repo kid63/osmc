@@ -338,7 +338,6 @@ then
             -DCMAKE_INCLUDE_PATH=/opt/vero2/include \
             -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
             -DOPENGLES_gl_LIBRARY=/opt/vero2/lib \
-            -DOPENGLES_egl_LIBRARY=/opt/vero2/lib \
             -DENABLE_AML=ON \
             -DASS_INCLUDE_DIR=/usr/osmc/lib \
             -DAML_INCLUDE_DIR=/opt/vero2/include \
@@ -367,7 +366,6 @@ then
             -DCMAKE_INCLUDE_PATH=/opt/vero3/include \
             -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
             -DOPENGLES_gl_LIBRARY=/opt/vero3/lib \
-            -DOPENGLES_egl_LIBRARY=/opt/vero3/lib \
             -DENABLE_AML=ON \
 	    -DASS_INCLUDE_DIR=/usr/osmc/lib \
             -DAML_INCLUDE_DIR=/opt/vero3/include \
