@@ -1,0 +1,3033 @@
+From e989906d63f27f2c6327dcfd296a3017ff83b84d Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Thu, 30 Nov 2017 22:12:53 +0100
+Subject: [PATCH 01/13] AE: cleanup the mess in AESinkFactory
+
+---
+ xbmc/cores/AudioEngine/AESinkFactory.cpp           | 337 +++------------------
+ xbmc/cores/AudioEngine/AESinkFactory.h             |  35 ++-
+ .../AudioEngine/Engines/ActiveAE/ActiveAE.cpp      |   1 +
+ .../AudioEngine/Engines/ActiveAE/ActiveAESink.cpp  |  33 +-
+ .../AudioEngine/Engines/ActiveAE/ActiveAESink.h    |   2 +-
+ xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp   |  20 ++
+ xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.h     |  13 +-
+ xbmc/windowing/osx/WinSystemOSX.mm                 |   6 +-
+ 8 files changed, 122 insertions(+), 325 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/AESinkFactory.cpp b/xbmc/cores/AudioEngine/AESinkFactory.cpp
+index 62bdd399f8ab..a0be57165353 100644
+--- a/xbmc/cores/AudioEngine/AESinkFactory.cpp
++++ b/xbmc/cores/AudioEngine/AESinkFactory.cpp
+@@ -20,328 +20,81 @@
+ 
+ #include "AESinkFactory.h"
+ #include "Interfaces/AESink.h"
+-#if defined(TARGET_WINDOWS)
+-  #include "Sinks/AESinkWASAPI.h"
+-  #if defined(TARGET_WINDOWS_DESKTOP)
+-    #include "Sinks/AESinkDirectSound.h"
+-  #else // TARGET_WINDOWS_STORE
+-    #include "Sinks/AESinkXAudio.h"
+-  #endif // TARGET_WINDOWS
+-#elif defined(TARGET_ANDROID)
+-  #include "Sinks/AESinkAUDIOTRACK.h"
+-#elif defined(TARGET_RASPBERRY_PI)
+-  #include "Sinks/AESinkPi.h"
+-  #include "Sinks/AESinkALSA.h"
+-#elif defined(TARGET_DARWIN_IOS)
+-  #include "Sinks/AESinkDARWINIOS.h"
+-#elif defined(TARGET_DARWIN_OSX)
+-  #include "Sinks/AESinkDARWINOSX.h"
+-#elif defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+-  #if defined(HAS_ALSA)
+-    #include "Sinks/AESinkALSA.h"
+-  #endif
+-  #if defined(TARGET_FREEBSD)
+-    #include "Sinks/AESinkOSS.h"
+-  #endif
+-  #if defined(HAS_PULSEAUDIO)
+-    #include "Sinks/AESinkPULSE.h"
+-  #endif
+-  #if defined(HAS_SNDIO)
+-    #include "Sinks/AESinkSNDIO.h"
+-  #endif
+-  #include "Sinks/AESinkOSS.h"
+-#else
+-  #pragma message("NOTICE: No audio sink for target platform.  Audio output will not be available.")
+-#endif
+-#include "Sinks/AESinkNULL.h"
+-
+ #include "utils/log.h"
+-
++#include "utils/StringUtils.h"
+ #include <algorithm>
+ 
++using namespace AE;
++
++std::map<std::string, AESinkRegEntry> CAESinkFactory::m_AESinkRegEntry;
++
++void CAESinkFactory::RegisterSink(AESinkRegEntry regEntry)
++{
++  m_AESinkRegEntry[regEntry.sinkName] = regEntry;
++}
++
++void CAESinkFactory::ClearSinks()
++{
++  m_AESinkRegEntry.clear();
++}
++
+ void CAESinkFactory::ParseDevice(std::string &device, std::string &driver)
+ {
+   int pos = device.find_first_of(':');
++  bool found = false;
+   if (pos > 0)
+   {
+     driver = device.substr(0, pos);
+-    std::transform(driver.begin(), driver.end(), driver.begin(), ::toupper);
+-
+-    // check that it is a valid driver name
+-    if (
+-#if defined(TARGET_WINDOWS)
+-        driver == "WASAPI"      ||
+-  #if defined(TARGET_WINDOWS_DESKTOP)
+-        driver == "DIRECTSOUND" ||
+-  #else // TARGET_WINDOWS_STORE
+-        driver == "XAUDIO"      ||
+-  #endif
+-#elif defined(TARGET_ANDROID)
+-        driver == "AUDIOTRACK"  ||
+-#elif defined(TARGET_RASPBERRY_PI)
+-        driver == "PI"          ||
+-        driver == "ALSA"        ||
+-#elif defined(TARGET_DARWIN_IOS)
+-        driver == "DARWINIOS"  ||
+-#elif defined(TARGET_DARWIN_OSX)
+-        driver == "DARWINOSX"  ||
+-#elif defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+-  #if defined(HAS_ALSA)
+-        driver == "ALSA"        ||
+-  #endif
+-  #if defined(TARGET_FREEBSD)
+-        driver == "OSS"         ||
+-  #endif
+-  #if defined(HAS_PULSEAUDIO)
+-        driver == "PULSE"       ||
+-  #endif
+-  #if defined(HAS_SNDIO)
+-        driver == "SNDIO"       ||
+-  #endif
+-        driver == "OSS"         ||
+-#endif
+-        driver == "PROFILER"    ||
+-        driver == "NULL")
+-      device = device.substr(pos + 1, device.length() - pos - 1);
+-    else
+-      driver.clear();
+-  }
+-  else
+-    driver.clear();
+-}
+ 
+-IAESink *CAESinkFactory::TrySink(const std::string &driver, std::string &device, AEAudioFormat &format)
+-{
+-  IAESink *sink = NULL;
++    for (auto reg : m_AESinkRegEntry)
++    {
++      if (!StringUtils::EqualsNoCase(driver, reg.second.sinkName))
++        continue;
+ 
+-  if (driver == "NULL")
+-    sink = new CAESinkNULL();
+-  else
+-  {
+-#if defined(TARGET_WINDOWS)
+-    if (driver == "WASAPI")
+-      sink = new CAESinkWASAPI();
+-  #if defined(TARGET_WINDOWS_DESKTOP)
+-    else if (driver == "DIRECTSOUND")
+-      sink = new CAESinkDirectSound();
+-  #else // TARGET_WINDOWS_STORE
+-    else if (driver == "XAUDIO")
+-      sink = new CAESinkXAudio();
+-  #endif
+-#elif defined(TARGET_ANDROID)
+-    sink = new CAESinkAUDIOTRACK();
+-#elif defined(TARGET_RASPBERRY_PI)
+-  if (driver == "PI")
+-    sink = new CAESinkPi();
+-  #if defined(HAS_ALSA)
+-  if (driver == "ALSA")
+-    sink = new CAESinkALSA();
+-  #endif
+-#elif defined(TARGET_DARWIN_IOS)
+-    sink = new CAESinkDARWINIOS();
+-#elif defined(TARGET_DARWIN_OSX)
+-    sink = new CAESinkDARWINOSX();
+-#elif defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_OPENBSD)
+- #if defined(HAS_PULSEAUDIO)
+-    if (driver == "PULSE")
+-      sink = new CAESinkPULSE();
+- #endif
+- #if defined(HAS_ALSA)
+-    if (driver == "ALSA")
+-      sink = new CAESinkALSA();
+- #endif
+- #if defined(HAS_SNDIO)
+-    if (driver == "SNDIO")
+-      sink = new CAESinkSNDIO();
+- #endif
+- #if defined(TARGET_FREEBSD)
+-    if (driver == "OSS")
+-      sink = new CAESinkOSS();
+- #endif
+-#endif
++      device = device.substr(pos + 1, device.length() - pos - 1);
++      found = true;
++    }
+   }
+ 
+-  if (!sink)
+-    return NULL;
+-
+-  if (sink->Initialize(format, device))
+-  {
+-    // do some sanity checks
+-    if (format.m_sampleRate == 0)
+-      CLog::Log(LOGERROR, "Sink %s:%s returned invalid sample rate", driver.c_str(), device.c_str());
+-    else if (format.m_channelLayout.Count() == 0)
+-      CLog::Log(LOGERROR, "Sink %s:%s returned invalid channel layout", driver.c_str(), device.c_str());
+-    else if (format.m_frames < 256)
+-      CLog::Log(LOGERROR, "Sink %s:%s returned invalid buffer size: %d", driver.c_str(), device.c_str(), format.m_frames);
+-    else
+-      return sink;
+-  }
+-  sink->Deinitialize();
+-  delete sink;
+-  return NULL;
++  if (!found)
++    driver.clear();
+ }
+ 
+-IAESink *CAESinkFactory::Create(std::string &device, AEAudioFormat &desiredFormat, bool rawPassthrough)
++IAESink *CAESinkFactory::Create(std::string &device, AEAudioFormat &desiredFormat)
+ {
+   // extract the driver from the device string if it exists
+   std::string driver;
+   ParseDevice(device, driver);
+ 
+-  AEAudioFormat  tmpFormat = desiredFormat;
+-  IAESink       *sink;
+-  std::string    tmpDevice = device;
++  AEAudioFormat tmpFormat = desiredFormat;
++  IAESink *sink;
++  std::string tmpDevice = device;
+ 
+-  sink = TrySink(driver, tmpDevice, tmpFormat);
+-  if (sink)
++  for (auto reg : m_AESinkRegEntry)
+   {
+-    desiredFormat = tmpFormat;
+-    return sink;
+-  }
++    if (driver != reg.second.sinkName)
++      continue;
+ 
+-  return NULL;
++    sink = reg.second.createFunc(tmpDevice, tmpFormat);
++    if (sink)
++    {
++      desiredFormat = tmpFormat;
++      return sink;
++    }
++  }
++  return nullptr;
+ }
+ 
+-void CAESinkFactory::EnumerateEx(AESinkInfoList &list, bool force)
++void CAESinkFactory::EnumerateEx(std::vector<AESinkInfo> &list, bool force)
+ {
+   AESinkInfo info;
+-#if defined(TARGET_WINDOWS)
+-  #if defined(TARGET_WINDOWS_DESKTOP)
+-
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "DIRECTSOUND";
+-  CAESinkDirectSound::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-
+-  #else // TARGET_WINDOWS_STORE
+-
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "XAUDIO";
+-  CAESinkXAudio::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if (!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-
+-  #endif
+-
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "WASAPI";
+-  CAESinkWASAPI::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-
+-#elif defined(TARGET_ANDROID)
+ 
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "AUDIOTRACK";
+-  CAESinkAUDIOTRACK::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-
+-#elif defined(TARGET_RASPBERRY_PI)
+-
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "PI";
+-  CAESinkPi::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-  #if defined(HAS_ALSA)
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "ALSA";
+-  CAESinkALSA::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-  #endif
+-#elif defined(TARGET_DARWIN_IOS)
+-
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "DARWINIOS";
+-  CAESinkDARWINIOS::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-
+-#elif defined(TARGET_DARWIN_OSX)
+-
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "DARWINOSX";
+-  CAESinkDARWINOSX::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-
+-#elif defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+-  // check if user wants us to do something specific
+-  if (getenv("AE_SINK"))
++  for(auto reg : m_AESinkRegEntry)
+   {
+-    std::string envSink = (std::string)getenv("AE_SINK");
+-    std::transform(envSink.begin(), envSink.end(), envSink.begin(), ::toupper);
+     info.m_deviceInfoList.clear();
+-    #if defined(HAS_PULSEAUDIO)
+-    if (envSink == "PULSE")
+-      CAESinkPULSE::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-    #endif
+-    #if defined(HAS_ALSA)
+-    if (envSink == "ALSA")
+-      CAESinkALSA::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-    #endif
+-    #if defined(HAS_SNDIO)
+-    if (envSink == "SNDIO")
+-        CAESinkSNDIO::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-    #endif
+-    #if defined(TARGET_FREEBSD)
+-    if (envSink == "OSS")
+-      CAESinkOSS::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-    #endif
+-
+-    if(!info.m_deviceInfoList.empty())
+-    {
+-      info.m_sinkName = envSink;
++    info.m_sinkName = reg.second.sinkName;
++    reg.second.enumerateFunc(info.m_deviceInfoList, force);
++    if (!info.m_deviceInfoList.empty())
+       list.push_back(info);
+-      return;
+-    }
+-    else
+-      CLog::Log(LOGNOTICE, "User specified Sink %s could not be enumerated", envSink.c_str());
+-  }
+-
+-  #if defined(HAS_PULSEAUDIO)
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "PULSE";
+-  CAESinkPULSE::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-  {
+-    list.push_back(info);
+-    return;
+-  }
+-  #endif
+-
+-  #if defined(HAS_ALSA)
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "ALSA";
+-  CAESinkALSA::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-  {
+-    list.push_back(info);
+-    return;
+-  }
+-  #endif
+-
+-  #if defined(HAS_SNDIO)
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "SNDIO";
+-  CAESinkSNDIO::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-  {
+-    list.push_back(info);
+-    return;
+   }
+-  #endif
+-
+-  #if defined(TARGET_FREEBSD)
+-  info.m_deviceInfoList.clear();
+-  info.m_sinkName = "OSS";
+-  CAESinkOSS::EnumerateDevicesEx(info.m_deviceInfoList, force);
+-  if(!info.m_deviceInfoList.empty())
+-    list.push_back(info);
+-  #endif
+-
+-#endif
+-
+ }
+diff --git a/xbmc/cores/AudioEngine/AESinkFactory.h b/xbmc/cores/AudioEngine/AESinkFactory.h
+index aeac92741a1c..3775bbd332a5 100644
+--- a/xbmc/cores/AudioEngine/AESinkFactory.h
++++ b/xbmc/cores/AudioEngine/AESinkFactory.h
+@@ -20,29 +20,44 @@
+  */
+ 
+ #include <stdint.h>
++#include <map>
+ #include <string>
+ #include <vector>
+-
+-#include "cores/AudioEngine/Utils/AEDeviceInfo.h"
++#include "Utils/AEDeviceInfo.h"
+ 
+ class IAESink;
+ 
+-typedef struct
++namespace AE
++{
++
++struct AESinkInfo
+ {
+-  std::string      m_sinkName;
++  std::string m_sinkName;
+   AEDeviceInfoList m_deviceInfoList;
+-} AESinkInfo;
++};
+ 
+-typedef std::vector<AESinkInfo> AESinkInfoList;
++typedef IAESink* (*CreateSink)(std::string &device, AEAudioFormat &desiredFormat);
++typedef void (*Enumerate)(AEDeviceInfoList &list, bool force);
++
++struct AESinkRegEntry
++{
++  std::string sinkName;
++  CreateSink createFunc;
++  Enumerate enumerateFunc;
++};
+ 
+ class CAESinkFactory
+ {
+ public:
+-  static void     ParseDevice(std::string &device, std::string &driver);
+-  static IAESink *Create(std::string &device, AEAudioFormat &desiredFormat, bool rawPassthrough);
+-  static void     EnumerateEx(AESinkInfoList &list, bool force = false); /* The force flag can be used to indicate the rescan devices */
++  static void RegisterSink(AESinkRegEntry regEntry);
++  static void ClearSinks();
++
++  static void ParseDevice(std::string &device, std::string &driver);
++  static IAESink *Create(std::string &device, AEAudioFormat &desiredFormat);
++  static void EnumerateEx(std::vector<AESinkInfo> &list, bool force);
+ 
+ protected:
+-  static IAESink *TrySink(const std::string &driver, std::string &device, AEAudioFormat &format);
++  static std::map<std::string, AESinkRegEntry> m_AESinkRegEntry;
+ };
+ 
++}
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
+index 12d9b20bf061..6a059df22430 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "ActiveAE.h"
+ 
++using namespace AE;
+ using namespace ActiveAE;
+ #include "ActiveAESound.h"
+ #include "ActiveAEStream.h"
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
+index 0d1e83c94524..3dba8c3c997a 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
+@@ -36,6 +36,7 @@
+ #include "linux/XMemUtils.h"
+ #endif
+ 
++using namespace AE;
+ using namespace ActiveAE;
+ 
+ CActiveAESink::CActiveAESink(CEvent *inMsgEvent) :
+@@ -88,7 +89,7 @@ AEDeviceType CActiveAESink::GetDeviceType(const std::string &device)
+   std::string dev = device;
+   std::string dri;
+   CAESinkFactory::ParseDevice(dev, dri);
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+     {
+@@ -102,7 +103,7 @@ AEDeviceType CActiveAESink::GetDeviceType(const std::string &device)
+ 
+ bool CActiveAESink::HasPassthroughDevice()
+ {
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+     {
+@@ -120,11 +121,11 @@ bool CActiveAESink::SupportsFormat(const std::string &device, AEAudioFormat &for
+   std::string dri;
+ 
+   CAESinkFactory::ParseDevice(dev, dri);
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     if (dri == itt->m_sinkName)
+     {
+-      for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
++      for (auto itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+       {
+         CAEDeviceInfo& info = *itt2;
+         if (info.m_deviceName == dev)
+@@ -202,11 +203,11 @@ bool CActiveAESink::NeedIECPacking()
+   std::string dri;
+ 
+   CAESinkFactory::ParseDevice(dev, dri);
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     if (dri == itt->m_sinkName)
+     {
+-      for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
++      for (auto itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+       {
+         CAEDeviceInfo& info = *itt2;
+         if (info.m_deviceName == dev)
+@@ -675,8 +676,8 @@ void CActiveAESink::EnumerateSinkList(bool force)
+ 
+   unsigned int c_retry = 4;
+   m_sinkInfoList.clear();
+-  CAESinkFactory::EnumerateEx(m_sinkInfoList);
+-  while(m_sinkInfoList.empty() && c_retry > 0)
++  CAESinkFactory::EnumerateEx(m_sinkInfoList, false);
++  while (m_sinkInfoList.empty() && c_retry > 0)
+   {
+     CLog::Log(LOGNOTICE, "No Devices found - retry: %d", c_retry);
+     Sleep(1500);
+@@ -690,11 +691,11 @@ void CActiveAESink::EnumerateSinkList(bool force)
+ 
+ void CActiveAESink::PrintSinks()
+ {
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     CLog::Log(LOGNOTICE, "Enumerated %s devices:", itt->m_sinkName.c_str());
+     int count = 0;
+-    for (AEDeviceInfoList::iterator itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
++    for (auto itt2 = itt->m_deviceInfoList.begin(); itt2 != itt->m_deviceInfoList.end(); ++itt2)
+     {
+       CLog::Log(LOGNOTICE, "    Device %d", ++count);
+       CAEDeviceInfo& info = *itt2;
+@@ -710,7 +711,7 @@ void CActiveAESink::EnumerateOutputDevices(AEDeviceList &devices, bool passthrou
+ {
+   EnumerateSinkList(false);
+ 
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     AESinkInfo sinkInfo = *itt;
+     for (AEDeviceInfoList::iterator itt2 = sinkInfo.m_deviceInfoList.begin(); itt2 != sinkInfo.m_deviceInfoList.end(); ++itt2)
+@@ -740,7 +741,7 @@ std::string CActiveAESink::GetDefaultDevice(bool passthrough)
+ {
+   EnumerateSinkList(false);
+ 
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     AESinkInfo sinkInfo = *itt;
+     for (AEDeviceInfoList::iterator itt2 = sinkInfo.m_deviceInfoList.begin(); itt2 != sinkInfo.m_deviceInfoList.end(); ++itt2)
+@@ -760,7 +761,7 @@ void CActiveAESink::GetDeviceFriendlyName(std::string &device)
+ {
+   m_deviceFriendlyName = "Device not found";
+   /* Match the device and find its friendly name */
+-  for (AESinkInfoList::iterator itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
++  for (auto itt = m_sinkInfoList.begin(); itt != m_sinkInfoList.end(); ++itt)
+   {
+     AESinkInfo sinkInfo = *itt;
+     for (AEDeviceInfoList::iterator itt2 = sinkInfo.m_deviceInfoList.begin(); itt2 != sinkInfo.m_deviceInfoList.end(); ++itt2)
+@@ -820,7 +821,7 @@ void CActiveAESink::OpenSink()
+   // WARNING: this changes format and does not use passthrough
+   m_sinkFormat = m_requestedFormat;
+   CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - trying to open device %s", device.c_str());
+-  m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
++  m_sink = CAESinkFactory::Create(device, m_sinkFormat);
+ 
+   // try first device in out list
+   if (!m_sink && !m_sinkInfoList.empty())
+@@ -832,7 +833,7 @@ void CActiveAESink::OpenSink()
+       device = driver + ":" + device;
+     m_sinkFormat = m_requestedFormat;
+     CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - trying to open device %s", device.c_str());
+-    m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
++    m_sink = CAESinkFactory::Create(device, m_sinkFormat);
+   }
+ 
+   // open NULL sink
+@@ -842,7 +843,7 @@ void CActiveAESink::OpenSink()
+     device = "NULL:NULL";
+     m_sinkFormat = m_requestedFormat;
+     CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - open NULL sink");
+-    m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
++    m_sink = CAESinkFactory::Create(device, m_sinkFormat);
+   }
+ 
+   if (!m_sink)
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.h b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.h
+index eb58111349e3..b9b3230cace7 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.h
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.h
+@@ -143,7 +143,7 @@ class CActiveAESink : private CThread
+ 
+   std::string m_deviceFriendlyName;
+   std::string m_device;
+-  AESinkInfoList m_sinkInfoList;
++  std::vector<AE::AESinkInfo> m_sinkInfoList;
+   IAESink *m_sink;
+   AEAudioFormat m_sinkFormat, m_requestedFormat;
+   CEngineStats *m_stats;
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp
+index 3a9e01e8e13a..58518643d19a 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp
+@@ -18,6 +18,7 @@
+  *
+  */
+ 
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+ #include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
+ #include "cores/AudioEngine/Utils/AERingBuffer.h"
+@@ -174,6 +175,25 @@ CAESinkDARWINOSX::~CAESinkDARWINOSX()
+   CCoreAudioDevice::RegisterDefaultOutputDeviceChangedCB(false, deviceChangedCB, this);
+ }
+ 
++void CAESinkDARWINOSX::Register()
++{
++  AE::AESinkRegEntry reg;
++  reg.sinkName = "DARWINOSX";
++  reg.createFunc = CAESinkDARWINOSX::Create;
++  reg.enumerateFunc = CAESinkDARWINOSX::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(reg);
++}
++
++IAESink* CAESinkDARWINOSX::Create(std::string &device, AEAudioFormat &desiredFormat)
++{
++  IAESink *sink = new CAESinkDARWINOSX();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ bool CAESinkDARWINOSX::Initialize(AEAudioFormat &format, std::string &device)
+ {
+   AudioDeviceID deviceID = 0;
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.h b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.h
+index 8bb7c5e3a4a9..e05e3971dd86 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.h
+@@ -34,14 +34,17 @@ class CAESinkDARWINOSX : public IAESink
+   CAESinkDARWINOSX();
+   virtual ~CAESinkDARWINOSX();
+ 
++  static void Register();
++  static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force);
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++
+   virtual bool Initialize(AEAudioFormat &format, std::string &device);
+   virtual void Deinitialize();
+ 
+-  virtual void         GetDelay(AEDelayStatus& status);
+-  virtual double       GetCacheTotal   ();
+-  virtual unsigned int AddPackets      (uint8_t **data, unsigned int frames, unsigned int offset);
+-  virtual void         Drain           ();
+-  static void          EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
++  virtual void GetDelay(AEDelayStatus& status);
++  virtual double GetCacheTotal();
++  virtual unsigned int AddPackets(uint8_t **data, unsigned int frames, unsigned int offset);
++  virtual void Drain();
+ 
+ private:
+   static OSStatus renderCallback(AudioDeviceID inDevice, const AudioTimeStamp* inNow, const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, void* inClientData);
+diff --git a/xbmc/windowing/osx/WinSystemOSX.mm b/xbmc/windowing/osx/WinSystemOSX.mm
+index 955d822cf096..1784f4196f76 100644
+--- a/xbmc/windowing/osx/WinSystemOSX.mm
++++ b/xbmc/windowing/osx/WinSystemOSX.mm
+@@ -26,6 +26,8 @@
+ #include "ServiceBroker.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "CompileInfo.h"
++#include "cores/AudioEngine/AESinkFactory.h"
++#include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
+ #include "cores/RetroPlayer/process/osx/RPProcessInfoOSX.h"
+ #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
+ #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
+@@ -612,6 +614,9 @@ static void DisplayReconfigured(CGDirectDisplayID display,
+   m_delayDispReset = false;
+ 
+   m_winEvents.reset(new CWinEventsOSX());
++
++  AE::CAESinkFactory::ClearSinks();
++  CAESinkDARWINOSX::Register();
+ }
+ 
+ CWinSystemOSX::~CWinSystemOSX()
+@@ -793,7 +798,6 @@ static void DisplayReconfigured(CGDirectDisplayID display,
+   VIDEOPLAYER::CProcessInfoOSX::Register();
+   RETRO::CRPProcessInfoOSX::Register();
+   RETRO::CRPProcessInfoOSX::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
+-
+   return true;
+ }
+ 
+
+From deb2a974187e5a87a6fd1a745e0efe5b8d46f329 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Fri, 1 Dec 2017 09:19:14 +0300
+Subject: [PATCH 02/13] [windows] adapt windows sinks to cleanups in
+ AESinkFactory
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.cpp | 20 ++++++++++++++++++++
+ xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.h   | 20 ++++++++++++--------
+ xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.cpp      | 21 ++++++++++++++++++++-
+ xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.h        | 16 ++++++++++------
+ xbmc/cores/AudioEngine/Sinks/AESinkXAudio.cpp      | 20 ++++++++++++++++++++
+ xbmc/cores/AudioEngine/Sinks/AESinkXAudio.h        |  3 +++
+ xbmc/windowing/win10/WinSystemWin10.cpp            |  6 ++++++
+ xbmc/windowing/windows/WinSystemWin32.cpp          |  6 ++++++
+ 8 files changed, 97 insertions(+), 15 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.cpp
+index 4ad3460ad4e6..528df1e1aa9f 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.cpp
+@@ -22,6 +22,7 @@
+ 
+ 
+ #include "AESinkDirectSound.h"
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Sinks/windows/AESinkFactoryWin.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "platform/win32/CharsetConverter.h"
+@@ -98,6 +99,25 @@ CAESinkDirectSound::~CAESinkDirectSound()
+   Deinitialize();
+ }
+ 
++void CAESinkDirectSound::Register()
++{
++  AE::AESinkRegEntry reg;
++  reg.sinkName = "DIRECTSOUND";
++  reg.createFunc = CAESinkDirectSound::Create;
++  reg.enumerateFunc = CAESinkDirectSound::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(reg);
++}
++
++IAESink* CAESinkDirectSound::Create(std::string &device, AEAudioFormat &desiredFormat)
++{
++  IAESink *sink = new CAESinkDirectSound();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ bool CAESinkDirectSound::Initialize(AEAudioFormat &format, std::string &device)
+ {
+   if (m_initialized)
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.h b/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.h
+index 564efb751899..57b5f787f19d 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDirectSound.h
+@@ -33,16 +33,20 @@ class CAESinkDirectSound : public IAESink
+   CAESinkDirectSound();
+   virtual ~CAESinkDirectSound();
+ 
+-  virtual bool Initialize  (AEAudioFormat &format, std::string &device);
++  static void Register();
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++
++  virtual bool Initialize(AEAudioFormat &format, std::string &device);
+   virtual void Deinitialize();
+ 
+-  virtual void         Stop               ();
+-  virtual void         Drain              ();
+-  virtual void         GetDelay           (AEDelayStatus& status);
+-  virtual double       GetCacheTotal      ();
+-  virtual unsigned int AddPackets         (uint8_t **data, unsigned int frames, unsigned int offset);
+-  static  std::string  GetDefaultDevice   ();
+-  static  void         EnumerateDevicesEx (AEDeviceInfoList &deviceInfoList, bool force = false);
++  virtual void Stop();
++  virtual void Drain();
++  virtual void GetDelay(AEDelayStatus& status);
++  virtual double GetCacheTotal();
++  virtual unsigned int AddPackets(uint8_t **data, unsigned int frames, unsigned int offset);
++
++  static std::string GetDefaultDevice();
++  static void EnumerateDevicesEx (AEDeviceInfoList &deviceInfoList, bool force = false);
+ private:
+   void          AEChannelsFromSpeakerMask(DWORD speakers);
+   DWORD         SpeakerMaskFromAEChannels(const CAEChannelInfo &channels);
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.cpp
+index b658088f6bd6..84c1d2a7c633 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.cpp
+@@ -23,6 +23,7 @@
+ #include <stdint.h>
+ #include <algorithm>
+ 
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "utils/log.h"
+ #include "utils/TimeUtils.h"
+@@ -69,9 +70,27 @@ CAESinkWASAPI::CAESinkWASAPI() :
+ 
+ CAESinkWASAPI::~CAESinkWASAPI()
+ {
+-
+ }
+ 
++void CAESinkWASAPI::Register()
++{
++  AE::AESinkRegEntry reg;
++  reg.sinkName = "WASAPI";
++  reg.createFunc = CAESinkWASAPI::Create;
++  reg.enumerateFunc = CAESinkWASAPI::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(reg);
++}
++
++IAESink* CAESinkWASAPI::Create(std::string &device, AEAudioFormat &desiredFormat)
++{
++  IAESink *sink = new CAESinkWASAPI();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ bool CAESinkWASAPI::Initialize(AEAudioFormat &format, std::string &device)
+ {
+   if (m_initialized)
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.h b/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.h
+index a63f61485e7b..1f34e421b0d4 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkWASAPI.h
+@@ -35,14 +35,18 @@ class CAESinkWASAPI : public IAESink
+     CAESinkWASAPI();
+     virtual ~CAESinkWASAPI();
+ 
+-    virtual bool Initialize  (AEAudioFormat &format, std::string &device);
++    static void Register();
++    static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++
++    virtual bool Initialize(AEAudioFormat &format, std::string &device);
+     virtual void Deinitialize();
+ 
+-    virtual void         GetDelay(AEDelayStatus& status);
+-    virtual double       GetCacheTotal               ();
+-    virtual unsigned int AddPackets                  (uint8_t **data, unsigned int frames, unsigned int offset);
+-    virtual void         Drain                       ();
+-    static  void         EnumerateDevicesEx          (AEDeviceInfoList &deviceInfoList, bool force = false);
++    virtual void GetDelay(AEDelayStatus& status);
++    virtual double GetCacheTotal();
++    virtual unsigned int AddPackets(uint8_t **data, unsigned int frames, unsigned int offset);
++    virtual void Drain();
++    static  void EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool force = false);
++
+ private:
+     bool         InitializeExclusive(AEAudioFormat &format);
+     static void         BuildWaveFormatExtensibleIEC61397(AEAudioFormat &format, WAVEFORMATEXTENSIBLE_IEC61937 &wfxex);
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.cpp
+index b337e336a19b..ac05097b8ca8 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.cpp
+@@ -19,6 +19,7 @@
+  */
+ 
+ #include "AESinkXAudio.h"
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Sinks/windows/AESinkFactoryWin.h"
+ #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+@@ -92,6 +93,25 @@ CAESinkXAudio::~CAESinkXAudio()
+     m_xAudio2.Reset();
+ }
+ 
++void CAESinkXAudio::Register()
++{
++  AE::AESinkRegEntry reg;
++  reg.sinkName = "XAUDIO";
++  reg.createFunc = CAESinkXAudio::Create;
++  reg.enumerateFunc = CAESinkXAudio::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(reg);
++}
++
++IAESink* CAESinkXAudio::Create(std::string &device, AEAudioFormat &desiredFormat)
++{
++  IAESink *sink = new CAESinkXAudio();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ bool CAESinkXAudio::Initialize(AEAudioFormat &format, std::string &device)
+ {
+   if (m_initialized)
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.h b/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.h
+index e6cb634a6d62..14a5de3ca789 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkXAudio.h
+@@ -78,6 +78,9 @@ class CAESinkXAudio : public IAESink
+     CAESinkXAudio();
+     virtual ~CAESinkXAudio();
+ 
++    static void Register();
++    static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++
+     bool Initialize (AEAudioFormat &format, std::string &device) override;
+     void Deinitialize() override;
+ 
+diff --git a/xbmc/windowing/win10/WinSystemWin10.cpp b/xbmc/windowing/win10/WinSystemWin10.cpp
+index 7bb0f14387c2..4b064f3d9786 100644
+--- a/xbmc/windowing/win10/WinSystemWin10.cpp
++++ b/xbmc/windowing/win10/WinSystemWin10.cpp
+@@ -19,6 +19,9 @@
+  */
+ 
+ #include "Application.h"
++#include "cores/AudioEngine/AESinkFactory.h"
++#include "cores/AudioEngine/Sinks/AESinkXAudio.h"
++#include "cores/AudioEngine/Sinks/AESinkWASAPI.h"
+ #include "guilib/gui3d.h"
+ #include "guilib/GraphicContext.h"
+ #include "messaging/ApplicationMessenger.h"
+@@ -54,6 +57,9 @@ CWinSystemWin10::CWinSystemWin10()
+   , m_bMinimized(false)
+ {
+   m_winEvents.reset(new CWinEventsWin10());
++  AE::CAESinkFactory::ClearSinks();
++  CAESinkXAudio::Register();
++  CAESinkWASAPI::Register();
+ }
+ 
+ CWinSystemWin10::~CWinSystemWin10()
+diff --git a/xbmc/windowing/windows/WinSystemWin32.cpp b/xbmc/windowing/windows/WinSystemWin32.cpp
+index 653493406a1f..a8ed48547365 100644
+--- a/xbmc/windowing/windows/WinSystemWin32.cpp
++++ b/xbmc/windowing/windows/WinSystemWin32.cpp
+@@ -22,6 +22,9 @@
+ #include "WinEventsWin32.h"
+ #include "resource.h"
+ #include "Application.h"
++#include "cores/AudioEngine/AESinkFactory.h"
++#include "cores/AudioEngine/Sinks/AESinkDirectSound.h"
++#include "cores/AudioEngine/Sinks/AESinkWASAPI.h"
+ #include "ServiceBroker.h"
+ #include "guilib/gui3d.h"
+ #include "messaging/ApplicationMessenger.h"
+@@ -60,6 +63,9 @@ CWinSystemWin32::CWinSystemWin32()
+   , m_bMinimized(false)
+ {
+   m_winEvents.reset(new CWinEventsWin32());
++  AE::CAESinkFactory::ClearSinks();
++  CAESinkDirectSound::Register();
++  CAESinkWASAPI::Register();
+ }
+ 
+ CWinSystemWin32::~CWinSystemWin32()
+
+From c0064a99d4cb13fbb77f6f411cba48a12ef50669 Mon Sep 17 00:00:00 2001
+From: popcornmix <popcornmix@gmail.com>
+Date: Sat, 2 Dec 2017 12:16:34 +0000
+Subject: [PATCH 03/13] SinkPi: Apapt to cleanup in AESinkFactory
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkPi.cpp | 21 +++++++++++++++++++++
+ xbmc/cores/AudioEngine/Sinks/AESinkPi.h   |  3 +++
+ xbmc/windowing/rpi/WinSystemRpi.cpp       |  4 ++++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkPi.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkPi.cpp
+index 02f829488455..a455efc48073 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkPi.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkPi.cpp
+@@ -26,6 +26,7 @@
+ 
+ #include "AESinkPi.h"
+ #include "ServiceBroker.h"
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "utils/log.h"
+ #include "settings/Settings.h"
+@@ -179,6 +180,26 @@ static uint32_t GetChannelMap(const CAEChannelInfo &channelLayout, bool passthro
+   return channel_map;
+ }
+ 
++void CAESinkPi::Register()
++{
++  AE::AESinkRegEntry reg;
++  reg.sinkName = "PI";
++  reg.createFunc = CAESinkPi::Create;
++  reg.enumerateFunc = CAESinkPi::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(reg);
++}
++
++IAESink* CAESinkPi::Create(std::string &device, AEAudioFormat &desiredFormat)
++{
++  IAESink *sink = new CAESinkPi();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
++
+ bool CAESinkPi::Initialize(AEAudioFormat &format, std::string &device)
+ {
+   // This may be called before Application calls g_RBP.Initialise, so call it here too
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkPi.h b/xbmc/cores/AudioEngine/Sinks/AESinkPi.h
+index c57ce7fb329b..e616ef9cd472 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkPi.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkPi.h
+@@ -34,6 +34,9 @@ class CAESinkPi : public IAESink
+   CAESinkPi();
+   virtual ~CAESinkPi();
+ 
++  static void Register();
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++
+   virtual bool Initialize(AEAudioFormat &format, std::string &device);
+   virtual void Deinitialize();
+   virtual bool IsCompatible(const AEAudioFormat &format, const std::string &device);
+diff --git a/xbmc/windowing/rpi/WinSystemRpi.cpp b/xbmc/windowing/rpi/WinSystemRpi.cpp
+index 7a6dc9150c14..3e4c6d2d8a12 100644
+--- a/xbmc/windowing/rpi/WinSystemRpi.cpp
++++ b/xbmc/windowing/rpi/WinSystemRpi.cpp
+@@ -33,6 +33,8 @@
+ #include "guilib/DispResource.h"
+ #include "utils/log.h"
+ #include "../WinEventsLinux.h"
++#include "cores/AudioEngine/AESinkFactory.h"
++#include "cores/AudioEngine/Sinks/AESinkPi.h"
+ 
+ #include <EGL/egl.h>
+ #include <EGL/eglplatform.h>
+@@ -51,6 +53,8 @@ CWinSystemRpi::CWinSystemRpi()
+   m_rpi = new CRPIUtils();
+ 
+   m_winEvents.reset(new CWinEventsLinux());
++  AE::CAESinkFactory::ClearSinks();
++  CAESinkPi::Register();
+ }
+ 
+ CWinSystemRpi::~CWinSystemRpi()
+
+From f0dd379738b3e505d2a74a6a74c3baf56e7f114d Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Sat, 2 Dec 2017 00:29:27 +0100
+Subject: [PATCH 04/13] AESinkFactory: Adjust PulseAudio
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp | 18 ++++++++++++++++++
+ xbmc/cores/AudioEngine/Sinks/AESinkPULSE.h   |  9 ++++++---
+ 2 files changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
+index 82897266fdbc..5aa9a57c1afb 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
+@@ -25,6 +25,7 @@
+ #include "guilib/LocalizeStrings.h"
+ #include "Application.h"
+ #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "ServiceBroker.h"
+ 
+ static const char *ContextStateToString(pa_context_state s)
+@@ -477,7 +478,24 @@ static void SinkInfoRequestCallback(pa_context *c, const pa_sink_info *i, int eo
+ 
+ /* PulseAudio class memberfunctions*/
+ 
++void CAESinkPULSE::Register()
++{
++  AE::AESinkRegEntry entry;
++  entry.sinkName = "PULSE";
++  entry.createFunc = CAESinkPULSE::Create;
++  entry.enumerateFunc = CAESinkPULSE::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(entry);
++}
+ 
++IAESink* CAESinkPULSE::Create(std::string &device, AEAudioFormat& desiredFormat)
++{
++  IAESink* sink = new CAESinkPULSE();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
+ CAESinkPULSE::CAESinkPULSE()
+ {
+   m_IsAllocated = false;
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.h b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.h
+index a8bd867be05a..55bc77100009 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.h
+@@ -22,8 +22,8 @@
+ #include "system.h"
+ 
+ #include "cores/AudioEngine/Interfaces/AESink.h"
+-#include "Utils/AEDeviceInfo.h"
+-#include "Utils/AEUtil.h"
++#include "cores/AudioEngine/Utils/AEDeviceInfo.h"
++#include "cores/AudioEngine/Utils/AEUtil.h"
+ #include <pulse/pulseaudio.h>
+ #include "threads/CriticalSection.h"
+ 
+@@ -35,6 +35,10 @@ class CAESinkPULSE : public IAESink
+   CAESinkPULSE();
+   ~CAESinkPULSE() override;
+ 
++  static void Register();
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++  static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
++
+   bool Initialize(AEAudioFormat &format, std::string &device) override;
+   void Deinitialize() override;
+ 
+@@ -47,7 +51,6 @@ class CAESinkPULSE : public IAESink
+   bool HasVolume() override { return true; };
+   void SetVolume(float volume) override;
+ 
+-  static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
+   bool IsInitialized();
+   void UpdateInternalVolume(const pa_cvolume* nVol);
+   pa_stream* GetInternalStream();
+
+From d15051418327ea9325da9361890e1b0304889854 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Mon, 4 Dec 2017 09:01:29 +0100
+Subject: [PATCH 05/13] X11: register optionals
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp  |  22 ++-
+ xbmc/cores/AudioEngine/Sinks/AESinkALSA.h    |   7 +-
+ xbmc/windowing/X11/CMakeLists.txt            |   2 +
+ xbmc/windowing/X11/OptionalsReg.cpp          | 223 +++++++++++++++++++++++++++
+ xbmc/windowing/X11/OptionalsReg.h            |  82 ++++++++++
+ xbmc/windowing/X11/WinSystemX11GLContext.cpp | 101 +++++-------
+ xbmc/windowing/X11/WinSystemX11GLContext.h   |  19 +--
+ 7 files changed, 378 insertions(+), 78 deletions(-)
+ create mode 100644 xbmc/windowing/X11/OptionalsReg.cpp
+ create mode 100644 xbmc/windowing/X11/OptionalsReg.h
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
+index ca79045af016..f7bb632dca85 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
+@@ -18,7 +18,6 @@
+  *
+  */
+ #include "system.h"
+-#ifdef HAS_ALSA
+ 
+ #include <stdint.h>
+ #include <limits.h>
+@@ -29,6 +28,7 @@
+ #include <algorithm>
+ 
+ #include "AESinkALSA.h"
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "cores/AudioEngine/Utils/AEELDParser.h"
+ #include "utils/log.h"
+@@ -107,6 +107,25 @@ CAESinkALSA::~CAESinkALSA()
+   Deinitialize();
+ }
+ 
++void CAESinkALSA::Register()
++{
++  AE::AESinkRegEntry entry;
++  entry.sinkName = "PULSE";
++  entry.createFunc = CAESinkALSA::Create;
++  entry.enumerateFunc = CAESinkALSA::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(entry);
++}
++
++IAESink* CAESinkALSA::Create(std::string &device, AEAudioFormat& desiredFormat)
++{
++  IAESink* sink = new CAESinkALSA();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ inline CAEChannelInfo CAESinkALSA::GetChannelLayoutRaw(const AEAudioFormat& format)
+ {
+   unsigned int count = 0;
+@@ -1650,4 +1669,3 @@ CALSADeviceMonitor CAESinkALSA::m_deviceMonitor; // ARGH
+ #endif
+ CALSAHControlMonitor CAESinkALSA::m_controlMonitor; // ARGH
+ 
+-#endif
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.h b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.h
+index 0f329493589d..74e15811250b 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.h
+@@ -20,7 +20,6 @@
+  */
+ 
+ #include "system.h"
+-#ifdef HAS_ALSA
+ 
+ #include "cores/AudioEngine/Interfaces/AESink.h"
+ #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
+@@ -45,6 +44,10 @@ class CAESinkALSA : public IAESink
+   CAESinkALSA();
+   ~CAESinkALSA() override;
+ 
++  static void Register();
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++  static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
++
+   bool Initialize(AEAudioFormat &format, std::string &device) override;
+   void Deinitialize() override;
+ 
+@@ -54,7 +57,6 @@ class CAESinkALSA : public IAESink
+   unsigned int AddPackets(uint8_t **data, unsigned int frames, unsigned int offset) override;
+   void Drain() override;
+ 
+-  static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
+ private:
+   CAEChannelInfo GetChannelLayoutRaw(const AEAudioFormat& format);
+   CAEChannelInfo GetChannelLayoutLegacy(const AEAudioFormat& format, unsigned int minChannels, unsigned int maxChannels);
+@@ -120,5 +122,4 @@ class CAESinkALSA : public IAESink
+ 
+   static void sndLibErrorHandler(const char *file, int line, const char *function, int err, const char *fmt, ...);
+ };
+-#endif
+ 
+diff --git a/xbmc/windowing/X11/CMakeLists.txt b/xbmc/windowing/X11/CMakeLists.txt
+index 965a06d580be..8534cf8838eb 100644
+--- a/xbmc/windowing/X11/CMakeLists.txt
++++ b/xbmc/windowing/X11/CMakeLists.txt
+@@ -1,5 +1,6 @@
+ set(SOURCES GLContextEGL.cpp
+             GLContext.cpp
++            OptionalsReg.cpp
+             OSScreenSaverX11.cpp
+             WinEventsX11.cpp
+             WinSystemX11.cpp
+@@ -9,6 +10,7 @@ set(SOURCES GLContextEGL.cpp
+ 
+ set(HEADERS GLContext.h
+             GLContextEGL.h
++            OptionalsReg.h
+             OSScreenSaverX11.h
+             WinEventsX11.h
+             WinSystemX11.h
+diff --git a/xbmc/windowing/X11/OptionalsReg.cpp b/xbmc/windowing/X11/OptionalsReg.cpp
+new file mode 100644
+index 000000000000..2694afb1310c
+--- /dev/null
++++ b/xbmc/windowing/X11/OptionalsReg.cpp
+@@ -0,0 +1,223 @@
++/*
++ *      Copyright (C) 2005-2017 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "OptionalsReg.h"
++
++//-----------------------------------------------------------------------------
++// VAAPI
++//-----------------------------------------------------------------------------
++#if defined (HAVE_LIBVA)
++#include <va/va_x11.h>
++#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
++#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.h"
++
++class CWinSystemX11GLContext;
++
++class CVaapiProxy : public VAAPI::IVaapiWinSystem
++{
++public:
++  CVaapiProxy() = default;
++  virtual ~CVaapiProxy() = default;
++  VADisplay GetVADisplay() override { return vaGetDisplay(dpy); };
++  void *GetEGLDisplay() override { return eglDisplay; };
++
++  Display *dpy;
++  void *eglDisplay;
++};
++
++CVaapiProxy* X11::VaapiProxyCreate()
++{
++  return new CVaapiProxy();
++}
++
++void X11::VaapiProxyDelete(CVaapiProxy *proxy)
++{
++  delete proxy;
++}
++
++void X11::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
++{
++  proxy->dpy = static_cast<Display*>(dpy);
++  proxy->eglDisplay = eglDpy;
++}
++
++void X11::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
++{
++  VAAPI::CDecoder::Register(winSystem, hevc);
++}
++
++void X11::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
++{
++  EGLDisplay eglDpy = winSystem->eglDisplay;
++  VADisplay vaDpy = vaGetDisplay(winSystem->dpy);
++  CRendererVAAPI::Register(winSystem, vaDpy, eglDpy, general, hevc);
++}
++
++#else
++
++class CVaapiProxy
++{
++};
++
++CVaapiProxy* X11::VaapiProxyCreate()
++{
++  return nullptr;
++}
++
++void X11::VaapiProxyDelete(CVaapiProxy *proxy)
++{
++}
++
++void X11::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
++{
++
++}
++
++void X11::RegisterVAAPI(CVaapiProxy *winSystem, bool hevc)
++{
++
++}
++
++void X11::RegisterVAAPIRender(CVaapiProxy *winSystem, void* dpy,
++                         void* eglDisplay, bool &general, bool &hevc)
++{
++
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// GLX
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_GLX
++#include "GL/glx.h"
++#include "VideoSyncGLX.h"
++#include "GLContextGLX.h"
++
++XID X11::GLXGetWindow(void* context)
++{
++  return static_cast<CGLContextGLX*>(context)->m_glxWindow;
++}
++
++void* X11::GLXGetContext(void* context)
++{
++  return static_cast<CGLContextGLX*>(context)->m_glxContext;
++}
++
++CGLContext* X11::GLXContextCreate(Display *dpy)
++{
++  return new CGLContextGLX(dpy);
++}
++
++CVideoSync* X11::GLXVideoSyncCreate(void *clock, CWinSystemX11GLContext& winSystem)
++{
++  return new  CVideoSyncGLX(clock, winSystem);
++}
++
++#else
++
++XID X11::GLXGetWindow(void* context)
++{
++  return 0;
++}
++
++void* X11::GLXGetContext(void* context)
++{
++  return nullptr;
++}
++
++CGLContext* X11::GLXContextCreate(Display *dpy)
++{
++  return nullptr;
++}
++
++CVideoSync* X11::GLXVideoSyncCreate(void *clock, CWinSystemX11GLContext& winSystem)
++{
++  return nullptr;
++}
++
++#endif
++
++//-----------------------------------------------------------------------------
++// VDPAU
++//-----------------------------------------------------------------------------
++
++#if defined (HAVE_LIBVDPAU)
++#include "cores/VideoPlayer/DVDCodecs/Video/VDPAU.h"
++#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVDPAU.h"
++
++void X11::VDPAURegisterRender()
++{
++  CRendererVDPAU::Register();
++}
++
++void X11::VDPAURegister()
++{
++  VDPAU::CDecoder::Register();
++}
++
++#else
++
++void X11::VDPAURegisterRender()
++{
++
++}
++
++void X11::VDPAURegister()
++{
++
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// ALSA
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_ALSA
++#include "cores/AudioEngine/Sinks/AESinkALSA.h"
++bool X11::ALSARegister()
++{
++  CAESinkALSA::Register();
++  return true;
++}
++#else
++bool X11::ALSARegister()
++{
++  return false;
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// PulseAudio
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_PULSEAUDIO
++#include "cores/AudioEngine/Sinks/AESinkPULSE.h"
++bool X11::PulseAudioRegister()
++{
++  CAESinkPULSE::Register();
++  return true;
++}
++#else
++bool X11::PulseAudioRegister()
++{
++  return false;
++}
++#endif
+diff --git a/xbmc/windowing/X11/OptionalsReg.h b/xbmc/windowing/X11/OptionalsReg.h
+new file mode 100644
+index 000000000000..d0cac334912f
+--- /dev/null
++++ b/xbmc/windowing/X11/OptionalsReg.h
+@@ -0,0 +1,82 @@
++/*
++ *      Copyright (C) 2005-2017 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++#include "X11/Xlib.h"
++
++//-----------------------------------------------------------------------------
++// VAAPI
++//-----------------------------------------------------------------------------
++
++class CVaapiProxy;
++
++namespace X11
++{
++CVaapiProxy* VaapiProxyCreate();
++void VaapiProxyDelete(CVaapiProxy *proxy);
++void VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy);
++void VAAPIRegister(CVaapiProxy *winSystem, bool hevc);
++void VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc);
++}
++
++//-----------------------------------------------------------------------------
++// GLX
++//-----------------------------------------------------------------------------
++
++class CVideoSync;
++class CGLContext;
++class CWinSystemX11GLContext;
++
++namespace X11
++{
++XID GLXGetWindow(void* context);
++void* GLXGetContext(void* context);
++CGLContext* GLXContextCreate(Display *dpy);
++CVideoSync* GLXVideoSyncCreate(void *clock, CWinSystemX11GLContext& winSystem);
++}
++
++//-----------------------------------------------------------------------------
++// VDPAU
++//-----------------------------------------------------------------------------
++
++namespace X11
++{
++void VDPAURegisterRender();
++void VDPAURegister();
++}
++
++//-----------------------------------------------------------------------------
++// ALSA
++//-----------------------------------------------------------------------------
++
++namespace X11
++{
++bool ALSARegister();
++}
++
++//-----------------------------------------------------------------------------
++// PulseAudio
++//-----------------------------------------------------------------------------
++
++namespace X11
++{
++bool PulseAudioRegister();
++}
+diff --git a/xbmc/windowing/X11/WinSystemX11GLContext.cpp b/xbmc/windowing/X11/WinSystemX11GLContext.cpp
+index 9fd7a25acd51..f273a720f361 100644
+--- a/xbmc/windowing/X11/WinSystemX11GLContext.cpp
++++ b/xbmc/windowing/X11/WinSystemX11GLContext.cpp
+@@ -33,11 +33,6 @@
+ #include "Application.h"
+ #include "VideoSyncDRM.h"
+ 
+-#ifdef HAS_GLX
+-#include "VideoSyncGLX.h"
+-#include "GLContextGLX.h"
+-#endif // HAS_GLX
+-
+ #include "cores/RetroPlayer/process/X11/RPProcessInfoX11.h"
+ #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
+ #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
+@@ -45,6 +40,8 @@
+ #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h"
+ #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
+ 
++#include "OptionalsReg.h"
++
+ using namespace KODI;
+ 
+ std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+@@ -53,7 +50,27 @@ std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+   return winSystem;
+ }
+ 
+-CWinSystemX11GLContext::CWinSystemX11GLContext() = default;
++CWinSystemX11GLContext::CWinSystemX11GLContext()
++{
++  std::string envSink;
++  if (getenv("AE_SINK"))
++    envSink = getenv("AE_SINK");
++  if (StringUtils::CompareNoCase(envSink, "ALSA"))
++  {
++    X11::ALSARegister();
++  }
++  else if (StringUtils::CompareNoCase(envSink, "PULSE"))
++  {
++    X11::PulseAudioRegister();
++  }
++  else
++  {
++    if (!X11::PulseAudioRegister())
++    {
++      X11::ALSARegister();
++    }
++  }
++}
+ 
+ CWinSystemX11GLContext::~CWinSystemX11GLContext()
+ {
+@@ -88,17 +105,15 @@ bool CWinSystemX11GLContext::IsExtSupported(const char* extension)
+   return m_pGLContext->IsExtSupported(extension);
+ }
+ 
+-#ifdef HAS_GLX
+-GLXWindow CWinSystemX11GLContext::GetWindow() const
++XID CWinSystemX11GLContext::GetWindow() const
+ {
+-  return static_cast<CGLContextGLX*>(m_pGLContext)->m_glxWindow;
++  return X11::GLXGetWindow(m_pGLContext);
+ }
+ 
+-GLXContext CWinSystemX11GLContext::GetGlxContext() const
++void* CWinSystemX11GLContext::GetGlxContext() const
+ {
+-  return static_cast<CGLContextGLX*>(m_pGLContext)->m_glxContext;
++  return X11::GLXGetContext(m_pGLContext);
+ }
+-#endif // HAS_GLX
+ 
+ EGLDisplay CWinSystemX11GLContext::GetEGLDisplay() const
+ {
+@@ -208,31 +223,6 @@ XVisualInfo* CWinSystemX11GLContext::GetVisual()
+   return visual;
+ }
+ 
+-#if defined (HAVE_LIBVA)
+-#include <va/va_x11.h>
+-#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
+-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.h"
+-
+-class CVaapiProxy : public VAAPI::IVaapiWinSystem
+-{
+-public:
+-  CVaapiProxy(CWinSystemX11GLContext &winSystem) : m_winSystem(winSystem) {};
+-  VADisplay GetVADisplay() override { return m_winSystem.GetVaDisplay(); };
+-  void *GetEGLDisplay() override { return m_winSystem.GetEGLDisplay(); };
+-protected:
+-  CWinSystemX11GLContext &m_winSystem;
+-};
+-#else
+-class CVaapiProxy
+-{
+-};
+-#endif
+-
+-#if defined (HAVE_LIBVDPAU)
+-#include "cores/VideoPlayer/DVDCodecs/Video/VDPAU.h"
+-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVDPAU.h"
+-#endif
+-
+ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
+ {
+   bool success = false;
+@@ -260,33 +250,27 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
+     std::transform(gpuvendor.begin(), gpuvendor.end(), gpuvendor.begin(), ::tolower);
+     if (gpuvendor.compare(0, 5, "intel") == 0)
+     {
+-#if defined (HAVE_LIBVA)
+-      m_vaapiProxy.reset(new CVaapiProxy(*this));
+-      EGLDisplay eglDpy = static_cast<CGLContextEGL*>(m_pGLContext)->m_eglDisplay;
+-      VADisplay vaDpy = GetVaDisplay();
++      m_vaapiProxy.reset(X11::VaapiProxyCreate());
++      X11::VaapiProxyConfig(m_vaapiProxy.get(), GetDisplay(),
++                       static_cast<CGLContextEGL*>(m_pGLContext)->m_eglDisplay);
+       bool general, hevc;
+-      CRendererVAAPI::Register(m_vaapiProxy.get(), vaDpy, eglDpy, general, hevc);
++      X11::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
+       if (general)
+-        VAAPI::CDecoder::Register(m_vaapiProxy.get(), hevc);
+-#endif
++        X11::VAAPIRegister(m_vaapiProxy.get(), hevc);
+       return success;
+     }
+   }
+ 
+-#ifdef HAS_GLX
+   delete m_pGLContext;
+ 
+   // fallback for vdpau
+-  m_pGLContext = new CGLContextGLX(m_dpy);
++  m_pGLContext = X11::GLXContextCreate(m_dpy);
+   success = m_pGLContext->Refresh(force, m_nScreen, m_glWindow, m_newGlContext);
+   if (success)
+   {
+-#if defined (HAVE_LIBVDPAU)
+-    VDPAU::CDecoder::Register();
+-    CRendererVDPAU::Register();
+-#endif
++    X11::VDPAURegister();
++    X11::VDPAURegisterRender();
+   }
+-#endif // HAS_GLX
+   return success;
+ }
+ 
+@@ -298,19 +282,12 @@ std::unique_ptr<CVideoSync> CWinSystemX11GLContext::GetVideoSync(void *clock)
+   {
+     pVSync.reset(new CVideoSyncDRM(clock, *this));
+   }
+-#ifdef HAS_GLX
+-  else if (dynamic_cast<CGLContextGLX*>(m_pGLContext))
+-  {
+-    pVSync.reset(new CVideoSyncGLX(clock, *this));
+-  }
+-#endif // HAS_GLX
++  pVSync.reset(X11::GLXVideoSyncCreate(clock, *this));
++
+   return pVSync;
+ }
+ 
+-void* CWinSystemX11GLContext::GetVaDisplay()
++void CWinSystemX11GLContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
+ {
+-#if defined(HAVE_LIBVA)
+-  return vaGetDisplay(m_dpy);
+-#endif
+-  return nullptr;
++  X11::VaapiProxyDelete(p);
+ }
+diff --git a/xbmc/windowing/X11/WinSystemX11GLContext.h b/xbmc/windowing/X11/WinSystemX11GLContext.h
+index 8620e529c897..2e515053ebdc 100644
+--- a/xbmc/windowing/X11/WinSystemX11GLContext.h
++++ b/xbmc/windowing/X11/WinSystemX11GLContext.h
+@@ -22,10 +22,6 @@
+ 
+ #include "WinSystemX11.h"
+ 
+-#ifdef HAS_GLX
+-#include "GL/glx.h"
+-#endif // HAS_GLX
+-
+ #include "EGL/egl.h"
+ #include "rendering/gl/RenderSystemGL.h"
+ #include <memory>
+@@ -49,17 +45,13 @@ class CWinSystemX11GLContext : public CWinSystemX11, public CRenderSystemGL
+   // videosync
+   std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+ 
+-#ifdef HAS_GLX
+-  GLXWindow GetWindow() const;
+-  GLXContext GetGlxContext() const;
+-#endif // HAS_GLX
++  XID GetWindow() const;
++  void* GetGlxContext() const;
+   EGLDisplay GetEGLDisplay() const;
+   EGLSurface GetEGLSurface() const;
+   EGLContext GetEGLContext() const;
+   EGLConfig GetEGLConfig() const;
+ 
+-  void* GetVaDisplay();
+-
+ protected:
+   bool SetWindow(int width, int height, bool fullscreen, const std::string &output, int *winstate = NULL) override;
+   void PresentRenderImpl(bool rendered) override;
+@@ -69,5 +61,10 @@ class CWinSystemX11GLContext : public CWinSystemX11, public CRenderSystemGL
+ 
+   CGLContext *m_pGLContext = nullptr;
+   bool m_newGlContext;
+-  std::unique_ptr<CVaapiProxy> m_vaapiProxy;
++
++  struct delete_CVaapiProxy
++  {
++    void operator()(CVaapiProxy *p) const;
++  };
++  std::unique_ptr<CVaapiProxy, delete_CVaapiProxy> m_vaapiProxy;
+ };
+
+From e557f1316cb0a378547f52144bdf9208e5ea8076 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Mon, 4 Dec 2017 13:30:45 +0100
+Subject: [PATCH 06/13] wayland: register optionals
+
+---
+ xbmc/windowing/wayland/CMakeLists.txt              |   2 +
+ xbmc/windowing/wayland/OptionalsReg.cpp            | 137 +++++++++++++++++++++
+ xbmc/windowing/wayland/OptionalsReg.h              |  56 +++++++++
+ xbmc/windowing/wayland/WinSystemWayland.cpp        |  30 +++--
+ xbmc/windowing/wayland/WinSystemWayland.h          |   2 -
+ .../wayland/WinSystemWaylandEGLContextGL.cpp       |  35 ++----
+ .../wayland/WinSystemWaylandEGLContextGL.h         |   6 +-
+ .../wayland/WinSystemWaylandEGLContextGLES.cpp     |  36 ++----
+ .../wayland/WinSystemWaylandEGLContextGLES.h       |   6 +-
+ 9 files changed, 246 insertions(+), 64 deletions(-)
+ create mode 100644 xbmc/windowing/wayland/OptionalsReg.cpp
+ create mode 100644 xbmc/windowing/wayland/OptionalsReg.h
+
+diff --git a/xbmc/windowing/wayland/CMakeLists.txt b/xbmc/windowing/wayland/CMakeLists.txt
+index 89f3219c155a..993de738a63f 100644
+--- a/xbmc/windowing/wayland/CMakeLists.txt
++++ b/xbmc/windowing/wayland/CMakeLists.txt
+@@ -4,6 +4,7 @@ set_source_files_properties(${WAYLAND_EXTRA_PROTOCOL_GENERATED_DIR}/wayland-extr
+                             PROPERTIES GENERATED TRUE)
+ 
+ set(SOURCES Connection.cpp
++            OptionalsReg.cpp
+             Output.cpp
+             GLContextEGL.cpp
+             InputProcessorKeyboard.h
+@@ -25,6 +26,7 @@ set(SOURCES Connection.cpp
+             XkbcommonKeymap.cpp)
+ 
+ set(HEADERS Connection.h
++            OptionalsReg.h
+             Output.h
+             GLContextEGL.h
+             InputProcessorKeyboard.cpp
+diff --git a/xbmc/windowing/wayland/OptionalsReg.cpp b/xbmc/windowing/wayland/OptionalsReg.cpp
+new file mode 100644
+index 000000000000..4da64e6f5d78
+--- /dev/null
++++ b/xbmc/windowing/wayland/OptionalsReg.cpp
+@@ -0,0 +1,137 @@
++/*
++ *      Copyright (C) 2005-2017 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "OptionalsReg.h"
++
++//-----------------------------------------------------------------------------
++// VAAPI
++//-----------------------------------------------------------------------------
++#if defined (HAVE_LIBVA)
++#include <va/va_wayland.h>
++#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
++#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.h"
++
++class CVaapiProxy : public VAAPI::IVaapiWinSystem
++{
++public:
++  CVaapiProxy() = default;
++  virtual ~CVaapiProxy() = default;
++  VADisplay GetVADisplay() override { return vaGetDisplayWl(dpy); };
++  void *GetEGLDisplay() override { return eglDisplay; };
++
++  wl_display *dpy;
++  void *eglDisplay;
++};
++
++CVaapiProxy* WAYLAND::VaapiProxyCreate()
++{
++  return new CVaapiProxy();
++}
++
++void WAYLAND::VaapiProxyDelete(CVaapiProxy *proxy)
++{
++  delete proxy;
++}
++
++void WAYLAND::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
++{
++  proxy->dpy = static_cast<wl_display*>(dpy);
++  proxy->eglDisplay = eglDpy;
++}
++
++void WAYLAND::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
++{
++  VAAPI::CDecoder::Register(winSystem, hevc);
++}
++
++void WAYLAND::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
++{
++  EGLDisplay eglDpy = winSystem->eglDisplay;
++  VADisplay vaDpy = vaGetDisplayWl(winSystem->dpy);
++  CRendererVAAPI::Register(winSystem, vaDpy, eglDpy, general, hevc);
++}
++
++#else
++
++class CVaapiProxy
++{
++};
++
++CVaapiProxy* WAYLAND::VaapiProxyCreate()
++{
++  return nullptr;
++}
++
++void WAYLAND::VaapiProxyDelete(CVaapiProxy *proxy)
++{
++}
++
++void WAYLAND::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
++{
++
++}
++
++void WAYLAND::RegisterVAAPI(CVaapiProxy *winSystem, bool hevc)
++{
++
++}
++
++void WAYLAND::RegisterVAAPIRender(CVaapiProxy *winSystem, void* dpy,
++                         void* eglDisplay, bool &general, bool &hevc)
++{
++
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// ALSA
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_ALSA
++#include "cores/AudioEngine/Sinks/AESinkALSA.h"
++bool WAYLAND::ALSARegister()
++{
++  CAESinkALSA::Register();
++  return true;
++}
++#else
++bool WAYLAND::ALSARegister()
++{
++  return false;
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// PulseAudio
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_PULSEAUDIO
++#include "cores/AudioEngine/Sinks/AESinkPULSE.h"
++bool WAYLAND::PulseAudioRegister()
++{
++  CAESinkPULSE::Register();
++  return true;
++}
++#else
++bool WAYLAND::PulseAudioRegister()
++{
++  return false;
++}
++#endif
+diff --git a/xbmc/windowing/wayland/OptionalsReg.h b/xbmc/windowing/wayland/OptionalsReg.h
+new file mode 100644
+index 000000000000..a2296790e88c
+--- /dev/null
++++ b/xbmc/windowing/wayland/OptionalsReg.h
+@@ -0,0 +1,56 @@
++/*
++ *      Copyright (C) 2005-2017 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++
++//-----------------------------------------------------------------------------
++// VAAPI
++//-----------------------------------------------------------------------------
++
++class CVaapiProxy;
++
++namespace WAYLAND
++{
++CVaapiProxy* VaapiProxyCreate();
++void VaapiProxyDelete(CVaapiProxy *proxy);
++void VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy);
++void VAAPIRegister(CVaapiProxy *winSystem, bool hevc);
++void VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc);
++}
++
++
++//-----------------------------------------------------------------------------
++// ALSA
++//-----------------------------------------------------------------------------
++
++namespace WAYLAND
++{
++bool ALSARegister();
++}
++
++//-----------------------------------------------------------------------------
++// PulseAudio
++//-----------------------------------------------------------------------------
++
++namespace WAYLAND
++{
++bool PulseAudioRegister();
++}
+diff --git a/xbmc/windowing/wayland/WinSystemWayland.cpp b/xbmc/windowing/wayland/WinSystemWayland.cpp
+index d35a4e9bd21e..b5389602440b 100644
+--- a/xbmc/windowing/wayland/WinSystemWayland.cpp
++++ b/xbmc/windowing/wayland/WinSystemWayland.cpp
+@@ -20,14 +20,11 @@
+ 
+ #include "WinSystemWayland.h"
+ 
++#include "OptionalsReg.h"
+ #include <algorithm>
+ #include <limits>
+ #include <numeric>
+ 
+-#if defined(HAVE_LIBVA)
+-#include <va/va_wayland.h>
+-#endif
+-
+ #include "Application.h"
+ #include "Connection.h"
+ #include "cores/RetroPlayer/process/wayland/RPProcessInfoWayland.h"
+@@ -147,6 +144,24 @@ struct MsgBufferScale
+ CWinSystemWayland::CWinSystemWayland()
+ : CWinSystemBase{}, m_protocol{"WinSystemWaylandInternal"}
+ {
++  std::string envSink;
++  if (getenv("AE_SINK"))
++    envSink = getenv("AE_SINK");
++  if (StringUtils::CompareNoCase(envSink, "ALSA"))
++  {
++    ::WAYLAND::ALSARegister();
++  }
++  else if (StringUtils::CompareNoCase(envSink, "PULSE"))
++  {
++    ::WAYLAND::PulseAudioRegister();
++  }
++  else
++  {
++    if (!::WAYLAND::PulseAudioRegister())
++    {
++      ::WAYLAND::ALSARegister();
++    }
++  }
+   m_winEvents.reset(new CWinEventsWayland());
+ }
+ 
+@@ -1363,13 +1378,6 @@ std::unique_ptr<CVideoSync> CWinSystemWayland::GetVideoSync(void* clock)
+   }
+ }
+ 
+-#if defined(HAVE_LIBVA)
+-void* CWinSystemWayland::GetVaDisplay()
+-{
+-  return vaGetDisplayWl(m_connection->GetDisplay());
+-}
+-#endif
+-
+ std::unique_ptr<IOSScreenSaver> CWinSystemWayland::GetOSScreenSaverImpl()
+ {
+   if (m_surface)
+diff --git a/xbmc/windowing/wayland/WinSystemWayland.h b/xbmc/windowing/wayland/WinSystemWayland.h
+index a79cf04a75c7..72181e564a95 100644
+--- a/xbmc/windowing/wayland/WinSystemWayland.h
++++ b/xbmc/windowing/wayland/WinSystemWayland.h
+@@ -89,8 +89,6 @@ class CWinSystemWayland : public CWinSystemBase, IInputHandler, IWindowDecoratio
+   float GetFrameLatencyAdjustment() override;
+   std::unique_ptr<CVideoSync> GetVideoSync(void* clock) override;
+ 
+-  void* GetVaDisplay();
+-
+   void Register(IDispResource* resource);
+   void Unregister(IDispResource* resource);
+ 
+diff --git a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.cpp b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.cpp
+index c577c3208366..09bca5d0603b 100644
+--- a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.cpp
++++ b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.cpp
+@@ -19,6 +19,7 @@
+  */
+ 
+ #include "WinSystemWaylandEGLContextGL.h"
++#include "OptionalsReg.h"
+ 
+ #include <EGL/egl.h>
+ 
+@@ -27,25 +28,6 @@
+ #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h"
+ #include "utils/log.h"
+ 
+-#if defined(HAVE_LIBVA)
+-#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
+-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.h"
+-using namespace KODI::WINDOWING::WAYLAND;
+-class CVaapiProxy : public VAAPI::IVaapiWinSystem
+-{
+-public:
+-  CVaapiProxy(CWinSystemWaylandEGLContextGL &winSystem) : m_winSystem(winSystem) {};
+-  VADisplay GetVADisplay() override { return m_winSystem.GetVaDisplay(); };
+-  void *GetEGLDisplay() override { return m_winSystem.GetEGLDisplay(); };
+-protected:
+-  CWinSystemWaylandEGLContextGL &m_winSystem;
+-};
+-#else
+-class CVaapiProxy
+-{
+-};
+-#endif
+-
+ using namespace KODI::WINDOWING::WAYLAND;
+ 
+ std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+@@ -64,15 +46,15 @@ bool CWinSystemWaylandEGLContextGL::InitWindowSystem()
+   CLinuxRendererGL::Register();
+   RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
+ 
+-#if defined(HAVE_LIBVA)
+   bool general, hevc;
+-  m_vaapiProxy.reset(new CVaapiProxy(*this));
+-  CRendererVAAPI::Register(m_vaapiProxy.get(), GetVaDisplay(), m_eglContext.GetEGLDisplay(), general, hevc);
++  m_vaapiProxy.reset(::WAYLAND::VaapiProxyCreate());
++  ::WAYLAND::VaapiProxyConfig(m_vaapiProxy.get(),GetConnection()->GetDisplay(),
++                              m_eglContext.GetEGLDisplay());
++  ::WAYLAND::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
+   if (general)
+   {
+-    VAAPI::CDecoder::Register(m_vaapiProxy.get(), hevc);
++    ::WAYLAND::VAAPIRegister(m_vaapiProxy.get(), hevc);
+   }
+-#endif
+ 
+   return true;
+ }
+@@ -98,3 +80,8 @@ void CWinSystemWaylandEGLContextGL::PresentRenderImpl(bool rendered)
+ {
+   PresentFrame(rendered);
+ }
++
++void CWinSystemWaylandEGLContextGL::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
++{
++  ::WAYLAND::VaapiProxyDelete(p);
++}
+diff --git a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.h b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.h
+index 29ab41fea6ba..41b37d4bcb0f 100644
+--- a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.h
++++ b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGL.h
+@@ -39,7 +39,11 @@ class CWinSystemWaylandEGLContextGL : public CWinSystemWaylandEGLContext, public
+   void SetContextSize(CSizeInt size) override;
+   void SetVSyncImpl(bool enable) override;
+   void PresentRenderImpl(bool rendered) override;
+-  std::unique_ptr<CVaapiProxy> m_vaapiProxy;
++  struct delete_CVaapiProxy
++  {
++    void operator()(CVaapiProxy *p) const;
++  };
++  std::unique_ptr<CVaapiProxy, delete_CVaapiProxy> m_vaapiProxy;
+ };
+ 
+ }
+diff --git a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.cpp b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.cpp
+index 15026d499af0..8deb86827af2 100644
+--- a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.cpp
++++ b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.cpp
+@@ -19,6 +19,7 @@
+  */
+ 
+ #include "WinSystemWaylandEGLContextGLES.h"
++#include "OptionalsReg.h"
+ 
+ #include <EGL/egl.h>
+ 
+@@ -28,26 +29,6 @@
+ #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
+ #include "utils/log.h"
+ 
+-#if defined(HAVE_LIBVA)
+-#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
+-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.h"
+-
+-using namespace KODI::WINDOWING::WAYLAND;
+-class CVaapiProxy : public VAAPI::IVaapiWinSystem
+-{
+-public:
+-  CVaapiProxy(CWinSystemWaylandEGLContextGLES &winSystem) : m_winSystem(winSystem) {};
+-  VADisplay GetVADisplay() override { return m_winSystem.GetVaDisplay(); };
+-  void *GetEGLDisplay() override { return m_winSystem.GetEGLDisplay(); };
+-protected:
+-  CWinSystemWaylandEGLContextGLES &m_winSystem;
+-};
+-#else
+-class CVaapiProxy
+-{
+-};
+-#endif
+-
+ using namespace KODI::WINDOWING::WAYLAND;
+ 
+ std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+@@ -66,15 +47,15 @@ bool CWinSystemWaylandEGLContextGLES::InitWindowSystem()
+   CLinuxRendererGLES::Register();
+   RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
+ 
+-#if defined(HAVE_LIBVA)
+   bool general, hevc;
+-  m_vaapiProxy.reset(new CVaapiProxy(*this));
+-  CRendererVAAPI::Register(m_vaapiProxy.get(), GetVaDisplay(), m_eglContext.GetEGLDisplay(), general, hevc);
++  m_vaapiProxy.reset(::WAYLAND::VaapiProxyCreate());
++  ::WAYLAND::VaapiProxyConfig(m_vaapiProxy.get(),GetConnection()->GetDisplay(),
++                              m_eglContext.GetEGLDisplay());
++  ::WAYLAND::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
+   if (general)
+   {
+-    VAAPI::CDecoder::Register(m_vaapiProxy.get(), hevc);
++    ::WAYLAND::VAAPIRegister(m_vaapiProxy.get(), hevc);
+   }
+-#endif
+ 
+   return true;
+ }
+@@ -100,3 +81,8 @@ void CWinSystemWaylandEGLContextGLES::PresentRenderImpl(bool rendered)
+ {
+   PresentFrame(rendered);
+ }
++
++void CWinSystemWaylandEGLContextGLES::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
++{
++  ::WAYLAND::VaapiProxyDelete(p);
++}
+diff --git a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.h b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.h
+index 0a8ff3271215..438c2e3a7c0b 100644
+--- a/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.h
++++ b/xbmc/windowing/wayland/WinSystemWaylandEGLContextGLES.h
+@@ -39,7 +39,11 @@ class CWinSystemWaylandEGLContextGLES : public CWinSystemWaylandEGLContext, publ
+   void SetContextSize(CSizeInt size) override;
+   void SetVSyncImpl(bool enable) override;
+   void PresentRenderImpl(bool rendered) override;
+-  std::unique_ptr<CVaapiProxy> m_vaapiProxy;
++  struct delete_CVaapiProxy
++  {
++    void operator()(CVaapiProxy *p) const;
++  };
++  std::unique_ptr<CVaapiProxy, delete_CVaapiProxy> m_vaapiProxy;
+ };
+ 
+ }
+
+From 34ca79f6ce7b92eaa57d537ae4b4047dde525c59 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Mon, 4 Dec 2017 14:42:25 +0100
+Subject: [PATCH 07/13] ios: register audio sink
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.h  |  5 ++++-
+ xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.mm | 21 ++++++++++++++++++++-
+ xbmc/windowing/osx/WinSystemIOS.mm              |  3 +++
+ 3 files changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.h b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.h
+index efd19006298d..e8da0b72292a 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.h
+@@ -42,6 +42,10 @@ class CAESinkDARWINIOS : public IAESink
+   CAESinkDARWINIOS();
+   virtual ~CAESinkDARWINIOS();
+ 
++  static void Register();
++  static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force);
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
++
+   virtual bool Initialize(AEAudioFormat &format, std::string &device);
+   virtual void Deinitialize();
+ 
+@@ -50,7 +54,6 @@ class CAESinkDARWINIOS : public IAESink
+   virtual unsigned int AddPackets      (uint8_t **data, unsigned int frames, unsigned int offset);
+   virtual void         Drain           ();
+   virtual bool         HasVolume       ();
+-  static void          EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
+ 
+ private:
+   static AEDeviceInfoList m_devices;
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.mm b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.mm
+index bc143ce1be70..4029b1924016 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.mm
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINIOS.mm
+@@ -19,7 +19,7 @@
+  */
+ 
+ #include "cores/AudioEngine/Sinks/AESinkDARWINIOS.h"
+-
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "cores/AudioEngine/Utils/AERingBuffer.h"
+ #include "cores/AudioEngine/Sinks/osx/CoreAudioHelpers.h"
+@@ -598,6 +598,25 @@ static void EnumerateDevices(AEDeviceInfoList &list)
+ {
+ }
+ 
++void CAESinkDARWINIOS::Register()
++{
++  AE::AESinkRegEntry reg;
++  reg.sinkName = "DARWINIOS";
++  reg.createFunc = CAESinkDARWINIOS::Create;
++  reg.enumerateFunc = CAESinkDARWINIOS::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(reg);
++}
++
++IAESink* CAESinkDARWINIOS::Create(std::string &device, AEAudioFormat &desiredFormat)
++{
++  IAESink *sink = new CAESinkDARWINIOS();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ bool CAESinkDARWINIOS::Initialize(AEAudioFormat &format, std::string &device)
+ {
+   bool found = false;
+diff --git a/xbmc/windowing/osx/WinSystemIOS.mm b/xbmc/windowing/osx/WinSystemIOS.mm
+index 4f537e4eb4be..e4c820fb3582 100644
+--- a/xbmc/windowing/osx/WinSystemIOS.mm
++++ b/xbmc/windowing/osx/WinSystemIOS.mm
+@@ -24,6 +24,7 @@
+ #include "VideoSyncIos.h"
+ #include "WinEventsIOS.h"
+ #include "WinSystemIOS.h"
++#include "cores/AudioEngine/Sinks/AESinkDARWINIOS.h"
+ #include "cores/RetroPlayer/process/ios/RPProcessInfoIOS.h"
+ #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
+ #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
+@@ -85,6 +86,8 @@ - (void) runDisplayLink;
+   m_pDisplayLink = new CADisplayLinkWrapper;
+   m_pDisplayLink->callbackClass = [[IOSDisplayLinkCallback alloc] init];
+   m_winEvents.reset(new CWinEventsIOS());
++
++  CAESinkDARWINIOS::Register();
+ }
+ 
+ CWinSystemIOS::~CWinSystemIOS()
+
+From 3bc1789562cbf2cbda0741196053287f10a15d47 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Mon, 4 Dec 2017 09:39:58 -0800
+Subject: [PATCH 08/13] gbm: register optionals
+
+---
+ xbmc/windowing/gbm/CMakeLists.txt              |   6 +-
+ xbmc/windowing/gbm/OptionalsReg.cpp            | 164 +++++++++++++++++++++++++
+ xbmc/windowing/gbm/OptionalsReg.h              |  55 +++++++++
+ xbmc/windowing/gbm/WinSystemGbm.cpp            |  55 ++++-----
+ xbmc/windowing/gbm/WinSystemGbm.h              |   2 -
+ xbmc/windowing/gbm/WinSystemGbmGLESContext.cpp |  37 ++----
+ xbmc/windowing/gbm/WinSystemGbmGLESContext.h   |   6 +-
+ 7 files changed, 260 insertions(+), 65 deletions(-)
+ create mode 100644 xbmc/windowing/gbm/OptionalsReg.cpp
+ create mode 100644 xbmc/windowing/gbm/OptionalsReg.h
+
+diff --git a/xbmc/windowing/gbm/CMakeLists.txt b/xbmc/windowing/gbm/CMakeLists.txt
+index 800e2927b9b8..65046b1c5d4b 100644
+--- a/xbmc/windowing/gbm/CMakeLists.txt
++++ b/xbmc/windowing/gbm/CMakeLists.txt
+@@ -1,11 +1,13 @@
+-set(SOURCES GLContextEGL.cpp
++set(SOURCES OptionalsReg.cpp
++            GLContextEGL.cpp
+             WinSystemGbm.cpp
+             GBMUtils.cpp
+             DRMUtils.cpp
+             DRMLegacy.cpp
+             DRM.cpp)
+ 
+-set(HEADERS GLContextEGL.h
++set(HEADERS OptionalsReg.h
++            GLContextEGL.h
+             WinSystemGbm.h
+             GBMUtils.h
+             DRMUtils.h
+diff --git a/xbmc/windowing/gbm/OptionalsReg.cpp b/xbmc/windowing/gbm/OptionalsReg.cpp
+new file mode 100644
+index 000000000000..5fdeae7fd777
+--- /dev/null
++++ b/xbmc/windowing/gbm/OptionalsReg.cpp
+@@ -0,0 +1,164 @@
++/*
++ *      Copyright (C) 2005-2017 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "OptionalsReg.h"
++
++//-----------------------------------------------------------------------------
++// VAAPI
++//-----------------------------------------------------------------------------
++#if defined (HAVE_LIBVA)
++#include <va/va_drm.h>
++#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
++#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.h"
++
++class CVaapiProxy : public VAAPI::IVaapiWinSystem
++{
++public:
++  CVaapiProxy() = default;
++  virtual ~CVaapiProxy() = default;
++  VADisplay GetVADisplay() override;
++  void *GetEGLDisplay() override { return eglDisplay; };
++
++  VADisplay vaDpy;
++  void *eglDisplay;
++};
++
++VADisplay CVaapiProxy::GetVADisplay()
++{
++  int const buf_size{128};
++  char name[buf_size];
++  int fd{-1};
++
++  // 128 is the start of the NUM in renderD<NUM>
++  for (int i = 128; i < (128 + 16); i++)
++  {
++    snprintf(name, buf_size, "/dev/dri/renderD%u", i);
++
++    fd = open(name, O_RDWR);
++
++    if (fd < 0)
++    {
++      continue;
++    }
++
++    auto display = vaGetDisplayDRM(fd);
++
++    if (display != nullptr)
++    {
++      return display;
++    }
++  }
++
++  return nullptr;
++}
++
++CVaapiProxy* GBM::VaapiProxyCreate()
++{
++  return new CVaapiProxy();
++}
++
++void GBM::VaapiProxyDelete(CVaapiProxy *proxy)
++{
++  delete proxy;
++}
++
++void GBM::VaapiProxyConfig(CVaapiProxy *proxy, void *eglDpy)
++{
++  proxy->vaDpy = proxy->GetVADisplay();
++  proxy->eglDisplay = eglDpy;
++}
++
++void GBM::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
++{
++  VAAPI::CDecoder::Register(winSystem, hevc);
++}
++
++void GBM::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
++{
++  CRendererVAAPI::Register(winSystem, winSystem->vaDpy, winSystem->eglDisplay, general, hevc);
++}
++
++#else
++
++class CVaapiProxy
++{
++};
++
++CVaapiProxy* VaapiProxyCreate()
++{
++  return nullptr;
++}
++
++void GBM::VaapiProxyDelete(CVaapiProxy *proxy)
++{
++}
++
++void GBM::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
++{
++
++}
++
++void GBM::RegisterVAAPI(CVaapiProxy *winSystem, bool hevc)
++{
++
++}
++
++void GBM::RegisterVAAPIRender(CVaapiProxy *winSystem, void* dpy,
++                         void* eglDisplay, bool &general, bool &hevc)
++{
++
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// ALSA
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_ALSA
++#include "cores/AudioEngine/Sinks/AESinkALSA.h"
++bool GBM::ALSARegister()
++{
++  CAESinkALSA::Register();
++  return true;
++}
++#else
++bool GBM::ALSARegister()
++{
++  return false;
++}
++#endif
++
++//-----------------------------------------------------------------------------
++// PulseAudio
++//-----------------------------------------------------------------------------
++
++#ifdef HAS_PULSEAUDIO
++#include "cores/AudioEngine/Sinks/AESinkPULSE.h"
++bool GBM::PulseAudioRegister()
++{
++  CAESinkPULSE::Register();
++  return true;
++}
++#else
++bool GBM::PulseAudioRegister()
++{
++  return false;
++}
++#endif
+diff --git a/xbmc/windowing/gbm/OptionalsReg.h b/xbmc/windowing/gbm/OptionalsReg.h
+new file mode 100644
+index 000000000000..2f84df8542ef
+--- /dev/null
++++ b/xbmc/windowing/gbm/OptionalsReg.h
+@@ -0,0 +1,55 @@
++/*
++ *      Copyright (C) 2005-2017 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++
++//-----------------------------------------------------------------------------
++// VAAPI
++//-----------------------------------------------------------------------------
++
++class CVaapiProxy;
++
++namespace GBM
++{
++CVaapiProxy* VaapiProxyCreate();
++void VaapiProxyDelete(CVaapiProxy *proxy);
++void VaapiProxyConfig(CVaapiProxy *proxy, void *eglDpy);
++void VAAPIRegister(CVaapiProxy *winSystem, bool hevc);
++void VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc);
++}
++
++//-----------------------------------------------------------------------------
++// ALSA
++//-----------------------------------------------------------------------------
++
++namespace GBM
++{
++bool ALSARegister();
++}
++
++//-----------------------------------------------------------------------------
++// PulseAudio
++//-----------------------------------------------------------------------------
++
++namespace GBM
++{
++bool PulseAudioRegister();
++}
+diff --git a/xbmc/windowing/gbm/WinSystemGbm.cpp b/xbmc/windowing/gbm/WinSystemGbm.cpp
+index 6be957300600..a15cd8795003 100644
+--- a/xbmc/windowing/gbm/WinSystemGbm.cpp
++++ b/xbmc/windowing/gbm/WinSystemGbm.cpp
+@@ -18,23 +18,40 @@
+  *
+  */
+ 
+-#if defined (HAVE_LIBVA)
+-#include <va/va_drm.h>
+-#endif
+-
+ #include "WinSystemGbm.h"
+ 
+ #include <string.h>
+ 
++#include "OptionalsReg.h"
+ #include "guilib/GraphicContext.h"
+ #include "settings/DisplaySettings.h"
+ #include "utils/log.h"
++#include "utils/StringUtils.h"
+ #include "../WinEventsLinux.h"
+ 
+ CWinSystemGbm::CWinSystemGbm() :
+   m_nativeDisplay(nullptr),
+   m_nativeWindow(nullptr)
+ {
++  std::string envSink;
++  if (getenv("AE_SINK"))
++    envSink = getenv("AE_SINK");
++  if (StringUtils::CompareNoCase(envSink, "ALSA"))
++  {
++    GBM::ALSARegister();
++  }
++  else if (StringUtils::CompareNoCase(envSink, "PULSE"))
++  {
++   GBM::PulseAudioRegister();
++  }
++  else
++  {
++    if (!GBM::PulseAudioRegister())
++    {
++      GBM::ALSARegister();
++    }
++  }
++
+   m_winEvents.reset(new CWinEventsLinux());
+ }
+ 
+@@ -157,36 +174,6 @@ void CWinSystemGbm::WaitVBlank()
+   CDRMUtils::WaitVBlank();
+ }
+ 
+-void* CWinSystemGbm::GetVaDisplay()
+-{
+-#if defined(HAVE_LIBVA)
+-  int const buf_size{128};
+-  char name[buf_size];
+-  int fd{-1};
+-
+-  // 128 is the start of the NUM in renderD<NUM>
+-  for (int i = 128; i < (128 + 16); i++)
+-  {
+-    snprintf(name, buf_size, "/dev/dri/renderD%u", i);
+-
+-    fd = open(name, O_RDWR);
+-
+-    if (fd < 0)
+-    {
+-      continue;
+-    }
+-
+-    auto display = vaGetDisplayDRM(fd);
+-
+-    if (display != nullptr)
+-    {
+-      return display;
+-    }
+-  }
+-#endif
+-  return nullptr;
+-}
+-
+ bool CWinSystemGbm::Hide()
+ {
+   return false;
+diff --git a/xbmc/windowing/gbm/WinSystemGbm.h b/xbmc/windowing/gbm/WinSystemGbm.h
+index 2d29c932fc27..a99db9b405d4 100644
+--- a/xbmc/windowing/gbm/WinSystemGbm.h
++++ b/xbmc/windowing/gbm/WinSystemGbm.h
+@@ -53,8 +53,6 @@ class CWinSystemGbm : public CWinSystemBase
+ 
+   void UpdateResolutions() override;
+ 
+-  void* GetVaDisplay();
+-
+   bool Hide() override;
+   bool Show(bool raise = true) override;
+   virtual void Register(IDispResource *resource);
+diff --git a/xbmc/windowing/gbm/WinSystemGbmGLESContext.cpp b/xbmc/windowing/gbm/WinSystemGbmGLESContext.cpp
+index ddb54c507c43..9e3ad679ce78 100644
+--- a/xbmc/windowing/gbm/WinSystemGbmGLESContext.cpp
++++ b/xbmc/windowing/gbm/WinSystemGbmGLESContext.cpp
+@@ -28,6 +28,7 @@
+ #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
+ 
+ #include "WinSystemGbmGLESContext.h"
++#include "OptionalsReg.h"
+ #include "utils/log.h"
+ 
+ using namespace KODI;
+@@ -38,26 +39,6 @@ std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+   return winSystem;
+ }
+ 
+-#if defined (HAVE_LIBVA)
+-#include <va/va_drm.h>
+-#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
+-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.h"
+-
+-class CVaapiProxy : public VAAPI::IVaapiWinSystem
+-{
+-public:
+-  CVaapiProxy(CWinSystemGbmGLESContext &winSystem) : m_winSystem(winSystem) {};
+-  VADisplay GetVADisplay() override { return m_winSystem.GetVaDisplay(); };
+-  void *GetEGLDisplay() override { return m_winSystem.GetEGLDisplay(); };
+-protected:
+-  CWinSystemGbmGLESContext &m_winSystem;
+-};
+-#else
+-class CVaapiProxy
+-{
+-};
+-#endif
+-
+ bool CWinSystemGbmGLESContext::InitWindowSystem()
+ {
+   CLinuxRendererGLES::Register();
+@@ -76,16 +57,15 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
+     return false;
+   }
+ 
+-#if defined (HAVE_LIBVA)
+-  m_vaapiProxy.reset(new CVaapiProxy(*this));
+-  VADisplay vaDpy = static_cast<VADisplay>(CWinSystemGbm::GetVaDisplay());
+   bool general, hevc;
+-  CRendererVAAPI::Register(m_vaapiProxy.get(), vaDpy, m_pGLContext.m_eglDisplay, general, hevc);
++  m_vaapiProxy.reset(GBM::VaapiProxyCreate());
++  GBM::VaapiProxyConfig(m_vaapiProxy.get(), m_pGLContext.m_eglDisplay);
++  GBM::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
++
+   if (general)
+   {
+-    VAAPI::CDecoder::Register(m_vaapiProxy.get(), hevc);
++    GBM::VAAPIRegister(m_vaapiProxy.get(), hevc);
+   }
+-#endif
+ 
+   CRendererDRMPRIME::Register();
+   CDVDVideoCodecDRMPRIME::Register();
+@@ -173,6 +153,11 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
+   }
+ }
+ 
++void CWinSystemGbmGLESContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
++{
++  GBM::VaapiProxyDelete(p);
++}
++
+ EGLDisplay CWinSystemGbmGLESContext::GetEGLDisplay() const
+ {
+   return m_pGLContext.m_eglDisplay;
+diff --git a/xbmc/windowing/gbm/WinSystemGbmGLESContext.h b/xbmc/windowing/gbm/WinSystemGbmGLESContext.h
+index eb8bf0d1ec6e..6d9fd9efa5dc 100644
+--- a/xbmc/windowing/gbm/WinSystemGbmGLESContext.h
++++ b/xbmc/windowing/gbm/WinSystemGbmGLESContext.h
+@@ -51,5 +51,9 @@ class CWinSystemGbmGLESContext : public CWinSystemGbm, public CRenderSystemGLES
+ 
+ private:
+   CGLContextEGL m_pGLContext;
+-  std::unique_ptr<CVaapiProxy> m_vaapiProxy;
++  struct delete_CVaapiProxy
++  {
++    void operator()(CVaapiProxy *p) const;
++  };
++  std::unique_ptr<CVaapiProxy, delete_CVaapiProxy> m_vaapiProxy;
+ };
+
+From 1adfb5cf567c1d826bba33b490a52c7d461c9d99 Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Sat, 9 Dec 2017 12:16:49 +0100
+Subject: [PATCH 09/13] AESinkAUDIOTRACK: Implement Register and Create
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.cpp | 20 ++++++++++++++++++++
+ xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h   |  3 +++
+ 2 files changed, 23 insertions(+)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.cpp
+index 39f3bf6ec50a..bd21c4573576 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.cpp
+@@ -26,6 +26,7 @@
+ #include <androidjni/Build.h>
+ 
+ #include "cores/AudioEngine/Utils/AEUtil.h"
++#include "cores/AudioEngine/AESinkFactory.h"
+ #include "platform/android/activity/XBMCApp.h"
+ #include "settings/Settings.h"
+ #include "utils/log.h"
+@@ -828,6 +829,25 @@ void CAESinkAUDIOTRACK::Drain()
+   m_linearmovingaverage.clear();
+ }
+ 
++void CAESinkAUDIOTRACK::Register()
++{
++  AE::AESinkRegEntry entry;
++  entry.sinkName = "AUDIOTRACK";
++  entry.createFunc = CAESinkAUDIOTRACK::Create;
++  entry.enumerateFunc = CAESinkAUDIOTRACK::EnumerateDevicesEx;
++  AE::CAESinkFactory::RegisterSink(entry);
++}
++
++IAESink* CAESinkAUDIOTRACK::Create(std::string &device, AEAudioFormat& desiredFormat)
++{
++  IAESink* sink = new CAESinkAUDIOTRACK();
++  if (sink->Initialize(desiredFormat, device))
++    return sink;
++
++  delete sink;
++  return nullptr;
++}
++
+ void CAESinkAUDIOTRACK::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
+ {
+   // Clear everything
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h b/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h
+index 3482ca962095..b12b5e13e5e9 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h
+@@ -21,6 +21,7 @@
+ 
+ #include "cores/AudioEngine/Interfaces/AESink.h"
+ #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
++#include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "threads/CriticalSection.h"
+ #include "threads/Thread.h"
+ 
+@@ -48,6 +49,8 @@ class CAESinkAUDIOTRACK : public IAESink
+   virtual void         AddPause        (unsigned int millis);
+   virtual void         Drain           ();
+   static void          EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
++  static void Register();
++  static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
+ 
+ protected:
+   jni::CJNIAudioTrack *CreateAudioTrack(int stream, int sampleRate, int channelMask, int encoding, int bufferSize);
+
+From b7a935a1b15d74670c11452708e7e4582fd73f27 Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Sat, 9 Dec 2017 13:40:31 +0100
+Subject: [PATCH 10/13] XBMCApp: Take care for registering AUDIOTRACK sink
+
+---
+ xbmc/platform/android/activity/XBMCApp.cpp | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/platform/android/activity/XBMCApp.cpp b/xbmc/platform/android/activity/XBMCApp.cpp
+index 692ea3221da0..2dec2279d0e5 100644
+--- a/xbmc/platform/android/activity/XBMCApp.cpp
++++ b/xbmc/platform/android/activity/XBMCApp.cpp
+@@ -71,7 +71,11 @@
+ #include "settings/DisplaySettings.h"
+ #include "guilib/GraphicContext.h"
+ #include "guilib/GUIWindowManager.h"
++// Audio Engine includes for Factory and interfaces
+ #include "cores/AudioEngine/Interfaces/AE.h"
++#include "cores/AudioEngine/AESinkFactory.h"
++#include "cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h"
++
+ #include "ServiceBroker.h"
+ #include "GUIInfoManager.h"
+ #include "guiinfo/GUIInfoLabels.h"
+@@ -194,6 +198,9 @@ void CXBMCApp::onStart()
+ 
+   if (m_firstrun)
+   {
++    // Register sink
++    AE::CAESinkFactory::ClearSinks();
++    CAESinkAUDIOTRACK::Register();
+     pthread_attr_t attr;
+     pthread_attr_init(&attr);
+     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+@@ -209,7 +216,6 @@ void CXBMCApp::onStart()
+     intentFilter.addAction("android.intent.action.SCREEN_OFF");
+     intentFilter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+     registerReceiver(*this, intentFilter);
+-
+     m_mediaSession.reset(new CJNIXBMCMediaSession());
+   }
+ }
+
+From af26c5778bbc6f1910be8aa78d72904d04a6ad33 Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Sat, 9 Dec 2017 15:59:13 +0100
+Subject: [PATCH 11/13] AESinkPULSE: Remove unneeded circular dependency
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
+index 5aa9a57c1afb..e807338e0c3c 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
+@@ -24,7 +24,6 @@
+ #include "Util.h"
+ #include "guilib/LocalizeStrings.h"
+ #include "Application.h"
+-#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+ #include "cores/AudioEngine/AESinkFactory.h"
+ #include "ServiceBroker.h"
+ 
+
+From a0c888063119b62388ee298ba37dabd881f6ede7 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 9 Dec 2017 17:22:16 +0100
+Subject: [PATCH 12/13] osx: drop unneeded include in sink
+
+---
+ xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp
+index 58518643d19a..3370df2e6931 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkDARWINOSX.cpp
+@@ -19,7 +19,6 @@
+  */
+ 
+ #include "cores/AudioEngine/AESinkFactory.h"
+-#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+ #include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
+ #include "cores/AudioEngine/Utils/AERingBuffer.h"
+ #include "cores/AudioEngine/Sinks/osx/CoreAudioHelpers.h"
+
+From 2e9990d87136352dd2b179cd442f80e855bc4d4d Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Sat, 9 Dec 2017 17:31:43 +0100
+Subject: [PATCH 13/13] AML: Register ALSA sink
+
+---
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index 994dbace675a..4b8199760ea4 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -29,6 +29,9 @@
+ #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h"
+ #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
+ #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererAML.h"
++// AESink Factory
++#include "cores/AudioEngine/AESinkFactory.h"
++#include "cores/AudioEngine/Sinks/AESinkALSA.h"
+ #include "guilib/GraphicContext.h"
+ #include "guilib/Resolution.h"
+ #include "settings/Settings.h"
+@@ -72,6 +75,9 @@ CWinSystemAmlogic::CWinSystemAmlogic()
+   aml_disable_freeScale();
+ 
+   m_winEvents.reset(new CWinEventsLinux());
++  // Register sink
++  AE::CAESinkFactory::ClearSinks();
++  CAESinkALSA::Register();
+ }
+ 
+ CWinSystemAmlogic::~CWinSystemAmlogic()
