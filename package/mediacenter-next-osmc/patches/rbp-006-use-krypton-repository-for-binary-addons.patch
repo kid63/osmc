@@ -13,7 +13,7 @@ index 8674f06..0263dfb 100644
 --- a/cmake/addons/bootstrap/repositories/binary-addons.txt
 +++ b/cmake/addons/bootstrap/repositories/binary-addons.txt
 @@ -1 +1 @@
--binary-addons https://github.com/AchimTuran/repo-binary-addons.git master
+-binary-addons https://github.com/xbmc/repo-binary-addons.git master
 \ No newline at end of file
 +binary-addons https://github.com/StormTrooper/repo-binary-addons rbp-leia
 --
