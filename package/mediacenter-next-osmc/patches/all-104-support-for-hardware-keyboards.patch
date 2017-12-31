@@ -158,7 +158,6 @@ index ef0d494..2141982
 +    if ( ! useKeyboard ) m_kbMods = 0;
 +    
      devt.type = levt.value ? XBMC_KEYDOWN : XBMC_KEYUP;
-     devt.key.type = devt.type;
      // warning, key.keysym.scancode is unsigned char so 0 - 255 only
      devt.key.keysym.scancode = code;
      devt.key.keysym.sym = key;
