@@ -1,8 +1,18 @@
+From c1d507092c12c0c4b50c3299edf115cd9da813f3 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Sun, 31 Dec 2017 14:37:43 +0000
+Subject: [PATCH] Update all-104
+
+---
+ xbmc/platform/linux/input/LinuxInputDevices.cpp | 202 ++++++++++++++++++------
+ xbmc/platform/linux/input/LinuxInputDevices.h   |   3 +
+ 2 files changed, 154 insertions(+), 51 deletions(-)
+
 diff --git a/xbmc/platform/linux/input/LinuxInputDevices.cpp b/xbmc/platform/linux/input/LinuxInputDevices.cpp
-index ef0d494..2141982
+index ccf33d0249..29501c99fe 100644
 --- a/xbmc/platform/linux/input/LinuxInputDevices.cpp
-+++ b/xbmc/platform/linux/input//LinuxInputDevices.cpp
-@@ -92,6 +92,8 @@ typedef unsigned long kernel_ulong_t;
++++ b/xbmc/platform/linux/input/LinuxInputDevices.cpp
+@@ -90,6 +90,8 @@ typedef unsigned long kernel_ulong_t;
  #include <stdio.h>
  
  #include "guilib/GraphicContext.h"
@@ -11,7 +21,7 @@ index ef0d494..2141982
  #include "input/XBMC_keysym.h"
  #include "LinuxInputDevices.h"
  #include "input/MouseStat.h"
-@@ -112,6 +114,15 @@ typedef unsigned long kernel_ulong_t;
+@@ -109,6 +111,15 @@ typedef unsigned long kernel_ulong_t;
  
  #define MAX_LINUX_INPUT_DEVICES 16
  
@@ -24,10 +34,10 @@ index ef0d494..2141982
 +#define K_CTRLLTAB  0x40
 +#define K_CTRLRTAB  0x80
 +
- typedef struct {
-   unsigned short Key;
-   XBMCKey xbmcKey;
-@@ -213,7 +224,7 @@ KeyMap keyMap[] = {
+ namespace
+ {
+ constexpr int TOUCH_MAX_POINTERS = CGenericTouchInputHandler::MAX_POINTERS;
+@@ -215,7 +226,7 @@ KeyMap keyMap[] = {
    { KEY_RIGHTCTRL     , XBMCK_RCTRL       },
    { KEY_KPSLASH       , XBMCK_KP_DIVIDE   },
    { KEY_SYSRQ         , XBMCK_PRINT       },
@@ -36,7 +46,7 @@ index ef0d494..2141982
    { KEY_HOME          , XBMCK_HOME        },
    { KEY_UP            , XBMCK_UP          },
    { KEY_PAGEUP        , XBMCK_PAGEUP      },
-@@ -311,6 +322,7 @@ CLinuxInputDevice::CLinuxInputDevice(const std::string& fileName, int index):
+@@ -313,6 +324,7 @@ CLinuxInputDevice::CLinuxInputDevice(const std::string& fileName, int index):
    m_deviceIndex = index;
    m_keyMods = XBMCKMOD_NONE;
    m_lastKeyMods = XBMCKMOD_NONE;
@@ -44,7 +54,7 @@ index ef0d494..2141982
    strcpy(m_deviceName, "");
    m_deviceType = 0;
    m_devicePreferredId = 0;
-@@ -349,7 +361,7 @@ XBMCKey CLinuxInputDevice::TranslateKey(unsigned short code)
+@@ -351,7 +363,7 @@ XBMCKey CLinuxInputDevice::TranslateKey(unsigned short code)
  int CLinuxInputDevice::KeyboardGetSymbol(unsigned short value)
  {
    unsigned char type = KTYP(value);
@@ -53,7 +63,7 @@ index ef0d494..2141982
  
    switch (type)
    {
-@@ -366,7 +378,7 @@ int CLinuxInputDevice::KeyboardGetSymbol(unsigned short value)
+@@ -368,7 +380,7 @@ int CLinuxInputDevice::KeyboardGetSymbol(unsigned short value)
      case 0x7f:
        return XBMCK_BACKSPACE;
      case 0xa4:
@@ -62,7 +72,7 @@ index ef0d494..2141982
      default:
        return index;
      }
-@@ -404,6 +416,16 @@ int CLinuxInputDevice::KeyboardGetSymbol(unsigned short value)
+@@ -406,6 +418,16 @@ int CLinuxInputDevice::KeyboardGetSymbol(unsigned short value)
        return (DFBInputDeviceKeySymbol) (DIKS_0 + index);
      break;
  */
@@ -79,7 +89,7 @@ index ef0d494..2141982
    }
  
    return XBMCK_UNKNOWN;
-@@ -438,6 +460,7 @@ XBMCMod CLinuxInputDevice::UpdateModifiers(XBMC_Event& devt)
+@@ -440,6 +462,7 @@ XBMCMod CLinuxInputDevice::UpdateModifiers(XBMC_Event& devt)
      case XBMCK_RCTRL: modifier = XBMCKMOD_RCTRL; break;
      case XBMCK_LALT: modifier = XBMCKMOD_LALT; break;
      case XBMCK_RALT: modifier = XBMCKMOD_RALT; break;
@@ -87,13 +97,13 @@ index ef0d494..2141982
      case XBMCK_LMETA: modifier = XBMCKMOD_LMETA; break;
      case XBMCK_RMETA: modifier = XBMCKMOD_RMETA; break;
      default: break;
-@@ -474,7 +497,48 @@ XBMCMod CLinuxInputDevice::UpdateModifiers(XBMC_Event& devt)
+@@ -476,7 +499,48 @@ XBMCMod CLinuxInputDevice::UpdateModifiers(XBMC_Event& devt)
  
    return (XBMCMod) m_keyMods;
  }
 +/* lock modifiers which some keymaps use to toggle different charsets
 + */
- 
++
 +XBMCMod CLinuxInputDevice::UpdateKeyboardModifiers(int index)
 +{
 +  int modifier = XBMCKMOD_NONE;
@@ -130,21 +140,22 @@ index ef0d494..2141982
 +  {
 +    m_kbMods = modifier;
 +  }
-+
+ 
 +  return (XBMCMod) m_kbMods;
 +}
  /*
   * Translates key and button events.
   */
-@@ -535,41 +599,102 @@ bool CLinuxInputDevice::KeyEvent(const struct input_event& levt, XBMC_Event& dev
+@@ -535,40 +599,101 @@ bool CLinuxInputDevice::KeyEvent(const struct input_event& levt, XBMC_Event& dev
    }
    else
    {
 +    // translate the raw scancode into the XBMC equivalent
      XBMCKey key = TranslateKey(code);
+-
 +    CLog::Log(LOGDEBUG, "-------------Keyboard keyevent----------------");
 +    CLog::Log(LOGDEBUG, "CLinuxInputDevice::KeyEvent: TranslateKey with event type 0x%04x, code 0x%04x, value 0x%04x returned XBMCKey = 0x%04x", (int) levt.type, code, (int) levt.value, (int) key);
- 
++    
      if (key == XBMCK_UNKNOWN)
      {
        CLog::Log(LOGDEBUG, "CLinuxInputDevice::KeyEvent: TranslateKey returned XBMCK_UNKNOWN from code(%d)", code);
@@ -153,10 +164,10 @@ index ef0d494..2141982
 +    // are we in a keyboard screen?
 +    int iWin = g_windowManager.GetActiveWindowID();
 +    bool useKeyboard = (iWin == WINDOW_DIALOG_KEYBOARD || iWin == WINDOW_DIALOG_NUMERIC);
- 
++
 +    // reset the kb modifiers
 +    if ( ! useKeyboard ) m_kbMods = 0;
-+    
+ 
      devt.type = levt.value ? XBMC_KEYDOWN : XBMC_KEYUP;
      // warning, key.keysym.scancode is unsigned char so 0 - 255 only
      devt.key.keysym.scancode = code;
@@ -190,10 +201,9 @@ index ef0d494..2141982
 +    }
 +
 +    CLog::Log(LOGDEBUG, "CLinuxInputDevice::KeyEvent: keyMods 0x%04x kbMods 0x%04x keyMapTable 0x%04x", m_keyMods, m_kbMods, keyMapTable);
-+
-+    unsigned short keyMapValue = GetKeymapEntry(keyMapTable, code);
  
 -      if (keyMapValue != XBMCK_UNKNOWN)
++    unsigned short keyMapValue = GetKeymapEntry(keyMapTable, code);
 +    /* the return value should be either a usable ascii code (< 256), a unicode value > 256
 +     *  or a linux keyboard message which needs interpretation
 +     *  */
@@ -220,17 +230,19 @@ index ef0d494..2141982
 +      {
 +        devt.key.keysym.mod = UpdateModifiers(devt);
 +        if (keyMapValue & 0x8000) // assume unicode (utf-16)
-+        {
+         {
+-          devt.key.keysym.unicode = devt.key.keysym.sym;
 +          devt.key.keysym.unicode = keyMapValue ^ 0xf000;
 +          // if we have unicode, use it and stop kodi using sym
 +          devt.key.keysym.sym = XBMCK_UNKNOWN;
 +          CLog::Log(LOGDEBUG, "CLinuxInputDevice::KeyEvent: using 0x%04x as unicode", keyMapValue);
 +        }
 +        // use the extended character set but only if an 'ascii' key was pressed
-+        else if (keyMapValue < 256 && keyMapValue > 0x1f && devt.key.keysym.sym < 128)
-         {
++        else if (keyMapValue < 256 && keyMapValue > 0x1f && devt.key.keysym.sym < 128)      
++
++        {
 +          devt.key.keysym.sym = (XBMCKey) keyMapValue;
-           devt.key.keysym.unicode = devt.key.keysym.sym;
++	  devt.key.keysym.unicode = devt.key.keysym.sym;
 +          CLog::Log(LOGDEBUG, "CLinuxInputDevice::KeyEvent: using 0x%04x as assumed unicode", keyMapValue);
          }
        }
@@ -250,12 +262,12 @@ index ef0d494..2141982
    }
  
    return true;
-@@ -1382,13 +1507,11 @@ driver_open_device_error:
+@@ -1365,13 +1490,11 @@ driver_open_device_error:
  }
  
  /*
 - * Fetch one entry from the kernel keymap.
-+ * Fetch just one entry from the kernel keymap.
++ * Fetch just one entry from the kernel keymap. 
   */
 -bool CLinuxInputDevice::GetKeymapEntry(KeymapEntry& entry)
 +unsigned short CLinuxInputDevice::GetKeymapEntry(unsigned short table, int code)
@@ -267,7 +279,7 @@ index ef0d494..2141982
  
    if (m_vt_fd < 0)
      return false;
-@@ -1399,43 +1522,20 @@ bool CLinuxInputDevice::GetKeymapEntry(KeymapEntry& entry)
+@@ -1382,43 +1505,20 @@ bool CLinuxInputDevice::GetKeymapEntry(KeymapEntry& entry)
      code = K(KTYP(code),53);
    }
  
@@ -317,11 +329,11 @@ index ef0d494..2141982
  }
  
  /*
-diff --git a/xbmc/input/linux/LinuxInputDevices.h b/xbmc/input/linux/LinuxInputDevices.h
-index 44a05fe..06fe09e 100644
---- a/xbmc/input/linux/LinuxInputDevices.h
-+++ b/xbmc/input/linux/LinuxInputDevices.h
-@@ -61,7 +61,9 @@ private:
+diff --git a/xbmc/platform/linux/input/LinuxInputDevices.h b/xbmc/platform/linux/input/LinuxInputDevices.h
+index bb296063b9..86535e39d2 100644
+--- a/xbmc/platform/linux/input/LinuxInputDevices.h
++++ b/xbmc/platform/linux/input/LinuxInputDevices.h
+@@ -60,7 +60,9 @@ private:
    void Close();
    unsigned short KeyboardReadValue(unsigned char table, unsigned char index);
    XBMCMod UpdateModifiers(XBMC_Event& devt);
@@ -331,7 +343,7 @@ index 44a05fe..06fe09e 100644
    int KeyboardGetSymbol(unsigned short value);
    bool mtAbsEvent(const struct input_event& levt);
    bool mtSynEvent(const struct input_event& levt);
-@@ -76,6 +78,7 @@ private:
+@@ -75,6 +77,7 @@ private:
    int m_deviceIndex;
    int m_keyMods;
    int m_lastKeyMods;
@@ -339,3 +351,6 @@ index 44a05fe..06fe09e 100644
    char m_deviceName[256];
    int m_deviceType;
    int m_devicePreferredId;
+-- 
+2.12.3
+
