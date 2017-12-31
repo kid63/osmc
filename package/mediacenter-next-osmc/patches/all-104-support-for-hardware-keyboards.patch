@@ -1,7 +1,7 @@
-diff --git a/xbmc/input/linux/LinuxInputDevices.cpp b/xbmc/input/linux/LinuxInputDevices.cpp
+diff --git a/platform/linux/input/LinuxInputDevices.cpp b/platform/linux/input/LinuxInputDevices.cpp
 index ef0d494..2141982
---- a/xbmc/input/linux/LinuxInputDevices.cpp
-+++ b/xbmc/input/linux/LinuxInputDevices.cpp
+--- a/platform/linux/input/LinuxInputDevices.cpp
++++ b/platform/linux/input//LinuxInputDevices.cpp
 @@ -92,6 +92,8 @@ typedef unsigned long kernel_ulong_t;
  #include <stdio.h>
  
