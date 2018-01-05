@@ -4,8 +4,6 @@ Date: Tue, 2 Jan 2018 12:22:39 +0100
 Subject: [PATCH 1/3] Add support for JPG splash screen
 
 ---
- tools/android/packaging/.gitignore                     |  2 +-
- tools/android/packaging/Makefile.in                    |  7 ++++---
  xbmc/Util.cpp                                          | 10 ++++++++++
  xbmc/Util.h                                            |  2 ++
  xbmc/platform/darwin/ios/IOSExternalTouchController.mm |  3 ++-
@@ -13,49 +11,6 @@ Subject: [PATCH 1/3] Add support for JPG splash screen
  xbmc/windows/GUIWindowSplash.cpp                       |  9 ++-------
  7 files changed, 23 insertions(+), 18 deletions(-)
 
-diff --git a/tools/android/packaging/.gitignore b/tools/android/packaging/.gitignore
-index 467d2ac3e6c3..d916dfda47e6 100644
---- a/tools/android/packaging/.gitignore
-+++ b/tools/android/packaging/.gitignore
-@@ -3,7 +3,7 @@ xbmc/assets/*
- xbmc/lib/*
- xbmc/libs/*
- xbmc/obj/*
--xbmc/res/drawable/splash.png
-+xbmc/res/drawable*/splash.*
- xbmc/src/R.java
- xbmc/src/org/xbmc/kodi/*.class
- xbmc/classes.dex
-diff --git a/tools/android/packaging/Makefile.in b/tools/android/packaging/Makefile.in
-index cf21dca28d66..f74425ccfb0b 100644
---- a/tools/android/packaging/Makefile.in
-+++ b/tools/android/packaging/Makefile.in
-@@ -119,13 +119,13 @@ python: | xbmc/assets
- res:
- 	mkdir -p xbmc/res xbmc/res/raw xbmc/res/values images
- 	@echo "native_arch=$(CPU)" > xbmc/res/raw/xbmc.properties
--	cp -fp $(CMAKE_SOURCE_DIR)/media/Splash.png xbmc/res/drawable/splash.png
-+	cp -fp $(CMAKE_SOURCE_DIR)/media/splash.* xbmc/res/drawable/
- 	cp -fp media/drawable-hdpi/ic_launcher.png xbmc/res/drawable-hdpi/ic_launcher.png
- 	cp -fp media/drawable-ldpi/ic_launcher.png xbmc/res/drawable-ldpi/ic_launcher.png
- 	cp -fp media/drawable-mdpi/ic_launcher.png xbmc/res/drawable-mdpi/ic_launcher.png
- 	cp -fp media/drawable-xhdpi/ic_launcher.png xbmc/res/drawable-xhdpi/ic_launcher.png
- 	cp -fp media/drawable-xxhdpi/ic_launcher.png xbmc/res/drawable-xxhdpi/ic_launcher.png
--	cp -fp $(CMAKE_SOURCE_DIR)/media/Splash.png xbmc/res/drawable-xxxhdpi/splash.png
-+	cp -fp $(CMAKE_SOURCE_DIR)/media/splash.* xbmc/res/drawable-xxxhdpi/
- 	cp -fp media/drawable-xxxhdpi/ic_launcher.png xbmc/res/drawable-xxxhdpi/ic_launcher.png
- 	cp -fp media/drawable-xhdpi/banner.png xbmc/res/drawable-xhdpi/banner.png
- 	cp -fp $(CMAKE_SOURCE_DIR)/media/icon80x80.png xbmc/res/drawable/ic_recommendation_80dp.png
-@@ -182,7 +182,8 @@ apk-clean:
- 	rm -rf xbmc/obj
- 	rm -rf xbmc/res/raw
- 	rm -rf xbmc/res/values
--	rm -f xbmc/res/drawable/splash.png
-+	rm -f xbmc/res/drawable/splash.*
-+	rm -f xbmc/res/drawable-xxxhdpi/splash.*
- 	rm -rf assets
- 
- .PHONY: force libs assets python sharedapk sharedobb res package
 diff --git a/xbmc/Util.cpp b/xbmc/Util.cpp
 index f5bf9ad39228..514bdf7bb260 100644
 --- a/xbmc/Util.cpp
