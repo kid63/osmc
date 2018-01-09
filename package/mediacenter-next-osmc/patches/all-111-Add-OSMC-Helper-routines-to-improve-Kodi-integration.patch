@@ -71,7 +71,7 @@ index 0000000..febc8c6
 +     {                                                                                     
 +       int r;                                                                              
 +       r = syscall(SYS_uname, buf);                                                        
-+       strcpy(buf->machine, "arm");                                                        
++       strcpy(buf->machine, "armv7");                                                        
 +       return r;                                                                           
 +     }                                                                                     
 +   #endif // __arm__                                                                       
