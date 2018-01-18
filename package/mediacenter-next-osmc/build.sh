@@ -247,20 +247,23 @@ then
 	export CXXFLAGS+=${COMPFLAGS} && \
 	export CPPFLAGS+=${COMPFLAGS} && \
 	export LDFLAGS="" && \
-	./configure \
-		--prefix=/usr \
-		--disable-vtbdecoder \
-		--enable-vaapi \
-		--disable-vdpau \
-		--disable-pulse \
-		--enable-x11 \
-		--disable-openmax \
-		--enable-optical-drive \
-		--enable-libbluray \
-		--enable-dvdcss \
-		--disable-joystick \
-		--disable-debug \
-		--disable-optimizations
+	cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	      -DENABLE_APP_AUTONAME=OFF \
+              -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
+              -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \        
+        .
+	#	--disable-vtbdecoder \
+	#	--enable-vaapi \
+	#	--disable-vdpau \
+	#	--disable-pulse \
+	#	--enable-x11 \
+	#	--disable-openmax \
+	#	--enable-optical-drive \
+	#	--enable-libbluray \
+	#	--enable-dvdcss \
+	#	--disable-joystick \
+	#	--disable-debug \
+	#	--disable-optimizations
 	# Raspberry Pi Configuration
 	if [ "$1" == "rbp1" ]
 	then
