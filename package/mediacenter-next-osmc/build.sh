@@ -6,7 +6,7 @@
 . ../common.sh
 
 #Use newclock5 for rbp1/2 builds
-if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "atv" ] || [ "$1" == "pc" ]   
+if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
 pull_source "https://github.com/popcornmix/xbmc/archive/47888398708ecef14111b91c7434635e7f264711.tar.gz" "$(pwd)/src"
 API_VERSION="18"
