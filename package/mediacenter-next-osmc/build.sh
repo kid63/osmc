@@ -250,7 +250,7 @@ then
 	cmake -DCMAKE_INSTALL_PREFIX=/usr \
 	      -DENABLE_APP_AUTONAME=OFF \
               -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
-              -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \        
+              -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
 	 .
 	#	--disable-vtbdecoder \
 	#	--enable-vaapi \
