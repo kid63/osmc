@@ -251,6 +251,7 @@ then
 	      -DENABLE_APP_AUTONAME=OFF \
               -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
               -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
+	      -DCORE_SYSTEM_NAME=linux \
 	 .
 	#	--disable-vtbdecoder \
 	#	--enable-vaapi \
