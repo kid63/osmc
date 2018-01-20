@@ -193,8 +193,12 @@ then
 		handle_dep "libxrandr-dev"
 		handle_dep "x11proto-randr-dev"
 		handle_dep "libegl1-mesa-dev"
+		handle_dep "libgles2-mesa-dev"
 		handle_dep "libglew-dev"
 		handle_dep "amd64-libass-dev-osmc"
+		handle_dep "libgbm-dev"
+                #handle_dep "libva-dev"
+                #handle_dep "libvdpau-dev"
 	fi
 	sed '/Package/d' -i files/DEBIAN/control
 	sed '/Depends/d' -i files/DEBIAN/control
@@ -248,24 +252,17 @@ then
 	export CPPFLAGS+=${COMPFLAGS} && \
 	export LDFLAGS="" && \
 	cmake -DCMAKE_INSTALL_PREFIX=/usr \
-	      -DENABLE_APP_AUTONAME=OFF \
-              -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
-              -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
-	      -DCORE_SYSTEM_NAME=linux \
+            -DCMAKE_INSTALL_LIBDIR=/usr/lib \
+            -DCMAKE_PREFIX_PATH=/opt/vc \
+            -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
+            -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
+            -DENABLE_OPTICAL=1 \
+            -DENABLE_DVDCSS=1 \
+            -DCORE_SYSTEM_NAME=linux \
+            -DCORE_PLATFORM_NAME=gbm \
+            -DWITH_CPU=${CPU} \
+            -DENABLE_APP_AUTONAME=OFF \
 	 .
-	#	--disable-vtbdecoder \
-	#	--enable-vaapi \
-	#	--disable-vdpau \
-	#	--disable-pulse \
-	#	--enable-x11 \
-	#	--disable-openmax \
-	#	--enable-optical-drive \
-	#	--enable-libbluray \
-	#	--enable-dvdcss \
-	#	--disable-joystick \
-	#	--disable-debug \
-	#	--disable-optimizations
-	# Raspberry Pi Configuration
 	if [ "$1" == "rbp1" ]
 	then
 		CPU="arm1176jzf-s";
@@ -450,7 +447,7 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
         fi
 	if [ "$1" == "pc" ]
 	then
-           ADDONS_TO_BUILD="${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR}"
+           ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR}"
            PLATFORM=""
 	fi	
 	cmake -DOVERRIDE_PATHS=1 -DCMAKE_INSTALL_PREFIX=${out}/usr/ -DBUILD_DIR=$(pwd) -DADDONS_TO_BUILD="${ADDONS_TO_BUILD}" "$PLATFORM" ../
