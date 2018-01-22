@@ -198,7 +198,7 @@ then
 		handle_dep "amd64-libass-dev-osmc"
 		handle_dep "libgbm-dev"
                 handle_dep "libva-dev"
-                #handle_dep "libvdpau-dev"
+                handle_dep "libvdpau-dev"
 	fi
 	sed '/Package/d' -i files/DEBIAN/control
 	sed '/Depends/d' -i files/DEBIAN/control
