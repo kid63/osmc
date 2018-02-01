@@ -18,9 +18,9 @@ index 9e7f8bd..ac1618c 100644
  #include "cores/AudioEngine/AESinkFactory.h"
  #include "cores/AudioEngine/Sinks/AESinkPi.h"
 +#include "cores/AudioEngine/Sinks/AESinkALSA.h"
+ #include "powermanagement/linux/LinuxPowerSyscall.h"
  
  #include <EGL/egl.h>
- #include <EGL/eglplatform.h>
 @@ -55,6 +56,7 @@ CWinSystemRpi::CWinSystemRpi()
    m_winEvents.reset(new CWinEventsLinux());
    AE::CAESinkFactory::ClearSinks();
