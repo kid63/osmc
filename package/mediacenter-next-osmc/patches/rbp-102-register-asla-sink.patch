@@ -26,8 +26,8 @@ index 9e7f8bd..ac1618c 100644
    AE::CAESinkFactory::ClearSinks();
    CAESinkPi::Register();
 +  CAESinkALSA::Register();
+   CLinuxPowerSyscall::Register();
  }
  
- CWinSystemRpi::~CWinSystemRpi()
 -- 
 2.7.4a
