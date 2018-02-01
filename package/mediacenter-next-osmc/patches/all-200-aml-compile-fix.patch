@@ -1,0 +1,25 @@
+From 80e2cbcd3e720232e358c0bb5ce9bf298d960216 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Thu, 1 Feb 2018 18:44:02 +0000
+Subject: [PATCH] Fix for #13462
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+index d83fbda65b..2e9b30e55d 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -55,7 +55,7 @@
+ 
+ // amcodec include
+ extern "C" {
+-#include <codec.h>
++#include <amcodec/codec.h>
+ #include <amports/amstream.h>
+ }  // extern "C"
+ 
+-- 
+2.12.3
+
