@@ -378,7 +378,7 @@ index 4cbffeb..22269ef 100644
 +      if (!adjustReso && (info.iScreenWidth != curr.iScreenWidth || info.iScreenHeight != curr.iScreenHeight))
 +        continue;
 +
-       // evaluate all higher modes and evalute them
+       // evaluate all higher modes and evaluate them
        // concerning dimension and refreshrate weight
        // skip lower resolutions
 @@ -225,9 +231,7 @@ RESOLUTION CResolutionUtils::FindClosestResolution(float fps, int width, bool is
