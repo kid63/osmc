@@ -321,7 +321,7 @@ index e04ee65..fb0b04d 100644
 --- a/addons/resource.language.en_gb/resources/strings.po
 +++ b/addons/resource.language.en_gb/resources/strings.po
 @@ -19848,3 +19848,11 @@ msgctxt "#39013"
- msgid "Max"
+ msgid "Select Program"
  msgstr ""
  
 +msgctxt "#39110"
