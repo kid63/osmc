@@ -361,14 +361,14 @@ index 4cbffeb..22269ef 100644
  #include <cstdlib>
  
 @@ -194,7 +195,7 @@ void CResolutionUtils::FindResolutionFromFpsMatch(float fps, int width, bool is3
- RESOLUTION CResolutionUtils::FindClosestResolution(float fps, int width, bool is3D, float multiplier, RESOLUTION current, float& weight)
- {
-   RESOLUTION_INFO curr = g_graphicsContext.GetResInfo(current);
+     orig_res = RES_DESKTOP;
+
+   RESOLUTION_INFO orig = g_graphicsContext.GetResInfo(orig_res);
 -
 +  bool adjustReso = CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_ADJUSTRESOLUTION);
    float fRefreshRate = fps;
  
-   int curr_diff = curr.iScreenWidth - width;
+   float last_diff = fRefreshRate; 
 @@ -217,6 +218,11 @@ RESOLUTION CResolutionUtils::FindClosestResolution(float fps, int width, bool is
          (info.dwFlags & D3DPRESENTFLAG_MODEMASK) != (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) ||
          info.fRefreshRate < (fRefreshRate * multiplier / 1.001) - 0.001)
