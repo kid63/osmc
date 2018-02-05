@@ -365,7 +365,7 @@ index 4cbffeb..22269ef 100644
  {
    RESOLUTION_INFO curr = g_graphicsContext.GetResInfo(current);
 -
-+  bool adjustReso = CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_ADJUSTRESOLUTION);
++  bool adjustReso = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_ADJUSTRESOLUTION);
    float fRefreshRate = fps;
  
    int curr_diff = curr.iScreenWidth - width;
