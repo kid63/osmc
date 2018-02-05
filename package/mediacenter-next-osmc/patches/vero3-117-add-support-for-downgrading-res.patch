@@ -352,7 +352,7 @@ diff --git a/xbmc/guilib/Resolution.cpp b/xbmc/guilib/Resolution.cpp
 index 4cbffeb..22269ef 100644
 --- a/xbmc/guilib/Resolution.cpp
 +++ b/xbmc/guilib/Resolution.cpp
-@@ -23,6 +23,7 @@
+@@ -23,6 +23,8 @@
  #include "utils/log.h"
  #include "utils/MathUtils.h"
  #include "settings/AdvancedSettings.h"
