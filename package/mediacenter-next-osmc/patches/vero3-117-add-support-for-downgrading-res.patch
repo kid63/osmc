@@ -357,6 +357,7 @@ index 4cbffeb..22269ef 100644
  #include "utils/MathUtils.h"
  #include "settings/AdvancedSettings.h"
 +#include "settings/Settings.h"
++#include "ServiceBroker.h"
  #include "settings/DisplaySettings.h"
  #include <cstdlib>
  
