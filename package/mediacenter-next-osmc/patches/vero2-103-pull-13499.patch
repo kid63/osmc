@@ -1,0 +1,4952 @@
+From 2bc365b15f348327098f81142bbd642f0d352d79 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Sat, 13 Jan 2018 11:15:59 -0800
+Subject: [PATCH 1/3] GameClient: Refactor add-on properties into subsystem
+
+---
+ xbmc/games/addons/GameClient.cpp           | 22 ++++--------------
+ xbmc/games/addons/GameClient.h             | 33 ++++----------------------
+ xbmc/games/addons/GameClientProperties.cpp | 33 ++++++++++++++++++--------
+ xbmc/games/addons/GameClientProperties.h   | 17 ++++++++------
+ xbmc/games/addons/GameClientSubsystem.cpp  | 31 ++++++++++++++++++++++++-
+ xbmc/games/addons/GameClientSubsystem.h    | 37 +++++++++++++++++++++++++++---
+ 6 files changed, 107 insertions(+), 66 deletions(-)
+
+diff --git a/xbmc/games/addons/GameClient.cpp b/xbmc/games/addons/GameClient.cpp
+index 05854bf1ebfc..09b3fb3bd93e 100644
+--- a/xbmc/games/addons/GameClient.cpp
++++ b/xbmc/games/addons/GameClient.cpp
+@@ -21,6 +21,7 @@
+ #include "GameClient.h"
+ #include "GameClientCallbacks.h"
+ #include "GameClientInGameSaves.h"
++#include "GameClientProperties.h"
+ #include "GameClientTranslator.h"
+ #include "addons/AddonManager.h"
+ #include "addons/BinaryAddonCache.h"
+@@ -117,8 +118,7 @@ std::unique_ptr<CGameClient> CGameClient::FromExtension(ADDON::CAddonInfo addonI
+ 
+ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
+   CAddonDll(std::move(addonInfo)),
+-  m_subsystems(CreateSubsystems(*this, m_struct, m_critSection)),
+-  m_libraryProps(this, m_struct.props),
++  m_subsystems(CGameClientSubsystem::CreateSubsystems(*this, m_struct, m_critSection)),
+   m_bSupportsVFS(false),
+   m_bSupportsStandalone(false),
+   m_bSupportsKeyboard(false),
+@@ -170,21 +170,7 @@ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
+ CGameClient::~CGameClient(void)
+ {
+   CloseFile();
+-  DestroySubsystems(m_subsystems);
+-}
+-
+-GameClientSubsystems CGameClient::CreateSubsystems(CGameClient &gameClient, AddonInstance_Game &gameStruct, CCriticalSection &clientAccess)
+-{
+-  GameClientSubsystems subsystems = { };
+-
+-  subsystems.Input.reset(new CGameClientInput(gameClient, gameStruct, clientAccess));
+-
+-  return subsystems;
+-}
+-
+-void CGameClient::DestroySubsystems(GameClientSubsystems &subsystems)
+-{
+-  subsystems.Input.reset();
++  CGameClientSubsystem::DestroySubsystems(m_subsystems);
+ }
+ 
+ std::string CGameClient::LibPath() const
+@@ -234,7 +220,7 @@ bool CGameClient::Initialize(void)
+   if (!CDirectory::Exists(savestatesDir))
+     CDirectory::Create(savestatesDir);
+ 
+-  m_libraryProps.InitializeProperties();
++  AddonProperties().InitializeProperties();
+ 
+   m_struct.toKodi.kodiInstance = this;
+   m_struct.toKodi.CloseGame = cb_close_game;
+diff --git a/xbmc/games/addons/GameClient.h b/xbmc/games/addons/GameClient.h
+index 37f27c1edb56..69e65b038559 100644
+--- a/xbmc/games/addons/GameClient.h
++++ b/xbmc/games/addons/GameClient.h
+@@ -19,7 +19,7 @@
+  */
+ #pragma once
+ 
+-#include "GameClientProperties.h"
++#include "GameClientSubsystem.h"
+ #include "GameClientTiming.h"
+ #include "addons/binary-addons/AddonDll.h"
+ #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
+@@ -42,16 +42,12 @@ namespace GAME
+ 
+ class CGameClientInGameSaves;
+ class CGameClientInput;
++class CGameClientProperties;
+ class IGameAudioCallback;
+ class IGameClientPlayback;
+ class IGameInputCallback;
+ class IGameVideoCallback;
+ 
+-struct GameClientSubsystems
+-{
+-  std::unique_ptr<CGameClientInput> Input;
+-};
+-
+ /*!
+  * \ingroup games
+  * \brief Interface between Kodi and Game add-ons.
+@@ -65,11 +61,13 @@ class CGameClient : public ADDON::CAddonDll
+ 
+   virtual ~CGameClient(void);
+ 
+-  // Game subsystems (immutable)
++  // Game subsystems (const)
+   const CGameClientInput &Input() const { return *m_subsystems.Input; }
++  const CGameClientProperties &AddonProperties() const { return *m_subsystems.AddonProperties; }
+ 
+   // Game subsystems (mutable)
+   CGameClientInput &Input() { return *m_subsystems.Input; }
++  CGameClientProperties &AddonProperties() { return *m_subsystems.AddonProperties; }
+ 
+   // Implementation of IAddon via CAddonDll
+   virtual std::string     LibPath() const override;
+@@ -125,24 +123,6 @@ class CGameClient : public ADDON::CAddonDll
+   void LogException(const char* strFunctionName) const;
+ 
+ private:
+-  /*!
+-   * \brief Create a struct with the allocated subsystems
+-   *
+-   * \param gameClient The owner of the subsystems
+-   * \param gameStruct The game client's add-on function table
+-   * \param clientAccess Mutex guarding client function access
+-   *
+-   * \return A fully-allocated GameClientSubsystems struct
+-   */
+-  static GameClientSubsystems CreateSubsystems(CGameClient &gameClient, AddonInstance_Game &gameStruct, CCriticalSection &clientAccess);
+-
+-  /*!
+-   * \brief Deallocate subsystems
+-   *
+-   * \param subsystems The subsystems created by CreateSubsystems()
+-   */
+-  static void DestroySubsystems(GameClientSubsystems &subsystems);
+-
+   // Private gameplay functions
+   bool InitializeGameplay(const std::string& gamePath, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
+   bool LoadGameInfo();
+@@ -181,9 +161,6 @@ class CGameClient : public ADDON::CAddonDll
+   // Game subsystems
+   GameClientSubsystems m_subsystems;
+ 
+-  // Add-on properties
+-  CGameClientProperties m_libraryProps;        // Properties to pass to the DLL
+-
+   // Game API xml parameters
+   bool                  m_bSupportsVFS;
+   bool                  m_bSupportsStandalone;
+diff --git a/xbmc/games/addons/GameClientProperties.cpp b/xbmc/games/addons/GameClientProperties.cpp
+index 02bca9ddf2a1..904f4f6b827f 100644
+--- a/xbmc/games/addons/GameClientProperties.cpp
++++ b/xbmc/games/addons/GameClientProperties.cpp
+@@ -40,7 +40,7 @@ using namespace XFILE;
+ 
+ #define GAME_CLIENT_RESOURCES_DIRECTORY  "resources"
+ 
+-CGameClientProperties::CGameClientProperties(const CGameClient* parent, AddonProps_Game& props)
++CGameClientProperties::CGameClientProperties(const CGameClient& parent, AddonProps_Game& props)
+   : m_parent(parent),
+     m_properties(props)
+ {
+@@ -71,7 +71,7 @@ void CGameClientProperties::InitializeProperties(void)
+   m_properties.resource_directories     = GetResourceDirectories();
+   m_properties.resource_directory_count = GetResourceDirectoryCount();
+   m_properties.profile_directory        = GetProfileDirectory();
+-  m_properties.supports_vfs             = m_parent->SupportsVFS();
++  m_properties.supports_vfs             = m_parent.SupportsVFS();
+   m_properties.extensions               = GetExtensions();
+   m_properties.extension_count          = GetExtensionCount();
+ }
+@@ -81,7 +81,7 @@ const char* CGameClientProperties::GetLibraryPath(void)
+   if (m_strLibraryPath.empty())
+   {
+     // Get the parent add-on's real path
+-    std::string strLibPath = m_parent->CAddonDll::LibPath();
++    std::string strLibPath = m_parent.CAddonDll::LibPath();
+     m_strLibraryPath = CSpecialProtocol::TranslatePath(strLibPath);
+   }
+   return m_strLibraryPath.c_str();
+@@ -93,7 +93,7 @@ const char** CGameClientProperties::GetProxyDllPaths(void)
+   {
+     // Add all game client dependencies
+     //! @todo Compare helper version with required dependency
+-    const auto& dependencies = m_parent->GetDependencies();
++    const auto& dependencies = m_parent.GetDependencies();
+     for (auto it = dependencies.begin(); it != dependencies.end(); ++it)
+     {
+       const std::string& strAddonId = it->id;
+@@ -123,12 +123,17 @@ const char** CGameClientProperties::GetProxyDllPaths(void)
+   return nullptr;
+ }
+ 
++unsigned int CGameClientProperties::GetProxyDllCount(void) const
++{
++  return static_cast<unsigned int>(m_proxyDllPaths.size());
++}
++
+ const char** CGameClientProperties::GetResourceDirectories(void)
+ {
+   if (m_resourceDirectories.empty())
+   {
+     // Add all other game resources
+-    const auto& dependencies = m_parent->GetDependencies();
++    const auto& dependencies = m_parent.GetDependencies();
+     for (auto it = dependencies.begin(); it != dependencies.end(); ++it)
+     {
+       const std::string& strAddonId = it->id;
+@@ -146,8 +151,8 @@ const char** CGameClientProperties::GetResourceDirectories(void)
+     }
+ 
+     // Add resource directories for profile and path
+-    std::string addonProfile = CSpecialProtocol::TranslatePath(m_parent->Profile());
+-    std::string addonPath = m_parent->Path();
++    std::string addonProfile = CSpecialProtocol::TranslatePath(m_parent.Profile());
++    std::string addonPath = m_parent.Path();
+ 
+     addonProfile = URIUtils::AddFileToFolder(addonProfile, GAME_CLIENT_RESOURCES_DIRECTORY);
+     addonPath = URIUtils::AddFileToFolder(addonPath, GAME_CLIENT_RESOURCES_DIRECTORY);
+@@ -173,17 +178,22 @@ const char** CGameClientProperties::GetResourceDirectories(void)
+   return nullptr;
+ }
+ 
++unsigned int CGameClientProperties::GetResourceDirectoryCount(void) const
++{
++  return static_cast<unsigned int>(m_resourceDirectories.size());
++}
++
+ const char* CGameClientProperties::GetProfileDirectory(void)
+ {
+   if (m_strProfileDirectory.empty())
+-    m_strProfileDirectory = CSpecialProtocol::TranslatePath(m_parent->Profile());
++    m_strProfileDirectory = CSpecialProtocol::TranslatePath(m_parent.Profile());
+ 
+   return m_strProfileDirectory.c_str();
+ }
+ 
+ const char** CGameClientProperties::GetExtensions(void)
+ {
+-  for (auto& extension : m_parent->GetExtensions())
++  for (auto& extension : m_parent.GetExtensions())
+   {
+     char* ext = new char[extension.length() + 1];
+     std::strcpy(ext, extension.c_str());
+@@ -193,6 +203,11 @@ const char** CGameClientProperties::GetExtensions(void)
+   return !m_extensions.empty() ? const_cast<const char**>(m_extensions.data()) : nullptr;
+ }
+ 
++unsigned int CGameClientProperties::GetExtensionCount(void) const
++{
++  return static_cast<unsigned int>(m_extensions.size());
++}
++
+ void CGameClientProperties::AddProxyDll(const GameClientPtr& gameClient)
+ {
+   // Get the add-on's real path
+diff --git a/xbmc/games/addons/GameClientProperties.h b/xbmc/games/addons/GameClientProperties.h
+index affaa10f1140..251dba268235 100644
+--- a/xbmc/games/addons/GameClientProperties.h
++++ b/xbmc/games/addons/GameClientProperties.h
+@@ -36,12 +36,14 @@ class CGameClient;
+ 
+ /**
+  * \ingroup games
+- * \brief C++ wrapper for game client properties declared in kodi_game_types.h
++ * \brief C++ wrapper for properties to pass to the DLL
++ *
++ * Game client properties declared in kodi_game_types.h.
+  */
+ class CGameClientProperties
+ {
+ public:
+-  CGameClientProperties(const CGameClient* parent, AddonProps_Game& props);
++  CGameClientProperties(const CGameClient& parent, AddonProps_Game& props);
+   ~CGameClientProperties(void) { ReleaseResources(); }
+ 
+   void InitializeProperties(void);
+@@ -57,13 +59,13 @@ class CGameClientProperties
+   const char** GetProxyDllPaths(void);
+ 
+   // Number of proxy DLLs needed to load the game client
+-  unsigned int GetProxyDllCount(void) const { return m_proxyDllPaths.size(); }
++  unsigned int GetProxyDllCount(void) const;
+ 
+   // Paths to game resources
+   const char** GetResourceDirectories(void);
+ 
+   // Number of resource directories
+-  unsigned int GetResourceDirectoryCount(void) const { return m_resourceDirectories.size(); }
++  unsigned int GetResourceDirectoryCount(void) const;
+ 
+   // Equal to special://profile/addon_data/<parent's id>
+   const char* GetProfileDirectory(void);
+@@ -72,14 +74,15 @@ class CGameClientProperties
+   const char** GetExtensions(void);
+ 
+   // Number of extensions
+-  unsigned int GetExtensionCount(void) const { return m_extensions.size(); }
++  unsigned int GetExtensionCount(void) const;
+ 
+   // Helper functions
+   void AddProxyDll(const GameClientPtr& gameClient);
+   bool HasProxyDll(const std::string& strLibPath) const;
+ 
+-  const CGameClient* const  m_parent;
+-  AddonProps_Game&          m_properties;
++  // Construction parameters
++  const CGameClient& m_parent;
++  AddonProps_Game& m_properties;
+ 
+   // Buffers to hold the strings
+   std::string        m_strLibraryPath;
+diff --git a/xbmc/games/addons/GameClientSubsystem.cpp b/xbmc/games/addons/GameClientSubsystem.cpp
+index 4daa9ce4380c..a063566bc67f 100644
+--- a/xbmc/games/addons/GameClientSubsystem.cpp
++++ b/xbmc/games/addons/GameClientSubsystem.cpp
+@@ -20,6 +20,9 @@
+ 
+ #include "GameClientSubsystem.h"
+ #include "GameClient.h"
++#include "GameClientProperties.h"
++#include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
++#include "games/addons/input/GameClientInput.h"
+ 
+ using namespace KODI;
+ using namespace GAME;
+@@ -33,4 +36,30 @@ CGameClientSubsystem::CGameClientSubsystem(CGameClient &gameClient,
+ {
+ }
+ 
+-CGameClientInput &CGameClientSubsystem::Input() const { return m_gameClient.Input(); }
++CGameClientSubsystem::~CGameClientSubsystem() = default;
++
++GameClientSubsystems CGameClientSubsystem::CreateSubsystems(CGameClient &gameClient, AddonInstance_Game &gameStruct, CCriticalSection &clientAccess)
++{
++  GameClientSubsystems subsystems = {};
++
++  subsystems.Input.reset(new CGameClientInput(gameClient, gameStruct, clientAccess));
++  subsystems.AddonProperties.reset(new CGameClientProperties(gameClient, gameStruct.props));
++
++  return subsystems;
++}
++
++void CGameClientSubsystem::DestroySubsystems(GameClientSubsystems &subsystems)
++{
++  subsystems.Input.reset();
++  subsystems.AddonProperties.reset();
++}
++
++CGameClientInput &CGameClientSubsystem::Input() const
++{
++  return m_gameClient.Input();
++}
++
++CGameClientProperties &CGameClientSubsystem::AddonProperties() const
++{
++  return m_gameClient.AddonProperties();
++}
+diff --git a/xbmc/games/addons/GameClientSubsystem.h b/xbmc/games/addons/GameClientSubsystem.h
+index 97eeed715425..dc11f0dd0aec 100644
+--- a/xbmc/games/addons/GameClientSubsystem.h
++++ b/xbmc/games/addons/GameClientSubsystem.h
+@@ -19,6 +19,8 @@
+  */
+ #pragma once
+ 
++#include <memory>
++
+ struct AddonInstance_Game;
+ class CCriticalSection;
+ 
+@@ -28,6 +30,13 @@ namespace GAME
+ {
+   class CGameClient;
+   class CGameClientInput;
++  class CGameClientProperties;
++
++  struct GameClientSubsystems
++  {
++    std::unique_ptr<CGameClientInput> Input;
++    std::unique_ptr<CGameClientProperties> AddonProperties;
++  };
+ 
+   /*!
+    * \brief Base class for game client subsystems
+@@ -39,11 +48,33 @@ namespace GAME
+                          AddonInstance_Game &addonStruct,
+                          CCriticalSection &clientAccess);
+ 
+-    virtual ~CGameClientSubsystem() = default;
++    virtual ~CGameClientSubsystem();
++
++  public:
++    /*!
++     * \brief Create a struct with the allocated subsystems
++     *
++     * \param gameClient The owner of the subsystems
++     * \param gameStruct The game client's add-on function table
++     * \param clientAccess Mutex guarding client function access
++     *
++     * \return A fully-allocated GameClientSubsystems struct
++     */
++    static GameClientSubsystems CreateSubsystems(CGameClient &gameClient, AddonInstance_Game &gameStruct, CCriticalSection &clientAccess);
++
++    /*!
++     * \brief Deallocate subsystems
++     *
++     * \param subsystems The subsystems created by CreateSubsystems()
++     */
++    static void DestroySubsystems(GameClientSubsystems &subsystems);
+ 
+-    CGameClientInput &Input() const;
+-    
+   protected:
++    // Subsystems
++    CGameClientInput &Input() const;
++    CGameClientProperties &AddonProperties() const;
++
++    // Construction parameters
+     CGameClient &m_gameClient;
+     AddonInstance_Game &m_struct;
+     CCriticalSection &m_clientAccess;
+
+From 583431aa4e86bd653d5209788f28964710106891 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Tue, 9 Jan 2018 15:32:03 -0800
+Subject: [PATCH 2/3] Games: Remove port manager
+
+Will be replaced by new player manager.
+---
+ xbmc/cores/RetroPlayer/RetroPlayer.cpp      |   3 +-
+ xbmc/games/GameServices.cpp                 |   9 +-
+ xbmc/games/GameServices.h                   |   3 -
+ xbmc/games/addons/GameClient.cpp            |   1 -
+ xbmc/games/addons/input/GameClientInput.cpp |  12 +-
+ xbmc/games/ports/CMakeLists.txt             |   9 +-
+ xbmc/games/ports/InputSink.cpp              |   8 +-
+ xbmc/games/ports/InputSink.h                |   7 +-
+ xbmc/games/ports/Port.cpp                   |  19 ++-
+ xbmc/games/ports/Port.h                     |   7 +-
+ xbmc/games/ports/PortManager.cpp            | 225 ----------------------------
+ xbmc/games/ports/PortManager.h              | 126 ----------------
+ xbmc/games/ports/PortMapper.cpp             | 104 -------------
+ xbmc/games/ports/PortMapper.h               |  59 --------
+ xbmc/games/ports/PortTypes.h                |  33 ----
+ xbmc/utils/Observer.h                       |   1 -
+ 16 files changed, 25 insertions(+), 601 deletions(-)
+ delete mode 100644 xbmc/games/ports/PortManager.cpp
+ delete mode 100644 xbmc/games/ports/PortManager.h
+ delete mode 100644 xbmc/games/ports/PortMapper.cpp
+ delete mode 100644 xbmc/games/ports/PortMapper.h
+ delete mode 100644 xbmc/games/ports/PortTypes.h
+
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.cpp b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+index 23af0b50aef6..99702c4a6eff 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+@@ -36,7 +36,6 @@
+ #include "games/addons/GameClient.h"
+ #include "games/addons/GameClientTiming.h" //! @todo
+ #include "games/dialogs/osd/DialogGameVideoSelect.h"
+-#include "games/ports/PortManager.h"
+ #include "games/tags/GameInfoTag.h"
+ #include "games/GameServices.h"
+ #include "games/GameUtils.h"
+@@ -404,7 +403,7 @@ bool CRetroPlayer::OnAction(const CAction &action)
+       m_gameClient->GetPlayback()->SetSpeed(0.0);
+ 
+       CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Sending reset command via ACTION_PLAYER_RESET");
+-      m_gameServices.PortManager().HardwareReset();
++      //m_gameServices.PortManager().HardwareReset();
+ 
+       // If rewinding or paused, begin playback
+       if (speed <= 0.0f)
+diff --git a/xbmc/games/GameServices.cpp b/xbmc/games/GameServices.cpp
+index b58a620b6f19..c658a4738227 100644
+--- a/xbmc/games/GameServices.cpp
++++ b/xbmc/games/GameServices.cpp
+@@ -21,7 +21,6 @@
+ #include "GameServices.h"
+ #include "controllers/Controller.h"
+ #include "controllers/ControllerManager.h"
+-#include "games/ports/PortManager.h"
+ #include "games/GameSettings.h"
+ #include "profiles/ProfilesManager.h"
+ 
+@@ -36,8 +35,7 @@ CGameServices::CGameServices(CControllerManager &controllerManager,
+   m_controllerManager(controllerManager),
+   m_gameRenderManager(renderManager),
+   m_profileManager(profileManager),
+-  m_gameSettings(new CGameSettings(settings)),
+-  m_portManager(new CPortManager(peripheralManager))
++  m_gameSettings(new CGameSettings(settings))
+ {
+ }
+ 
+@@ -72,8 +70,3 @@ std::string CGameServices::GetSavestatesFolder() const
+ {
+   return m_profileManager.GetSavestatesFolder();
+ }
+-
+-CPortManager& CGameServices::PortManager()
+-{
+-  return *m_portManager;
+-}
+diff --git a/xbmc/games/GameServices.h b/xbmc/games/GameServices.h
+index 466c3f0e8852..f1c8a37b87f8 100644
+--- a/xbmc/games/GameServices.h
++++ b/xbmc/games/GameServices.h
+@@ -43,7 +43,6 @@ namespace GAME
+ {
+   class CControllerManager;
+   class CGameSettings;
+-  class CPortManager;
+ 
+   class CGameServices
+   {
+@@ -64,7 +63,6 @@ namespace GAME
+     std::string GetSavestatesFolder() const;
+ 
+     CGameSettings& GameSettings() { return *m_gameSettings; }
+-    CPortManager& PortManager();
+ 
+     RETRO::CGUIGameRenderManager &GameRenderManager() { return m_gameRenderManager; }
+ 
+@@ -76,7 +74,6 @@ namespace GAME
+ 
+     // Game services
+     std::unique_ptr<CGameSettings> m_gameSettings;
+-    std::unique_ptr<CPortManager> m_portManager;
+   };
+ }
+ }
+diff --git a/xbmc/games/addons/GameClient.cpp b/xbmc/games/addons/GameClient.cpp
+index 09b3fb3bd93e..144f939f1d80 100644
+--- a/xbmc/games/addons/GameClient.cpp
++++ b/xbmc/games/addons/GameClient.cpp
+@@ -33,7 +33,6 @@
+ #include "games/addons/playback/GameClientRealtimePlayback.h"
+ #include "games/addons/playback/GameClientReversiblePlayback.h"
+ #include "games/controllers/Controller.h"
+-#include "games/ports/PortManager.h"
+ #include "games/GameServices.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/LocalizeStrings.h"
+diff --git a/xbmc/games/addons/input/GameClientInput.cpp b/xbmc/games/addons/input/GameClientInput.cpp
+index a1809ae73aec..87c1852e7ab1 100644
+--- a/xbmc/games/addons/input/GameClientInput.cpp
++++ b/xbmc/games/addons/input/GameClientInput.cpp
+@@ -26,7 +26,6 @@
+ #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
+ #include "games/addons/GameClient.h"
+ #include "games/controllers/Controller.h"
+-#include "games/ports/PortManager.h"
+ #include "games/GameServices.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/WindowIDs.h"
+@@ -96,12 +95,8 @@ bool CGameClientInput::OpenPort(unsigned int port)
+ 
+     m_joysticks[port].reset(new CGameClientJoystick(m_gameClient, port, controller, m_struct.toAddon));
+ 
+-    // If keyboard input is being captured by this add-on, force the port type to PERIPHERAL_JOYSTICK
+-    PERIPHERALS::PeripheralType device = PERIPHERALS::PERIPHERAL_UNKNOWN;
+-    if (m_gameClient.SupportsKeyboard())
+-      device = PERIPHERALS::PERIPHERAL_JOYSTICK;
+-
+-    CServiceBroker::GetGameServices().PortManager().OpenPort(m_joysticks[port].get(), m_hardware.get(), &m_gameClient, port, device);
++    //! @todo
++    //CServiceBroker::GetGameServices().PortManager().OpenPort(m_joysticks[port].get(), m_hardware.get(), &m_gameClient, port, device);
+ 
+     UpdatePort(port, controller);
+ 
+@@ -117,7 +112,8 @@ void CGameClientInput::ClosePort(unsigned int port)
+   if (m_joysticks.find(port) == m_joysticks.end())
+     return;
+ 
+-  CServiceBroker::GetGameServices().PortManager().ClosePort(m_joysticks[port].get());
++  //! @todo
++  //CServiceBroker::GetGameServices().PortManager().ClosePort(m_joysticks[port].get());
+ 
+   m_joysticks.erase(port);
+ 
+diff --git a/xbmc/games/ports/CMakeLists.txt b/xbmc/games/ports/CMakeLists.txt
+index 9bdd9de0c0dc..d9c6db304556 100644
+--- a/xbmc/games/ports/CMakeLists.txt
++++ b/xbmc/games/ports/CMakeLists.txt
+@@ -1,12 +1,7 @@
+ set(SOURCES InputSink.cpp
+-            Port.cpp
+-            PortManager.cpp
+-            PortMapper.cpp)
++            Port.cpp)
+ 
+ set(HEADERS InputSink.h
+-            Port.h
+-            PortManager.h
+-            PortMapper.h
+-            PortTypes.h)
++            Port.h)
+ 
+ core_add_library(gameports)
+diff --git a/xbmc/games/ports/InputSink.cpp b/xbmc/games/ports/InputSink.cpp
+index 61b64e553348..2633edec8ac2 100644
+--- a/xbmc/games/ports/InputSink.cpp
++++ b/xbmc/games/ports/InputSink.cpp
+@@ -19,15 +19,13 @@
+  */
+ 
+ #include "InputSink.h"
+-#include "games/addons/GameClient.h"
+ #include "games/controllers/ControllerIDs.h"
+-#include "games/addons/input/GameClientInput.h"
+ 
+ using namespace KODI;
+ using namespace GAME;
+ 
+-CInputSink::CInputSink(CGameClient &gameClient) :
+-  m_gameClient(gameClient)
++CInputSink::CInputSink(JOYSTICK::IInputHandler* gameInput) :
++  m_gameInput(gameInput)
+ {
+ }
+ 
+@@ -38,7 +36,7 @@ std::string CInputSink::ControllerID(void) const
+ 
+ bool CInputSink::AcceptsInput(const std::string& feature) const
+ {
+-  return m_gameClient.Input().AcceptsInput();
++  return m_gameInput->AcceptsInput(feature);
+ }
+ 
+ bool CInputSink::OnButtonPress(const std::string& feature, bool bPressed)
+diff --git a/xbmc/games/ports/InputSink.h b/xbmc/games/ports/InputSink.h
+index bf70838f8281..fefec129a467 100644
+--- a/xbmc/games/ports/InputSink.h
++++ b/xbmc/games/ports/InputSink.h
+@@ -19,7 +19,6 @@
+  */
+ #pragma once
+ 
+-#include "games/controllers/ControllerTypes.h"
+ #include "input/joysticks/interfaces/IInputHandler.h"
+ 
+ namespace KODI
+@@ -31,7 +30,7 @@ namespace GAME
+   class CInputSink : public JOYSTICK::IInputHandler
+   {
+   public:
+-    explicit CInputSink(CGameClient &m_gameClient);
++    explicit CInputSink(JOYSTICK::IInputHandler* gameInput);
+ 
+     virtual ~CInputSink() = default;
+ 
+@@ -48,8 +47,8 @@ namespace GAME
+     virtual bool OnThrottleMotion(const std::string& feature, float position, unsigned int motionTimeMs) override;
+ 
+   private:
+-    const CGameClient &m_gameClient;
+-    const ControllerPtr m_controller;
++    // Construction parameters
++    JOYSTICK::IInputHandler* m_gameInput;
+   };
+ }
+ }
+diff --git a/xbmc/games/ports/Port.cpp b/xbmc/games/ports/Port.cpp
+index d3cdaa6702fb..6c8ca0b080da 100644
+--- a/xbmc/games/ports/Port.cpp
++++ b/xbmc/games/ports/Port.cpp
+@@ -29,10 +29,9 @@
+ using namespace KODI;
+ using namespace GAME;
+ 
+-CPort::CPort(JOYSTICK::IInputHandler *gameInput, CGameClient &gameClient) :
++CPort::CPort(JOYSTICK::IInputHandler *gameInput) :
+   m_gameInput(gameInput),
+-  m_gameClient(gameClient),
+-  m_inputSink(new CInputSink(gameClient))
++  m_inputSink(new CInputSink(gameInput))
+ {
+ }
+ 
+@@ -66,12 +65,12 @@ std::string CPort::ControllerID() const
+ 
+ bool CPort::AcceptsInput(const std::string& feature) const
+ {
+-  return m_gameClient.Input().AcceptsInput();
++  return m_gameInput->AcceptsInput(feature);
+ }
+ 
+ bool CPort::OnButtonPress(const std::string& feature, bool bPressed)
+ {
+-  if (bPressed && !m_gameClient.Input().AcceptsInput())
++  if (bPressed && !m_gameInput->AcceptsInput(feature))
+     return false;
+ 
+   return m_gameInput->OnButtonPress(feature, bPressed);
+@@ -84,7 +83,7 @@ void CPort::OnButtonHold(const std::string& feature, unsigned int holdTimeMs)
+ 
+ bool CPort::OnButtonMotion(const std::string& feature, float magnitude, unsigned int motionTimeMs)
+ {
+-  if (magnitude > 0.0f && !m_gameClient.Input().AcceptsInput())
++  if (magnitude > 0.0f && !m_gameInput->AcceptsInput(feature))
+     return false;
+ 
+   return m_gameInput->OnButtonMotion(feature, magnitude, motionTimeMs);
+@@ -92,7 +91,7 @@ bool CPort::OnButtonMotion(const std::string& feature, float magnitude, unsigned
+ 
+ bool CPort::OnAnalogStickMotion(const std::string& feature, float x, float y, unsigned int motionTimeMs)
+ {
+-  if ((x != 0.0f || y != 0.0f) && !m_gameClient.Input().AcceptsInput())
++  if ((x != 0.0f || y != 0.0f) && !m_gameInput->AcceptsInput(feature))
+     return false;
+ 
+   return m_gameInput->OnAnalogStickMotion(feature, x, y, motionTimeMs);
+@@ -100,7 +99,7 @@ bool CPort::OnAnalogStickMotion(const std::string& feature, float x, float y, un
+ 
+ bool CPort::OnAccelerometerMotion(const std::string& feature, float x, float y, float z)
+ {
+-  if (!m_gameClient.Input().AcceptsInput())
++  if (!m_gameInput->AcceptsInput(feature))
+     return false;
+ 
+   return m_gameInput->OnAccelerometerMotion(feature, x, y, z);
+@@ -108,7 +107,7 @@ bool CPort::OnAccelerometerMotion(const std::string& feature, float x, float y,
+ 
+ bool CPort::OnWheelMotion(const std::string& feature, float position, unsigned int motionTimeMs)
+ {
+-  if ((position != 0.0f) && !m_gameClient.Input().AcceptsInput())
++  if ((position != 0.0f) && !m_gameInput->AcceptsInput(feature))
+     return false;
+ 
+   return m_gameInput->OnWheelMotion(feature, position, motionTimeMs);
+@@ -116,7 +115,7 @@ bool CPort::OnWheelMotion(const std::string& feature, float position, unsigned i
+ 
+ bool CPort::OnThrottleMotion(const std::string& feature, float position, unsigned int motionTimeMs)
+ {
+-  if ((position != 0.0f) && !m_gameClient.Input().AcceptsInput())
++  if ((position != 0.0f) && !m_gameInput->AcceptsInput(feature))
+     return false;
+ 
+   return m_gameInput->OnThrottleMotion(feature, position, motionTimeMs);
+diff --git a/xbmc/games/ports/Port.h b/xbmc/games/ports/Port.h
+index e97617035d5d..02aee444458f 100644
+--- a/xbmc/games/ports/Port.h
++++ b/xbmc/games/ports/Port.h
+@@ -34,14 +34,12 @@ namespace JOYSTICK
+ 
+ namespace GAME
+ {
+-  class CGameClient;
+-
+   class CPort : public JOYSTICK::IInputHandler,
+                 public IKeymapEnvironment
+   {
+   public:
+-    CPort(JOYSTICK::IInputHandler* gameInput, CGameClient& gameClient);
+-    ~CPort();
++    CPort(JOYSTICK::IInputHandler* gameInput);
++    ~CPort() override;
+ 
+     void RegisterInput(JOYSTICK::IInputProvider *provider);
+     void UnregisterInput(JOYSTICK::IInputProvider *provider);
+@@ -70,7 +68,6 @@ namespace GAME
+   private:
+     // Construction parameters
+     JOYSTICK::IInputHandler* const m_gameInput;
+-    CGameClient& m_gameClient;
+ 
+     // Handles input to Kodi
+     std::unique_ptr<JOYSTICK::CKeymapHandling> m_appInput;
+diff --git a/xbmc/games/ports/PortManager.cpp b/xbmc/games/ports/PortManager.cpp
+deleted file mode 100644
+index 2dbc9f563706..000000000000
+--- a/xbmc/games/ports/PortManager.cpp
++++ /dev/null
+@@ -1,225 +0,0 @@
+-/*
+- *      Copyright (C) 2015-2017 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this Program; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-
+-#include "PortManager.h"
+-#include "PortMapper.h"
+-#include "input/hardware/IHardwareInput.h"
+-#include "input/joysticks/interfaces/IInputHandler.h"
+-#include "peripherals/devices/Peripheral.h"
+-#include "peripherals/devices/PeripheralJoystick.h"
+-#include "peripherals/Peripherals.h"
+-#include "utils/log.h"
+-
+-#include <algorithm>
+-
+-using namespace KODI;
+-using namespace GAME;
+-using namespace JOYSTICK;
+-using namespace PERIPHERALS;
+-
+-// --- GetRequestedPort() -----------------------------------------------------
+-
+-namespace
+-{
+-  int GetRequestedPort(const PERIPHERALS::PeripheralPtr& device)
+-  {
+-    if (device->Type() == PERIPHERAL_JOYSTICK)
+-      return std::static_pointer_cast<CPeripheralJoystick>(device)->RequestedPort();
+-    return JOYSTICK_PORT_UNKNOWN;
+-  }
+-}
+-
+-// --- CPortManager -----------------------------------------------------------
+-
+-CPortManager::CPortManager(PERIPHERALS::CPeripherals& peripheralManager) :
+-  m_portMapper(new CPortMapper(peripheralManager, *this))
+-{
+-}
+-
+-CPortManager::~CPortManager() = default;
+-
+-void CPortManager::OpenPort(IInputHandler* handler,
+-                            HARDWARE::IHardwareInput *hardwareInput,
+-                            CGameClient* gameClient,
+-                            unsigned int port,
+-                            PERIPHERALS::PeripheralType requiredType /* = PERIPHERALS::PERIPHERAL_UNKNOWN) */)
+-{
+-  CExclusiveLock lock(m_mutex);
+-
+-  SPort newPort = { };
+-  newPort.handler = handler;
+-  newPort.hardwareInput = hardwareInput;
+-  newPort.port = port;
+-  newPort.requiredType = requiredType;
+-  newPort.gameClient = gameClient;
+-  m_ports.push_back(newPort);
+-
+-  SetChanged();
+-  NotifyObservers(ObservableMessagePortsChanged);
+-}
+-
+-void CPortManager::ClosePort(IInputHandler* handler)
+-{
+-  CExclusiveLock lock(m_mutex);
+-
+-  m_ports.erase(std::remove_if(m_ports.begin(), m_ports.end(),
+-    [handler](const SPort& port)
+-    {
+-      return port.handler == handler;
+-    }), m_ports.end());
+-
+-  SetChanged();
+-  NotifyObservers(ObservableMessagePortsChanged);
+-}
+-
+-void CPortManager::MapDevices(const PeripheralVector& devices,
+-                              std::map<CPeripheral*, IInputHandler*>& deviceToPortMap)
+-{
+-  CSharedLock lock(m_mutex);
+-
+-  if (m_ports.empty())
+-    return; // Nothing to do
+-
+-  // Clear all ports
+-  for (SPort& port : m_ports)
+-    port.device = nullptr;
+-
+-  // Prioritize devices by several criteria
+-  PeripheralVector devicesCopy = devices;
+-  std::sort(devicesCopy.begin(), devicesCopy.end(),
+-    [](const PeripheralPtr& lhs, const PeripheralPtr& rhs)
+-    {
+-      // Prioritize physical joysticks over emulated ones
+-      if (lhs->Type() == PERIPHERAL_JOYSTICK && rhs->Type() != PERIPHERAL_JOYSTICK)
+-        return true;
+-      if (lhs->Type() != PERIPHERAL_JOYSTICK && rhs->Type() == PERIPHERAL_JOYSTICK)
+-        return false;
+-
+-      if (lhs->Type() == PERIPHERAL_JOYSTICK && rhs->Type() == PERIPHERAL_JOYSTICK)
+-      {
+-        std::shared_ptr<CPeripheralJoystick> i = std::static_pointer_cast<CPeripheralJoystick>(lhs);
+-        std::shared_ptr<CPeripheralJoystick> j = std::static_pointer_cast<CPeripheralJoystick>(rhs);
+-
+-        // Prioritize requested a port over no port requested
+-        if (i->RequestedPort() != JOYSTICK_PORT_UNKNOWN && j->RequestedPort() == JOYSTICK_PORT_UNKNOWN)
+-          return true;
+-        if (i->RequestedPort() == JOYSTICK_PORT_UNKNOWN && j->RequestedPort() != JOYSTICK_PORT_UNKNOWN)
+-          return false;
+-
+-        // Sort joystick by requested port
+-        return i->RequestedPort() < j->RequestedPort();
+-      }
+-
+-      return false;
+-    });
+-
+-  // Record mapped devices in output variable
+-  for (auto& device : devicesCopy)
+-  {
+-    IInputHandler* handler = AssignToPort(device);
+-    if (handler)
+-      deviceToPortMap[device.get()] = handler;
+-  }
+-}
+-
+-CGameClient* CPortManager::GameClient(JOYSTICK::IInputHandler* handler)
+-{
+-  CSharedLock lock(m_mutex);
+-
+-  for (const SPort& port : m_ports)
+-  {
+-    if (port.handler == handler)
+-      return port.gameClient;
+-  }
+-
+-  return nullptr;
+-}
+-
+-void CPortManager::HardwareReset(JOYSTICK::IInputHandler *handler /* = nullptr */)
+-{
+-  CSharedLock lock(m_mutex);
+-
+-  // Find the port to reset
+-  auto itPort = m_ports.end();
+-
+-  if (handler != nullptr)
+-  {
+-    auto FindByHandler = [handler](const SPort& portStruct)
+-      {
+-        return portStruct.handler == handler;
+-      };
+-
+-    itPort = std::find_if(m_ports.begin(), m_ports.end(), FindByHandler);
+-  }
+-  else
+-  {
+-    auto FindDefaultPort = [](const SPort& portStruct)
+-    {
+-      return portStruct.port == 0;
+-    };
+-
+-    itPort = std::find_if(m_ports.begin(), m_ports.end(), FindDefaultPort);
+-  }
+-
+-  if (itPort != m_ports.end())
+-    itPort->hardwareInput->OnResetButton(itPort->port);
+-  else
+-  {
+-    if (handler != nullptr)
+-      CLog::Log(LOGERROR, "Can't find hardware to reset for controller %s (total ports = %u)", handler->ControllerID().c_str(), m_ports.size());
+-    else
+-      CLog::Log(LOGERROR, "Can't find hardware to reset for default port (total ports = %u)", m_ports.size());
+-  }
+-}
+-
+-IInputHandler* CPortManager::AssignToPort(const PeripheralPtr& device, bool checkPortNumber /* = true */)
+-{
+-  const int requestedPort = GetRequestedPort(device);
+-  const bool bPortRequested = (requestedPort != JOYSTICK_PORT_UNKNOWN);
+-
+-  for (SPort& port : m_ports)
+-  {
+-    // Skip occupied ports
+-    if (port.device != nullptr)
+-      continue;
+-
+-    // If specified, check port numbers
+-    if (checkPortNumber)
+-    {
+-      if (bPortRequested && requestedPort != static_cast<int>(port.port))
+-        continue;
+-    }
+-
+-    // If required, filter by type 
+-    const bool bTypeRequired = (port.requiredType != PERIPHERAL_UNKNOWN);
+-    if (bTypeRequired && port.requiredType != device->Type())
+-      continue;
+-
+-    // Success
+-    port.device = device.get();
+-    return port.handler;
+-  }
+-
+-  // If joystick requested a port but wasn't mapped, try again without checking port numbers
+-  if (checkPortNumber && bPortRequested)
+-    return AssignToPort(device, false);
+-
+-  return nullptr;
+-}
+diff --git a/xbmc/games/ports/PortManager.h b/xbmc/games/ports/PortManager.h
+deleted file mode 100644
+index faef3508158f..000000000000
+--- a/xbmc/games/ports/PortManager.h
++++ /dev/null
+@@ -1,126 +0,0 @@
+-/*
+- *      Copyright (C) 2015-2017 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this Program; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-#pragma once
+-
+-#include "peripherals/PeripheralTypes.h"
+-#include "threads/SharedSection.h"
+-#include "utils/Observer.h"
+-
+-#include <map>
+-#include <vector>
+-
+-namespace PERIPHERALS
+-{
+-  class CPeripheral;
+-  class CPeripherals;
+-}
+-
+-namespace KODI
+-{
+-namespace HARDWARE
+-{
+-  class IHardwareInput;
+-}
+-
+-namespace JOYSTICK
+-{
+-  class IInputHandler;
+-}
+-
+-namespace GAME
+-{
+-  class CGameClient;
+-  class CPortMapper;
+-
+-  /*!
+-   * \brief Class to manage ports opened by game clients
+-   */
+-  class CPortManager : public Observable
+-  {
+-  public:
+-    explicit CPortManager(PERIPHERALS::CPeripherals& peripheralManager);
+-    virtual ~CPortManager();
+-
+-    /*!
+-     * \brief Request a new port be opened with input on that port sent to the
+-     *        specified handler.
+-     *
+-     * \param handler      The instance accepting all input delivered to the port
+-     * \param gameClient   The game client opening the port
+-     * \param port         The port number belonging to the game client
+-     * \param requiredType Used to restrict port to devices of only a certain type
+-     */
+-    void OpenPort(JOYSTICK::IInputHandler* handler,
+-                  HARDWARE::IHardwareInput *hardwareInput,
+-                  CGameClient* gameClient,
+-                  unsigned int port,
+-                  PERIPHERALS::PeripheralType requiredType = PERIPHERALS::PERIPHERAL_UNKNOWN);
+-
+-    /*!
+-     * \brief Close an opened port
+-     *
+-     * \param handler  The handler used to open the port
+-     */
+-    void ClosePort(JOYSTICK::IInputHandler* handler);
+-
+-    /*!
+-     * \brief Map a list of devices to the available ports
+-     *
+-     * \param devices  The devices capable of providing input to the ports
+-     * \param portMap  The resulting map of devices to ports
+-     *
+-     * If there are more devices than open ports, multiple devices may be assigned
+-     * to the same port. If a device requests a specific port, this function will
+-     * attempt to honor that request.
+-     */
+-    void MapDevices(const PERIPHERALS::PeripheralVector& devices,
+-                    std::map<PERIPHERALS::CPeripheral*, JOYSTICK::IInputHandler*>& deviceToPortMap);
+-
+-    //! @todo Return game client from MapDevices()
+-    CGameClient* GameClient(JOYSTICK::IInputHandler* handler);
+-
+-    /*!
+-     * \brief Send a hardware reset command for the specified input handler
+-     *
+-     * \param handler  The handler associated the user who pressed reset, or
+-     *                 nullptr if it's unknown who presesd reset
+-     */
+-    void HardwareReset(JOYSTICK::IInputHandler *handler = nullptr);
+-
+-  private:
+-    JOYSTICK::IInputHandler* AssignToPort(const PERIPHERALS::PeripheralPtr& device, bool checkPortNumber = true);
+-
+-    std::unique_ptr<CPortMapper> m_portMapper;
+-
+-    struct SPort
+-    {
+-      JOYSTICK::IInputHandler*    handler; // Input handler for this port
+-      HARDWARE::IHardwareInput    *hardwareInput; // Callbacks for hardware input
+-      unsigned int                port;    // Port number belonging to the game client
+-      PERIPHERALS::PeripheralType requiredType;
+-      void*                       device;
+-      CGameClient*                gameClient;
+-    };
+-
+-    std::vector<SPort> m_ports;
+-    CSharedSection     m_mutex;
+-  };
+-}
+-}
+diff --git a/xbmc/games/ports/PortMapper.cpp b/xbmc/games/ports/PortMapper.cpp
+deleted file mode 100644
+index 95de00a36bed..000000000000
+--- a/xbmc/games/ports/PortMapper.cpp
++++ /dev/null
+@@ -1,104 +0,0 @@
+-/*
+- *      Copyright (C) 2015-2017 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this Program; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-
+-#include "PortMapper.h"
+-#include "Port.h"
+-#include "PortManager.h"
+-#include "peripherals/devices/Peripheral.h"
+-#include "peripherals/Peripherals.h"
+-
+-using namespace KODI;
+-using namespace GAME;
+-using namespace JOYSTICK;
+-using namespace PERIPHERALS;
+-
+-CPortMapper::CPortMapper(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager) :
+-  m_peripheralManager(peripheralManager),
+-  m_portManager(portManager)
+-{
+-  m_peripheralManager.RegisterObserver(this);
+-  m_portManager.RegisterObserver(this);
+-}
+-
+-CPortMapper::~CPortMapper()
+-{
+-  m_portManager.UnregisterObserver(this);
+-  m_peripheralManager.UnregisterObserver(this);
+-}
+-
+-void CPortMapper::Notify(const Observable &obs, const ObservableMessage msg)
+-{
+-  switch (msg)
+-  {
+-    case ObservableMessagePeripheralsChanged:
+-    case ObservableMessagePortsChanged:
+-      ProcessPeripherals();
+-      break;
+-    default:
+-      break;
+-  }
+-}
+-
+-void CPortMapper::ProcessPeripherals()
+-{
+-  PeripheralVector joysticks;
+-  m_peripheralManager.GetPeripheralsWithFeature(joysticks, FEATURE_JOYSTICK);
+-
+-  // Perform the port mapping
+-  std::map<CPeripheral*, IInputHandler*> newPortMap;
+-  m_portManager.MapDevices(joysticks, newPortMap);
+-
+-  // Update each joystick
+-  for (auto& joystick : joysticks)
+-  {
+-    auto itConnectedPort = newPortMap.find(joystick.get());
+-    auto itDisconnectedPort = m_portMap.find(joystick);
+-
+-    IInputHandler* newHandler = itConnectedPort != newPortMap.end() ? itConnectedPort->second : nullptr;
+-    IInputHandler* oldHandler = itDisconnectedPort != m_portMap.end() ? itDisconnectedPort->second->InputHandler() : nullptr;
+-
+-    if (oldHandler != newHandler)
+-    {
+-      // Unregister old handler
+-      if (oldHandler != nullptr)
+-      {
+-        PortPtr& oldPort = itDisconnectedPort->second;
+-
+-        oldPort->UnregisterInput(joystick.get());
+-
+-        m_portMap.erase(itDisconnectedPort);
+-      }
+-
+-      // Register new handler
+-      if (newHandler != nullptr)
+-      {
+-        CGameClient *gameClient = m_portManager.GameClient(newHandler);
+-        if (gameClient)
+-        {
+-          PortPtr newPort(new CPort(newHandler, *gameClient));
+-
+-          newPort->RegisterInput(joystick.get());
+-
+-          m_portMap.insert(std::make_pair(std::move(joystick), std::move(newPort)));
+-        }
+-      }
+-    }
+-  }
+-}
+diff --git a/xbmc/games/ports/PortMapper.h b/xbmc/games/ports/PortMapper.h
+deleted file mode 100644
+index 37379917fadf..000000000000
+--- a/xbmc/games/ports/PortMapper.h
++++ /dev/null
+@@ -1,59 +0,0 @@
+-/*
+- *      Copyright (C) 2015-2017 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this Program; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-#pragma once
+-
+-#include "PortTypes.h"
+-#include "peripherals/PeripheralTypes.h"
+-#include "utils/Observer.h"
+-
+-#include <map>
+-
+-namespace PERIPHERALS
+-{
+-  class CPeripherals;
+-}
+-
+-namespace KODI
+-{
+-namespace GAME
+-{
+-  class CPortManager;
+-
+-  class CPortMapper : public Observer
+-  {
+-  public:
+-    CPortMapper(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager);
+-
+-    virtual ~CPortMapper();
+-
+-    virtual void Notify(const Observable& obs, const ObservableMessage msg) override;
+-
+-  private:
+-    void ProcessPeripherals();
+-
+-    // Construction parameters
+-    PERIPHERALS::CPeripherals &m_peripheralManager;
+-    CPortManager &m_portManager;
+-
+-    // Port paremters
+-    std::map<PERIPHERALS::PeripheralPtr, PortPtr> m_portMap;
+-  };
+-}
+-}
+diff --git a/xbmc/games/ports/PortTypes.h b/xbmc/games/ports/PortTypes.h
+deleted file mode 100644
+index 8647a7e56b14..000000000000
+--- a/xbmc/games/ports/PortTypes.h
++++ /dev/null
+@@ -1,33 +0,0 @@
+-/*
+- *      Copyright (C) 2017 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this Program; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-#pragma once
+-
+-#include <memory>
+-
+-namespace KODI
+-{
+-namespace GAME
+-{
+-
+-class CPort;
+-using PortPtr = std::shared_ptr<CPort>;
+-
+-}
+-}
+diff --git a/xbmc/utils/Observer.h b/xbmc/utils/Observer.h
+index f72a44ebc0b4..c1a560844a66 100644
+--- a/xbmc/utils/Observer.h
++++ b/xbmc/utils/Observer.h
+@@ -44,7 +44,6 @@ typedef enum
+   ObservableMessagePeripheralsChanged,
+   ObservableMessageChannelGroupsLoaded,
+   ObservableMessageManagerStopped,
+-  ObservableMessagePortsChanged,
+   ObservableMessageSettingsChanged,
+   ObservableMessageButtonMapsChanged,
+ } ObservableMessage;
+
+From 1362c5d004d96e9c8768d5141a1edac0ff9282db Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Sat, 22 Jul 2017 13:41:11 -0700
+Subject: [PATCH 3/3] Game API v1.0.36: Controller topology (hub support)
+
+---
+ cmake/treedata/common/games.txt                    |   1 +
+ .../include/kodi/kodi_game_dll.h                   |  77 +++-
+ .../include/kodi/kodi_game_types.h                 |  73 +++-
+ .../kodi-addon-dev-kit/include/kodi/libKODI_game.h |  22 --
+ .../kodi-addon-dev-kit/include/kodi/versions.h     |   4 +-
+ xbmc/cores/RetroPlayer/RetroPlayer.cpp             |   3 +-
+ xbmc/games/GameTypes.h                             |   8 +
+ xbmc/games/addons/GameClient.cpp                   |  46 +--
+ xbmc/games/addons/GameClient.h                     |   8 +-
+ xbmc/games/addons/GameClientTranslator.cpp         |  14 +
+ xbmc/games/addons/GameClientTranslator.h           |   8 +
+ xbmc/games/addons/input/CMakeLists.txt             |  10 +-
+ xbmc/games/addons/input/GameClientDevice.cpp       |  80 ++++
+ xbmc/games/addons/input/GameClientDevice.h         |  88 +++++
+ xbmc/games/addons/input/GameClientHardware.cpp     |   6 +-
+ xbmc/games/addons/input/GameClientHardware.h       |   4 +-
+ xbmc/games/addons/input/GameClientInput.cpp        | 414 ++++++++++++++++-----
+ xbmc/games/addons/input/GameClientInput.h          |  56 ++-
+ xbmc/games/addons/input/GameClientJoystick.cpp     |  38 +-
+ xbmc/games/addons/input/GameClientJoystick.h       |  21 +-
+ xbmc/games/addons/input/GameClientKeyboard.cpp     |   6 +-
+ xbmc/games/addons/input/GameClientMouse.cpp        |   9 +-
+ xbmc/games/addons/input/GameClientPort.cpp         |  82 ++++
+ xbmc/games/addons/input/GameClientPort.h           | 107 ++++++
+ xbmc/games/addons/input/GameClientTopology.cpp     | 115 ++++++
+ xbmc/games/addons/input/GameClientTopology.h       |  49 +++
+ xbmc/games/controllers/CMakeLists.txt              |   2 +
+ xbmc/games/controllers/Controller.cpp              |  21 ++
+ xbmc/games/controllers/Controller.h                |  19 +
+ xbmc/games/controllers/ControllerDefinitions.h     |   6 +
+ xbmc/games/controllers/ControllerLayout.cpp        |  27 +-
+ xbmc/games/controllers/ControllerLayout.h          |  20 +-
+ xbmc/games/controllers/ControllerTopology.cpp      | 119 ++++++
+ xbmc/games/controllers/ControllerTopology.h        | 116 ++++++
+ xbmc/games/controllers/ControllerTypes.h           |  11 +
+ xbmc/games/controllers/types/CMakeLists.txt        |   9 +
+ xbmc/games/controllers/types/ControllerGrid.cpp    | 255 +++++++++++++
+ xbmc/games/controllers/types/ControllerGrid.h      | 174 +++++++++
+ xbmc/games/controllers/types/ControllerTree.cpp    | 228 ++++++++++++
+ xbmc/games/controllers/types/ControllerTree.h      | 224 +++++++++++
+ xbmc/input/hardware/IHardwareInput.h               |   7 +-
+ 41 files changed, 2350 insertions(+), 237 deletions(-)
+ create mode 100644 xbmc/games/addons/input/GameClientDevice.cpp
+ create mode 100644 xbmc/games/addons/input/GameClientDevice.h
+ create mode 100644 xbmc/games/addons/input/GameClientPort.cpp
+ create mode 100644 xbmc/games/addons/input/GameClientPort.h
+ create mode 100644 xbmc/games/addons/input/GameClientTopology.cpp
+ create mode 100644 xbmc/games/addons/input/GameClientTopology.h
+ create mode 100644 xbmc/games/controllers/ControllerTopology.cpp
+ create mode 100644 xbmc/games/controllers/ControllerTopology.h
+ create mode 100644 xbmc/games/controllers/types/CMakeLists.txt
+ create mode 100644 xbmc/games/controllers/types/ControllerGrid.cpp
+ create mode 100644 xbmc/games/controllers/types/ControllerGrid.h
+ create mode 100644 xbmc/games/controllers/types/ControllerTree.cpp
+ create mode 100644 xbmc/games/controllers/types/ControllerTree.h
+
+diff --git a/cmake/treedata/common/games.txt b/cmake/treedata/common/games.txt
+index 02e9af6076c1..7b63f6a538a2 100644
+--- a/cmake/treedata/common/games.txt
++++ b/cmake/treedata/common/games.txt
+@@ -6,6 +6,7 @@ xbmc/games/addons/savestates       games/addons/savestates
+ xbmc/games/controllers             games/controllers
+ xbmc/games/controllers/dialogs     games/controllers/dialogs
+ xbmc/games/controllers/guicontrols games/controllers/guicontrols
++xbmc/games/controllers/types       games/controllers/types
+ xbmc/games/controllers/windows     games/controllers/windows
+ xbmc/games/dialogs                 games/dialogs
+ xbmc/games/dialogs/osd             games/dialogs/osd
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
+index 691dd5ee43dd..79ca778d8ec3 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
+@@ -130,17 +130,6 @@ GAME_ERROR HwContextDestroy(void);
+ 
+ // --- Input operations --------------------------------------------------------
+ 
+-/*!
+- * \brief Notify the add-on of a status change on an open port
+- *
+- * Ports can be opened using the OpenPort() callback
+- *
+- * \param port Non-negative for a joystick port, or GAME_INPUT_PORT value otherwise
+- * \param collected True if a controller was connected, false if disconnected
+- * \param controller The connected controller
+- */
+-void UpdatePort(int port, bool connected, const game_controller* controller);
+-
+ /*!
+  * \brief Check if input is accepted for a feature on the controller
+  *
+@@ -155,6 +144,26 @@ void UpdatePort(int port, bool connected, const game_controller* controller);
+  */
+ bool HasFeature(const char* controller_id, const char* feature_name);
+ 
++/*!
++ * \brief Get the input topolgy that specifies which controllers can be connected
++ *
++ * \return The input topology, or null to use the default
++ *
++ * If this returns non-null, topology must be freed using FreeTopology().
++ *
++ * If this returns null, the topology will default to a single port that can
++ * accept all controllers imported by addon.xml. The port ID is set to
++ * the DEFAULT_PORT_ID constant.
++ */
++game_input_topology* GetTopology();
++
++/*!
++ * \brief Free the topology's resources
++ *
++ * \param topology The topology returned by GetTopology()
++ */
++void FreeTopology(game_input_topology* topology);
++
+ /*!
+  * \brief Enable/disable keyboard input using the specified controller
+  *
+@@ -175,6 +184,48 @@ bool EnableKeyboard(bool enable, const game_controller* controller);
+  */
+ bool EnableMouse(bool enable, const game_controller* controller);
+ 
++/*!
++ * \brief Connect/disconnect a controller to a port on the virtual game console
++ *
++ * \param connect True to connect a controller, false to disconnect
++ * \param address The address of the port
++ * \param controller The controller info if connecting, or unused if disconnecting
++ *
++ * The address is a string that allows traversal of the controller topology.
++ * It is formed by alternating port IDs and controller IDs separated by "/".
++ *
++ * For example, assume that the topology represented in XML for Snes9x is:
++ *
++ *     <logicaltopology>
++ *       <port type="controller" id="1">
++ *         <accepts controller="game.controller.snes"/>
++ *         <accepts controller="game.controller.snes.multitap">
++ *           <port type="controller" id="1">
++ *             <accepts controller="game.controller.snes"/>
++ *           </port>
++ *           <port type="controller" id="2">
++ *             <accepts controller="game.controller.snes"/>
++ *           </port>
++ *           ...
++ *         </accepts>
++ *       </port>
++ *     </logicaltopology>
++ *
++ * To connect a multitap to the console's first port, the multitap's controller
++ * info is set using the port address:
++ *
++ *     1
++ *
++ * To connect a SNES controller to the second port of the multitap, the
++ * controller info is next set using the address:
++ *
++ *     1/game.controller.multitap/2
++ *
++ * Any attempts to connect a controller to a port on a disconnected multitap
++ * will return false.
++ */
++bool ConnectController(bool connect, const char* port_address, const game_controller* controller);
++
+ /*!
+  * \brief Notify the add-on of an input event
+  *
+@@ -267,10 +318,12 @@ void __declspec(dllexport) get_addon(void* ptr)
+   pClient->toAddon.Reset                    = Reset;
+   pClient->toAddon.HwContextReset           = HwContextReset;
+   pClient->toAddon.HwContextDestroy         = HwContextDestroy;
+-  pClient->toAddon.UpdatePort               = UpdatePort;
+   pClient->toAddon.HasFeature               = HasFeature;
++  pClient->toAddon.GetTopology              = GetTopology;
++  pClient->toAddon.FreeTopology             = FreeTopology;
+   pClient->toAddon.EnableKeyboard           = EnableKeyboard;
+   pClient->toAddon.EnableMouse              = EnableMouse;
++  pClient->toAddon.ConnectController        = ConnectController;
+   pClient->toAddon.InputEvent               = InputEvent;
+   pClient->toAddon.SerializeSize            = SerializeSize;
+   pClient->toAddon.Serialize                = Serialize;
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+index 54196afa0136..23fa77314841 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+@@ -57,6 +57,9 @@
+ #include "input/XBMC_vkeys.h"
+ #endif
+ 
++/*! Port ID used when topology is unknown */
++#define DEFAULT_PORT_ID  "1"
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+@@ -159,11 +162,6 @@ typedef enum GAME_HW_CONTEXT_TYPE
+   GAME_HW_CONTEXT_OPENGLES3,   // GLES 3.0
+ } GAME_HW_CONTEXT_TYPE;
+ 
+-typedef enum GAME_INPUT_PORT
+-{
+-  GAME_INPUT_PORT_JOYSTICK_START = 0, // Non-negative values are for joystick ports
+-} GAME_INPUT_PORT;
+-
+ typedef enum GAME_INPUT_EVENT_SOURCE
+ {
+   GAME_INPUT_EVENT_DIGITAL_BUTTON,
+@@ -275,9 +273,21 @@ typedef enum GAME_ROTATION
+   GAME_ROTATION_270_CW,
+ } GAME_ROTATION;
+ 
++/*!
++ * \brief Type of port on the virtual game console
++ */
++typedef enum GAME_PORT_TYPE
++{
++  GAME_PORT_UNKNOWN,
++  GAME_PORT_KEYBOARD,
++  GAME_PORT_MOUSE,
++  GAME_PORT_CONTROLLER,
++} GAME_PORT_TYPE;
++
+ typedef struct game_controller
+ {
+   const char*  controller_id;
++  bool         provides_input; // False for multitaps
+   unsigned int digital_button_count;
+   unsigned int analog_button_count;
+   unsigned int analog_stick_count;
+@@ -288,6 +298,48 @@ typedef struct game_controller
+   unsigned int motor_count;
+ } ATTRIBUTE_PACKED game_controller;
+ 
++struct game_input_port;
++
++/*!
++ * \brief Device that can provide input
++ */
++typedef struct game_input_device
++{
++  const char*      controller_id; // ID used in the Kodi controller API
++  const char*      port_address;
++  game_input_port* available_ports;
++  unsigned int     port_count;
++} ATTRIBUTE_PACKED game_input_device;
++
++/*!
++ * \brief Port that can provide input
++ *
++ * Ports can accept multiple devices and devices can have multiple ports, so
++ * the topology of possible configurations is a tree structure of alternating
++ * port and device nodes.
++ */
++typedef struct game_input_port
++{
++  GAME_PORT_TYPE     type;
++  const char*        port_id; // Required for GAME_PORT_CONTROLLER type
++  game_input_device* accepted_devices;
++  unsigned int       device_count;
++} ATTRIBUTE_PACKED game_input_port;
++
++/*!
++ * \brief The input topology is the possible ways to connect input devices
++ *
++ * This represents the logical topology, which is the possible connections that
++ * the game client's logic can handle. It is strictly a subset of the physical
++ * topology. Loops are not allowed.
++ */
++typedef struct game_input_topology
++{
++  game_input_port *ports; //! The list of ports on the virtual game console
++  unsigned int port_count; //! The number of ports
++  int player_limit; //! A limit on the number of input-providing devices, or -1 for no limit
++} ATTRIBUTE_PACKED game_input_topology;
++
+ typedef struct game_digital_button_event
+ {
+   bool         pressed;
+@@ -351,8 +403,9 @@ typedef struct game_motor_event
+ typedef struct game_input_event
+ {
+   GAME_INPUT_EVENT_SOURCE type;
+-  int                     port;
+   const char*             controller_id;
++  GAME_PORT_TYPE          port_type;
++  const char*             port_address;
+   const char*             feature_name;
+   union
+   {
+@@ -479,8 +532,6 @@ typedef struct AddonToKodiFuncTable_Game
+   uintptr_t (*HwGetCurrentFramebuffer)(void* kodiInstance);
+   game_proc_address_t (*HwGetProcAddress)(void* kodiInstance, const char* symbol);
+   void (*RenderFrame)(void* kodiInstance);
+-  bool (*OpenPort)(void* kodiInstance, unsigned int port);
+-  void (*ClosePort)(void* kodiInstance, unsigned int port);
+   bool (*InputEvent)(void* kodiInstance, const game_input_event* event);
+ 
+ } AddonToKodiFuncTable_Game;
+@@ -498,10 +549,12 @@ typedef struct KodiToAddonFuncTable_Game
+   GAME_ERROR  (__cdecl* Reset)(void);
+   GAME_ERROR  (__cdecl* HwContextReset)(void);
+   GAME_ERROR  (__cdecl* HwContextDestroy)(void);
+-  void        (__cdecl* UpdatePort)(int, bool, const game_controller*);
+-  bool        (__cdecl* HasFeature)(const char* controller_id, const char* feature_name);
++  bool        (__cdecl* HasFeature)(const char*, const char*);
++  game_input_topology* (__cdecl* GetTopology)();
++  void        (__cdecl* FreeTopology)(game_input_topology*);
+   bool        (__cdecl* EnableKeyboard)(bool, const game_controller*);
+   bool        (__cdecl* EnableMouse)(bool, const game_controller*);
++  bool        (__cdecl* ConnectController)(bool, const char*, const game_controller*);
+   bool        (__cdecl* InputEvent)(const game_input_event*);
+   size_t      (__cdecl* SerializeSize)(void);
+   GAME_ERROR  (__cdecl* Serialize)(uint8_t*, size_t);
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
+index 1ca91a412bfd..2774afd56774 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
+@@ -187,28 +187,6 @@ class CHelper_libKODI_game
+ 
+   // --- Input callbacks -------------------------------------------------------
+ 
+-  /*!
+-   * \brief Begin reporting events for the specified joystick port
+-   *
+-   * \param port The zero-indexed port number
+-   *
+-   * \return true if the port was opened, false otherwise
+-   */
+-  bool OpenPort(unsigned int port)
+-  {
+-    return m_callbacks->toKodi.OpenPort(m_callbacks->toKodi.kodiInstance, port);
+-  }
+-
+-  /*!
+-   * \brief End reporting events for the specified port
+-   *
+-   * \param port The port number passed to OpenPort()
+-   */
+-  void ClosePort(unsigned int port)
+-  {
+-    return m_callbacks->toKodi.ClosePort(m_callbacks->toKodi.kodiInstance, port);
+-  }
+-
+   /*!
+   * \brief Notify the port of an input event
+   *
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+index 0e3c9e31a4ed..6ad93541ec4c 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+@@ -91,8 +91,8 @@
+ #define ADDON_INSTANCE_VERSION_AUDIOENCODER_XML_ID    "kodi.binary.instance.audioencoder"
+ #define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "addon-instance/AudioEncoder.h"
+ 
+-#define ADDON_INSTANCE_VERSION_GAME                   "1.0.35"
+-#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.35"
++#define ADDON_INSTANCE_VERSION_GAME                   "1.0.36"
++#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.36"
+ #define ADDON_INSTANCE_VERSION_GAME_XML_ID            "kodi.binary.instance.game"
+ #define ADDON_INSTANCE_VERSION_GAME_DEPENDS           "kodi_game_dll.h" \
+                                                       "kodi_game_types.h" \
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.cpp b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+index 99702c4a6eff..0cea5e4af909 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+@@ -30,6 +30,7 @@
+ #include "cores/RetroPlayer/rendering/RPRenderManager.h"
+ #include "dialogs/GUIDialogYesNo.h"
+ #include "filesystem/File.h"
++#include "games/addons/input/GameClientInput.h"
+ #include "games/addons/playback/IGameClientPlayback.h"
+ #include "games/addons/savestates/Savestate.h"
+ #include "games/addons/savestates/SavestateUtils.h"
+@@ -403,7 +404,7 @@ bool CRetroPlayer::OnAction(const CAction &action)
+       m_gameClient->GetPlayback()->SetSpeed(0.0);
+ 
+       CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Sending reset command via ACTION_PLAYER_RESET");
+-      //m_gameServices.PortManager().HardwareReset();
++      m_gameClient->Input().HardwareReset();
+ 
+       // If rewinding or paused, begin playback
+       if (speed <= 0.0f)
+diff --git a/xbmc/games/GameTypes.h b/xbmc/games/GameTypes.h
+index 5713643e09a0..980cca7b8c15 100644
+--- a/xbmc/games/GameTypes.h
++++ b/xbmc/games/GameTypes.h
+@@ -31,5 +31,13 @@ namespace GAME
+   using GameClientPtr = std::shared_ptr<CGameClient>;
+   using GameClientVector = std::vector<GameClientPtr>;
+ 
++  class CGameClientPort;
++  using GameClientPortPtr = std::unique_ptr<CGameClientPort>;
++  using GameClientPortVec = std::vector<GameClientPortPtr>;
++
++  class CGameClientDevice;
++  using GameClientDevicePtr = std::unique_ptr<CGameClientDevice>;
++  using GameClientDeviceVec = std::vector<GameClientDevicePtr>;
++
+ }
+ }
+diff --git a/xbmc/games/addons/GameClient.cpp b/xbmc/games/addons/GameClient.cpp
+index 144f939f1d80..a7bd32a5ffb2 100644
+--- a/xbmc/games/addons/GameClient.cpp
++++ b/xbmc/games/addons/GameClient.cpp
+@@ -32,7 +32,6 @@
+ #include "games/addons/input/GameClientInput.h"
+ #include "games/addons/playback/GameClientRealtimePlayback.h"
+ #include "games/addons/playback/GameClientReversiblePlayback.h"
+-#include "games/controllers/Controller.h"
+ #include "games/GameServices.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/LocalizeStrings.h"
+@@ -65,8 +64,6 @@ using namespace KODI::MESSAGING;
+ #define GAME_PROPERTY_EXTENSIONS           "extensions"
+ #define GAME_PROPERTY_SUPPORTS_VFS         "supports_vfs"
+ #define GAME_PROPERTY_SUPPORTS_STANDALONE  "supports_standalone"
+-#define GAME_PROPERTY_SUPPORTS_KEYBOARD    "supports_keyboard"
+-#define GAME_PROPERTY_SUPPORTS_MOUSE       "supports_mouse"
+ 
+ // --- NormalizeExtension ------------------------------------------------------
+ 
+@@ -101,8 +98,6 @@ std::unique_ptr<CGameClient> CGameClient::FromExtension(ADDON::CAddonInfo addonI
+       GAME_PROPERTY_EXTENSIONS,
+       GAME_PROPERTY_SUPPORTS_VFS,
+       GAME_PROPERTY_SUPPORTS_STANDALONE,
+-      GAME_PROPERTY_SUPPORTS_KEYBOARD,
+-      GAME_PROPERTY_SUPPORTS_MOUSE,
+   };
+ 
+   for (const auto& property : properties)
+@@ -120,8 +115,6 @@ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
+   m_subsystems(CGameClientSubsystem::CreateSubsystems(*this, m_struct, m_critSection)),
+   m_bSupportsVFS(false),
+   m_bSupportsStandalone(false),
+-  m_bSupportsKeyboard(false),
+-  m_bSupportsMouse(false),
+   m_bSupportsAllExtensions(false),
+   m_bIsPlaying(false),
+   m_serializeSize(0),
+@@ -155,14 +148,6 @@ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
+   if (it != extraInfo.end())
+     m_bSupportsStandalone = (it->second == "true");
+ 
+-  it = extraInfo.find(GAME_PROPERTY_SUPPORTS_KEYBOARD);
+-  if (it != extraInfo.end())
+-    m_bSupportsKeyboard = (it->second == "true");
+-
+-  it = extraInfo.find(GAME_PROPERTY_SUPPORTS_MOUSE);
+-  if (it != extraInfo.end())
+-    m_bSupportsMouse = (it->second == "true");
+-
+   ResetPlayback();
+ }
+ 
+@@ -233,12 +218,11 @@ bool CGameClient::Initialize(void)
+   m_struct.toKodi.HwGetCurrentFramebuffer = cb_hw_get_current_framebuffer;
+   m_struct.toKodi.HwGetProcAddress = cb_hw_get_proc_address;
+   m_struct.toKodi.RenderFrame = cb_render_frame;
+-  m_struct.toKodi.OpenPort = cb_open_port;
+-  m_struct.toKodi.ClosePort = cb_close_port;
+   m_struct.toKodi.InputEvent = cb_input_event;
+ 
+   if (Create(ADDON_INSTANCE_GAME, &m_struct, &m_struct.props) == ADDON_STATUS_OK)
+   {
++    Input().Initialize();
+     LogAddonProperties();
+     return true;
+   }
+@@ -248,6 +232,8 @@ bool CGameClient::Initialize(void)
+ 
+ void CGameClient::Unload()
+ {
++  Input().Deinitialize();
++
+   Destroy();
+ }
+ 
+@@ -346,8 +332,6 @@ bool CGameClient::InitializeGameplay(const std::string& gamePath, IGameAudioCall
+     m_video           = video;
+     m_input           = input;
+ 
+-    Input().Initialize();
+-
+     m_inGameSaves.reset(new CGameClientInGameSaves(this, &m_struct.toAddon));
+     m_inGameSaves->Load();
+ 
+@@ -490,7 +474,7 @@ void CGameClient::ResetPlayback()
+   m_playback.reset(new CGameClientRealtimePlayback);
+ }
+ 
+-void CGameClient::Reset(unsigned int port)
++void CGameClient::Reset()
+ {
+   ResetPlayback();
+ 
+@@ -520,8 +504,6 @@ void CGameClient::CloseFile()
+     catch (...) { LogException("UnloadGame()"); }
+   }
+ 
+-  Input().Deinitialize();
+-
+   m_bIsPlaying = false;
+   m_gamePath.clear();
+   m_serializeSize = 0;
+@@ -751,8 +733,6 @@ void CGameClient::LogAddonProperties(void) const
+   CLog::Log(LOGINFO, "GAME: Valid extensions: %s", StringUtils::Join(m_extensions, " ").c_str());
+   CLog::Log(LOGINFO, "GAME: Supports VFS:                  %s", m_bSupportsVFS ? "yes" : "no");
+   CLog::Log(LOGINFO, "GAME: Supports standalone execution: %s", m_bSupportsStandalone ? "yes" : "no");
+-  CLog::Log(LOGINFO, "GAME: Supports keyboard:             %s", m_bSupportsKeyboard ? "yes" : "no");
+-  CLog::Log(LOGINFO, "GAME: Supports mouse:                %s", m_bSupportsMouse ? "yes" : "no");
+   CLog::Log(LOGINFO, "GAME: ------------------------------------");
+ }
+ 
+@@ -874,24 +854,6 @@ void CGameClient::cb_render_frame(void* kodiInstance)
+   //! @todo
+ }
+ 
+-bool CGameClient::cb_open_port(void* kodiInstance, unsigned int port)
+-{
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return false;
+-
+-  return gameClient->Input().OpenPort(port);
+-}
+-
+-void CGameClient::cb_close_port(void* kodiInstance, unsigned int port)
+-{
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return;
+-
+-  gameClient->Input().ClosePort(port);
+-}
+-
+ bool CGameClient::cb_input_event(void* kodiInstance, const game_input_event* event)
+ {
+   CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+diff --git a/xbmc/games/addons/GameClient.h b/xbmc/games/addons/GameClient.h
+index 69e65b038559..ecc422bf654e 100644
+--- a/xbmc/games/addons/GameClient.h
++++ b/xbmc/games/addons/GameClient.h
+@@ -77,8 +77,6 @@ class CGameClient : public ADDON::CAddonDll
+   bool                         SupportsStandalone() const { return m_bSupportsStandalone; }
+   bool                         SupportsPath() const;
+   bool                         SupportsVFS() const { return m_bSupportsVFS; }
+-  bool                         SupportsKeyboard() const { return m_bSupportsKeyboard; }
+-  bool                         SupportsMouse() const { return m_bSupportsMouse; }
+   const std::set<std::string>& GetExtensions() const { return m_extensions; }
+   bool                         SupportsAllExtensions() const { return m_bSupportsAllExtensions; }
+   bool                         IsExtensionValid(const std::string& strExtension) const;
+@@ -88,7 +86,7 @@ class CGameClient : public ADDON::CAddonDll
+   void Unload();
+   bool OpenFile(const CFileItem& file, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
+   bool OpenStandalone(IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
+-  void Reset(unsigned int port);
++  void Reset();
+   void CloseFile();
+   const std::string& GetGamePath() const { return m_gamePath; }
+ 
+@@ -153,8 +151,6 @@ class CGameClient : public ADDON::CAddonDll
+   static uintptr_t cb_hw_get_current_framebuffer(void* kodiInstance);
+   static game_proc_address_t cb_hw_get_proc_address(void* kodiInstance, const char* sym);
+   static void cb_render_frame(void* kodiInstance);
+-  static bool cb_open_port(void* kodiInstance, unsigned int port);
+-  static void cb_close_port(void* kodiInstance, unsigned int port);
+   static bool cb_input_event(void* kodiInstance, const game_input_event* event);
+   //@}
+ 
+@@ -164,8 +160,6 @@ class CGameClient : public ADDON::CAddonDll
+   // Game API xml parameters
+   bool                  m_bSupportsVFS;
+   bool                  m_bSupportsStandalone;
+-  bool                  m_bSupportsKeyboard;
+-  bool                  m_bSupportsMouse;
+   std::set<std::string> m_extensions;
+   bool                  m_bSupportsAllExtensions;
+   //GamePlatforms         m_platforms;
+diff --git a/xbmc/games/addons/GameClientTranslator.cpp b/xbmc/games/addons/GameClientTranslator.cpp
+index 4ed1f976f0ab..51afd5e65ec2 100644
+--- a/xbmc/games/addons/GameClientTranslator.cpp
++++ b/xbmc/games/addons/GameClientTranslator.cpp
+@@ -166,3 +166,17 @@ const char* CGameClientTranslator::TranslateRegion(GAME_REGION region)
+   }
+   return "Unknown";
+ }
++
++PORT_TYPE CGameClientTranslator::TranslatePortType(GAME_PORT_TYPE portType)
++{
++  switch (portType)
++  {
++    case GAME_PORT_KEYBOARD:    return PORT_TYPE::KEYBOARD;
++    case GAME_PORT_MOUSE:       return PORT_TYPE::MOUSE;
++    case GAME_PORT_CONTROLLER:  return PORT_TYPE::CONTROLLER;
++    default:
++      break;
++  }
++
++  return PORT_TYPE::UNKNOWN;
++}
+diff --git a/xbmc/games/addons/GameClientTranslator.h b/xbmc/games/addons/GameClientTranslator.h
+index f8c95cf201dd..154089f9cd5f 100644
+--- a/xbmc/games/addons/GameClientTranslator.h
++++ b/xbmc/games/addons/GameClientTranslator.h
+@@ -21,6 +21,7 @@
+ 
+ #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
+ #include "cores/AudioEngine/Utils/AEChannelData.h"
++#include "games/controllers/ControllerTypes.h"
+ #include "input/keyboard/KeyboardTypes.h"
+ 
+ #include "libavcodec/avcodec.h"
+@@ -103,6 +104,13 @@ namespace GAME
+      * \return Translated region.
+      */
+     static const char* TranslateRegion(GAME_REGION region);
++
++    /*!
++     * \brief Translate port type (Game API to Kodi)
++     * \param portType  The port type to translate
++     * \return Translated port type
++     */
++    static PORT_TYPE TranslatePortType(GAME_PORT_TYPE portType);
+   };
+ }
+ }
+diff --git a/xbmc/games/addons/input/CMakeLists.txt b/xbmc/games/addons/input/CMakeLists.txt
+index f0f25a04625b..9927ceb90dc3 100644
+--- a/xbmc/games/addons/input/CMakeLists.txt
++++ b/xbmc/games/addons/input/CMakeLists.txt
+@@ -1,15 +1,21 @@
+-set(SOURCES GameClientHardware.cpp
++set(SOURCES GameClientDevice.cpp
++            GameClientHardware.cpp
+             GameClientInput.cpp
+             GameClientJoystick.cpp
+             GameClientKeyboard.cpp
+             GameClientMouse.cpp
++            GameClientPort.cpp
++            GameClientTopology.cpp
+ )
+ 
+-set(HEADERS GameClientHardware.h
++set(HEADERS GameClientDevice.h
++            GameClientHardware.h
+             GameClientInput.h
+             GameClientJoystick.h
+             GameClientKeyboard.h
+             GameClientMouse.h
++            GameClientPort.h
++            GameClientTopology.h
+ )
+ 
+ core_add_library(gameinput)
+diff --git a/xbmc/games/addons/input/GameClientDevice.cpp b/xbmc/games/addons/input/GameClientDevice.cpp
+new file mode 100644
+index 000000000000..a3ae609bf8c5
+--- /dev/null
++++ b/xbmc/games/addons/input/GameClientDevice.cpp
+@@ -0,0 +1,80 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "GameClientPort.h"
++#include "GameClientDevice.h"
++#include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
++#include "games/controllers/Controller.h"
++#include "games/controllers/ControllerTopology.h"
++#include "games/controllers/ControllerTranslator.h"
++#include "games/GameServices.h"
++#include "utils/StringUtils.h"
++#include "ServiceBroker.h"
++
++#include <algorithm>
++
++using namespace KODI;
++using namespace GAME;
++
++CGameClientDevice::CGameClientDevice(const game_input_device &device) :
++  m_controller(GetController(device.controller_id))
++{
++  if (m_controller && device.available_ports != nullptr)
++  {
++    // Look for matching ports. We enumerate in physical order because logical
++    // order can change per emulator.
++    for (const auto &physicalPort : m_controller->Topology().Ports())
++    {
++      for (unsigned int i = 0; i < device.port_count; i++)
++      {
++        const auto &logicalPort = device.available_ports[i];
++        if (logicalPort.port_id != nullptr && logicalPort.port_id == physicalPort.ID())
++        {
++          // Handle matching ports
++          AddPort(logicalPort, physicalPort);
++          break;
++        }
++      }
++    }
++  }
++}
++
++CGameClientDevice::CGameClientDevice(const ControllerPtr &controller) :
++  m_controller(controller)
++{
++}
++
++CGameClientDevice::~CGameClientDevice() = default;
++
++void CGameClientDevice::AddPort(const game_input_port &logicalPort, const CControllerPort &physicalPort)
++{
++  std::unique_ptr<CGameClientPort> port(new CGameClientPort(logicalPort, physicalPort));
++  m_ports.emplace_back(std::move(port));
++}
++
++ControllerPtr CGameClientDevice::GetController(const char *controllerId)
++{
++  ControllerPtr controller;
++
++  if (controllerId != nullptr)
++    controller = CServiceBroker::GetGameServices().GetController(controllerId);
++
++  return controller;
++}
+diff --git a/xbmc/games/addons/input/GameClientDevice.h b/xbmc/games/addons/input/GameClientDevice.h
+new file mode 100644
+index 000000000000..071df06c530f
+--- /dev/null
++++ b/xbmc/games/addons/input/GameClientDevice.h
+@@ -0,0 +1,88 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "games/controllers/ControllerTypes.h"
++#include "games/GameTypes.h"
++
++#include <string>
++
++struct game_input_device;
++struct game_input_port;
++
++namespace KODI
++{
++namespace GAME
++{
++  class CControllerPort;
++
++  /*!
++   * \ingroup games
++   * \brief Represents a device connected to a port
++   */
++  class CGameClientDevice
++  {
++  public:
++    /*!
++     * \brief Construct a device
++     *
++     * \param device The device Game API struct
++     */
++    CGameClientDevice(const game_input_device &device);
++
++    /*!
++     * \brief Construct a device from a controller add-on
++     *
++     * \param controller The controller add-on
++     */
++    CGameClientDevice(const ControllerPtr &controller);
++
++    /*!
++     * \brief Destructor
++     */
++    ~CGameClientDevice();
++
++    /*!
++     * \brief The controller profile
++     */
++    const ControllerPtr &Controller() const { return m_controller; }
++
++    /*!
++     * \brief The ports on this device
++     */
++    const GameClientPortVec &Ports() const { return m_ports; }
++
++  private:
++    /*!
++     * \brief Add a controller port
++     *
++     * \param logicalPort The logical port Game API struct
++     * \param physicalPort The physical port definition
++     */
++    void AddPort(const game_input_port &logicalPort, const CControllerPort &physicalPort);
++
++    // Helper function
++    static ControllerPtr GetController(const char *controllerId);
++
++    ControllerPtr m_controller;
++    GameClientPortVec m_ports;
++  };
++}
++}
+diff --git a/xbmc/games/addons/input/GameClientHardware.cpp b/xbmc/games/addons/input/GameClientHardware.cpp
+index 438f1101122f..abca75004621 100644
+--- a/xbmc/games/addons/input/GameClientHardware.cpp
++++ b/xbmc/games/addons/input/GameClientHardware.cpp
+@@ -30,8 +30,8 @@ CGameClientHardware::CGameClientHardware(CGameClient &gameClient) :
+ {
+ }
+ 
+-void CGameClientHardware::OnResetButton(unsigned int port)
++void CGameClientHardware::OnResetButton()
+ {
+-  CLog::Log(LOGDEBUG, "%s: Port %d sending hardware reset", m_gameClient.ID().c_str(), port);
+-  m_gameClient.Reset(port);
++  CLog::Log(LOGDEBUG, "%s: Sending hardware reset", m_gameClient.ID().c_str());
++  m_gameClient.Reset();
+ }
+diff --git a/xbmc/games/addons/input/GameClientHardware.h b/xbmc/games/addons/input/GameClientHardware.h
+index cacd6cce7e75..ebab70aac8d5 100644
+--- a/xbmc/games/addons/input/GameClientHardware.h
++++ b/xbmc/games/addons/input/GameClientHardware.h
+@@ -41,10 +41,10 @@ namespace GAME
+      */
+     explicit CGameClientHardware(CGameClient &gameClient);
+ 
+-    virtual ~CGameClientHardware() = default;
++    ~CGameClientHardware() override = default;
+ 
+     // Implementation of IHardwareInput
+-    virtual void OnResetButton(unsigned int port) override;
++    void OnResetButton() override;
+ 
+   private:
+     // Construction parameter
+diff --git a/xbmc/games/addons/input/GameClientInput.cpp b/xbmc/games/addons/input/GameClientInput.cpp
+index 87c1852e7ab1..125b2c2c8829 100644
+--- a/xbmc/games/addons/input/GameClientInput.cpp
++++ b/xbmc/games/addons/input/GameClientInput.cpp
+@@ -23,19 +23,23 @@
+ #include "GameClientJoystick.h"
+ #include "GameClientKeyboard.h"
+ #include "GameClientMouse.h"
++#include "GameClientPort.h"
++#include "GameClientTopology.h"
+ #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
+ #include "games/addons/GameClient.h"
+ #include "games/controllers/Controller.h"
++#include "games/controllers/ControllerTopology.h"
+ #include "games/GameServices.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/WindowIDs.h"
+ #include "input/joysticks/JoystickTypes.h"
+ #include "peripherals/Peripherals.h"
+-#include "peripherals/PeripheralTypes.h" //! @todo
+-//#include "threads/SingleLock.h"
++#include "threads/SingleLock.h"
+ #include "utils/log.h"
+ #include "ServiceBroker.h"
+ 
++#include <algorithm>
++
+ using namespace KODI;
+ using namespace GAME;
+ 
+@@ -53,23 +57,63 @@ CGameClientInput::~CGameClientInput()
+ 
+ void CGameClientInput::Initialize()
+ {
+-  if (m_gameClient.SupportsKeyboard())
+-    OpenKeyboard();
++  LoadTopology();
++
++  // Open keyboard
++  //! @todo Move to player manager
++  if (SupportsKeyboard())
++  {
++    auto it = std::find_if(m_controllers.Ports().begin(), m_controllers.Ports().end(),
++      [](const CControllerPortNode &port)
++      {
++        return port.PortType() == PORT_TYPE::KEYBOARD;
++      });
++
++    OpenKeyboard(it->CompatibleControllers().at(0).Controller());
++  }
++
++  // Open mouse
++  //! @todo Move to player manager
++  if (SupportsMouse())
++  {
++    auto it = std::find_if(m_controllers.Ports().begin(), m_controllers.Ports().end(),
++      [](const CControllerPortNode &port)
++      {
++        return port.PortType() == PORT_TYPE::MOUSE;
++      });
++
++    OpenMouse(it->CompatibleControllers().at(0).Controller());
++  }
+ 
+-  if (m_gameClient.SupportsMouse())
+-    OpenMouse();
++  // Open joysticks
++  //! @todo Move to player manager
++  for (const auto &port : m_controllers.Ports())
++  {
++    if (port.PortType() == PORT_TYPE::CONTROLLER && !port.CompatibleControllers().empty())
++    {
++      ControllerPtr controller = port.CompatibleControllers().at(0).Controller();
++      OpenJoystick(port.Address(), controller);
++    }
++  }
++
++  // Ensure hardware is open to receive events
++  m_hardware.reset(new CGameClientHardware(m_gameClient));
+ }
+ 
+ void CGameClientInput::Deinitialize()
+ {
+-  while (!m_joysticks.empty())
+-    ClosePort(m_joysticks.begin()->first);
+-
+   m_hardware.reset();
+ 
+-  CloseKeyboard();
++  std::vector<std::string> ports;
++  for (const auto &it : m_joysticks)
++    ports.emplace_back(it.first);
++
++  for (const std::string &port : ports)
++    CloseJoystick(port);
+ 
+   CloseMouse();
++
++  CloseKeyboard();
+ }
+ 
+ bool CGameClientInput::AcceptsInput() const
+@@ -77,115 +121,81 @@ bool CGameClientInput::AcceptsInput() const
+   return g_windowManager.GetActiveWindowOrDialog() == WINDOW_FULLSCREEN_GAME;
+ }
+ 
+-bool CGameClientInput::OpenPort(unsigned int port)
++void CGameClientInput::LoadTopology()
+ {
+-  // Fail if port is already open
+-  if (m_joysticks.find(port) != m_joysticks.end())
+-    return false;
+-
+-  // Ensure hardware is open to receive events from the port
+-  if (!m_hardware)
+-    m_hardware.reset(new CGameClientHardware(m_gameClient));
++  game_input_topology *topologyStruct = nullptr;
+ 
+-  ControllerVector controllers = GetControllers(m_gameClient);
+-  if (!controllers.empty())
++  if (m_gameClient.Initialized())
+   {
+-    //! @todo Choose controller
+-    ControllerPtr& controller = controllers[0];
++    try { topologyStruct = m_struct.toAddon.GetTopology(); }
++    catch (...) { m_gameClient.LogException("GetTopology()"); }
++  }
+ 
+-    m_joysticks[port].reset(new CGameClientJoystick(m_gameClient, port, controller, m_struct.toAddon));
++  GameClientPortVec hardwarePorts;
+ 
+-    //! @todo
+-    //CServiceBroker::GetGameServices().PortManager().OpenPort(m_joysticks[port].get(), m_hardware.get(), &m_gameClient, port, device);
++  if (topologyStruct != nullptr)
++  {
++    //! @todo Guard against infinite loops provided by the game client
+ 
+-    UpdatePort(port, controller);
++    game_input_port *ports = topologyStruct->ports;
++    if (ports != nullptr)
++    {
++      for (unsigned int i = 0; i < topologyStruct->port_count; i++)
++        hardwarePorts.emplace_back(new CGameClientPort(ports[i]));
++    }
+ 
+-    return true;
++    m_playerLimit = topologyStruct->player_limit;
++
++    try { m_struct.toAddon.FreeTopology(topologyStruct); }
++    catch (...) { m_gameClient.LogException("FreeTopology()"); }
+   }
+ 
+-  return false;
++  // If no topology is available, create a default one with a single port that
++  // accepts all controllers imported by addon.xml
++  if (hardwarePorts.empty())
++    hardwarePorts.emplace_back(new CGameClientPort(GetControllers(m_gameClient)));
++
++  CGameClientTopology topology(std::move(hardwarePorts));
++  m_controllers = topology.GetControllerTree();
+ }
+ 
+-void CGameClientInput::ClosePort(unsigned int port)
++bool CGameClientInput::SupportsKeyboard() const
+ {
+-  // Can't close port if it doesn't exist
+-  if (m_joysticks.find(port) == m_joysticks.end())
+-    return;
+-
+-  //! @todo
+-  //CServiceBroker::GetGameServices().PortManager().ClosePort(m_joysticks[port].get());
+-
+-  m_joysticks.erase(port);
++  auto it = std::find_if(m_controllers.Ports().begin(), m_controllers.Ports().end(),
++    [](const CControllerPortNode &port)
++    {
++      return port.PortType() == PORT_TYPE::KEYBOARD;
++    });
+ 
+-  UpdatePort(port, CController::EmptyPtr);
++  return it != m_controllers.Ports().end() && !it->CompatibleControllers().empty();
+ }
+ 
+-bool CGameClientInput::ReceiveInputEvent(const game_input_event& event)
++bool CGameClientInput::SupportsMouse() const
+ {
+-  bool bHandled = false;
+-
+-  switch (event.type)
+-  {
+-    case GAME_INPUT_EVENT_MOTOR:
+-      if (event.feature_name)
+-        bHandled = SetRumble(event.port, event.feature_name, event.motor.magnitude);
+-      break;
+-    default:
+-      break;
+-  }
++  auto it = std::find_if(m_controllers.Ports().begin(), m_controllers.Ports().end(),
++    [](const CControllerPortNode &port)
++    {
++      return port.PortType() == PORT_TYPE::MOUSE;
++    });
+ 
+-  return bHandled;
++  return it != m_controllers.Ports().end() && !it->CompatibleControllers().empty();
+ }
+ 
+-void CGameClientInput::UpdatePort(unsigned int port, const ControllerPtr& controller)
++bool CGameClientInput::OpenKeyboard(const ControllerPtr &controller)
+ {
+   using namespace JOYSTICK;
+ 
+-  CSingleLock lock(m_clientAccess);
+-
+-  if (m_gameClient.Initialized())
++  if (!controller)
+   {
+-    if (controller != CController::EmptyPtr)
+-    {
+-      std::string strId = controller->ID();
+-
+-      game_controller controllerStruct;
+-
+-      controllerStruct.controller_id        = strId.c_str();
+-      controllerStruct.digital_button_count = controller->FeatureCount(FEATURE_TYPE::SCALAR, INPUT_TYPE::DIGITAL);
+-      controllerStruct.analog_button_count  = controller->FeatureCount(FEATURE_TYPE::SCALAR, INPUT_TYPE::ANALOG);
+-      controllerStruct.analog_stick_count   = controller->FeatureCount(FEATURE_TYPE::ANALOG_STICK);
+-      controllerStruct.accelerometer_count  = controller->FeatureCount(FEATURE_TYPE::ACCELEROMETER);
+-      controllerStruct.key_count            = controller->FeatureCount(FEATURE_TYPE::KEY);
+-      controllerStruct.rel_pointer_count    = controller->FeatureCount(FEATURE_TYPE::RELPOINTER);
+-      controllerStruct.abs_pointer_count    = controller->FeatureCount(FEATURE_TYPE::ABSPOINTER);
+-      controllerStruct.motor_count          = controller->FeatureCount(FEATURE_TYPE::MOTOR);
+-
+-      try { m_struct.toAddon.UpdatePort(port, true, &controllerStruct); }
+-      catch (...) { m_gameClient.LogException("UpdatePort()"); }
+-    }
+-    else
+-    {
+-      try { m_struct.toAddon.UpdatePort(port, false, nullptr); }
+-      catch (...) { m_gameClient.LogException("UpdatePort()"); }
+-    }
++    CLog::Log(LOGERROR, "Failed to open keyboard, no controller given");
++    return false;
+   }
+-}
+-
+-void CGameClientInput::OpenKeyboard()
+-{
+-  using namespace JOYSTICK;
+ 
+   //! @todo Move to player manager
+   PERIPHERALS::PeripheralVector keyboards;
+   CServiceBroker::GetPeripherals().GetPeripheralsWithFeature(keyboards, PERIPHERALS::FEATURE_KEYBOARD);
+-
+   if (keyboards.empty())
+-    return;
+-
+-  CGameServices& gameServices = CServiceBroker::GetGameServices();
+-
+-  ControllerPtr controller = gameServices.GetDefaultKeyboard(); //! @todo
++    return false;
+ 
+   std::string controllerId = controller->ID();
+ 
+@@ -220,7 +230,12 @@ void CGameClientInput::OpenKeyboard()
+   }
+ 
+   if (bSuccess)
++  {
+     m_keyboard.reset(new CGameClientKeyboard(m_gameClient, controllerId, m_struct.toAddon, keyboards.at(0).get()));
++    return true;
++  }
++
++  return false;
+ }
+ 
+ void CGameClientInput::CloseKeyboard()
+@@ -244,20 +259,21 @@ void CGameClientInput::CloseKeyboard()
+   }
+ }
+ 
+-void CGameClientInput::OpenMouse()
++bool CGameClientInput::OpenMouse(const ControllerPtr &controller)
+ {
+   using namespace JOYSTICK;
+ 
++  if (!controller)
++  {
++    CLog::Log(LOGERROR, "Failed to open mouse, no controller given");
++    return false;
++  }
++
+   //! @todo Move to player manager
+   PERIPHERALS::PeripheralVector mice;
+   CServiceBroker::GetPeripherals().GetPeripheralsWithFeature(mice, PERIPHERALS::FEATURE_MOUSE);
+-
+   if (mice.empty())
+-    return;
+-
+-  CGameServices& gameServices = CServiceBroker::GetGameServices();
+-
+-  ControllerPtr controller = gameServices.GetDefaultMouse(); //! @todo
++    return false;
+ 
+   std::string controllerId = controller->ID();
+ 
+@@ -292,7 +308,12 @@ void CGameClientInput::OpenMouse()
+   }
+ 
+   if (bSuccess)
++  {
+     m_mouse.reset(new CGameClientMouse(m_gameClient, controllerId, m_struct.toAddon, mice.at(0).get()));
++    return true;
++  }
++
++  return false;
+ }
+ 
+ void CGameClientInput::CloseMouse()
+@@ -316,16 +337,209 @@ void CGameClientInput::CloseMouse()
+   }
+ }
+ 
+-bool CGameClientInput::SetRumble(unsigned int port, const std::string& feature, float magnitude)
++bool CGameClientInput::OpenJoystick(const std::string &portAddress, const ControllerPtr &controller)
++{
++  using namespace JOYSTICK;
++
++  if (!controller)
++  {
++    CLog::Log(LOGERROR, "Failed to open port \"%s\", no controller given", portAddress.c_str());
++    return false;
++  }
++
++  const CControllerPortNode &port = m_controllers.GetPort(portAddress);
++  if (!port.IsControllerAccepted(portAddress, controller->ID()))
++  {
++    CLog::Log(LOGERROR, "Failed to open port: Invalid controller \"%s\" on port \"%s\"",
++              controller->ID().c_str(), portAddress.c_str());
++    return false;
++  }
++
++  std::string strId = controller->ID();
++
++  game_controller controllerStruct{};
++
++  controllerStruct.controller_id        = strId.c_str();
++  controllerStruct.provides_input       = controller->Topology().ProvidesInput();
++  controllerStruct.digital_button_count = controller->FeatureCount(FEATURE_TYPE::SCALAR, INPUT_TYPE::DIGITAL);
++  controllerStruct.analog_button_count  = controller->FeatureCount(FEATURE_TYPE::SCALAR, INPUT_TYPE::ANALOG);
++  controllerStruct.analog_stick_count   = controller->FeatureCount(FEATURE_TYPE::ANALOG_STICK);
++  controllerStruct.accelerometer_count  = controller->FeatureCount(FEATURE_TYPE::ACCELEROMETER);
++  controllerStruct.key_count            = controller->FeatureCount(FEATURE_TYPE::KEY);
++  controllerStruct.rel_pointer_count    = controller->FeatureCount(FEATURE_TYPE::RELPOINTER);
++  controllerStruct.abs_pointer_count    = controller->FeatureCount(FEATURE_TYPE::ABSPOINTER);
++  controllerStruct.motor_count          = controller->FeatureCount(FEATURE_TYPE::MOTOR);
++
++  bool bSuccess = false;
++
++  {
++    CSingleLock lock(m_clientAccess);
++
++    if (m_gameClient.Initialized())
++    {
++      try
++      {
++        bSuccess = m_struct.toAddon.ConnectController(true, portAddress.c_str(), &controllerStruct);
++      }
++      catch (...)
++      {
++        m_gameClient.LogException("ConnectController()");
++      }
++    }
++  }
++
++  if (bSuccess)
++  {
++    m_joysticks[portAddress].reset(new CGameClientJoystick(m_gameClient, portAddress, controller, m_struct.toAddon));
++    ProcessJoysticks();
++    return true;
++  }
++
++  return false;
++}
++
++void CGameClientInput::CloseJoystick(const std::string &portAddress)
++{
++  auto it = m_joysticks.find(portAddress);
++  if (it != m_joysticks.end())
++  {
++    std::unique_ptr<CGameClientJoystick> joystick = std::move(it->second);
++    m_joysticks.erase(it);
++    ProcessJoysticks();
++  }
++
++  {
++    CSingleLock lock(m_clientAccess);
++
++    if (m_gameClient.Initialized())
++    {
++      try
++      {
++        m_struct.toAddon.ConnectController(false, portAddress.c_str(), nullptr);
++      }
++      catch (...)
++      {
++        m_gameClient.LogException("ConnectController()");
++      }
++    }
++  }
++}
++
++void CGameClientInput::HardwareReset()
++{
++  if (m_hardware)
++    m_hardware->OnResetButton();
++}
++
++bool CGameClientInput::ReceiveInputEvent(const game_input_event& event)
+ {
+   bool bHandled = false;
+ 
+-  if (m_joysticks.find(port) != m_joysticks.end())
+-    bHandled = m_joysticks[port]->SetRumble(feature, magnitude);
++  switch (event.type)
++  {
++    case GAME_INPUT_EVENT_MOTOR:
++      if (event.port_address != nullptr && event.feature_name != nullptr)
++        bHandled = SetRumble(event.port_address, event.feature_name, event.motor.magnitude);
++      break;
++    default:
++      break;
++  }
++
++  return bHandled;
++}
++
++bool CGameClientInput::SetRumble(const std::string &portAddress, const std::string& feature, float magnitude)
++{
++  bool bHandled = false;
++
++  auto it = m_joysticks.find(portAddress);
++  if (it != m_joysticks.end())
++    bHandled = it->second->SetRumble(feature, magnitude);
+ 
+   return bHandled;
+ }
+ 
++void CGameClientInput::Notify(const Observable& obs, const ObservableMessage msg)
++{
++  switch (msg)
++  {
++  case ObservableMessagePeripheralsChanged:
++  {
++    ProcessJoysticks();
++    break;
++  }
++  default:
++    break;
++  }
++}
++
++void CGameClientInput::ProcessJoysticks()
++{
++  PERIPHERALS::PeripheralVector joysticks;
++  CServiceBroker::GetPeripherals().GetPeripheralsWithFeature(joysticks, PERIPHERALS::FEATURE_JOYSTICK);
++
++  // Perform the port mapping
++  PortMap newPortMap = MapJoysticks(joysticks, m_joysticks);
++
++  // Update each joystick
++  for (auto& peripheralJoystick : joysticks)
++  {
++    // Upcast to input interface
++    JOYSTICK::IInputProvider *inputProvider = peripheralJoystick.get();
++
++    auto itConnectedPort = newPortMap.find(inputProvider);
++    auto itDisconnectedPort = m_portMap.find(inputProvider);
++
++    CGameClientJoystick* newJoystick = itConnectedPort != newPortMap.end() ? itConnectedPort->second : nullptr;
++    CGameClientJoystick* oldJoystick = itDisconnectedPort != m_portMap.end() ? itDisconnectedPort->second : nullptr;
++
++    if (oldJoystick != newJoystick)
++    {
++      // Unregister old input handler
++      if (oldJoystick != nullptr)
++      {
++        oldJoystick->UnregisterInput(inputProvider);
++        m_portMap.erase(itDisconnectedPort);
++      }
++
++      // Register new handler
++      if (newJoystick != nullptr)
++      {
++        newJoystick->RegisterInput(inputProvider);
++        m_portMap[inputProvider] = newJoystick;
++      }
++    }
++  }
++}
++
++CGameClientInput::PortMap CGameClientInput::MapJoysticks(const PERIPHERALS::PeripheralVector &peripheralJoysticks,
++                                                         const JoystickMap &gameClientjoysticks) const
++{
++  PortMap result;
++
++  //! @todo Preserve existing joystick ports
++
++  unsigned int i = 0;
++  for (const auto &it : gameClientjoysticks)
++  {
++    if (i >= peripheralJoysticks.size())
++      break;
++
++    // Check topology player limit
++    if (m_playerLimit >= 0 && static_cast<int>(i) >= m_playerLimit)
++      break;
++
++    // Dereference iterators
++    const PERIPHERALS::PeripheralPtr &peripheralJoystick = peripheralJoysticks[i++];
++    const std::unique_ptr<CGameClientJoystick> &gameClientJoystick = it.second;
++
++    // Map input provider to input handler
++    result[peripheralJoystick.get()] = gameClientJoystick.get();
++  }
++
++  return result;
++}
++
+ ControllerVector CGameClientInput::GetControllers(const CGameClient &gameClient)
+ {
+   using namespace ADDON;
+diff --git a/xbmc/games/addons/input/GameClientInput.h b/xbmc/games/addons/input/GameClientInput.h
+index a1ad38c2688a..0b3215a05e4d 100644
+--- a/xbmc/games/addons/input/GameClientInput.h
++++ b/xbmc/games/addons/input/GameClientInput.h
+@@ -20,7 +20,10 @@
+ #pragma once
+ 
+ #include "games/addons/GameClientSubsystem.h"
++#include "games/controllers/types/ControllerTree.h"
+ #include "games/controllers/ControllerTypes.h"
++#include "peripherals/PeripheralTypes.h"
++#include "utils/Observer.h"
+ 
+ #include <map>
+ #include <memory>
+@@ -31,6 +34,11 @@ struct game_input_event;
+ 
+ namespace KODI
+ {
++namespace JOYSTICK
++{
++  class IInputProvider;
++}
++
+ namespace GAME
+ {
+   class CGameClient;
+@@ -39,7 +47,8 @@ namespace GAME
+   class CGameClientKeyboard;
+   class CGameClientMouse;
+ 
+-  class CGameClientInput : protected CGameClientSubsystem
++  class CGameClientInput : protected CGameClientSubsystem,
++                           public Observer
+   {
+   public:
+     CGameClientInput(CGameClient &gameClient,
+@@ -53,30 +62,57 @@ namespace GAME
+     // Input functions
+     bool AcceptsInput() const;
+ 
++    // Topology functions
++    const CControllerTree &GetControllerTree() const { return m_controllers; }
++    bool SupportsKeyboard() const;
++    bool SupportsMouse() const;
++
++    // Keyboard functions
++    bool OpenKeyboard(const ControllerPtr &controller);
++    void CloseKeyboard();
++
++    // Mouse functions
++    bool OpenMouse(const ControllerPtr &controller);
++    void CloseMouse();
++
++    // Joystick functions
++    bool OpenJoystick(const std::string &portAddress, const ControllerPtr &controller);
++    void CloseJoystick(const std::string &portAddress);
++
++    // Hardware input functions
++    void HardwareReset();
++
+     // Input callbacks
+-    bool OpenPort(unsigned int port);
+-    void ClosePort(unsigned int port);
+     bool ReceiveInputEvent(const game_input_event& eventStruct);
+ 
++    // Implementation of Observer
++    void Notify(const Observable& obs, const ObservableMessage msg) override;
++
+   private:
++    using PortAddress = std::string;
++    using JoystickMap = std::map<PortAddress, std::unique_ptr<CGameClientJoystick>>;
++    using PortMap = std::map<JOYSTICK::IInputProvider*, CGameClientJoystick*>;
++
+     // Private input helpers
+-    void UpdatePort(unsigned int port, const ControllerPtr& controller);
+-    void OpenKeyboard();
+-    void CloseKeyboard();
+-    void OpenMouse();
+-    void CloseMouse();
++    void LoadTopology();
++    void ProcessJoysticks();
++    PortMap MapJoysticks(const PERIPHERALS::PeripheralVector &peripheralJoysticks,
++                         const JoystickMap &gameClientjoysticks) const;
+ 
+     // Private callback helpers
+-    bool SetRumble(unsigned int port, const std::string& feature, float magnitude);
++    bool SetRumble(const std::string &portAddress, const std::string& feature, float magnitude);
+ 
+     // Helper functions
+     static ControllerVector GetControllers(const CGameClient &gameClient);
+ 
+     // Input properties
+-    std::map<int, std::unique_ptr<CGameClientJoystick>> m_joysticks;
++    CControllerTree m_controllers;
++    JoystickMap m_joysticks;
++    PortMap m_portMap;
+     std::unique_ptr<CGameClientKeyboard> m_keyboard;
+     std::unique_ptr<CGameClientMouse> m_mouse;
+     std::unique_ptr<CGameClientHardware> m_hardware;
++    int m_playerLimit = -1; // No limit
+   };
+ } // namespace GAME
+ } // namespace KODI
+diff --git a/xbmc/games/addons/input/GameClientJoystick.cpp b/xbmc/games/addons/input/GameClientJoystick.cpp
+index 6d4c2002b4a3..093f5add20a1 100644
+--- a/xbmc/games/addons/input/GameClientJoystick.cpp
++++ b/xbmc/games/addons/input/GameClientJoystick.cpp
+@@ -22,6 +22,7 @@
+ #include "GameClientInput.h"
+ #include "games/addons/GameClient.h"
+ #include "games/controllers/Controller.h"
++#include "games/ports/Port.h"
+ #include "input/joysticks/interfaces/IInputReceiver.h"
+ #include "utils/log.h"
+ 
+@@ -31,17 +32,30 @@ using namespace KODI;
+ using namespace GAME;
+ 
+ CGameClientJoystick::CGameClientJoystick(const CGameClient &gameClient,
+-                                         int port,
++                                         const std::string &portAddress,
+                                          const ControllerPtr& controller,
+                                          const KodiToAddonFuncTable_Game &dllStruct) :
+   m_gameClient(gameClient),
+-  m_port(port),
++  m_portAddress(portAddress),
+   m_controller(controller),
+-  m_dllStruct(dllStruct)
++  m_dllStruct(dllStruct),
++  m_port(new CPort(this))
+ {
+   assert(m_controller.get() != NULL);
+ }
+ 
++CGameClientJoystick::~CGameClientJoystick() = default;
++
++void CGameClientJoystick::RegisterInput(JOYSTICK::IInputProvider *inputProvider)
++{
++  m_port->RegisterInput(inputProvider);
++}
++
++void CGameClientJoystick::UnregisterInput(JOYSTICK::IInputProvider *inputProvider)
++{
++  m_port->UnregisterInput(inputProvider);
++}
++
+ std::string CGameClientJoystick::ControllerID(void) const
+ {
+   return m_controller->ID();
+@@ -75,8 +89,9 @@ bool CGameClientJoystick::OnButtonPress(const std::string& feature, bool bPresse
+   std::string controllerId = m_controller->ID();
+ 
+   event.type                   = GAME_INPUT_EVENT_DIGITAL_BUTTON;
+-  event.port                   = m_port;
+   event.controller_id          = controllerId.c_str();
++  event.port_type              = GAME_PORT_CONTROLLER;
++  event.port_address           = m_portAddress.c_str();
+   event.feature_name           = feature.c_str();
+   event.digital_button.pressed = bPressed;
+ 
+@@ -101,8 +116,9 @@ bool CGameClientJoystick::OnButtonMotion(const std::string& feature, float magni
+   std::string controllerId = m_controller->ID();
+ 
+   event.type                    = GAME_INPUT_EVENT_ANALOG_BUTTON;
+-  event.port                    = m_port;
+   event.controller_id           = controllerId.c_str();
++  event.port_type               = GAME_PORT_CONTROLLER;
++  event.port_address            = m_portAddress.c_str();
+   event.feature_name            = feature.c_str();
+   event.analog_button.magnitude = magnitude;
+ 
+@@ -127,8 +143,9 @@ bool CGameClientJoystick::OnAnalogStickMotion(const std::string& feature, float
+   std::string controllerId = m_controller->ID();
+ 
+   event.type           = GAME_INPUT_EVENT_ANALOG_STICK;
+-  event.port           = m_port;
+   event.controller_id  = controllerId.c_str();
++  event.port_type      = GAME_PORT_CONTROLLER;
++  event.port_address   = m_portAddress.c_str();
+   event.feature_name   = feature.c_str();
+   event.analog_stick.x = x;
+   event.analog_stick.y = y;
+@@ -154,8 +171,9 @@ bool CGameClientJoystick::OnAccelerometerMotion(const std::string& feature, floa
+   std::string controllerId = m_controller->ID();
+ 
+   event.type            = GAME_INPUT_EVENT_ACCELEROMETER;
+-  event.port            = m_port;
+   event.controller_id   = controllerId.c_str();
++  event.port_type       = GAME_PORT_CONTROLLER;
++  event.port_address    = m_portAddress.c_str();
+   event.feature_name    = feature.c_str();
+   event.accelerometer.x = x;
+   event.accelerometer.y = y;
+@@ -182,8 +200,9 @@ bool CGameClientJoystick::OnWheelMotion(const std::string& feature, float positi
+   std::string controllerId = m_controller->ID();
+ 
+   event.type                    = GAME_INPUT_EVENT_AXIS;
+-  event.port                    = m_port;
+   event.controller_id           = controllerId.c_str();
++  event.port_type               = GAME_PORT_CONTROLLER;
++  event.port_address            = m_portAddress.c_str();
+   event.feature_name            = feature.c_str();
+   event.axis.position           = position;
+ 
+@@ -209,8 +228,9 @@ bool CGameClientJoystick::OnThrottleMotion(const std::string& feature, float pos
+   std::string controllerId = m_controller->ID();
+ 
+   event.type                    = GAME_INPUT_EVENT_AXIS;
+-  event.port                    = m_port;
+   event.controller_id           = controllerId.c_str();
++  event.port_type               = GAME_PORT_CONTROLLER;
++  event.port_address            = m_portAddress.c_str();
+   event.feature_name            = feature.c_str();
+   event.axis.position           = position;
+ 
+diff --git a/xbmc/games/addons/input/GameClientJoystick.h b/xbmc/games/addons/input/GameClientJoystick.h
+index c8abe1fb669b..e1c01525869f 100644
+--- a/xbmc/games/addons/input/GameClientJoystick.h
++++ b/xbmc/games/addons/input/GameClientJoystick.h
+@@ -22,13 +22,21 @@
+ #include "games/controllers/ControllerTypes.h"
+ #include "input/joysticks/interfaces/IInputHandler.h"
+ 
++#include <memory>
++
+ struct KodiToAddonFuncTable_Game;
+ 
+ namespace KODI
+ {
++namespace JOYSTICK
++{
++  class IInputProvider;
++}
++
+ namespace GAME
+ {
+   class CGameClient;
++  class CPort;
+ 
+   /*!
+    * \ingroup games
+@@ -47,11 +55,14 @@ namespace GAME
+      * \param dllStruct The emulator or game to which the events are sent.
+      */
+     CGameClientJoystick(const CGameClient &addon,
+-                        int port,
++                        const std::string &portAddress,
+                         const ControllerPtr& controller,
+                         const KodiToAddonFuncTable_Game &dllStruct);
+ 
+-    virtual ~CGameClientJoystick() = default;
++    ~CGameClientJoystick() override;
++
++    void RegisterInput(JOYSTICK::IInputProvider *inputProvider);
++    void UnregisterInput(JOYSTICK::IInputProvider *inputProvider);
+ 
+     // Implementation of IInputHandler
+     virtual std::string ControllerID(void) const override;
+@@ -68,10 +79,14 @@ namespace GAME
+     bool SetRumble(const std::string& feature, float magnitude);
+ 
+   private:
++    // Construction parameters
+     const CGameClient &m_gameClient;
+-    const int                 m_port;
++    const std::string m_portAddress;
+     const ControllerPtr       m_controller;
+     const KodiToAddonFuncTable_Game &m_dllStruct;
++
++    // Input parameters
++    std::unique_ptr<CPort> m_port;
+   };
+ }
+ }
+diff --git a/xbmc/games/addons/input/GameClientKeyboard.cpp b/xbmc/games/addons/input/GameClientKeyboard.cpp
+index 51c011e08465..c2a91b54aae0 100644
+--- a/xbmc/games/addons/input/GameClientKeyboard.cpp
++++ b/xbmc/games/addons/input/GameClientKeyboard.cpp
+@@ -84,8 +84,9 @@ bool CGameClientKeyboard::OnKeyPress(const KEYBOARD::KeyName &key, KEYBOARD::Mod
+   game_input_event event;
+ 
+   event.type            = GAME_INPUT_EVENT_KEY;
+-  event.port            = 0; //! @todo Remove in port refactor
+   event.controller_id   = m_controllerId.c_str();
++  event.port_type       = GAME_PORT_KEYBOARD;
++  event.port_address    = ""; // Not used
+   event.feature_name    = key.c_str();
+   event.key.pressed     = true;
+   event.key.unicode     = unicode;
+@@ -108,8 +109,9 @@ void CGameClientKeyboard::OnKeyRelease(const KEYBOARD::KeyName &key, KEYBOARD::M
+   game_input_event event;
+ 
+   event.type            = GAME_INPUT_EVENT_KEY;
+-  event.port            = 0; //! @todo Remove in port refactor
+   event.controller_id   = m_controllerId.c_str();
++  event.port_type       = GAME_PORT_KEYBOARD;
++  event.port_address    = ""; // Not used
+   event.feature_name    = key.c_str();
+   event.key.pressed     = false;
+   event.key.unicode     = unicode;
+diff --git a/xbmc/games/addons/input/GameClientMouse.cpp b/xbmc/games/addons/input/GameClientMouse.cpp
+index 1a37d8995a58..40e6e417c028 100644
+--- a/xbmc/games/addons/input/GameClientMouse.cpp
++++ b/xbmc/games/addons/input/GameClientMouse.cpp
+@@ -68,8 +68,9 @@ bool CGameClientMouse::OnMotion(const std::string& relpointer, int dx, int dy)
+   game_input_event event;
+ 
+   event.type            = GAME_INPUT_EVENT_RELATIVE_POINTER;
+-  event.port            = -1; //! @todo Remove in port refactor
+   event.controller_id   = m_controllerId.c_str();
++  event.port_type       = GAME_PORT_MOUSE;
++  event.port_address    = ""; // Not used
+   event.feature_name    = relpointer.c_str();
+   event.rel_pointer.x   = dx;
+   event.rel_pointer.y   = dy;
+@@ -99,8 +100,9 @@ bool CGameClientMouse::OnButtonPress(const std::string& button)
+   game_input_event event;
+ 
+   event.type                   = GAME_INPUT_EVENT_DIGITAL_BUTTON;
+-  event.port                   = -1; //! @todo Remove in port refactor
+   event.controller_id          = m_controllerId.c_str();
++  event.port_type              = GAME_PORT_MOUSE;
++  event.port_address           = ""; // Not used
+   event.feature_name           = button.c_str();
+   event.digital_button.pressed = true;
+ 
+@@ -121,8 +123,9 @@ void CGameClientMouse::OnButtonRelease(const std::string& button)
+   game_input_event event;
+ 
+   event.type                   = GAME_INPUT_EVENT_DIGITAL_BUTTON;
+-  event.port                   = -1; //! @todo Remove in port refactor
+   event.controller_id          = m_controllerId.c_str();
++  event.port_type              = GAME_PORT_MOUSE;
++  event.port_address           = ""; // Not used
+   event.feature_name           = button.c_str();
+   event.digital_button.pressed = false;
+ 
+diff --git a/xbmc/games/addons/input/GameClientPort.cpp b/xbmc/games/addons/input/GameClientPort.cpp
+new file mode 100644
+index 000000000000..dc28d7701762
+--- /dev/null
++++ b/xbmc/games/addons/input/GameClientPort.cpp
+@@ -0,0 +1,82 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "GameClientPort.h"
++#include "GameClientDevice.h"
++#include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
++#include "games/addons/GameClientTranslator.h"
++#include "games/controllers/Controller.h"
++#include "games/controllers/ControllerTopology.h"
++#include "games/controllers/ControllerTranslator.h"
++#include "utils/StringUtils.h"
++
++#include <algorithm>
++
++using namespace KODI;
++using namespace GAME;
++
++CGameClientPort::CGameClientPort(const game_input_port &port) :
++  m_type(CGameClientTranslator::TranslatePortType(port.type)),
++  m_portId(port.port_id ? port.port_id : "")
++{
++  if (port.accepted_devices != nullptr)
++  {
++    for (unsigned int i = 0; i < port.device_count; i++)
++    {
++      std::unique_ptr<CGameClientDevice> device(new CGameClientDevice(port.accepted_devices[i]));
++
++      if (device->Controller() != CController::EmptyPtr)
++        m_acceptedDevices.emplace_back(std::move(device));
++    }
++  }
++}
++
++CGameClientPort::CGameClientPort(const ControllerVector &controllers) :
++  m_type(PORT_TYPE::CONTROLLER),
++  m_portId(DEFAULT_PORT_ID)
++{
++  for (const auto &controller : controllers)
++    m_acceptedDevices.emplace_back(new CGameClientDevice(controller));
++}
++
++CGameClientPort::CGameClientPort(const game_input_port &logicalPort, const CControllerPort &physicalPort) :
++  m_type(PORT_TYPE::CONTROLLER),
++  m_portId(physicalPort.ID())
++{
++  if (logicalPort.accepted_devices != nullptr)
++  {
++    for (unsigned int i = 0; i < logicalPort.device_count; i++)
++    {
++      // Ensure device is physically compatible
++      const game_input_device &deviceStruct = logicalPort.accepted_devices[i];
++      std::string controllerId = deviceStruct.controller_id ? deviceStruct.controller_id : "";
++
++      if (physicalPort.IsCompatible(controllerId))
++      {
++        std::unique_ptr<CGameClientDevice> device(new CGameClientDevice(deviceStruct));
++
++        if (device->Controller() != CController::EmptyPtr)
++          m_acceptedDevices.emplace_back(std::move(device));
++      }
++    }
++  }
++}
++
++CGameClientPort::~CGameClientPort() = default;
+diff --git a/xbmc/games/addons/input/GameClientPort.h b/xbmc/games/addons/input/GameClientPort.h
+new file mode 100644
+index 000000000000..9f58717eb0ae
+--- /dev/null
++++ b/xbmc/games/addons/input/GameClientPort.h
+@@ -0,0 +1,107 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "games/controllers/ControllerTypes.h"
++#include "games/GameTypes.h"
++
++#include <string>
++
++struct game_input_device;
++struct game_input_port;
++
++namespace KODI
++{
++namespace GAME
++{
++  class CControllerPort;
++
++  /*!
++   * \ingroup games
++   * \brief Represents a port that devices can connect to
++   */
++  class CGameClientPort
++  {
++  public:
++    /*!
++     * \brief Construct a hardware port
++     *
++     * \param port The hardware port Game API struct
++     */
++    CGameClientPort(const game_input_port &port);
++
++    /*!
++     * \brief Construct a hardware port that accepts the given controllers
++     *
++     * \param controllers List of accepted controller profiles
++     *
++     * The port is given the ID specified by DEFAULT_PORT_ID.
++     */
++    CGameClientPort(const ControllerVector &controllers);
++
++    /*!
++     * \brief Construct a controller port
++     *
++     * \param logicalPort The logical port Game API struct
++     * \param physicalPort The physical port definition
++     *
++     * The physical port is defined by the controller profile. This definition
++     * specifies which controllers the port is physically compatible with.
++     *
++     * The logical port is defined by the emulator's input topology. This
++     * definition specifies which controllers the emulator's logic can handle.
++     *
++     * Obviously, the controllers specified by the logical port must be a subset
++     * of the controllers supported by the physical port.
++     */
++    CGameClientPort(const game_input_port &logicalPort, const CControllerPort &physicalPort);
++
++    /*!
++     * \brief Destructor
++     */
++    ~CGameClientPort();
++
++    /*!
++     * \brief Get the port type
++     *
++     * The port type identifies if this port is for a keyboard, mouse, or
++     * controller.
++     */
++    PORT_TYPE PortType() const { return m_type; }
++
++    /*!
++     * \brief Get the ID of the port
++     *
++     * The ID is used when creating a toplogical address for the port.
++     */
++    const std::string &ID() const { return m_portId; }
++
++    /*!
++     * \brief Get the list of devices accepted by this port
++     */
++    const GameClientDeviceVec &Devices() const { return m_acceptedDevices; }
++
++  private:
++    PORT_TYPE m_type;
++    std::string m_portId;
++    GameClientDeviceVec m_acceptedDevices;
++  };
++}
++}
+diff --git a/xbmc/games/addons/input/GameClientTopology.cpp b/xbmc/games/addons/input/GameClientTopology.cpp
+new file mode 100644
+index 000000000000..65a9b3780b12
+--- /dev/null
++++ b/xbmc/games/addons/input/GameClientTopology.cpp
+@@ -0,0 +1,115 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "GameClientTopology.h"
++#include "GameClientDevice.h"
++#include "GameClientPort.h"
++#include "games/controllers/Controller.h"
++
++#include <sstream>
++#include <utility>
++
++using namespace KODI;
++using namespace GAME;
++
++#define CONTROLLER_ADDRESS_SEPARATOR  "/"
++
++CGameClientTopology::CGameClientTopology(GameClientPortVec ports) :
++  m_ports(std::move(ports))
++{
++}
++
++CControllerTree CGameClientTopology::GetControllerTree() const
++{
++  return GetControllerTree(m_ports);
++}
++
++CControllerTree CGameClientTopology::GetControllerTree(const GameClientPortVec &ports)
++{
++  CControllerTree tree;
++
++  ControllerPortVec controllerPorts;
++  for (const GameClientPortPtr &port : ports)
++  {
++    CControllerPortNode portNode = GetPortNode(port, "");
++    controllerPorts.emplace_back(std::move(portNode));
++  }
++
++  tree.SetPorts(std::move(controllerPorts));
++
++  return tree;
++}
++
++CControllerPortNode CGameClientTopology::GetPortNode(const GameClientPortPtr &port, const std::string &address)
++{
++  CControllerPortNode portNode;
++
++  std::string portAddress = MakeAddress(address, port->ID());
++
++  portNode.SetConnected(false);
++  portNode.SetPortType(port->PortType());
++  portNode.SetPortID(port->ID());
++  portNode.SetAddress(portAddress);
++
++  ControllerNodeVec nodes;
++  for (const GameClientDevicePtr &device : port->Devices())
++  {
++    CControllerNode controllerNode = GetControllerNode(device, portAddress);
++    nodes.emplace_back(std::move(controllerNode));
++  }
++  portNode.SetCompatibleControllers(std::move(nodes));
++
++  return portNode;
++}
++
++CControllerNode CGameClientTopology::GetControllerNode(const GameClientDevicePtr &device, const std::string &address)
++{
++  CControllerNode controllerNode;
++
++  std::string controllerAddress = MakeAddress(address, device->Controller()->ID());
++
++  controllerNode.SetController(device->Controller());
++  controllerNode.SetAddress(controllerAddress);
++
++  ControllerPortVec ports;
++  for (const GameClientPortPtr &port : device->Ports())
++  {
++    CControllerPortNode portNode = GetPortNode(port, controllerAddress);
++    ports.emplace_back(std::move(portNode));
++  }
++
++  CControllerHub controllerHub;
++  controllerHub.SetPorts(std::move(ports));
++  controllerNode.SetHub(std::move(controllerHub));
++
++  return controllerNode;
++}
++
++std::string CGameClientTopology::MakeAddress(const std::string &baseAddress, const std::string &nodeId)
++{
++  std::ostringstream address;
++
++  if (!baseAddress.empty())
++    address << baseAddress << CONTROLLER_ADDRESS_SEPARATOR;
++
++  address << nodeId;
++
++  return address.str();
++}
+diff --git a/xbmc/games/addons/input/GameClientTopology.h b/xbmc/games/addons/input/GameClientTopology.h
+new file mode 100644
+index 000000000000..ad4ef52f7dd4
+--- /dev/null
++++ b/xbmc/games/addons/input/GameClientTopology.h
+@@ -0,0 +1,49 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "games/controllers/types/ControllerTree.h"
++#include "games/GameTypes.h"
++
++#include <memory>
++
++namespace KODI
++{
++namespace GAME
++{
++  class CGameClientTopology
++  {
++  public:
++    CGameClientTopology(GameClientPortVec ports);
++
++    CControllerTree GetControllerTree() const;
++
++  private:
++    static CControllerTree GetControllerTree(const GameClientPortVec &ports);
++    static CControllerPortNode GetPortNode(const GameClientPortPtr &port, const std::string &address);
++    static CControllerNode GetControllerNode(const GameClientDevicePtr &device, const std::string &portAddress);
++
++    // Utility function
++    static std::string MakeAddress(const std::string &baseAddress, const std::string &nodeId);
++
++    GameClientPortVec m_ports;
++  };
++}
++}
+diff --git a/xbmc/games/controllers/CMakeLists.txt b/xbmc/games/controllers/CMakeLists.txt
+index 899ffb733a55..d9c4d1cf9713 100644
+--- a/xbmc/games/controllers/CMakeLists.txt
++++ b/xbmc/games/controllers/CMakeLists.txt
+@@ -2,6 +2,7 @@ set(SOURCES Controller.cpp
+             ControllerFeature.cpp
+             ControllerLayout.cpp
+             ControllerManager.cpp
++            ControllerTopology.cpp
+             ControllerTranslator.cpp)
+ 
+ set(HEADERS Controller.h
+@@ -10,6 +11,7 @@ set(HEADERS Controller.h
+             ControllerIDs.h
+             ControllerLayout.h
+             ControllerManager.h
++            ControllerTopology.h
+             ControllerTranslator.h
+             ControllerTypes.h)
+ 
+diff --git a/xbmc/games/controllers/Controller.cpp b/xbmc/games/controllers/Controller.cpp
+index 6b90773812b3..65aa8bdb1624 100644
+--- a/xbmc/games/controllers/Controller.cpp
++++ b/xbmc/games/controllers/Controller.cpp
+@@ -21,6 +21,7 @@
+ #include "Controller.h"
+ #include "ControllerDefinitions.h"
+ #include "ControllerLayout.h"
++#include "ControllerTopology.h"
+ #include "utils/log.h"
+ #include "utils/URIUtils.h"
+ #include "utils/XBMCTinyXML.h"
+@@ -79,6 +80,21 @@ CController::CController(ADDON::CAddonInfo addonInfo) :
+ 
+ CController::~CController() = default;
+ 
++const CControllerFeature& CController::GetFeature(const std::string &name) const
++{
++  auto it = std::find_if(m_features.begin(), m_features.end(),
++    [&name](const CControllerFeature &feature)
++    {
++      return name == feature.Name();
++    });
++
++  if (it != m_features.end())
++    return *it;
++
++  static const CControllerFeature invalid{};
++  return invalid;
++}
++
+ unsigned int CController::FeatureCount(FEATURE_TYPE type /* = FEATURE_TYPE::UNKNOWN */,
+                                        JOYSTICK::INPUT_TYPE inputType /* = JOYSTICK::INPUT_TYPE::UNKNOWN */) const
+ {
+@@ -150,3 +166,8 @@ bool CController::LoadLayout(void)
+ 
+   return m_bLoaded;
+ }
++
++const CControllerTopology& CController::Topology() const
++{
++  return m_layout->Topology();
++}
+diff --git a/xbmc/games/controllers/Controller.h b/xbmc/games/controllers/Controller.h
+index 2882b2167bce..d9c871582736 100644
+--- a/xbmc/games/controllers/Controller.h
++++ b/xbmc/games/controllers/Controller.h
+@@ -34,6 +34,7 @@ namespace KODI
+ namespace GAME
+ {
+ class CControllerLayout;
++class CControllerTopology;
+ 
+ using JOYSTICK::FEATURE_TYPE;
+ 
+@@ -55,6 +56,15 @@ class CController : public ADDON::CAddon
+    */
+   const std::vector<CControllerFeature>& Features(void) const { return m_features; }
+ 
++  /*!
++   * \brief Get a feature by its name
++   *
++   * \param name The feature name
++   *
++   * \return The feature, or a feature of type FEATURE_TYPE::UNKNOWN if the name is invalid
++   */
++  const CControllerFeature& GetFeature(const std::string &name) const;
++
+   /*!
+    * \brief Get the count of controller features matching the specified types
+    *
+@@ -103,6 +113,15 @@ class CController : public ADDON::CAddon
+    */
+   const CControllerLayout& Layout(void) const { return *m_layout; }
+ 
++  /*!
++   * \brief Get the controller's physical topology
++   *
++   * This defines how controllers physically connect to each other.
++   *
++   * \return The physical topology of the controller
++   */
++  const CControllerTopology& Topology() const;
++
+ private:
+   std::unique_ptr<CControllerLayout> m_layout;
+   std::vector<CControllerFeature> m_features;
+diff --git a/xbmc/games/controllers/ControllerDefinitions.h b/xbmc/games/controllers/ControllerDefinitions.h
+index bb4dd52ae115..4ed74ccacbbd 100644
+--- a/xbmc/games/controllers/ControllerDefinitions.h
++++ b/xbmc/games/controllers/ControllerDefinitions.h
+@@ -31,6 +31,9 @@
+ #define LAYOUT_XML_ELM_WHEEL               "wheel"
+ #define LAYOUT_XML_ELM_THROTTLE            "throttle"
+ #define LAYOUT_XML_ELM_KEY                 "key"
++#define LAYOUT_XML_ELM_TOPOLOGY            "physicaltopology"
++#define LAYOUT_XML_ELM_PORT                "port"
++#define LAYOUT_XML_ELM_ACCEPTS             "accepts"
+ #define LAYOUT_XML_ATTR_LAYOUT_LABEL       "label"
+ #define LAYOUT_XML_ATTR_LAYOUT_ICON        "icon"
+ #define LAYOUT_XML_ATTR_LAYOUT_IMAGE       "image"
+@@ -40,6 +43,9 @@
+ #define LAYOUT_XML_ATTR_FEATURE_LABEL      "label"
+ #define LAYOUT_XML_ATTR_INPUT_TYPE         "type"
+ #define LAYOUT_XML_ATTR_KEY_SYMBOL         "symbol"
++#define LAYOUT_XML_ATTR_PROVIDES_INPUT     "providesinput"
++#define LAYOUT_XML_ATTR_PORT_ID            "id"
++#define LAYOUT_XML_ATTR_CONTROLLER         "controller"
+ 
+ // Controller definitions
+ #define FEATURE_CATEGORY_FACE              "face"
+diff --git a/xbmc/games/controllers/ControllerLayout.cpp b/xbmc/games/controllers/ControllerLayout.cpp
+index d88f4725524e..26a47e87a921 100644
+--- a/xbmc/games/controllers/ControllerLayout.cpp
++++ b/xbmc/games/controllers/ControllerLayout.cpp
+@@ -21,6 +21,7 @@
+ #include "ControllerLayout.h"
+ #include "Controller.h"
+ #include "ControllerDefinitions.h"
++#include "ControllerTopology.h"
+ #include "ControllerTranslator.h"
+ #include "guilib/LocalizeStrings.h"
+ #include "utils/log.h"
+@@ -32,12 +33,29 @@
+ using namespace KODI;
+ using namespace GAME;
+ 
++CControllerLayout::CControllerLayout() :
++  m_topology(new CControllerTopology)
++{
++}
++
++CControllerLayout::CControllerLayout(const CControllerLayout &other) :
++  m_controller(other.m_controller),
++  m_labelId(other.m_labelId),
++  m_icon(other.m_icon),
++  m_strImage(other.m_strImage),
++  m_topology(new CControllerTopology(*other.m_topology))
++{
++}
++
++CControllerLayout::~CControllerLayout() = default;
++
+ void CControllerLayout::Reset(void)
+ {
+   m_controller = nullptr;
+   m_labelId = -1;
+   m_icon.clear();
+   m_strImage.clear();
++  m_topology->Reset();
+ }
+ 
+ bool CControllerLayout::IsValid(bool bLog) const
+@@ -106,7 +124,6 @@ void CControllerLayout::Deserialize(const TiXmlElement* pElement, const CControl
+   if (!image.empty())
+     m_strImage = image;
+ 
+-  // Features
+   for (const TiXmlElement* pChild = pElement->FirstChildElement(); pChild != nullptr; pChild = pChild->NextSiblingElement())
+   {
+     if (pChild->ValueStr() == LAYOUT_XML_ELM_CATEGORY)
+@@ -122,6 +139,7 @@ void CControllerLayout::Deserialize(const TiXmlElement* pElement, const CControl
+       if (!strCategoryLabelId.empty())
+         std::istringstream(strCategoryLabelId) >> categoryLabelId;
+ 
++      // Features
+       for (const TiXmlElement* pFeature = pChild->FirstChildElement(); pFeature != nullptr; pFeature = pFeature->NextSiblingElement())
+       {
+         CControllerFeature feature;
+@@ -130,6 +148,13 @@ void CControllerLayout::Deserialize(const TiXmlElement* pElement, const CControl
+           features.push_back(feature);
+       }
+     }
++    else if (pChild->ValueStr() == LAYOUT_XML_ELM_TOPOLOGY)
++    {
++      // Topology
++      CControllerTopology topology;
++      if (topology.Deserialize(pChild))
++        *m_topology = std::move(topology);
++    }
+     else
+     {
+       CLog::Log(LOGDEBUG, "Ignoring <%s> tag", pChild->ValueStr().c_str());
+diff --git a/xbmc/games/controllers/ControllerLayout.h b/xbmc/games/controllers/ControllerLayout.h
+index 72209273fb76..89a31c2d0133 100644
+--- a/xbmc/games/controllers/ControllerLayout.h
++++ b/xbmc/games/controllers/ControllerLayout.h
+@@ -19,6 +19,7 @@
+  */
+ #pragma once
+ 
++#include <memory>
+ #include <string>
+ #include <vector>
+ 
+@@ -30,11 +31,14 @@ namespace GAME
+ {
+ class CController;
+ class CControllerFeature;
++class CControllerTopology;
+ 
+ class CControllerLayout
+ {
+ public:
+-  CControllerLayout() = default;
++  CControllerLayout();
++  CControllerLayout(const CControllerLayout &other);
++  ~CControllerLayout();
+ 
+   void Reset(void);
+ 
+@@ -65,6 +69,17 @@ class CControllerLayout
+    */
+   std::string ImagePath(void) const;
+ 
++  /*!
++   * \brief Get the physical topology of this controller
++   *
++   * The topology of a controller defines its ports and which controllers can
++   * physically be connected to them. Also, the topology defines if the
++   * controller can provide player input, which is false in the case of hubs.
++   *
++   * \return The physical topology of the controller
++   */
++  const CControllerTopology &Topology(void) const { return *m_topology; }
++
+   /*!
+    * \brief Deserialize the specified XML element
+    *
+@@ -78,7 +93,8 @@ class CControllerLayout
+   const CController *m_controller = nullptr;
+   int m_labelId = -1;
+   std::string m_icon;
+-  std::string  m_strImage;
++  std::string m_strImage;
++  std::unique_ptr<CControllerTopology> m_topology;
+ };
+ 
+ }
+diff --git a/xbmc/games/controllers/ControllerTopology.cpp b/xbmc/games/controllers/ControllerTopology.cpp
+new file mode 100644
+index 000000000000..175213a0adbd
+--- /dev/null
++++ b/xbmc/games/controllers/ControllerTopology.cpp
+@@ -0,0 +1,119 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "ControllerTopology.h"
++#include "ControllerDefinitions.h"
++#include "games/controllers/Controller.h"
++#include "games/GameServices.h"
++#include "utils/log.h"
++#include "utils/XMLUtils.h"
++#include "ServiceManager.h"
++#include <algorithm>
++
++using namespace KODI;
++using namespace GAME;
++
++// --- CControllerPort ---------------------------------------------------------
++
++CControllerPort::CControllerPort(std::string portId, std::vector<std::string> accepts) :
++  m_portId(std::move(portId)),
++  m_accepts(std::move(accepts))
++{
++}
++
++void CControllerPort::Reset(void)
++{
++  CControllerPort defaultPort;
++  *this = std::move(defaultPort);
++}
++
++bool CControllerPort::IsCompatible(const std::string &controllerId) const
++{
++  return std::find(m_accepts.begin(), m_accepts.end(), controllerId) != m_accepts.end();
++}
++
++bool CControllerPort::Deserialize(const TiXmlElement* pElement)
++{
++  Reset();
++
++  if (pElement == nullptr)
++    return false;
++
++  m_portId = XMLUtils::GetAttribute(pElement, LAYOUT_XML_ATTR_PORT_ID);
++
++  for (const TiXmlElement* pChild = pElement->FirstChildElement(); pChild != nullptr; pChild = pChild->NextSiblingElement())
++  {
++    if (pChild->ValueStr() == LAYOUT_XML_ELM_ACCEPTS)
++    {
++      std::string controller = XMLUtils::GetAttribute(pChild, LAYOUT_XML_ATTR_CONTROLLER);
++
++      if (!controller.empty())
++        m_accepts.emplace_back(std::move(controller));
++      else
++        CLog::Log(LOGWARNING, "<%s> tag is missing \"%s\" attribute", LAYOUT_XML_ELM_ACCEPTS, LAYOUT_XML_ATTR_CONTROLLER);
++    }
++    else
++    {
++      CLog::Log(LOGDEBUG, "Unknown physical topology port tag: <%s>", pChild->ValueStr().c_str());
++    }
++  }
++
++  return true;
++}
++
++// --- CControllerTopology -----------------------------------------------------
++
++CControllerTopology::CControllerTopology(bool bProvidesInput, std::vector<CControllerPort> ports) :
++  m_bProvidesInput(bProvidesInput),
++  m_ports(std::move(ports))
++{
++}
++
++void CControllerTopology::Reset()
++{
++  CControllerTopology defaultTopology;
++  *this = std::move(defaultTopology);
++}
++
++bool CControllerTopology::Deserialize(const TiXmlElement* pElement)
++{
++  Reset();
++
++  if (pElement == nullptr)
++    return false;
++
++  m_bProvidesInput = (XMLUtils::GetAttribute(pElement, LAYOUT_XML_ATTR_PROVIDES_INPUT) != "false");
++
++  for (const TiXmlElement* pChild = pElement->FirstChildElement(); pChild != nullptr; pChild = pChild->NextSiblingElement())
++  {
++    if (pChild->ValueStr() == LAYOUT_XML_ELM_PORT)
++    {
++      CControllerPort port;
++      if (port.Deserialize(pChild))
++        m_ports.emplace_back(std::move(port));
++    }
++    else
++    {
++      CLog::Log(LOGDEBUG, "Unknown physical topology tag: <%s>", pChild->ValueStr().c_str());
++    }
++  }
++
++  return true;
++}
+diff --git a/xbmc/games/controllers/ControllerTopology.h b/xbmc/games/controllers/ControllerTopology.h
+new file mode 100644
+index 000000000000..5fa25f8e445a
+--- /dev/null
++++ b/xbmc/games/controllers/ControllerTopology.h
+@@ -0,0 +1,116 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "games/GameTypes.h"
++
++#include <string>
++#include <vector>
++
++class TiXmlElement;
++
++namespace KODI
++{
++namespace GAME
++{
++
++class CControllerPort
++{
++public:
++  CControllerPort() = default;
++
++  /*!
++   * \brief Create a controller port
++   *
++   * \param portId The port's ID
++   * \param accepts A list of controller IDs that this port accepts
++   */
++  CControllerPort(std::string portId, std::vector<std::string> accepts);
++
++  void Reset();
++
++  /*!
++   * \brief Get the ID of the port
++   *
++   * \return The port's ID, e.g. "1", as a string
++   */
++  const std::string &ID() const { return m_portId; }
++
++  /*!
++   * \brief Get the controllers that can connect to this port
++   *
++   * \return A list of controllers that are physically compatible with this port
++   */
++  const std::vector<std::string> &Accepts() const { return m_accepts; }
++
++  /*!
++   * \brief Check if the controller is compatible with this port
++   *
++   * \return True if the controller is accepted, false otherwise
++   */
++  bool IsCompatible(const std::string &controllerId) const;
++
++  bool Deserialize(const TiXmlElement* pElement);
++
++private:
++  std::string m_portId;
++  std::vector<std::string> m_accepts;
++};
++
++/*!
++ * \brief Represents the physical topology of controller add-ons
++ *
++ * The physical topology of a controller defines how many ports it has and
++ * whether it can provide player input (hubs like the Super Multitap don't
++ * provide input).
++ */
++class CControllerTopology
++{
++public:
++  CControllerTopology() = default;
++  CControllerTopology(bool bProvidesInput, std::vector<CControllerPort> ports);
++
++  void Reset();
++
++  /*!
++   * \brief Check if the controller can provide player input
++   *
++   * This allows hubs to specify that they provide no input
++   *
++   * \return True if the controller can provide player input, false otherwise
++   */
++  bool ProvidesInput() const { return m_bProvidesInput; }
++
++  /*!
++   * \brief Get a list of ports provided by this controller
++   *
++   * \return The ports
++   */
++  const std::vector<CControllerPort> &Ports() const { return m_ports; }
++
++  bool Deserialize(const TiXmlElement* pElement);
++
++private:
++  bool m_bProvidesInput = true;
++  std::vector<CControllerPort> m_ports;
++};
++
++}
++}
+diff --git a/xbmc/games/controllers/ControllerTypes.h b/xbmc/games/controllers/ControllerTypes.h
+index 9785d6625023..adf1a4e763bb 100644
+--- a/xbmc/games/controllers/ControllerTypes.h
++++ b/xbmc/games/controllers/ControllerTypes.h
+@@ -29,5 +29,16 @@ namespace GAME
+   class CController;
+   using ControllerPtr = std::shared_ptr<CController>;
+   using ControllerVector = std::vector<ControllerPtr>;
++
++  /*!
++   * \brief Type of input provided by a hardware or controller port
++   */
++  enum class PORT_TYPE
++  {
++    UNKNOWN,
++    KEYBOARD,
++    MOUSE,
++    CONTROLLER,
++  };
+ }
+ }
+diff --git a/xbmc/games/controllers/types/CMakeLists.txt b/xbmc/games/controllers/types/CMakeLists.txt
+new file mode 100644
+index 000000000000..24dfed9044ca
+--- /dev/null
++++ b/xbmc/games/controllers/types/CMakeLists.txt
+@@ -0,0 +1,9 @@
++set(SOURCES ControllerGrid.cpp
++            ControllerTree.cpp
++)
++
++set(HEADERS ControllerGrid.h
++            ControllerTree.h
++)
++
++core_add_library(games_controller_types)
+diff --git a/xbmc/games/controllers/types/ControllerGrid.cpp b/xbmc/games/controllers/types/ControllerGrid.cpp
+new file mode 100644
+index 000000000000..1963276af943
+--- /dev/null
++++ b/xbmc/games/controllers/types/ControllerGrid.cpp
+@@ -0,0 +1,255 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "ControllerGrid.h"
++#include "games/controllers/Controller.h"
++#include "games/controllers/ControllerTranslator.h"
++#include "utils/log.h"
++
++#include <algorithm>
++#include <utility>
++
++using namespace KODI;
++using namespace GAME;
++
++CControllerGrid::CControllerGrid()
++{
++}
++
++CControllerGrid::CControllerGrid(const CControllerGrid &other) :
++  m_grid(other.m_grid),
++  m_height(other.m_height)
++{
++}
++
++CControllerGrid::~CControllerGrid() = default;
++
++void CControllerGrid::SetControllerTree(const CControllerTree &controllerTree)
++{
++  // Clear the result
++  m_grid.clear();
++
++  m_height = AddPorts(controllerTree.Ports(), m_grid);
++  SetHeight(m_height, m_grid);
++}
++
++ControllerVector CControllerGrid::GetControllers(unsigned int playerIndex) const
++{
++  ControllerVector controllers;
++
++  if (playerIndex < m_grid.size())
++  {
++    for (const auto &controllerVertex : m_grid[playerIndex].vertices)
++    {
++      if (controllerVertex.controller)
++        controllers.emplace_back(controllerVertex.controller);
++    }
++  }
++
++  return controllers;
++}
++
++unsigned int CControllerGrid::AddPorts(const ControllerPortVec &ports, ControllerGrid &grid)
++{
++  unsigned int height = 0;
++
++  auto itKeyboard = std::find_if(ports.begin(), ports.end(),
++    [](const CControllerPortNode &port)
++    {
++      return port.PortType() == PORT_TYPE::KEYBOARD;
++    });
++
++  auto itMouse = std::find_if(ports.begin(), ports.end(),
++    [](const CControllerPortNode &port)
++    {
++      return port.PortType() == PORT_TYPE::MOUSE;
++    });
++
++  auto itController = std::find_if(ports.begin(), ports.end(),
++    [](const CControllerPortNode &port)
++    {
++      return port.PortType() == PORT_TYPE::CONTROLLER;
++    });
++
++  // Keyboard and mouse are not allowed to have ports because they might
++  // overlap with controllers
++  if (itKeyboard != ports.end() && itKeyboard->ActiveController().Hub().HasPorts())
++  {
++    CLog::Log(LOGERROR, "Found keyboard with controller ports, skipping");
++    itKeyboard = ports.end();
++  }
++  if (itMouse != ports.end() && itMouse->ActiveController().Hub().HasPorts())
++  {
++    CLog::Log(LOGERROR, "Found mouse with controller ports, skipping");
++    itMouse = ports.end();
++  }
++
++  if (itController != ports.end())
++  {
++    // Add controller ports
++    bool bFirstPlayer = true;
++    for (const CControllerPortNode &port : ports)
++    {
++      ControllerColumn column;
++
++      if (port.PortType() == PORT_TYPE::CONTROLLER)
++      {
++        // Add controller
++        height = std::max(height, AddController(port, column.vertices.size(), column.vertices, grid));
++
++        if (bFirstPlayer == true)
++        {
++          bFirstPlayer = false;
++
++          // Keyboard and mouse are added below the first controller
++          if (itKeyboard != ports.end())
++            height = std::max(height, AddController(*itKeyboard, column.vertices.size(), column.vertices, grid));
++          if (itMouse != ports.end())
++            height = std::max(height, AddController(*itMouse, column.vertices.size(), column.vertices, grid));
++        }
++      }
++
++      if (!column.vertices.empty())
++        grid.emplace_back(std::move(column));
++    }
++  }
++  else
++  {
++    // No controllers, add keyboard and mouse
++    ControllerColumn column;
++
++    if (itKeyboard != ports.end())
++      height = std::max(height, AddController(*itKeyboard, column.vertices.size(), column.vertices, grid));
++    if (itMouse != ports.end())
++      height = std::max(height, AddController(*itMouse, column.vertices.size(), column.vertices, grid));
++
++    if (!column.vertices.empty())
++      grid.emplace_back(std::move(column));
++  }
++
++  return height;
++}
++
++unsigned int CControllerGrid::AddController(const CControllerPortNode &port, unsigned int height,
++                                            std::vector<ControllerVertex> &column, ControllerGrid &grid)
++{
++  // Add spacers
++  while (column.size() < height)
++    AddInvisible(column);
++
++  const CControllerNode &activeController = port.ActiveController();
++
++  // Add vertex
++  ControllerVertex vertex;
++  vertex.bVisible = true;
++  vertex.bConnected = port.Connected();
++  vertex.portType = port.PortType();
++  vertex.controller = activeController.Controller();
++  vertex.address = activeController.Address();
++  for (const CControllerNode &node : port.CompatibleControllers())
++    vertex.compatible.emplace_back(node.Controller());
++  column.emplace_back(std::move(vertex));
++
++  height++;
++
++  // Process ports
++  const ControllerPortVec &ports = activeController.Hub().Ports();
++  if (!ports.empty())
++  {
++    switch (GetDirection(activeController))
++    {
++    case GRID_DIRECTION::RIGHT:
++    {
++      height = std::max(height, AddHub(ports, height - 1, false, grid));
++      break;
++    }
++    case GRID_DIRECTION::DOWN:
++    {
++      const unsigned int row = height;
++
++      // Add the first controller to the column
++      const CControllerPortNode &firstController = ports.at(0);
++      height = std::max(height, AddController(firstController, row, column, grid));
++
++      // Add the remaining controllers on the same row
++      height = std::max(height, AddHub(ports, row, true, grid));
++
++      break;
++    }
++    }
++  }
++
++  return height;
++}
++
++unsigned int CControllerGrid::AddHub(const ControllerPortVec &ports, unsigned int height, bool bSkipFirst,
++                                     ControllerGrid &grid)
++{
++  const unsigned int row = height;
++
++  unsigned int port = 0;
++  for (const auto &controllerPort : ports)
++  {
++    // If controller has no player, it has already added the hub's first controller
++    if (bSkipFirst && port == 0)
++      continue;
++
++    // Add a column for this controller
++    grid.emplace_back();
++    ControllerColumn &column = grid.back();
++
++    height = std::max(height, AddController(controllerPort, row, column.vertices, grid));
++
++    port++;
++  }
++
++  return height;
++}
++
++void CControllerGrid::AddInvisible(std::vector<ControllerVertex> &column)
++{
++  ControllerVertex vertex;
++  vertex.bVisible = false;
++  column.emplace_back(std::move(vertex));
++}
++
++void CControllerGrid::SetHeight(unsigned int height, ControllerGrid &grid)
++{
++  for (auto &column : grid)
++  {
++    while (column.vertices.size() < height)
++      AddInvisible(column.vertices);
++  }
++}
++
++CControllerGrid::GRID_DIRECTION CControllerGrid::GetDirection(const CControllerNode &node)
++{
++  // Hub controllers are added horizontally, one per row.
++  //
++  // If the current controller offers a player spot, the row starts to the
++  // right at the same hight as the controller.
++  //
++  // Otherwise, to row starts below the current controller in the same
++  // column.
++  if (node.ProvidesInput())
++    return GRID_DIRECTION::RIGHT;
++  else
++    return GRID_DIRECTION::DOWN;
++}
+diff --git a/xbmc/games/controllers/types/ControllerGrid.h b/xbmc/games/controllers/types/ControllerGrid.h
+new file mode 100644
+index 000000000000..4dd79301b316
+--- /dev/null
++++ b/xbmc/games/controllers/types/ControllerGrid.h
+@@ -0,0 +1,174 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "ControllerTree.h"
++#include "games/controllers/ControllerTypes.h"
++
++#include <string>
++#include <vector>
++
++namespace KODI
++{
++namespace GAME
++{
++  /*!
++   * \brief Vertex in the grid of controllers
++   */
++  struct ControllerVertex
++  {
++    bool bVisible = true;
++    bool bConnected = false;
++    ControllerPtr controller; // Mandatory if connected
++    PORT_TYPE portType = PORT_TYPE::UNKNOWN; // Optional
++    std::string address; // Optional
++    ControllerVector compatible; // Compatible controllers
++  };
++
++  /*!
++   * \brief Column of controllers in the grid
++   */
++  struct ControllerColumn
++  {
++    std::vector<ControllerVertex> vertices;
++  };
++
++  /*!
++   * \brief Collection of controllers in a grid layout
++   */
++  using ControllerGrid = std::vector<ControllerColumn>;
++
++  /*!
++   * \brief Class to encapsulate grid operations
++   */
++  class CControllerGrid
++  {
++  public:
++    CControllerGrid();
++    CControllerGrid(const CControllerGrid &other);
++    ~CControllerGrid();
++
++    /*!
++     * \brief Create a grid from a controller tree
++     */
++    void SetControllerTree(const CControllerTree &controllerTree);
++
++    /*!
++     * \brief Get the width of the controller grid
++     */
++    unsigned int Width() const { return m_grid.size(); }
++
++    /*!
++     * \brief Get the height (deepest controller) of the controller grid
++     *
++     * The height is cached when the controller grid is created to avoid
++     * iterating the grid
++     */
++    unsigned int Height() const { return m_height; }
++
++    /*!
++     * \brief Access the controller grid
++     */
++    const ControllerGrid &Grid() const { return m_grid; }
++
++    /*!
++     * \brief Get the controllers in use by the specified player
++     *
++     * \param playerIndex The column in the grid to get controllers from
++     */
++    ControllerVector GetControllers(unsigned int playerIndex) const;
++
++  private:
++    /*!
++     * \brief Directions of vertex traversal
++     */
++    enum class GRID_DIRECTION
++    {
++      RIGHT,
++      DOWN,
++    };
++
++    /*!
++     * \brief Add ports to the grid
++     *
++     * \param ports The ports on a console or controller
++     * \param[out] grid The controller grid being created
++     *
++     * \return The height of the grid determined by the maximum column height
++     */
++    static unsigned int AddPorts(const ControllerPortVec &ports, ControllerGrid &grid);
++
++    /*!
++     * \brief Draw a controller to the column at the specified height
++     *
++     * \param port The controller's port node
++     * \param height The hight to draw the controller at
++     * \param column[in/out] The column to draw to
++     * \param grid[in/out] The grid to add additional columns to
++     *
++     * \return The height of the grid
++     */
++    static unsigned int AddController(const CControllerPortNode &port, unsigned int height,
++                                      std::vector<ControllerVertex> &column, ControllerGrid &grid);
++
++    /*!
++     * \brief Draw a series of controllers to the grid at the specified height
++     *
++     * \param ports The ports of the controllers to draw
++     * \param height The height to start drawing the controllers at
++     * \param bSkipFirst True if the first controller has already been drawn to
++     *                   a column, false to start drawing at the first controller
++     * \param grid[in/out] The grid to add columns to
++     *
++     * \return The height of the grid
++     */
++    static unsigned int AddHub(const ControllerPortVec &ports, unsigned int height, bool bSkipFirst,
++                               ControllerGrid &grid);
++
++    /*!
++     * \brief Draw an invisible vertex to the column
++     *
++     * \param[in/out] column The column in a controller grid
++     */
++    static void AddInvisible(std::vector<ControllerVertex> &column);
++
++    /*!
++     * \brief Fill all columns with invisible vertices until the specified height
++     *
++     * \param height The height to make all columns
++     * \param[in/out] grid The grid to update
++     */
++    static void SetHeight(unsigned int height, ControllerGrid &grid);
++
++    /*!
++     * \brief Get the direction of traversal for the next vertex
++     *
++     * \param node The node in the controller tree being visited
++     *
++     * \return The direction of the next vertex, or GRID_DIRECTION::UNKNOWN if
++     *         unknown
++     */
++    static GRID_DIRECTION GetDirection(const CControllerNode &node);
++
++    ControllerGrid m_grid;
++    unsigned int m_height = 0;
++  };
++}
++}
+diff --git a/xbmc/games/controllers/types/ControllerTree.cpp b/xbmc/games/controllers/types/ControllerTree.cpp
+new file mode 100644
+index 000000000000..b3d76005be18
+--- /dev/null
++++ b/xbmc/games/controllers/types/ControllerTree.cpp
+@@ -0,0 +1,228 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "ControllerTree.h"
++#include "games/controllers/Controller.h"
++#include "games/controllers/ControllerTopology.h"
++
++#include <utility>
++
++using namespace KODI;
++using namespace GAME;
++
++// --- CControllerNode ---------------------------------------------------------
++
++CControllerNode::CControllerNode() :
++  m_hub(new CControllerHub)
++{
++}
++
++CControllerNode::~CControllerNode() = default;
++
++CControllerNode &CControllerNode::operator=(const CControllerNode &rhs)
++{
++  if (this != &rhs)
++  {
++    m_controller = rhs.m_controller;
++    m_address = rhs.m_address;
++    m_hub.reset(new CControllerHub(*rhs.m_hub));
++  }
++
++  return *this;
++}
++
++void CControllerNode::SetController(ControllerPtr controller)
++{
++  m_controller = std::move(controller);
++}
++
++void CControllerNode::SetAddress(std::string address)
++{
++  m_address = std::move(address);
++}
++
++void CControllerNode::SetHub(CControllerHub hub)
++{
++  m_hub.reset(new CControllerHub(std::move(hub)));
++}
++
++bool CControllerNode::IsControllerAccepted(const std::string &portAddress,
++                                           const std::string &controllerId) const
++{
++  bool bAccepted = false;
++
++  for (const auto &port : m_hub->Ports())
++  {
++    if (port.IsControllerAccepted(portAddress, controllerId))
++    {
++      bAccepted = true;
++      break;
++    }
++  }
++
++  return bAccepted;
++}
++
++bool CControllerNode::ProvidesInput() const
++{
++  return m_controller && m_controller->Topology().ProvidesInput();
++}
++
++// --- CControllerPortNode -----------------------------------------------------
++
++CControllerPortNode::~CControllerPortNode() = default;
++
++CControllerPortNode &CControllerPortNode::operator=(const CControllerPortNode &rhs)
++{
++  if (this != &rhs)
++  {
++    m_bConnected = rhs.m_bConnected;
++    m_portType = rhs.m_portType;
++    m_portId = rhs.m_portId;
++    m_controllers = rhs.m_controllers;
++    m_address = rhs.m_address;
++    m_active = rhs.m_active;
++  }
++
++  return *this;
++}
++
++const CControllerNode &CControllerPortNode::ActiveController() const
++{
++  if (m_bConnected && m_active < m_controllers.size())
++    return m_controllers[m_active];
++
++  static const CControllerNode invalid{};
++  return invalid;
++}
++
++void CControllerPortNode::SetPortID(std::string portId)
++{
++  m_portId = std::move(portId);
++}
++
++void CControllerPortNode::SetAddress(std::string address)
++{
++  m_address = std::move(address);
++}
++
++void CControllerPortNode::SetCompatibleControllers(ControllerNodeVec controllers)
++{
++  m_controllers = std::move(controllers);
++}
++
++bool CControllerPortNode::IsControllerAccepted(const std::string &portAddress,
++                                               const std::string &controllerId) const
++{
++  bool bAccepted = false;
++
++  if (m_address == portAddress)
++  {
++    // Base case
++    CControllerPort port;
++    GetControllerPort(port);
++    if (port.IsCompatible(controllerId))
++      bAccepted = true;
++  }
++  else
++  {
++    for (const auto &node : m_controllers)
++    {
++      if (node.IsControllerAccepted(portAddress, controllerId))
++      {
++        bAccepted = true;
++        break;
++      }
++    }
++  }
++
++  return bAccepted;
++}
++
++void CControllerPortNode::GetControllerPort(CControllerPort &port) const
++{
++  std::vector<std::string> accepts;
++  for (const CControllerNode &node : m_controllers)
++    accepts.emplace_back(node.Controller()->ID());
++
++  port = CControllerPort(m_portId, std::move(accepts));
++}
++
++// --- CControllerHub ----------------------------------------------------------
++
++CControllerHub::~CControllerHub() = default;
++
++CControllerHub &CControllerHub::operator=(const CControllerHub &rhs)
++{
++  if (this != &rhs)
++  {
++    m_ports = rhs.m_ports;
++  }
++
++  return *this;
++}
++
++void CControllerHub::SetPorts(ControllerPortVec ports)
++{
++  m_ports = std::move(ports);
++}
++
++bool CControllerHub::IsControllerAccepted(const std::string &portAddress,
++                                          const std::string &controllerId) const
++{
++  bool bAccepted = false;
++
++  for (const CControllerPortNode &port : m_ports)
++  {
++    if (port.IsControllerAccepted(portAddress, controllerId))
++    {
++      bAccepted = true;
++      break;
++    }
++  }
++
++  return bAccepted;
++}
++
++const CControllerPortNode &CControllerHub::GetPort(const std::string &address) const
++{
++  return GetPort(m_ports, address);
++}
++
++const CControllerPortNode &CControllerHub::GetPort(const ControllerPortVec &ports, const std::string &address)
++{
++  for (const CControllerPortNode &port : ports)
++  {
++    if (port.Address() == address)
++      return port;
++
++    for (const CControllerNode &controller : port.CompatibleControllers())
++    {
++      for (const CControllerPortNode &controllerPort : controller.Hub().Ports())
++      {
++        if (port.Address() == address)
++          return controllerPort;
++      }
++    }
++  }
++
++  static const CControllerPortNode empty{};
++  return empty;
++}
+diff --git a/xbmc/games/controllers/types/ControllerTree.h b/xbmc/games/controllers/types/ControllerTree.h
+new file mode 100644
+index 000000000000..ab6baf037595
+--- /dev/null
++++ b/xbmc/games/controllers/types/ControllerTree.h
+@@ -0,0 +1,224 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "games/controllers/ControllerTypes.h"
++
++#include <map>
++#include <memory>
++#include <string>
++#include <vector>
++
++namespace KODI
++{
++namespace GAME
++{
++  class CControllerHub;
++  class CControllerPort;
++
++  /*!
++   * \brief Node in the controller tree
++   *
++   * The node identies the controller profile, and optionally the available
++   * controller ports.
++   */
++  class CControllerNode
++  {
++  public:
++    CControllerNode();
++    CControllerNode(const CControllerNode &other) { *this = other; }
++    CControllerNode(CControllerNode &&other) = default;
++    CControllerNode &operator=(const CControllerNode &rhs);
++    ~CControllerNode();
++
++    /*!
++     * \brief Controller profile of this code
++     *
++     * \return Controller profile, or empty if this node is invalid
++     *
++     * \sa IsValid()
++     */
++    const ControllerPtr &Controller() const { return m_controller; }
++    void SetController(ControllerPtr controller);
++
++    /*!
++     * \brief Address given to the node by the implementation
++     */
++    const std::string &Address() const { return m_address; }
++    void SetAddress(std::string address);
++
++    /*!
++     * \brief Collection of ports on this controller
++     *
++     * \return A hub with controller ports, or an empty hub if this controller
++     *         has no available ports
++     */
++    const CControllerHub &Hub() const { return *m_hub; }
++    void SetHub(CControllerHub hub);
++
++    /*!
++     * \brief Check if this node has a valid controller profile
++     */
++    bool IsValid() const { return m_controller.get() != nullptr; }
++
++    /*!
++     * \brief Check to see if a controller is compatible with a controller port
++     *
++     * \param portAddress The port address
++     * \param controllerId The ID of the controller
++     *
++     * \return True if the controller is compatible with a port, false otherwise
++     */
++    bool IsControllerAccepted(const std::string &portAddress,
++                              const std::string &controllerId) const;
++
++    /*!
++     * \brief Check if this node provides input
++     */
++    bool ProvidesInput() const;
++
++  private:
++    ControllerPtr m_controller;
++    std::string m_address;
++    std::unique_ptr<CControllerHub> m_hub;
++  };
++
++  using ControllerNodeVec = std::vector<CControllerNode>;
++
++  /*!
++   * \brief Collection of nodes that can be connected to this port
++   */
++  class CControllerPortNode
++  {
++  public:
++    CControllerPortNode() = default;
++    CControllerPortNode(const CControllerPortNode &other) { *this = other; }
++    CControllerPortNode(CControllerPortNode &&other) = default;
++    CControllerPortNode &operator=(const CControllerPortNode &rhs);
++    ~CControllerPortNode();
++
++    /*!
++     * \brief Connection state of the port
++     *
++     * \return True if a controller is connected, false otherwise
++     */
++    bool Connected() const { return m_bConnected; }
++    void SetConnected(bool bConnected) { m_bConnected = bConnected; }
++
++    /*!
++     * \brief The controller that is active on this port
++     *
++     * \return The active controller, or invalid if port is disconnected
++     */
++    const CControllerNode &ActiveController() const;
++    void SetActiveController(unsigned int controllerIndex) { m_active = controllerIndex; }
++
++    /*!
++     * \brief The port type
++     *
++     * \return The port type, if known
++     */
++    PORT_TYPE PortType() const { return m_portType; }
++    void SetPortType(PORT_TYPE type) { m_portType = type; }
++
++    /*!
++     * \brief The hardware or controller port ID
++     *
++     * \return The port ID of the hardware port or controller port, or empty if
++     *         the port is only identified by its type
++     */
++    const std::string &PortID() const { return m_portId; }
++    void SetPortID(std::string portId);
++
++    /*!
++     * \brief Address given to the node by the implementation
++     */
++    const std::string &Address() const { return m_address; }
++    void SetAddress(std::string address);
++
++    /*!
++     * \brief Return the controller profiles that are compatible with this port
++     *
++     * \return The controller profiles, or empty if this port doesn't support
++     *         any controller profiles
++     */
++    const ControllerNodeVec &CompatibleControllers() const { return m_controllers; }
++    void SetCompatibleControllers(ControllerNodeVec controllers);
++
++    /*!
++     * \brief Check to see if a controller is compatible with this tree
++     *
++     * \param portAddress The port address
++     * \param controllerId The ID of the controller
++     *
++     * \return True if the controller is compatible with the tree, false otherwise
++     */
++    bool IsControllerAccepted(const std::string &portAddress,
++                              const std::string &controllerId) const;
++
++  private:
++    void GetControllerPort(CControllerPort &port) const;
++
++    bool m_bConnected = false;
++    unsigned int m_active = 0;
++    PORT_TYPE m_portType = PORT_TYPE::UNKNOWN;
++    std::string m_portId;
++    std::string m_address;
++    ControllerNodeVec m_controllers;
++  };
++
++  /*!
++   * \brief Collection of port nodes
++   */
++  using ControllerPortVec = std::vector<CControllerPortNode>;
++
++  /*!
++   * \brief A branch in the controller tree
++   */
++  class CControllerHub
++  {
++  public:
++    CControllerHub() = default;
++    CControllerHub(const CControllerHub &other) { *this = other; }
++    CControllerHub(CControllerHub &&other) = default;
++    CControllerHub &operator=(const CControllerHub &rhs);
++    ~CControllerHub();
++
++    bool HasPorts() const { return !m_ports.empty(); }
++    const ControllerPortVec &Ports() const { return m_ports; }
++    void SetPorts(ControllerPortVec ports);
++
++    bool IsControllerAccepted(const std::string &portAddress,
++                              const std::string &controllerId) const;
++
++    const CControllerPortNode &GetPort(const std::string &address) const;
++
++  private:
++    static const CControllerPortNode &GetPort(const ControllerPortVec &ports, const std::string &address);
++
++    ControllerPortVec m_ports;
++  };
++
++  /*!
++   * \brief Collection of ports on a console
++   */
++  using CControllerTree = CControllerHub;
++}
++}
+diff --git a/xbmc/input/hardware/IHardwareInput.h b/xbmc/input/hardware/IHardwareInput.h
+index ae9216e21eff..f17a243fbe1d 100644
+--- a/xbmc/input/hardware/IHardwareInput.h
++++ b/xbmc/input/hardware/IHardwareInput.h
+@@ -19,6 +19,8 @@
+  */
+ #pragma once
+ 
++#include <string>
++
+ namespace KODI
+ {
+ namespace HARDWARE
+@@ -34,11 +36,8 @@ namespace HARDWARE
+     
+     /*!
+      * \brief A hardware reset button has been pressed
+-     *
+-     * \param port  The port belonging to the user who pressed the reset button,
+-     *              or 0 (the default port) if unknown
+      */
+-    virtual void OnResetButton(unsigned int port) = 0;
++    virtual void OnResetButton() = 0;
+   };
+ }
+ }
