@@ -1,0 +1,1184 @@
+From 79bfb351ca3092c698ab15381aac70568c19fadf Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Mon, 12 Feb 2018 14:38:43 -0800
+Subject: [PATCH] RetroPlayer: Improve logging
+
+---
+ xbmc/cores/RetroPlayer/RetroPlayer.cpp             | 69 ++++++++++++----------
+ xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp        | 13 +++-
+ xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp     | 10 +++-
+ xbmc/cores/RetroPlayer/RetroPlayerInput.cpp        |  5 ++
+ xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp        | 15 ++++-
+ .../RetroPlayer/process/BaseRenderBufferPool.cpp   |  3 +
+ xbmc/cores/RetroPlayer/process/RPProcessInfo.cpp   | 47 +++++++++++++--
+ xbmc/cores/RetroPlayer/process/RPProcessInfo.h     | 13 +++-
+ .../RetroPlayer/process/RenderBufferManager.cpp    | 17 ++++++
+ .../RetroPlayer/process/RenderBufferManager.h      |  2 +
+ .../RetroPlayer/process/X11/RPProcessInfoX11.cpp   |  5 ++
+ .../RetroPlayer/process/X11/RPProcessInfoX11.h     |  2 +
+ .../process/amlogic/RPProcessInfoAmlogic.cpp       |  5 ++
+ .../process/amlogic/RPProcessInfoAmlogic.h         |  2 +
+ .../process/android/RPProcessInfoAndroid.cpp       |  5 ++
+ .../process/android/RPProcessInfoAndroid.h         |  2 +
+ .../RetroPlayer/process/gbm/RPProcessInfoGbm.cpp   |  5 ++
+ .../RetroPlayer/process/gbm/RPProcessInfoGbm.h     |  2 +
+ .../RetroPlayer/process/ios/RPProcessInfoIOS.cpp   |  5 ++
+ .../RetroPlayer/process/ios/RPProcessInfoIOS.h     |  2 +
+ .../RetroPlayer/process/osx/RPProcessInfoOSX.cpp   |  5 ++
+ .../RetroPlayer/process/osx/RPProcessInfoOSX.h     |  2 +
+ .../RetroPlayer/process/rbpi/RPProcessInfoPi.cpp   |  5 ++
+ .../RetroPlayer/process/rbpi/RPProcessInfoPi.h     |  2 +
+ .../process/wayland/RPProcessInfoWayland.cpp       |  5 ++
+ .../process/wayland/RPProcessInfoWayland.h         |  2 +
+ .../process/windows/RPProcessInfoWin.cpp           |  5 ++
+ .../RetroPlayer/process/windows/RPProcessInfoWin.h |  2 +
+ .../RetroPlayer/rendering/RPRenderManager.cpp      | 21 +++++++
+ .../RetroPlayer/rendering/RenderTranslator.cpp     | 17 ++++++
+ .../cores/RetroPlayer/rendering/RenderTranslator.h |  7 +++
+ .../rendering/VideoRenderers/RPBaseRenderer.cpp    | 11 +++-
+ .../VideoRenderers/RPRendererGuiTexture.cpp        |  7 ++-
+ .../VideoRenderers/RPRendererGuiTexture.h          |  1 +
+ .../rendering/VideoRenderers/RPRendererOpenGL.cpp  |  5 ++
+ .../rendering/VideoRenderers/RPRendererOpenGL.h    |  1 +
+ .../VideoRenderers/RPRendererOpenGLES.cpp          |  5 ++
+ .../rendering/VideoRenderers/RPRendererOpenGLES.h  |  1 +
+ .../rendering/VideoRenderers/RPWinRenderer.cpp     |  5 ++
+ .../rendering/VideoRenderers/RPWinRenderer.h       |  1 +
+ 40 files changed, 297 insertions(+), 42 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.cpp b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+index 0ea90e0bf7fb..824335c4c9cd 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+@@ -81,7 +81,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+   // Currently this may prompt the user, the goal is to figure this out silently
+   if (!GAME::CGameUtils::FillInGameClient(fileCopy, true))
+   {
+-    CLog::Log(LOGINFO, "RetroPlayer: No compatible game client selected, aborting playback");
++    CLog::Log(LOGINFO, "RetroPlayer[PLAYER]: No compatible game client selected, aborting playback");
+     return false;
+   }
+ 
+@@ -91,7 +91,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+   m_processInfo.reset(CRPProcessInfo::CreateInstance());
+   if (!m_processInfo)
+   {
+-    CLog::Log(LOGERROR, "Failed to create RetroPlayer - no process info registered");
++    CLog::Log(LOGERROR, "RetroPlayer[PLAYER]: Failed to create - no process info registered");
+     return false;
+   }
+ 
+@@ -114,11 +114,11 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+   ADDON::AddonPtr addon;
+   if (gameClientId.empty())
+   {
+-    CLog::Log(LOGERROR, "Can't play game, no game client was passed to RetroPlayer!");
++    CLog::Log(LOGERROR, "RetroPlayer[PLAYER]: Can't play game, no game client was passed!");
+   }
+   else if (!CServiceBroker::GetAddonMgr().GetAddon(gameClientId, addon, ADDON::ADDON_GAMEDLL))
+   {
+-    CLog::Log(LOGERROR, "Can't find add-on %s for game file!", gameClientId.c_str());
++    CLog::Log(LOGERROR, "RetroPlayer[PLAYER]: Can't find add-on %s for game file!", gameClientId.c_str());
+   }
+   else
+   {
+@@ -132,22 +132,22 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+       if (!bStandalone)
+       {
+         std::string redactedPath = CURL::GetRedacted(fileCopy.GetPath());
+-        CLog::Log(LOGINFO, "RetroPlayer: Opening: %s", redactedPath.c_str());
++        CLog::Log(LOGINFO, "RetroPlayer[PLAYER]: Opening: %s", redactedPath.c_str());
+         bSuccess = m_gameClient->OpenFile(fileCopy, m_audio.get(), m_video.get(), m_input.get());
+       }
+       else
+       {
+-        CLog::Log(LOGINFO, "RetroPlayer: Opening standalone");
++        CLog::Log(LOGINFO, "RetroPlayer[PLAYER]: Opening standalone");
+         bSuccess = m_gameClient->OpenStandalone(m_audio.get(), m_video.get(), m_input.get());
+       }
+ 
+       if (bSuccess)
+-        CLog::Log(LOGDEBUG, "RetroPlayer: Using game client %s", gameClientId.c_str());
++        CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Using game client %s", gameClientId.c_str());
+       else
+-        CLog::Log(LOGERROR, "RetroPlayer: Failed to open file using %s", gameClientId.c_str());
++        CLog::Log(LOGERROR, "RetroPlayer[PLAYER]: Failed to open file using %s", gameClientId.c_str());
+     }
+     else
+-      CLog::Log(LOGERROR, "RetroPlayer: Failed to initialize %s", gameClientId.c_str());
++      CLog::Log(LOGERROR, "RetroPlayer[PLAYER]: Failed to initialize %s", gameClientId.c_str());
+   }
+ 
+   if (bSuccess && !bStandalone)
+@@ -175,10 +175,10 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+     if (bSuccess)
+     {
+       std::string redactedSavestatePath = CURL::GetRedacted(savestatePath);
+-      CLog::Log(LOGDEBUG, "RetroPlayer: Loading savestate %s", redactedSavestatePath.c_str());
++      CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Loading savestate %s", redactedSavestatePath.c_str());
+ 
+       if (!SetPlayerState(savestatePath))
+-        CLog::Log(LOGERROR, "RetroPlayer: Failed to load savestate");
++        CLog::Log(LOGERROR, "RetroPlayer[SAVE]: Failed to load savestate");
+     }
+   }
+ 
+@@ -194,6 +194,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+   else
+   {
+     m_gameClient.reset();
++    m_input.reset();
+     m_audio.reset();
+     m_video.reset();
+   }
+@@ -203,7 +204,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+ 
+ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+ {
+-  CLog::Log(LOGDEBUG, "RetroPlayer: Closing file");
++  CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Closing file");
+ 
+   m_autoSave.reset();
+ 
+@@ -213,9 +214,9 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+   {
+     std::string savePath = m_gameClient->GetPlayback()->CreateSavestate();
+     if (!savePath.empty())
+-      CLog::Log(LOGDEBUG, "Saved state to %s", CURL::GetRedacted(savePath).c_str());
++      CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Saved state to %s", CURL::GetRedacted(savePath).c_str());
+     else
+-      CLog::Log(LOGDEBUG, "Failed to save state at close");
++      CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Failed to save state at close");
+ 
+     UnregisterWindowCallbacks();
+     m_gameClient->CloseFile();
+@@ -224,12 +225,15 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+     m_callback.OnPlayBackEnded();
+   }
+ 
++  m_input.reset();
+   m_audio.reset();
+   m_video.reset();
+ 
+   m_renderManager.reset();
+   m_processInfo.reset();
+ 
++  CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Playback ended");
++
+   return true;
+ }
+ 
+@@ -399,6 +403,7 @@ bool CRetroPlayer::OnAction(const CAction &action)
+ 
+       m_gameClient->GetPlayback()->SetSpeed(0.0);
+ 
++      CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Sending reset command via ACTION_PLAYER_RESET");
+       m_gameServices.PortManager().HardwareReset();
+ 
+       // If rewinding or paused, begin playback
+@@ -413,6 +418,7 @@ bool CRetroPlayer::OnAction(const CAction &action)
+   {
+     if (m_gameClient && m_gameClient->GetPlayback()->GetSpeed() == 0.0)
+     {
++      CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Closing OSD via ACTION_SHOW_OSD");
+       CloseOSD();
+       return true;
+     }
+@@ -433,7 +439,7 @@ std::string CRetroPlayer::GetPlayerState()
+     savestatePath = m_gameClient->GetPlayback()->CreateSavestate();
+     if (savestatePath.empty())
+     {
+-      CLog::Log(LOGDEBUG, "Continuing without saving");
++      CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Continuing without saving");
+       m_autoSave.reset();
+     }
+   }
+@@ -549,7 +555,10 @@ void CRetroPlayer::OnSpeedChange(double newSpeed)
+   m_renderManager->SetSpeed(newSpeed);
+   m_processInfo->SetSpeed(static_cast<float>(newSpeed));
+   if (newSpeed != 0.0)
++  {
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Closing OSD via speed change (%f)", newSpeed);
+     CloseOSD();
++  }
+ }
+ 
+ void CRetroPlayer::CloseOSD()
+@@ -573,21 +582,21 @@ void CRetroPlayer::PrintGameInfo(const CFileItem &file) const
+   const CGameInfoTag *tag = file.GetGameInfoTag();
+   if (tag)
+   {
+-    CLog::Log(LOGDEBUG, "RetroPlayer: ---------------------------------------");
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Game tag loaded");
+-    CLog::Log(LOGDEBUG, "RetroPlayer: URL: %s", tag->GetURL().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Title: %s", tag->GetTitle().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Platform: %s", tag->GetPlatform().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Genres: %s", StringUtils::Join(tag->GetGenres(), ", ").c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Developer: %s", tag->GetDeveloper().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: ---------------------------------------");
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Game tag loaded");
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: URL: %s", tag->GetURL().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Title: %s", tag->GetTitle().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Platform: %s", tag->GetPlatform().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Genres: %s", StringUtils::Join(tag->GetGenres(), ", ").c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Developer: %s", tag->GetDeveloper().c_str());
+     if (tag->GetYear() > 0)
+-      CLog::Log(LOGDEBUG, "RetroPlayer: Year: %u", tag->GetYear());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Game Code: %s", tag->GetID().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Region: %s", tag->GetRegion().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Publisher: %s", tag->GetPublisher().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Format: %s", tag->GetFormat().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Cartridge type: %s", tag->GetCartridgeType().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: Game client: %s", tag->GetGameClient().c_str());
+-    CLog::Log(LOGDEBUG, "RetroPlayer: ---------------------------------------");
++      CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Year: %u", tag->GetYear());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Game Code: %s", tag->GetID().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Region: %s", tag->GetRegion().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Publisher: %s", tag->GetPublisher().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Format: %s", tag->GetFormat().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Cartridge type: %s", tag->GetCartridgeType().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Game client: %s", tag->GetGameClient().c_str());
++    CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: ---------------------------------------");
+   }
+ }
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp b/xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp
+index 7ec416cbc22d..a09c9027910c 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp
+@@ -36,10 +36,13 @@ CRetroPlayerAudio::CRetroPlayerAudio(CRPProcessInfo& processInfo) :
+   m_pAudioStream(nullptr),
+   m_bAudioEnabled(true)
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[AUDIO]: Initializing audio");
+ }
+ 
+ CRetroPlayerAudio::~CRetroPlayerAudio()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[AUDIO]: Deinitializing audio");
++
+   CloseStream();
+ }
+ 
+@@ -74,12 +77,12 @@ bool CRetroPlayerAudio::OpenPCMStream(AEDataFormat format, unsigned int samplera
+   if (m_pAudioStream != nullptr)
+     CloseStream();
+ 
+-  CLog::Log(LOGINFO, "RetroPlayerAudio: Creating audio stream, sample rate = %d", samplerate);
++  CLog::Log(LOGINFO, "RetroPlayer[AUDIO]: Creating audio stream, sample rate = %d", samplerate);
+ 
+   // Resampling is not supported
+   if (NormalizeSamplerate(samplerate) != samplerate)
+   {
+-    CLog::Log(LOGERROR, "RetroPlayerAudio: Resampling to %d not supported", NormalizeSamplerate(samplerate));
++    CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Resampling to %d not supported", NormalizeSamplerate(samplerate));
+     return false;
+   }
+ 
+@@ -91,7 +94,7 @@ bool CRetroPlayerAudio::OpenPCMStream(AEDataFormat format, unsigned int samplera
+ 
+   if (!m_pAudioStream)
+   {
+-    CLog::Log(LOGERROR, "RetroPlayerAudio: Failed to create audio stream");
++    CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Failed to create audio stream");
+     return false;
+   }
+ 
+@@ -104,6 +107,8 @@ bool CRetroPlayerAudio::OpenPCMStream(AEDataFormat format, unsigned int samplera
+ 
+ bool CRetroPlayerAudio::OpenEncodedStream(AVCodecID codec, unsigned int samplerate, const CAEChannelInfo& channelLayout)
+ {
++  CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Encoded audio stream not supported");
++
+   return true; //! @todo
+ }
+ 
+@@ -123,6 +128,8 @@ void CRetroPlayerAudio::CloseStream()
+ {
+   if (m_pAudioStream)
+   {
++    CLog::Log(LOGDEBUG, "RetroPlayer[AUDIO]: Closing audio stream");
++
+     CServiceBroker::GetActiveAE().FreeStream(m_pAudioStream);
+     m_pAudioStream = nullptr;
+   }
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp b/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp
+index 27c552d4e90c..990e84afcfc2 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp
+@@ -33,16 +33,22 @@ CRetroPlayerAutoSave::CRetroPlayerAutoSave(GAME::CGameClient &gameClient) :
+   CThread("CRetroPlayerAutoSave"),
+   m_gameClient(gameClient)
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Initializing autosave");
++
+   Create(false);
+ }
+ 
+ CRetroPlayerAutoSave::~CRetroPlayerAutoSave()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Deinitializing autosave");
++
+   StopThread();
+ }
+ 
+ void CRetroPlayerAutoSave::Process()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Autosave thread started");
++
+   while (!m_bStop)
+   {
+     Sleep(AUTOSAVE_DURATION_SECS * 1000);
+@@ -54,7 +60,9 @@ void CRetroPlayerAutoSave::Process()
+     {
+       std::string savePath = m_gameClient.GetPlayback()->CreateSavestate();
+       if (!savePath.empty())
+-        CLog::Log(LOGDEBUG, "Saved state to %s", CURL::GetRedacted(savePath).c_str());
++        CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Saved state to %s", CURL::GetRedacted(savePath).c_str());
+     }
+   }
++
++  CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Autosave thread ended");
+ }
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerInput.cpp b/xbmc/cores/RetroPlayer/RetroPlayerInput.cpp
+index 0f9d5966fbd6..547c971a9f9b 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerInput.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayerInput.cpp
+@@ -21,6 +21,7 @@
+ #include "RetroPlayerInput.h"
+ #include "peripherals/Peripherals.h"
+ #include "peripherals/EventPollHandle.h"
++#include "utils/log.h"
+ 
+ using namespace KODI;
+ using namespace RETRO;
+@@ -28,11 +29,15 @@ using namespace RETRO;
+ CRetroPlayerInput::CRetroPlayerInput(PERIPHERALS::CPeripherals &peripheralManager) :
+   m_peripheralManager(peripheralManager)
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[INPUT]: Initializing input");
++
+   m_inputPollHandle = m_peripheralManager.RegisterEventPoller();
+ }
+ 
+ CRetroPlayerInput::~CRetroPlayerInput()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[INPUT]: Deinitializing input");
++
+   m_inputPollHandle.reset();
+ }
+ 
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp b/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp
+index 1beff280b539..16c5bf8325e9 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "RetroPlayerVideo.h"
+ #include "cores/RetroPlayer/process/RPProcessInfo.h"
++#include "cores/RetroPlayer/rendering/RenderTranslator.h"
+ #include "cores/RetroPlayer/rendering/RPRenderManager.h"
+ #include "utils/log.h"
+ 
+@@ -30,18 +31,26 @@ CRetroPlayerVideo::CRetroPlayerVideo(CRPRenderManager& renderManager, CRPProcess
+   m_renderManager(renderManager),
+   m_processInfo(processInfo)
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Initializing video");
++
+   m_renderManager.Initialize();
+ }
+ 
+ CRetroPlayerVideo::~CRetroPlayerVideo()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Deinitializing video");
++
+   CloseStream();
+   m_renderManager.Deinitialize();
+ }
+ 
+ bool CRetroPlayerVideo::OpenPixelStream(AVPixelFormat pixfmt, unsigned int width, unsigned int height, unsigned int orientationDeg)
+ {
+-  CLog::Log(LOGINFO, "RetroPlayerVideo: Creating video stream with pixel format: %i, %dx%d", pixfmt, width, height);
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Creating video stream - format %s, %ux%u, %u deg",
++      CRenderTranslator::TranslatePixelFormat(pixfmt),
++      width,
++      height,
++      orientationDeg);
+ 
+   m_processInfo.SetVideoPixelFormat(pixfmt);
+   m_processInfo.SetVideoDimensions(width, height);
+@@ -51,6 +60,8 @@ bool CRetroPlayerVideo::OpenPixelStream(AVPixelFormat pixfmt, unsigned int width
+ 
+ bool CRetroPlayerVideo::OpenEncodedStream(AVCodecID codec)
+ {
++  CLog::Log(LOGERROR, "RetroPlayer[VIDEO]: Encoded video stream not supported");
++
+   return false; //! @todo
+ }
+ 
+@@ -61,5 +72,7 @@ void CRetroPlayerVideo::AddData(const uint8_t* data, unsigned int size)
+ 
+ void CRetroPlayerVideo::CloseStream()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Closing video stream");
++
+   m_renderManager.Flush();
+ }
+diff --git a/xbmc/cores/RetroPlayer/process/BaseRenderBufferPool.cpp b/xbmc/cores/RetroPlayer/process/BaseRenderBufferPool.cpp
+index a2926d3f3938..b7a6f1e01756 100644
+--- a/xbmc/cores/RetroPlayer/process/BaseRenderBufferPool.cpp
++++ b/xbmc/cores/RetroPlayer/process/BaseRenderBufferPool.cpp
+@@ -22,6 +22,7 @@
+ #include "IRenderBuffer.h"
+ #include "cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.h"
+ #include "threads/SingleLock.h"
++#include "utils/log.h"
+ 
+ using namespace KODI;
+ using namespace RETRO;
+@@ -99,6 +100,8 @@ IRenderBuffer *CBaseRenderBufferPool::GetBuffer(size_t size)
+     }
+     else
+     {
++      CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Creating render buffer for buffer pool");
++
+       std::unique_ptr<IRenderBuffer> renderBufferPtr(CreateRenderBuffer(header));
+       if (renderBufferPtr->Allocate(m_format, m_width, m_height, m_frameSize))
+         renderBuffer = renderBufferPtr.release();
+diff --git a/xbmc/cores/RetroPlayer/process/RPProcessInfo.cpp b/xbmc/cores/RetroPlayer/process/RPProcessInfo.cpp
+index 522fc9e2e1ca..be7896a1bf2e 100644
+--- a/xbmc/cores/RetroPlayer/process/RPProcessInfo.cpp
++++ b/xbmc/cores/RetroPlayer/process/RPProcessInfo.cpp
+@@ -28,12 +28,15 @@
+ #include "settings/DisplaySettings.h"
+ #include "settings/MediaSettings.h"
+ #include "threads/SingleLock.h"
++#include "utils/log.h"
+ #include "windowing/WinSystem.h"
+ 
+ extern "C" {
+ #include "libavutil/pixdesc.h"
+ }
+ 
++#include <utility>
++
+ using namespace KODI;
+ using namespace RETRO;
+ 
+@@ -41,7 +44,8 @@ CreateRPProcessControl CRPProcessInfo::m_processControl = nullptr;
+ std::vector<std::unique_ptr<IRendererFactory>> CRPProcessInfo::m_rendererFactories;
+ CCriticalSection CRPProcessInfo::m_createSection;
+ 
+-CRPProcessInfo::CRPProcessInfo() :
++CRPProcessInfo::CRPProcessInfo(std::string platformName) :
++  m_platformName(std::move(platformName)),
+   m_renderBufferManager(new CRenderBufferManager),
+   m_renderContext(new CRenderContext(&CServiceBroker::GetRenderSystem(),
+                                      &CServiceBroker::GetWinSystem(),
+@@ -70,28 +74,61 @@ CRPProcessInfo::~CRPProcessInfo() = default;
+ 
+ CRPProcessInfo* CRPProcessInfo::CreateInstance()
+ {
++  CRPProcessInfo *processInfo = nullptr;
++
+   CSingleLock lock(m_createSection);
+ 
+   if (m_processControl != nullptr)
+-    return m_processControl();
++  {
++    processInfo = m_processControl();
+ 
+-  return nullptr;
++    if (processInfo != nullptr)
++      CLog::Log(LOGINFO, "RetroPlayer[PROCESS]: Created process info for %s", processInfo->GetPlatformName().c_str());
++    else
++      CLog::Log(LOGERROR, "RetroPlayer[PROCESS]: Failed to create process info");
++  }
++  else
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[PROCESS]: No process control registered");
++  }
++
++  return processInfo;
+ }
+ 
+ void CRPProcessInfo::RegisterProcessControl(CreateRPProcessControl createFunc)
+ {
++  std::unique_ptr<CRPProcessInfo> processInfo(createFunc());
++
+   CSingleLock lock(m_createSection);
+ 
+-  m_processControl = createFunc;
++  if (processInfo)
++  {
++    CLog::Log(LOGINFO, "RetroPlayer[PROCESS]: Registering process control for %s",
++              processInfo->GetPlatformName().c_str());
++    m_processControl = createFunc;
++  }
++  else
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[PROCESS]: Failed to register process control");
++    m_processControl = nullptr;
++  }
+ }
+ 
+ void CRPProcessInfo::RegisterRendererFactory(IRendererFactory *factory)
+ {
+   CSingleLock lock(m_createSection);
+ 
++  CLog::Log(LOGINFO, "RetroPlayer[RENDER]: Registering renderer factory for %s",
++            factory->RenderSystemName().c_str());
++
+   m_rendererFactories.emplace_back(factory);
+ }
+ 
++std::string CRPProcessInfo::GetRenderSystemName(IRenderBufferPool *renderBufferPool) const
++{
++  return m_renderBufferManager->GetRenderSystemName(renderBufferPool);
++}
++
+ CRPBaseRenderer *CRPProcessInfo::CreateRenderer(IRenderBufferPool *renderBufferPool, const CRenderSettings &renderSettings)
+ {
+   CSingleLock lock(m_createSection);
+@@ -106,6 +143,8 @@ CRPBaseRenderer *CRPProcessInfo::CreateRenderer(IRenderBufferPool *renderBufferP
+     }
+   }
+ 
++  CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Failed to find a suitable renderer factory");
++
+   return nullptr;
+ }
+ 
+diff --git a/xbmc/cores/RetroPlayer/process/RPProcessInfo.h b/xbmc/cores/RetroPlayer/process/RPProcessInfo.h
+index a078d4069e46..5bf012082e43 100644
+--- a/xbmc/cores/RetroPlayer/process/RPProcessInfo.h
++++ b/xbmc/cores/RetroPlayer/process/RPProcessInfo.h
+@@ -49,6 +49,7 @@ namespace RETRO
+   public:
+     virtual ~IRendererFactory() = default;
+ 
++    virtual std::string RenderSystemName() const = 0;
+     virtual CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) = 0;
+     virtual RenderBufferPoolVector CreateBufferPools() = 0;
+   };
+@@ -62,6 +63,9 @@ namespace RETRO
+ 
+     virtual ~CRPProcessInfo();
+ 
++    const std::string &GetPlatformName() const { return m_platformName; }
++    std::string GetRenderSystemName(IRenderBufferPool *renderBufferPool) const;
++
+     CRPBaseRenderer *CreateRenderer(IRenderBufferPool *renderBufferPool, const CRenderSettings &renderSettings);
+ 
+     void SetDataCache(CDataCacheCore *cache);
+@@ -88,19 +92,26 @@ namespace RETRO
+     void SetPlayTimes(time_t start, int64_t current, int64_t min, int64_t max);
+ 
+   protected:
+-    CRPProcessInfo();
++    CRPProcessInfo(std::string platformName);
+ 
+     static std::vector<ESCALINGMETHOD> GetScalingMethods();
+ 
++    // Static factories
+     static CreateRPProcessControl m_processControl;
+     static std::vector<std::unique_ptr<IRendererFactory>> m_rendererFactories;
+     static CCriticalSection m_createSection;
+ 
++    // Construction parameters
++    const std::string m_platformName;
++
++    // Process info parameters
+     CDataCacheCore *m_dataCache = nullptr;
+ 
++    // Rendering parameters
+     std::unique_ptr<CRenderBufferManager> m_renderBufferManager;
+ 
+   private:
++    // Rendering parameters
+     std::unique_ptr<CRenderContext> m_renderContext;
+     ESCALINGMETHOD m_defaultScalingMethod = VS_SCALINGMETHOD_AUTO;
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/RenderBufferManager.cpp b/xbmc/cores/RetroPlayer/process/RenderBufferManager.cpp
+index 70971cfcb41d..d82fda264ead 100644
+--- a/xbmc/cores/RetroPlayer/process/RenderBufferManager.cpp
++++ b/xbmc/cores/RetroPlayer/process/RenderBufferManager.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "RenderBufferManager.h"
+ #include "IRenderBufferPool.h"
++#include "RPProcessInfo.h"
+ #include "cores/RetroPlayer/rendering/RenderVideoSettings.h"
+ #include "threads/SingleLock.h"
+ 
+@@ -84,6 +85,22 @@ void CRenderBufferManager::FlushPools()
+   }
+ }
+ 
++std::string CRenderBufferManager::GetRenderSystemName(IRenderBufferPool *renderBufferPool) const
++{
++  CSingleLock lock(m_critSection);
++
++  for (const auto &pools : m_pools)
++  {
++    for (const auto &pool : pools.pools)
++    {
++      if (pool.get() == renderBufferPool)
++        return pools.factory->RenderSystemName();
++    }
++  }
++
++  return "";
++}
++
+ bool CRenderBufferManager::HasScalingMethod(ESCALINGMETHOD scalingMethod) const
+ {
+   CRenderVideoSettings videoSettings;
+diff --git a/xbmc/cores/RetroPlayer/process/RenderBufferManager.h b/xbmc/cores/RetroPlayer/process/RenderBufferManager.h
+index 7b229c4c090c..e7bf64d64ff6 100644
+--- a/xbmc/cores/RetroPlayer/process/RenderBufferManager.h
++++ b/xbmc/cores/RetroPlayer/process/RenderBufferManager.h
+@@ -44,6 +44,8 @@ namespace RETRO
+     std::vector<IRenderBufferPool*> GetBufferPools();
+     void FlushPools();
+ 
++    std::string GetRenderSystemName(IRenderBufferPool *renderBufferPool) const;
++
+     bool HasScalingMethod(ESCALINGMETHOD scalingMethod) const;
+ 
+   protected:
+diff --git a/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.cpp b/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.cpp
+index 799e19c672c8..ad7de695f86f 100644
+--- a/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.cpp
++++ b/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoX11::CRPProcessInfoX11() :
++  CRPProcessInfo("X11")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoX11::Create()
+ {
+   return new CRPProcessInfoX11();
+diff --git a/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.h b/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.h
+index 535f8935356d..c0aa42d0c3c4 100644
+--- a/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.h
++++ b/xbmc/cores/RetroPlayer/process/X11/RPProcessInfoX11.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoX11 : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoX11();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.cpp b/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.cpp
+index 7aa8382559f0..6960e4fcffb0 100644
+--- a/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.cpp
++++ b/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoAmlogic::CRPProcessInfoAmlogic() :
++  CRPProcessInfo("Amlogic")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoAmlogic::Create()
+ {
+   return new CRPProcessInfoAmlogic();
+diff --git a/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.h b/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.h
+index 707bffa9f75a..ace8879b9dad 100644
+--- a/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.h
++++ b/xbmc/cores/RetroPlayer/process/amlogic/RPProcessInfoAmlogic.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoAmlogic : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoAmlogic();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.cpp b/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.cpp
+index 88779809b81e..a201dabf734c 100644
+--- a/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.cpp
++++ b/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoAndroid::CRPProcessInfoAndroid() :
++  CRPProcessInfo("Android")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoAndroid::Create()
+ {
+   return new CRPProcessInfoAndroid();
+diff --git a/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.h b/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.h
+index 4c31ee5f6ce7..2f27b37f74d5 100644
+--- a/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.h
++++ b/xbmc/cores/RetroPlayer/process/android/RPProcessInfoAndroid.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoAndroid : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoAndroid();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.cpp b/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.cpp
+index 53dd4102009e..40acfcde200c 100644
+--- a/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.cpp
++++ b/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoGbm::CRPProcessInfoGbm() :
++  CRPProcessInfo("GBM")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoGbm::Create()
+ {
+   return new CRPProcessInfoGbm();
+diff --git a/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h b/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h
+index cae7a0219427..55cd655ff275 100644
+--- a/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h
++++ b/xbmc/cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoGbm : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoGbm();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.cpp b/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.cpp
+index 2a88c78a5c52..cf5b94346af3 100644
+--- a/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.cpp
++++ b/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoIOS::CRPProcessInfoIOS() :
++  CRPProcessInfo("iOS")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoIOS::Create()
+ {
+   return new CRPProcessInfoIOS();
+diff --git a/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.h b/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.h
+index c346a6e52c66..fac8ba3c5a02 100644
+--- a/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.h
++++ b/xbmc/cores/RetroPlayer/process/ios/RPProcessInfoIOS.h
+@@ -30,6 +30,8 @@ namespace RETRO
+   class CRPProcessInfoIOS : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoIOS();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.cpp b/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.cpp
+index 3a51148333d6..29fdc10ba87e 100644
+--- a/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.cpp
++++ b/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoOSX::CRPProcessInfoOSX() :
++  CRPProcessInfo("macOS")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoOSX::Create()
+ {
+   return new CRPProcessInfoOSX();
+diff --git a/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.h b/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.h
+index 027bc1d293a1..0acab22587fe 100644
+--- a/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.h
++++ b/xbmc/cores/RetroPlayer/process/osx/RPProcessInfoOSX.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoOSX : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoOSX();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.cpp b/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.cpp
+index dc5a6d0e931d..77b8f743a64a 100644
+--- a/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.cpp
++++ b/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoPi::CRPProcessInfoPi() :
++  CRPProcessInfo("RPi")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoPi::Create()
+ {
+   return new CRPProcessInfoPi();
+diff --git a/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.h b/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.h
+index d9300f14f400..8885c4ba70db 100644
+--- a/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.h
++++ b/xbmc/cores/RetroPlayer/process/rbpi/RPProcessInfoPi.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoPi : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoPi();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.cpp b/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.cpp
+index 77dc20e7c8e1..5cdfbfcb9abb 100644
+--- a/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.cpp
++++ b/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.cpp
+@@ -23,6 +23,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoWayland::CRPProcessInfoWayland() :
++  CRPProcessInfo("Wayland")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoWayland::Create()
+ {
+   return new CRPProcessInfoWayland();
+diff --git a/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.h b/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.h
+index b729fe242360..354486ff193e 100644
+--- a/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.h
++++ b/xbmc/cores/RetroPlayer/process/wayland/RPProcessInfoWayland.h
+@@ -28,6 +28,8 @@ namespace RETRO
+   class CRPProcessInfoWayland : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoWayland();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.cpp b/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.cpp
+index 8f274d892cad..c2bd2ea746bf 100644
+--- a/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.cpp
++++ b/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.cpp
+@@ -24,6 +24,11 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++CRPProcessInfoWin::CRPProcessInfoWin() :
++  CRPProcessInfo("Windows")
++{
++}
++
+ CRPProcessInfo* CRPProcessInfoWin::Create()
+ {
+   return new CRPProcessInfoWin();
+diff --git a/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.h b/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.h
+index 633e9ad4976d..8e15c9f791d1 100644
+--- a/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.h
++++ b/xbmc/cores/RetroPlayer/process/windows/RPProcessInfoWin.h
+@@ -29,6 +29,8 @@ namespace RETRO
+   class CRPProcessInfoWin : public CRPProcessInfo
+   {
+   public:
++    CRPProcessInfoWin();
++
+     static CRPProcessInfo* Create();
+     static void Register();
+   };
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+index 11005f402eb7..755f7ed35374 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+@@ -24,6 +24,7 @@
+ #include "IGUIRenderSettings.h"
+ #include "RenderContext.h"
+ #include "RenderSettings.h"
++#include "RenderTranslator.h"
+ #include "cores/RetroPlayer/process/IRenderBuffer.h"
+ #include "cores/RetroPlayer/process/IRenderBufferPool.h"
+ #include "cores/RetroPlayer/process/RenderBufferManager.h"
+@@ -54,10 +55,13 @@ CRPRenderManager::CRPRenderManager(CRPProcessInfo &processInfo) :
+ 
+ void CRPRenderManager::Initialize()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Initializing render manager");
+ }
+ 
+ void CRPRenderManager::Deinitialize()
+ {
++  CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Deinitializing render manager");
++
+   for (auto &pixelScaler : m_scalers)
+   {
+     if (pixelScaler.second != nullptr)
+@@ -81,6 +85,12 @@ bool CRPRenderManager::Configure(AVPixelFormat format, unsigned int width, unsig
+   m_height = height;
+   m_orientation = orientation;
+ 
++  CLog::Log(LOGINFO, "RetroPlayer[RENDER]: Configuring format %s, %ux%u, %u deg",
++            CRenderTranslator::TranslatePixelFormat(format),
++            width,
++            height,
++            orientation);
++
+   CSingleLock lock(m_stateMutex);
+ 
+   m_state = RENDER_STATE::CONFIGURING;
+@@ -158,6 +168,8 @@ void CRPRenderManager::FrameMove()
+     {
+       MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
+       m_state = RENDER_STATE::CONFIGURED;
++
++      CLog::Log(LOGINFO, "RetroPlayer[RENDER]: Renderer configured on first frame");
+     }
+ 
+     if (m_state == RENDER_STATE::CONFIGURED)
+@@ -358,6 +370,9 @@ std::shared_ptr<CRPBaseRenderer> CRPRenderManager::GetRenderer(IRenderBufferPool
+   // If buffer pool has no compatible renderers, create one now
+   if (!renderer)
+   {
++    CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Creating renderer for %s",
++              m_processInfo.GetRenderSystemName(bufferPool).c_str());
++
+     renderer.reset(m_processInfo.CreateRenderer(bufferPool, renderSettings));
+     if (renderer && renderer->Configure(m_format, m_width, m_height, m_orientation))
+     {
+@@ -421,6 +436,8 @@ void CRPRenderManager::CreateRenderBuffer(IRenderBufferPool *bufferPool)
+     std::vector<uint8_t> cachedFrame = std::move(m_cachedFrame);
+     if (!cachedFrame.empty())
+     {
++      CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Creating render buffer for renderer");
++
+       IRenderBuffer *renderBuffer = bufferPool->GetBuffer(cachedFrame.size());
+       if (renderBuffer != nullptr)
+       {
+@@ -432,6 +449,10 @@ void CRPRenderManager::CreateRenderBuffer(IRenderBufferPool *bufferPool)
+       }
+       m_cachedFrame = std::move(cachedFrame);
+     }
++    else
++    {
++      CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Failed to create render buffer, no cached frame");
++    }
+   }
+ }
+ 
+diff --git a/xbmc/cores/RetroPlayer/rendering/RenderTranslator.cpp b/xbmc/cores/RetroPlayer/rendering/RenderTranslator.cpp
+index 7b0e020cf70c..2b061558c1c5 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RenderTranslator.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/RenderTranslator.cpp
+@@ -23,6 +23,23 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++const char *CRenderTranslator::TranslatePixelFormat(AVPixelFormat format)
++{
++  switch (format)
++  {
++  case AV_PIX_FMT_0RGB32:
++    return "0RGB32";
++  case AV_PIX_FMT_RGB565:
++    return "RGB565";
++  case AV_PIX_FMT_RGB555:
++    return "RGB555";
++  default:
++    break;
++  }
++
++  return "unknown";
++}
++
+ const char *CRenderTranslator::TranslateScalingMethod(ESCALINGMETHOD scalingMethod)
+ {
+   switch (scalingMethod)
+diff --git a/xbmc/cores/RetroPlayer/rendering/RenderTranslator.h b/xbmc/cores/RetroPlayer/rendering/RenderTranslator.h
+index 627fcb132132..87d5bd9f456a 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RenderTranslator.h
++++ b/xbmc/cores/RetroPlayer/rendering/RenderTranslator.h
+@@ -21,6 +21,8 @@
+ 
+ #include "cores/IPlayer.h"
+ 
++#include "libavutil/pixfmt.h"
++
+ namespace KODI
+ {
+ namespace RETRO
+@@ -28,6 +30,11 @@ namespace RETRO
+   class CRenderTranslator
+   {
+   public:
++    /*!
++     * \brief Translate a pixel format to a string suitable for logging
++     */
++    static const char *TranslatePixelFormat(AVPixelFormat format);
++
+     /*!
+      * \brief Translate a scaling method to a string suitable for logging
+      */
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp
+index eba0749d75d9..6011fa7312eb 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp
+@@ -23,6 +23,7 @@
+ #include "cores/RetroPlayer/process/IRenderBufferPool.h"
+ #include "cores/RetroPlayer/rendering/RenderContext.h"
+ #include "settings/Settings.h"
++#include "utils/log.h"
+ #include "utils/MathUtils.h"
+ #include "ServiceBroker.h"
+ 
+@@ -76,7 +77,15 @@ bool CRPBaseRenderer::Configure(AVPixelFormat format, unsigned int width, unsign
+   m_renderOrientation = orientation;
+ 
+   if (!m_bufferPool->IsConfigured())
+-    m_bufferPool->Configure(format, width, height);
++  {
++    CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Configuring buffer pool");
++
++    if (!m_bufferPool->Configure(format, width, height))
++    {
++      CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Failed to configure buffer pool");
++      return false;
++    }
++  }
+ 
+   ManageRenderArea();
+ 
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.cpp b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.cpp
+index fa0799400d32..69abd21dca51 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.cpp
+@@ -34,7 +34,12 @@ using namespace RETRO;
+ 
+ #define BUFFER_OFFSET(i) (static_cast<char*>(NULL) + (i))
+ 
+-// --- CRendererFactoryGuiTexture ------------------------------------------------
++// --- CRendererFactoryGuiTexture ----------------------------------------------
++
++std::string CRendererFactoryGuiTexture::RenderSystemName() const
++{
++  return "GUITexture";
++}
+ 
+ CRPBaseRenderer *CRendererFactoryGuiTexture::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
+ {
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h
+index 9bf08c8fd64c..377693550c6a 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h
+@@ -34,6 +34,7 @@ namespace RETRO
+     virtual ~CRendererFactoryGuiTexture() = default;
+ 
+     // implementation of IRendererFactory
++    std::string RenderSystemName() const override;
+     CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) override;
+     RenderBufferPoolVector CreateBufferPools() override;
+   };
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.cpp b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.cpp
+index 1f3df880fa57..671237c63c79 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.cpp
+@@ -27,6 +27,11 @@ using namespace RETRO;
+ 
+ // --- CRendererFactoryOpenGL --------------------------------------------------
+ 
++std::string CRendererFactoryOpenGL::RenderSystemName() const
++{
++  return "OpenGL";
++}
++
+ CRPBaseRenderer *CRendererFactoryOpenGL::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
+ {
+   return new CRPRendererOpenGL(settings, context, std::move(bufferPool));
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h
+index 053ada95acc2..135076f40b7a 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h
+@@ -36,6 +36,7 @@ namespace RETRO
+     virtual ~CRendererFactoryOpenGL() = default;
+ 
+     // implementation of IRendererFactory
++    std::string RenderSystemName() const override;
+     CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) override;
+     RenderBufferPoolVector CreateBufferPools() override;
+   };
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.cpp b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.cpp
+index cd6f0434bca3..9640c88f1e7a 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.cpp
+@@ -31,6 +31,11 @@ using namespace RETRO;
+ 
+ // --- CRendererFactoryOpenGLES ------------------------------------------------
+ 
++std::string CRendererFactoryOpenGLES::RenderSystemName() const
++{
++  return "OpenGLES";
++}
++
+ CRPBaseRenderer *CRendererFactoryOpenGLES::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
+ {
+   return new CRPRendererOpenGLES(settings, context, std::move(bufferPool));
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h
+index efbce833ac76..71fe1b1611a5 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h
+@@ -40,6 +40,7 @@ namespace RETRO
+     virtual ~CRendererFactoryOpenGLES() = default;
+ 
+     // implementation of IRendererFactory
++    std::string RenderSystemName() const override;
+     CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) override;
+     RenderBufferPoolVector CreateBufferPools() override;
+   };
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.cpp b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.cpp
+index c3695ab98b30..5948bd06bd94 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.cpp
+@@ -39,6 +39,11 @@ using namespace RETRO;
+ 
+ // --- CWinRendererFactory -----------------------------------------------------
+ 
++std::string CWinRendererFactory::RenderSystemName() const
++{
++  return "DirectX";
++}
++
+ CRPBaseRenderer *CWinRendererFactory::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
+ {
+   return new CRPWinRenderer(settings, context, std::move(bufferPool));
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.h b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.h
+index 59b186de601a..de0789ed6689 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.h
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPWinRenderer.h
+@@ -44,6 +44,7 @@ namespace RETRO
+     virtual ~CWinRendererFactory() = default;
+ 
+     // implementation of IRendererFactory
++    std::string RenderSystemName() const override;
+     CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) override;
+     RenderBufferPoolVector CreateBufferPools() override;
+   };
