@@ -60,11 +60,12 @@ index da46973..4173d93 100644
    pVideoPicture->iDisplayWidth  = pVideoPicture->iWidth;
    pVideoPicture->iDisplayHeight = pVideoPicture->iHeight;
    if (m_aspect_ratio > 1.0 && !m_hints.forced_aspect)
-@@ -520,6 +533,24 @@ void CDVDVideoCodecAmlogic::FrameRateTracking(uint8_t *pData, int iSize, double
+@@ -470,4 +470,23 @@ void CDVDVideoCodecAmlogic::FrameRateTracking(uint8_t *pData, int iSize, double
+     }
      return;
    }
- 
-+  // h264 aspect ratio handling
++
++   // h264 aspect ratio handling
 +  if (m_h264_sequence)
 +  {
 +    // probe demux for SPS NAL and decode aspect ratio
@@ -82,9 +83,7 @@ index da46973..4173d93 100644
 +    }
 +  }
 +
-   // everything else
-   FrameQueuePush(dts, pts);
- 
+ }
 diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
 index 9e57295..d519d28 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAmlogic.h
