@@ -8,12 +8,12 @@
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/7283b177e0c897f4769dd51af4ce66ba003b9356.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/fb2c92713966c6ce5fb6598f670799ff55d32efd.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/54b1d5a91092e81df7509c882568f68f5bece7a7.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/866f392e5a7b81fd760581d3d1f9ebaad11899f8.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
