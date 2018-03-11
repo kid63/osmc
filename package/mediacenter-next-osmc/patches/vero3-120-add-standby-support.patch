@@ -101,12 +101,12 @@ index 33c4eb4..fdd70cd 100644
 +++ b/xbmc/powermanagement/PowerManager.cpp
 @@ -38,6 +38,7 @@
  #include "utils/log.h"
- #include "utils/Weather.h"
- #include "windowing/WindowingFactory.h"
+ #include "weather/WeatherManager.h"
+ #include "windowing/WinSystem.h"
 +#include "addons/AddonManager.h"
  
- #if defined(TARGET_DARWIN)
- #include "osx/CocoaPowerSyscall.h"
+ #if defined(TARGET_WINDOWS_DESKTOP)
+ extern HWND g_hWnd; 
 @@ -185,7 +186,9 @@ bool CPowerManager::Powerdown()
  
  bool CPowerManager::Suspend()
