@@ -84,17 +84,17 @@ index 49f9bcb..67db49a 100644
    void ActivateScreenSaver(bool forceType = false);
 +  void ActivateScreenSaverStandby();
 +  void ToggleStandby(bool sleeping);
-   bool SetupNetwork();
    void CloseNetworkShares();
- 
+
+   void ShowAppMigrationMessage(); 
 @@ -460,6 +462,7 @@ protected:
  #endif
    // screensaver
-   bool m_bScreenSave;
+   bool m_screensaverActive; 
 +  bool m_bVeroStandby;
-   ADDON::AddonPtr m_screenSaver;
- 
-   // timer information
+   std::string m_screensaverIdInUse;   
+   ADDON::AddonPtr m_pythonScreenSaver; // @warning: Fallback for Python interface, for binaries not needed!
+   // OS screen saver inhibitor that is always active if user selected a Kodi screen saver
 diff --git a/xbmc/powermanagement/PowerManager.cpp b/xbmc/powermanagement/PowerManager.cpp
 index 33c4eb4..fdd70cd 100644
 --- a/xbmc/powermanagement/PowerManager.cpp
