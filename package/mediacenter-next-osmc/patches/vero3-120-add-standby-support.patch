@@ -42,7 +42,7 @@ index 6925404..f3be71b 100644
 +  CLog::Log(LOGINFO, "Activating Vero standby mode");
 +  ToggleStandby(m_bVeroStandby);
 +  m_screensaverActive = true;
-+  m_screenSaver.reset();
++  ResetScreenSaver();
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
 +  //ADDON::CAddonMgr::GetInstance().GetAddon("screensaver.xbmc.builtin.black", m_screenSaver);
 +  g_windowManager.CloseDialogs(true);
