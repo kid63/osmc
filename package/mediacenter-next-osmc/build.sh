@@ -299,12 +299,12 @@ then
 	.
 	fi
 	if [ "$1" == "vero" ]; then
-	LIBRARY_PATH+="/opt/vero/lib" && \
-	COMPFLAGS="-I/opt/vero/include -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
-	export CFLAGS+=${COMPFLAGS} && \
-	export CXXFLAGS+=${COMPFLAGS} && \
-	export CPPFLAGS+=${COMPFLAGS} && \
-	export LDFLAGS="-L/opt/vero/lib" && \
+		LIBRARY_PATH+="/opt/vero/lib" && \
+		COMPFLAGS="-I/opt/vero/include -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
+		export CFLAGS+=${COMPFLAGS} && \
+		export CXXFLAGS+=${COMPFLAGS} && \
+		export CPPFLAGS+=${COMPFLAGS} && \
+		export LDFLAGS="-L/opt/vero/lib" && \
         cmake -DCMAKE_INSTALL_PREFIX=/usr \
             -DCMAKE_INSTALL_LIBDIR=/usr/lib \
             -DCMAKE_PREFIX_PATH=/opt/vero \
@@ -324,7 +324,7 @@ then
             -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
             -DENABLE_APP_AUTONAME=OFF \
-         .
+        .
 	fi
 	if [ "$1" == "vero2" ]; then
 		LIBRARY_PATH+="/opt/vero2/lib" && \
