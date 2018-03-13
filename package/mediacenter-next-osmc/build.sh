@@ -305,26 +305,26 @@ then
 	export CXXFLAGS+=${COMPFLAGS} && \
 	export CPPFLAGS+=${COMPFLAGS} && \
 	export LDFLAGS="-L/opt/vero/lib" && \
-	./configure \
-		--prefix=/usr \
-		--disable-x11 \
-		--disable-openmax \
-		--disable-vdpau \
-		--disable-vaapi \
-		--enable-gles \
-		--enable-codec=imxvpu \
-		--enable-libcec \
-		--disable-debug \
-		--disable-texturepacker \
-		--enable-optical-drive \
-		--enable-dvdcss \
-		--enable-libbluray \
-		--disable-joystick \
-		--disable-vtbdecoder \
-		--disable-pulse \
-		--disable-optimizations \
-		--with-platform=vero \
-		--build=arm-linux
+        cmake -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_LIBDIR=/usr/lib \
+            -DCMAKE_PREFIX_PATH=/opt/vero \
+            -DCMAKE_INCLUDE_PATH=/opt/vero/include \
+            -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
+            -DOPENGLES_gl_LIBRARY=/opt/vero/lib \
+            -DENABLE_AML=ON \
+            -DASS_INCLUDE_DIR=/usr/osmc/lib \
+            -DAML_INCLUDE_DIR=/opt/vero/include \
+            -DRapidJSON_INCLUDE_DIR=/opt/vero/include \
+            -DENABLE_OPENGLES=ON \
+            -DENABLE_OPENGL=OFF \
+            -DENABLE_OPTICAL=1 \
+            -DENABLE_DVDCSS=1 \
+            -DWITH_ARCH=arm \
+            -DWITH_CPU=${CPU} \
+            -DCORE_PLATFORM_NAME=aml \
+            -DCORE_SYSTEM_NAME=linux \
+            -DENABLE_APP_AUTONAME=OFF \
+         .
 	fi
 	if [ "$1" == "vero2" ]; then
 		LIBRARY_PATH+="/opt/vero2/lib" && \
