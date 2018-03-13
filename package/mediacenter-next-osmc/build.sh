@@ -321,7 +321,7 @@ then
             -DENABLE_DVDCSS=1 \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
-            -DCORE_PLATFORM_NAME=aml \
+            -DCORE_PLATFORM_NAME=imx \
             -DCORE_SYSTEM_NAME=linux \
             -DENABLE_APP_AUTONAME=OFF \
         .
