@@ -1,0 +1,5851 @@
+From 0fa4a5cbe63d80ded822799877879ff850f2a0bf Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Tue, 13 Mar 2018 20:35:58 +0000
+Subject: [PATCH] Add imx platform
+
+---
+ cmake/modules/FindIMX.cmake                        |   38 +
+ cmake/platform/linux/imx.cmake                     |    1 +
+ cmake/treedata/optional/common/imx.txt             |    1 +
+ system/settings/imx6.xml                           |   31 +
+ xbmc/Application.cpp                               |    2 +-
+ .../RetroPlayer/rendering/RPRenderManager.cpp      |    4 +
+ .../VideoPlayer/DVDCodecs/Video/CMakeLists.txt     |    5 +
+ .../DVDCodecs/Video/DVDVideoCodecIMX.cpp           | 1994 ++++++++++++++++++++
+ .../VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h |  452 +++++
+ .../VideoPlayer/VideoRenderers/CMakeLists.txt      |    1 +
+ .../VideoRenderers/HwDecRender/CMakeLists.txt      |    5 +
+ .../VideoRenderers/HwDecRender/RendererIMX.cpp     |  237 +++
+ .../VideoRenderers/HwDecRender/RendererIMX.h       |   69 +
+ .../VideoPlayer/VideoRenderers/LinuxRendererGLES.h |    1 +
+ .../VideoPlayer/VideoRenderers/RenderCapture.cpp   |   38 +-
+ .../VideoPlayer/VideoRenderers/RenderCapture.h     |   26 +-
+ .../VideoRenderers/VideoShaders/CMakeLists.txt     |    1 +
+ xbmc/cores/VideoSettings.h                         |    3 +
+ xbmc/guilib/GUIVideoControl.cpp                    |    4 +
+ xbmc/peripherals/PeripheralTypes.h                 |    5 +
+ xbmc/peripherals/bus/virtual/PeripheralBusCEC.cpp  |    6 +
+ xbmc/settings/Settings.cpp                         |    3 +
+ xbmc/utils/Screenshot.cpp                          |   11 +
+ xbmc/video/dialogs/GUIDialogVideoSettings.cpp      |    3 +
+ xbmc/video/windows/GUIWindowFullScreen.cpp         |    4 +
+ xbmc/windowing/egl/CMakeLists.txt                  |   11 +
+ xbmc/windowing/egl/EGLNativeType.h                 |  152 ++
+ xbmc/windowing/egl/EGLNativeTypeIMX.cpp            |  451 +++++
+ xbmc/windowing/egl/EGLNativeTypeIMX.h              |   74 +
+ xbmc/windowing/egl/EGLQuirks.h                     |   42 +
+ xbmc/windowing/egl/EGLWrapper.cpp                  |  405 ++++
+ xbmc/windowing/egl/EGLWrapper.h                    |   76 +
+ xbmc/windowing/egl/VideoSyncIMX.cpp                |   84 +
+ xbmc/windowing/egl/VideoSyncIMX.h                  |   41 +
+ xbmc/windowing/egl/WinSystemEGL.cpp                |  566 ++++++
+ xbmc/windowing/egl/WinSystemEGL.h                  |  101 +
+ xbmc/windowing/imx/CMakeLists.txt                  |    6 +
+ xbmc/windowing/imx/GlobalsIMX.cpp                  |   24 +
+ xbmc/windowing/imx/IMX.cpp                         |  242 +++
+ xbmc/windowing/imx/IMX.h                           |  207 ++
+ 40 files changed, 5424 insertions(+), 3 deletions(-)
+ create mode 100644 cmake/modules/FindIMX.cmake
+ create mode 100644 cmake/platform/linux/imx.cmake
+ create mode 100644 cmake/treedata/optional/common/imx.txt
+ create mode 100644 system/settings/imx6.xml
+ create mode 100644 xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.cpp
+ create mode 100644 xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h
+ create mode 100644 xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.cpp
+ create mode 100644 xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.h
+ create mode 100644 xbmc/windowing/egl/CMakeLists.txt
+ create mode 100644 xbmc/windowing/egl/EGLNativeType.h
+ create mode 100644 xbmc/windowing/egl/EGLNativeTypeIMX.cpp
+ create mode 100644 xbmc/windowing/egl/EGLNativeTypeIMX.h
+ create mode 100644 xbmc/windowing/egl/EGLQuirks.h
+ create mode 100644 xbmc/windowing/egl/EGLWrapper.cpp
+ create mode 100644 xbmc/windowing/egl/EGLWrapper.h
+ create mode 100644 xbmc/windowing/egl/VideoSyncIMX.cpp
+ create mode 100644 xbmc/windowing/egl/VideoSyncIMX.h
+ create mode 100644 xbmc/windowing/egl/WinSystemEGL.cpp
+ create mode 100644 xbmc/windowing/egl/WinSystemEGL.h
+ create mode 100644 xbmc/windowing/imx/CMakeLists.txt
+ create mode 100644 xbmc/windowing/imx/GlobalsIMX.cpp
+ create mode 100644 xbmc/windowing/imx/IMX.cpp
+ create mode 100644 xbmc/windowing/imx/IMX.h
+
+diff --git a/cmake/modules/FindIMX.cmake b/cmake/modules/FindIMX.cmake
+new file mode 100644
+index 0000000000..3689579549
+--- /dev/null
++++ b/cmake/modules/FindIMX.cmake
+@@ -0,0 +1,38 @@
++#.rst:
++# FindIMX
++# -------
++# Finds the IMX codec
++#
++# This will will define the following variables::
++#
++# IMX_FOUND - system has IMX
++# IMX_INCLUDE_DIRS - the IMX include directory
++# IMX_DEFINITIONS - the IMX definitions
++# IMX_LIBRARIES - the IMX libraries
++
++if(PKG_CONFIG_FOUND)
++  pkg_check_modules(IMX fslvpuwrap QUIET)
++endif()
++
++find_path(IMX_INCLUDE_DIR NAMES vpu_wrapper.h
++                          PATH_SUFFIXES imx-mm/vpu
++                          PATHS ${PC_IMX_INCLUDEDIR})
++
++find_library(FSLVPUWRAP_LIBRARY NAMES fslvpuwrap
++                                PATHS ${PC_IMX_LIBDIR})
++find_library(VPU_LIBRARY NAMES vpu
++                         PATHS ${PC_IMX_LIBDIR})
++find_library(G2D_LIBRARY NAMES g2d
++                         PATHS ${PC_IMX_LIBDIR})
++
++include(FindPackageHandleStandardArgs)
++find_package_handle_standard_args(IMX
++                                  REQUIRED_VARS IMX_INCLUDE_DIR FSLVPUWRAP_LIBRARY VPU_LIBRARY G2D_LIBRARY)
++
++if(IMX_FOUND)
++  set(IMX_INCLUDE_DIRS ${IMX_INCLUDE_DIR})
++  set(IMX_LIBRARIES ${FSLVPUWRAP_LIBRARY} ${VPU_LIBRARY} ${G2D_LIBRARY})
++  set(IMX_DEFINITIONS -DHAS_IMXVPU=1 -DLINUX -DEGL_API_FB)
++endif()
++
++mark_as_advanced(IMX_INCLUDE_DIR FSLVPUWRAP_LIBRARY VPU_LIBRARY G2D_LIBRARY)
+diff --git a/cmake/platform/linux/imx.cmake b/cmake/platform/linux/imx.cmake
+new file mode 100644
+index 0000000000..c0c719627a
+--- /dev/null
++++ b/cmake/platform/linux/imx.cmake
+@@ -0,0 +1 @@
++set(PLATFORM_REQUIRED_DEPS OpenGLES EGL IMX)
+diff --git a/cmake/treedata/optional/common/imx.txt b/cmake/treedata/optional/common/imx.txt
+new file mode 100644
+index 0000000000..8c7e60b98a
+--- /dev/null
++++ b/cmake/treedata/optional/common/imx.txt
+@@ -0,0 +1 @@
++xbmc/windowing/egl         windowing/egl    # IMX
+diff --git a/system/settings/imx6.xml b/system/settings/imx6.xml
+new file mode 100644
+index 0000000000..a1cac3abaa
+--- /dev/null
++++ b/system/settings/imx6.xml
+@@ -0,0 +1,31 @@
++<?xml version="1.0" encoding="utf-8" ?>
++<settings version="1">
++  <section id="player">
++    <category id="videoplayer">
++      <group id="3">
++        <setting id="videoplayer.limitguiupdate" type="integer" label="38013" help="38014">
++          <level>2</level>
++          <default>10</default>
++          <constraints>
++            <minimum label="38015">0</minimum> <!-- Unlimited -->
++            <step>5</step>
++            <maximum>25</maximum>
++          </constraints>
++          <control type="spinner" format="string">
++            <formatlabel>38016</formatlabel>
++          </control>
++          <control type="edit" format="integer" />
++        </setting>
++      </group>
++    </category>
++  </section>
++  <section id="system">
++    <category id="display">
++      <group id="1">
++        <setting id="videoscreen.fakefullscreen">
++          <visible>false</visible>
++        </setting>
++      </group>
++    </category>
++  </section>
++</settings>
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 8fe1ed5da5..7f6b6aa9bf 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -2658,7 +2658,7 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
+   if (processGUI && m_renderGUI)
+   {
+     m_skipGuiRender = false;
+-#if defined(TARGET_RASPBERRY_PI)
++#if defined(TARGET_RASPBERRY_PI) || defined(HAS_IMXVPU)
+     int fps = 0;
+ 
+     // This code reduces rendering fps of the GUI layer when playing videos in fullscreen mode
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+index a3b1170f69..fd84242ceb 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+@@ -254,7 +254,11 @@ void CRPRenderManager::RenderControl(bool bClear, bool bUseAlpha, const CRect &r
+ 
+ void CRPRenderManager::ClearBackground()
+ {
++#ifdef HAS_IMXVPU
++  m_renderContext.Clear((16 << 16) | (8 << 8) | 16);
++#else
+   m_renderContext.Clear(0);
++#endif
+ }
+ 
+ bool CRPRenderManager::SupportsRenderFeature(ERENDERFEATURE feature) const
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/CMakeLists.txt b/xbmc/cores/VideoPlayer/DVDCodecs/Video/CMakeLists.txt
+index 5099bbeced..0559300931 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/CMakeLists.txt
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/CMakeLists.txt
+@@ -46,6 +46,11 @@ if(MMAL_FOUND)
+   list(APPEND HEADERS MMALFFmpeg.h)
+ endif()
+ 
++if(IMX_FOUND)
++  list(APPEND SOURCES DVDVideoCodecIMX.cpp)
++  list(APPEND HEADERS DVDVideoCodecIMX.h)
++endif()
++
+ if(CORE_SYSTEM_NAME STREQUAL android)
+   list(APPEND SOURCES DVDVideoCodecAndroidMediaCodec.cpp)
+   list(APPEND HEADERS DVDVideoCodecAndroidMediaCodec.h)
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.cpp
+new file mode 100644
+index 0000000000..753bea94c7
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.cpp
+@@ -0,0 +1,1994 @@
++/*
++ *      Copyright (C) 2010-2013 Team XBMC
++ *      http://www.xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "DVDVideoCodecIMX.h"
++
++#include "settings/AdvancedSettings.h"
++#include "threads/SingleLock.h"
++#include "utils/log.h"
++#include "windowing/WindowingFactory.h"
++#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
++#include "guilib/GraphicContext.h"
++#include "utils/StringUtils.h"
++#include "settings/MediaSettings.h"
++#include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
++
++#include "linux/imx/IMX.h"
++#include "libavcodec/avcodec.h"
++
++#include "guilib/LocalizeStrings.h"
++
++#include <cassert>
++#include <sys/stat.h>
++#include <sys/ioctl.h>
++#include <sys/mman.h>
++#include <unistd.h>
++#include <string.h>
++#include <fcntl.h>
++#include <algorithm>
++#include <linux/fb.h>
++#include <list>
++
++#define FRAME_ALIGN             16
++#define MEDIAINFO               1
++#define RENDER_QUEUE_SIZE       NUM_BUFFERS
++#define DECODE_OUTPUT_SIZE      15
++#define IN_DECODER_SET          -1
++
++#define _4CC(c1,c2,c3,c4) (((uint32_t)(c4)<<24)|((uint32_t)(c3)<<16)|((uint32_t)(c2)<<8)|(uint32_t)(c1))
++#define Align(ptr,align)  (((unsigned int)ptr + (align) - 1)/(align)*(align))
++#define Align2(ptr,align)  (((unsigned int)ptr)/(align)*(align))
++#define ALIGN Align
++
++#define BIT(nr) (1UL << (nr))
++#define SZ_4K                   4*1024
++
++#if defined(IMX_PROFILE) || defined(IMX_PROFILE_BUFFERS) || defined(TRACE_FRAMES)
++unsigned char CDVDVideoCodecIMXBuffer::i = 0;
++#endif
++
++CIMXContext   g_IMXContext;
++std::shared_ptr<CIMXCodec> g_IMXCodec;
++
++std::list<VpuFrameBuffer*> m_recycleBuffers;
++
++// Number of fb pages used for panning
++const int CIMXContext::m_fbPages = 3;
++
++// Experiments show that we need at least one more (+1) VPU buffer than the min value returned by the VPU
++const unsigned int CIMXCodec::m_extraVpuBuffers = 1 + CIMXContext::m_fbPages + RENDER_QUEUE_SIZE;
++
++CDVDVideoCodecIMX::~CDVDVideoCodecIMX()
++{
++  m_IMXCodec.reset();
++  if (g_IMXCodec.use_count() == 1)
++    g_IMXCodec.reset();
++}
++
++bool CDVDVideoCodecIMX::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
++{
++  if (!g_IMXCodec)
++  {
++    m_IMXCodec.reset(new CIMXCodec);
++    g_IMXCodec = m_IMXCodec;
++  }
++  else
++    m_IMXCodec = g_IMXCodec;
++
++  return g_IMXCodec->Open(hints, options, m_pFormatName, &m_processInfo);
++}
++
++unsigned CDVDVideoCodecIMX::GetAllowedReferences()
++{
++  return RENDER_QUEUE_SIZE;
++}
++
++bool CIMXCodec::VpuAllocBuffers(VpuMemInfo *pMemBlock)
++{
++  int i, size;
++  void* ptr;
++  VpuMemDesc vpuMem;
++
++  for(i=0; i<pMemBlock->nSubBlockNum; i++)
++  {
++    size = pMemBlock->MemSubBlock[i].nAlignment + pMemBlock->MemSubBlock[i].nSize;
++    if (pMemBlock->MemSubBlock[i].MemType == VPU_MEM_VIRT)
++    { // Allocate standard virtual memory
++      ptr = malloc(size);
++      if(ptr == NULL)
++      {
++        ExitError("%s - Unable to malloc %d bytes.\n", size);
++        return false;
++      }
++
++      pMemBlock->MemSubBlock[i].pVirtAddr = (unsigned char*)Align(ptr, pMemBlock->MemSubBlock[i].nAlignment);
++
++      m_decMemInfo.nVirtNum++;
++      m_decMemInfo.virtMem = (void**)realloc(m_decMemInfo.virtMem, m_decMemInfo.nVirtNum*sizeof(void*));
++      m_decMemInfo.virtMem[m_decMemInfo.nVirtNum-1] = ptr;
++    }
++    else
++    { // Allocate contiguous mem for DMA
++      vpuMem.nSize = size;
++      if(!VpuAlloc(&vpuMem))
++        return false;
++
++      pMemBlock->MemSubBlock[i].pVirtAddr = (unsigned char*)Align(vpuMem.nVirtAddr, pMemBlock->MemSubBlock[i].nAlignment);
++      pMemBlock->MemSubBlock[i].pPhyAddr = (unsigned char*)Align(vpuMem.nPhyAddr, pMemBlock->MemSubBlock[i].nAlignment);
++    }
++  }
++
++  return true;
++}
++
++bool CIMXCodec::VpuFreeBuffers(bool dispose)
++{
++  VpuMemDesc vpuMem;
++  VpuDecRetCode vpuRet;
++  int freePhyNum = dispose ? m_decMemInfo.nPhyNum : m_vpuFrameBuffers.size();
++  bool ret = true;
++
++  m_decOutput.for_each(Release);
++
++  if (m_decMemInfo.virtMem && dispose)
++  {
++    //free virtual mem
++    for(int i=0; i<m_decMemInfo.nVirtNum; i++)
++    {
++      if (m_decMemInfo.virtMem[i])
++        free((void*)m_decMemInfo.virtMem[i]);
++    }
++    free(m_decMemInfo.virtMem);
++    m_decMemInfo.virtMem = NULL;
++    m_decMemInfo.nVirtNum = 0;
++  }
++
++  if (m_decMemInfo.nPhyNum)
++  {
++    int released = 0;
++    //free physical mem
++    for(int i=m_decMemInfo.nPhyNum - 1; i>=m_decMemInfo.nPhyNum - freePhyNum; i--)
++    {
++      vpuMem.nPhyAddr = m_decMemInfo.phyMem[i].nPhyAddr;
++      vpuMem.nVirtAddr = m_decMemInfo.phyMem[i].nVirtAddr;
++      vpuMem.nCpuAddr = m_decMemInfo.phyMem[i].nCpuAddr;
++      vpuMem.nSize = m_decMemInfo.phyMem[i].nSize;
++      vpuRet = VPU_DecFreeMem(&vpuMem);
++      if(vpuRet != VPU_DEC_RET_SUCCESS)
++      {
++        CLog::Log(LOGERROR, "%s - Error while trying to free physical memory (%d).\n", __FUNCTION__, ret);
++        ret = false;
++        break;
++      }
++      else
++        released++;
++    }
++
++    m_decMemInfo.nPhyNum -= released;
++    if (!m_decMemInfo.nPhyNum)
++    {
++      free(m_decMemInfo.phyMem);
++      m_decMemInfo.phyMem = NULL;
++    }
++  }
++
++  m_vpuFrameBuffers.clear();
++  return ret;
++}
++
++
++bool CIMXCodec::VpuOpen()
++{
++  VpuDecRetCode  ret;
++  VpuVersionInfo vpuVersion;
++  VpuMemInfo     memInfo;
++  int            param;
++
++  memset(&memInfo, 0, sizeof(VpuMemInfo));
++  ret = VPU_DecLoad();
++  if (ret != VPU_DEC_RET_SUCCESS)
++  {
++    CLog::Log(LOGERROR, "%s - VPU load failed with error code %d.\n", __FUNCTION__, ret);
++    goto VpuOpenError;
++  }
++
++  ret = VPU_DecGetVersionInfo(&vpuVersion);
++  if (ret != VPU_DEC_RET_SUCCESS)
++  {
++    CLog::Log(LOGERROR, "%s - VPU version cannot be read (%d).\n", __FUNCTION__, ret);
++    goto VpuOpenError;
++  }
++  else
++    CLog::Log(LOGDEBUG, LOGVIDEO, "VPU Lib version : major.minor.rel=%d.%d.%d.\n", vpuVersion.nLibMajor, vpuVersion.nLibMinor, vpuVersion.nLibRelease);
++
++  ret = VPU_DecQueryMem(&memInfo);
++  if (ret != VPU_DEC_RET_SUCCESS)
++  {
++          CLog::Log(LOGERROR, "%s - iMX VPU query mem error (%d).\n", __FUNCTION__, ret);
++          goto VpuOpenError;
++  }
++
++  if (!VpuAllocBuffers(&memInfo))
++    goto VpuOpenError;
++
++  m_decOpenParam.nReorderEnable = 1;
++#ifdef IMX_INPUT_FORMAT_I420
++  m_decOpenParam.nChromaInterleave = 0;
++#else
++  m_decOpenParam.nChromaInterleave = 1;
++#endif
++  m_decOpenParam.nTiled2LinearEnable = 0;
++  m_decOpenParam.nEnableFileMode = 0;
++
++  ret = VPU_DecOpen(&m_vpuHandle, &m_decOpenParam, &memInfo);
++  if (ret != VPU_DEC_RET_SUCCESS)
++  {
++    CLog::Log(LOGERROR, "%s - iMX VPU open failed (%d).\n", __FUNCTION__, ret);
++    goto VpuOpenError;
++  }
++
++  param = 0;
++  SetVPUParams(VPU_DEC_CONF_BUFDELAY, &param);
++
++  return true;
++
++VpuOpenError:
++  Dispose();
++  return false;
++}
++
++bool CIMXCodec::VpuAlloc(VpuMemDesc *vpuMem)
++{
++  VpuDecRetCode ret = VPU_DecGetMem(vpuMem);
++  if (ret)
++  {
++    CLog::Log(LOGERROR, "%s: vpu malloc frame buf of size %d failure: ret=%d \r\n",__FUNCTION__, vpuMem->nSize, ret);
++    return false;
++  }
++
++  m_decMemInfo.nPhyNum++;
++  m_decMemInfo.phyMem = (VpuMemDesc*)realloc(m_decMemInfo.phyMem, m_decMemInfo.nPhyNum*sizeof(VpuMemDesc));
++  m_decMemInfo.phyMem[m_decMemInfo.nPhyNum-1].nPhyAddr = vpuMem->nPhyAddr;
++  m_decMemInfo.phyMem[m_decMemInfo.nPhyNum-1].nVirtAddr = vpuMem->nVirtAddr;
++  m_decMemInfo.phyMem[m_decMemInfo.nPhyNum-1].nCpuAddr = vpuMem->nCpuAddr;
++  m_decMemInfo.phyMem[m_decMemInfo.nPhyNum-1].nSize = vpuMem->nSize;
++
++  return true;
++}
++
++bool CIMXCodec::VpuAllocFrameBuffers()
++{
++  int totalSize = 0;
++  int ySize     = 0;
++  int uSize     = 0;
++  int vSize     = 0;
++  int mvSize    = 0;
++  int yStride   = 0;
++  int uvStride  = 0;
++
++  VpuMemDesc vpuMem;
++  unsigned char* ptr;
++  unsigned char* ptrVirt;
++  int nAlign;
++
++  int nrBuf = std::min(m_initInfo.nMinFrameBufferCount + m_extraVpuBuffers + DECODE_OUTPUT_SIZE, (unsigned int)30);
++
++  yStride = Align(m_initInfo.nPicWidth,FRAME_ALIGN);
++  if(m_initInfo.nInterlace)
++  {
++    ySize = Align(m_initInfo.nPicWidth,FRAME_ALIGN)*Align(m_initInfo.nPicHeight,(2*FRAME_ALIGN));
++  }
++  else
++  {
++    ySize = Align(m_initInfo.nPicWidth,FRAME_ALIGN)*Align(m_initInfo.nPicHeight,FRAME_ALIGN);
++  }
++
++#ifdef IMX_INPUT_FORMAT_I420
++  switch (m_initInfo.nMjpgSourceFormat)
++  {
++  case 0: // I420 (4:2:0)
++    uvStride = yStride / 2;
++    uSize = vSize = mvSize = ySize / 4;
++    break;
++  case 1: // Y42B (4:2:2 horizontal)
++    uvStride = yStride / 2;
++    uSize = vSize = mvSize = ySize / 2;
++    break;
++  case 3: // Y444 (4:4:4)
++    uvStride = yStride;
++    uSize = vSize = mvSize = ySize;
++    break;
++  default:
++    CLog::Log(LOGERROR, "%s: invalid source format in init info\n",__FUNCTION__);
++    return false;
++  }
++
++#else
++  // NV12
++  uvStride = yStride;
++  uSize    = ySize/2;
++  mvSize   = uSize/2;
++#endif
++
++  nAlign = m_initInfo.nAddressAlignment;
++  if(nAlign>1)
++  {
++    ySize = Align(ySize, nAlign);
++    uSize = Align(uSize, nAlign);
++    vSize = Align(vSize, nAlign);
++    mvSize = Align(mvSize, nAlign);
++  }
++
++  totalSize = ySize + uSize + vSize + mvSize + nAlign;
++  for (int i=0 ; i < nrBuf; i++)
++  {
++    vpuMem.nSize = totalSize;
++    if(!VpuAlloc(&vpuMem))
++    {
++      if (m_vpuFrameBuffers.size() < m_initInfo.nMinFrameBufferCount + m_extraVpuBuffers)
++        return false;
++
++      CLog::Log(LOGWARNING, "%s: vpu can't allocate sufficient extra buffers. specify bigger CMA e.g. cma=320M.\r\n",__FUNCTION__);
++      break;
++    }
++
++    //fill frameBuf
++    ptr = (unsigned char*)vpuMem.nPhyAddr;
++    ptrVirt = (unsigned char*)vpuMem.nVirtAddr;
++
++    //align the base address
++    if(nAlign>1)
++    {
++      ptr = (unsigned char*)Align(ptr,nAlign);
++      ptrVirt = (unsigned char*)Align(ptrVirt,nAlign);
++    }
++
++    VpuFrameBuffer vpuFrameBuffer;
++    m_vpuFrameBuffers.push_back(vpuFrameBuffer);
++
++    // fill stride info
++    m_vpuFrameBuffers[i].nStrideY           = yStride;
++    m_vpuFrameBuffers[i].nStrideC           = uvStride;
++
++    // fill phy addr
++    m_vpuFrameBuffers[i].pbufY              = ptr;
++    m_vpuFrameBuffers[i].pbufCb             = ptr + ySize;
++#ifdef IMX_INPUT_FORMAT_I420
++    m_vpuFrameBuffers[i].pbufCr             = ptr + ySize + uSize;
++#else
++    m_vpuFrameBuffers[i].pbufCr             = 0;
++#endif
++    m_vpuFrameBuffers[i].pbufMvCol          = ptr + ySize + uSize + vSize;
++
++    // fill virt addr
++    m_vpuFrameBuffers[i].pbufVirtY          = ptrVirt;
++    m_vpuFrameBuffers[i].pbufVirtCb         = ptrVirt + ySize;
++#ifdef IMX_INPUT_FORMAT_I420
++    m_vpuFrameBuffers[i].pbufVirtCr         = ptrVirt + ySize + uSize;
++#else
++    m_vpuFrameBuffers[i].pbufVirtCr         = 0;
++#endif
++    m_vpuFrameBuffers[i].pbufVirtMvCol      = ptrVirt + ySize + uSize + vSize;
++
++    m_vpuFrameBuffers[i].pbufY_tilebot      = 0;
++    m_vpuFrameBuffers[i].pbufCb_tilebot     = 0;
++    m_vpuFrameBuffers[i].pbufVirtY_tilebot  = 0;
++    m_vpuFrameBuffers[i].pbufVirtCb_tilebot = 0;
++  }
++
++  if (VPU_DEC_RET_SUCCESS != VPU_DecRegisterFrameBuffer(m_vpuHandle, &m_vpuFrameBuffers[0], m_vpuFrameBuffers.size()))
++    return false;
++
++  m_processInfo->SetVideoDAR((double)m_initInfo.nQ16ShiftWidthDivHeightRatio/0x10000);
++
++  m_decOutput.setquotasize(m_vpuFrameBuffers.size() - m_initInfo.nMinFrameBufferCount - m_extraVpuBuffers);
++  return true;
++}
++
++CIMXCodec::CIMXCodec()
++  : CThread("iMX VPU")
++  , m_dropped(0)
++  , m_lastPTS(DVD_NOPTS_VALUE)
++  , m_codecControlFlags(0)
++  , m_decSignal(0)
++  , m_threadID(0)
++  , m_decRet(VPU_DEC_INPUT_NOT_USED)
++  , m_fps(-1)
++  , m_burst(0)
++{
++  m_nrOut.store(0);
++
++  m_vpuHandle = 0;
++  m_converter = NULL;
++#ifdef DUMP_STREAM
++  m_dump = NULL;
++#endif
++  m_drainMode = VPU_DEC_IN_NORMAL;
++  m_skipMode = VPU_DEC_SKIPNONE;
++
++  m_decOutput.setquotasize(1);
++  m_decInput.setquotasize(30);
++  m_loaded.Reset();
++}
++
++CIMXCodec::~CIMXCodec()
++{
++  g_IMXContext.SetProcessInfo(nullptr);
++  StopThread(false);
++  ProcessSignals(SIGNAL_SIGNAL);
++  SetDrainMode(VPU_DEC_IN_DRAIN);
++  StopThread();
++}
++
++void CIMXCodec::DisposeDecQueues()
++{
++  m_decInput.signal();
++  m_decInput.for_each(Release);
++  m_decOutput.signal();
++  m_decOutput.for_each(Release);
++  m_rebuffer = true;
++}
++
++void CIMXCodec::Reset()
++{
++  m_queuesLock.lock();
++  DisposeDecQueues();
++  ProcessSignals(SIGNAL_FLUSH);
++  CLog::Log(LOGDEBUG, "iMX VPU : queues cleared ===== in/out %d/%d =====\n", m_decInput.size(), m_decOutput.size());
++}
++
++bool CIMXCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options, std::string &m_pFormatName, CProcessInfo *m_pProcessInfo)
++{
++  CSingleLock lk(m_openLock);
++
++  if (hints.software)
++  {
++    CLog::Log(LOGNOTICE, "iMX VPU : software decoding requested.\n");
++    return false;
++  }
++  else if (hints.width > 1920)
++  {
++    CLog::Log(LOGNOTICE, "iMX VPU : software decoding forced - video dimensions out of spec: %d %d.", hints.width, hints.height);
++    return false;
++  }
++  else if (hints.stills && hints.dvd)
++    return false;
++
++#ifdef DUMP_STREAM
++  m_dump = fopen("stream.dump", "wb");
++  if (m_dump != NULL)
++  {
++    fwrite(&hints.software, sizeof(hints.software), 1, m_dump);
++    fwrite(&hints.codec, sizeof(hints.codec), 1, m_dump);
++    fwrite(&hints.profile, sizeof(hints.profile), 1, m_dump);
++    fwrite(&hints.codec_tag, sizeof(hints.codec_tag), 1, m_dump);
++    fwrite(&hints.extrasize, sizeof(hints.extrasize), 1, m_dump);
++    CLog::Log(LOGNOTICE, "Dump: HEADER: %d  %d  %d  %d  %d\n",
++              hints.software, hints.codec, hints.profile,
++              hints.codec_tag, hints.extrasize);
++    if (hints.extrasize > 0)
++      fwrite(hints.extradata, 1, hints.extrasize, m_dump);
++  }
++#endif
++
++  if (m_hints != hints && g_IMXCodec->IsRunning())
++  {
++    StopThread(false);
++    ProcessSignals(SIGNAL_FLUSH);
++  }
++
++  m_hints = hints;
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Let's decode with iMX VPU\n");
++
++  int param = 0;
++  SetVPUParams(VPU_DEC_CONF_INPUTTYPE, &param);
++  SetVPUParams(VPU_DEC_CONF_SKIPMODE, &param);
++
++#ifdef MEDIAINFO
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: fpsrate %d / fpsscale %d\n", m_hints.fpsrate, m_hints.fpsscale);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: CodecID %d \n", m_hints.codec);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: StreamType %d \n", m_hints.type);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: Level %d \n", m_hints.level);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: Profile %d \n", m_hints.profile);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: PTS_invalid %d \n", m_hints.ptsinvalid);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: Tag %d \n", m_hints.codec_tag);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: %dx%d \n", m_hints.width,  m_hints.height);
++  { char str_tag[128]; av_get_codec_tag_string(str_tag, sizeof(str_tag), m_hints.codec_tag);
++      CLog::Log(LOGDEBUG, "Decode: MEDIAINFO: Tag fourcc %s\n", str_tag);
++  }
++  if (m_hints.extrasize)
++  {
++    char buf[4096];
++
++    for (unsigned int i=0; i < m_hints.extrasize; i++)
++      sprintf(buf+i*2, "%02x", ((uint8_t*)m_hints.extradata)[i]);
++
++    CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: %s extradata %d %s\n", *(char*)m_hints.extradata == 1 ? "AnnexB" : "avcC", m_hints.extrasize, buf);
++  }
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: MEDIAINFO: %d / %d \n", m_hints.width,  m_hints.height);
++  CLog::Log(LOGDEBUG, LOGVIDEO, "Decode: aspect %f - forced aspect %d\n", m_hints.aspect, m_hints.forced_aspect);
++#endif
++
++  m_warnOnce = true;
++  switch(m_hints.codec)
++  {
++  case AV_CODEC_ID_MPEG1VIDEO:
++    m_decOpenParam.CodecFormat = VPU_V_MPEG2;
++    m_pFormatName = "iMX-mpeg1";
++    break;
++  case AV_CODEC_ID_MPEG2VIDEO:
++  case AV_CODEC_ID_MPEG2VIDEO_XVMC:
++    m_decOpenParam.CodecFormat = VPU_V_MPEG2;
++    m_pFormatName = "iMX-mpeg2";
++    break;
++  case AV_CODEC_ID_H263:
++    m_decOpenParam.CodecFormat = VPU_V_H263;
++    m_pFormatName = "iMX-h263";
++    break;
++  case AV_CODEC_ID_H264:
++  {
++    // Test for VPU unsupported profiles to revert to sw decoding
++    if (m_hints.profile == 110)
++    {
++      CLog::Log(LOGNOTICE, "i.MX6 VPU is not able to decode AVC profile %d level %d", m_hints.profile, m_hints.level);
++      return false;
++    }
++    m_decOpenParam.CodecFormat = VPU_V_AVC;
++    m_pFormatName = "iMX-h264";
++    break;
++  }
++  case AV_CODEC_ID_VC1:
++    m_decOpenParam.CodecFormat = VPU_V_VC1_AP;
++    m_pFormatName = "iMX-vc1";
++    break;
++  case AV_CODEC_ID_CAVS:
++  case AV_CODEC_ID_AVS:
++    m_decOpenParam.CodecFormat = VPU_V_AVS;
++    m_pFormatName = "iMX-AVS";
++    break;
++  case AV_CODEC_ID_RV10:
++  case AV_CODEC_ID_RV20:
++  case AV_CODEC_ID_RV30:
++  case AV_CODEC_ID_RV40:
++    m_decOpenParam.CodecFormat = VPU_V_RV;
++    m_pFormatName = "iMX-RV";
++    break;
++  case AV_CODEC_ID_KMVC:
++    m_decOpenParam.CodecFormat = VPU_V_AVC_MVC;
++    m_pFormatName = "iMX-MVC";
++    break;
++  case AV_CODEC_ID_VP8:
++    m_decOpenParam.CodecFormat = VPU_V_VP8;
++    m_pFormatName = "iMX-vp8";
++    break;
++  case AV_CODEC_ID_MPEG4:
++    switch(m_hints.codec_tag)
++    {
++    case _4CC('D','I','V','X'):
++      // Test for VPU unsupported profiles to revert to sw decoding
++      if (m_hints.profile == -99 && m_hints.level == -99)
++      {
++        CLog::Log(LOGNOTICE, "i.MX6 iMX-divx4 profile %d level %d - sw decoding", m_hints.profile, m_hints.level);
++        return false;
++      }
++      m_decOpenParam.CodecFormat = VPU_V_XVID; // VPU_V_DIVX4
++      m_pFormatName = "iMX-divx4";
++      break;
++    case _4CC('D','X','5','0'):
++    case _4CC('D','I','V','5'):
++      m_decOpenParam.CodecFormat = VPU_V_XVID; // VPU_V_DIVX56
++      m_pFormatName = "iMX-divx5";
++      break;
++    case _4CC('X','V','I','D'):
++    case _4CC('M','P','4','V'):
++    case _4CC('P','M','P','4'):
++    case _4CC('F','M','P','4'):
++      m_decOpenParam.CodecFormat = VPU_V_XVID;
++      m_pFormatName = "iMX-xvid";
++      break;
++    default:
++      CLog::Log(LOGERROR, "iMX VPU : MPEG4 codec tag %d is not (yet) handled.\n", m_hints.codec_tag);
++      return false;
++    }
++    break;
++  default:
++    CLog::Log(LOGERROR, "iMX VPU : codecid %d is not (yet) handled.\n", m_hints.codec);
++    return false;
++  }
++
++  std::list<EINTERLACEMETHOD> deintMethods({ EINTERLACEMETHOD::VS_INTERLACEMETHOD_AUTO,
++                                             EINTERLACEMETHOD::VS_INTERLACEMETHOD_RENDER_BOB });
++
++  for(int i = EINTERLACEMETHOD::VS_INTERLACEMETHOD_IMX_FASTMOTION; i <= VS_INTERLACEMETHOD_IMX_ADVMOTION_HALF; ++i)
++    deintMethods.push_back(static_cast<EINTERLACEMETHOD>(i));
++
++  m_processInfo = m_pProcessInfo;
++  m_processInfo->SetVideoDecoderName(m_pFormatName, true);
++  m_processInfo->SetVideoDimensions(m_hints.width, m_hints.height);
++  m_processInfo->SetVideoDeintMethod("none");
++  m_processInfo->SetVideoPixelFormat("Y/CbCr 4:2:0");
++  m_processInfo->UpdateDeinterlacingMethods(deintMethods);
++  g_IMXContext.SetProcessInfo(m_processInfo);
++
++  return true;
++}
++
++void CIMXCodec::Dispose()
++{
++#ifdef DUMP_STREAM
++  if (m_dump)
++  {
++    fclose(m_dump);
++    m_dump = NULL;
++  }
++#endif
++
++  VpuDecRetCode  ret;
++  bool VPU_loaded = m_vpuHandle;
++
++  RecycleFrameBuffers();
++
++  if (m_vpuHandle)
++  {
++    ret = VPU_DecClose(m_vpuHandle);
++    if (ret != VPU_DEC_RET_SUCCESS)
++      CLog::Log(LOGERROR, "%s - VPU close failed with error code %d.\n", __FUNCTION__, ret);
++    else
++      CLog::Log(LOGDEBUG, "%s - VPU closed.", __FUNCTION__);
++
++    m_vpuHandle = 0;
++  }
++
++  VpuFreeBuffers();
++
++  if (VPU_loaded)
++  {
++    ret = VPU_DecUnLoad();
++    if (ret != VPU_DEC_RET_SUCCESS)
++      CLog::Log(LOGERROR, "%s - VPU unload failed with error code %d.\n", __FUNCTION__, ret);
++  }
++
++  if (m_converter)
++  {
++    m_converter->Close();
++    SAFE_DELETE(m_converter);
++  }
++}
++
++void CIMXCodec::SetVPUParams(VpuDecConfig InDecConf, void* pInParam)
++{
++  if (m_vpuHandle)
++    if (VPU_DEC_RET_SUCCESS != VPU_DecConfig(m_vpuHandle, InDecConf, pInParam))
++      CLog::Log(LOGERROR, "%s - iMX VPU set dec param failed (%d).\n", __FUNCTION__, (int)InDecConf);
++}
++
++void CIMXCodec::SetDrainMode(VpuDecInputType drain)
++{
++  if (m_drainMode == drain)
++    return;
++
++  m_drainMode = drain;
++  VpuDecInputType config = drain == IN_DECODER_SET ? VPU_DEC_IN_DRAIN : drain;
++  SetVPUParams(VPU_DEC_CONF_INPUTTYPE, &config);
++  if (drain == VPU_DEC_IN_DRAIN && !EOS())
++    ProcessSignals(SIGNAL_SIGNAL);
++}
++
++void CIMXCodec::SetSkipMode(VpuDecSkipMode skip)
++{
++  if (m_skipMode == skip)
++    return;
++
++  m_skipMode = skip;
++  VpuDecSkipMode config = skip == IN_DECODER_SET ? VPU_DEC_SKIPB : skip;
++  SetVPUParams(VPU_DEC_CONF_SKIPMODE, &config);
++}
++
++bool CIMXCodec::GetCodecStats(double &pts, int &droppedFrames, int &skippedPics)
++{
++  droppedFrames = m_dropped;
++  skippedPics = -1;
++  m_dropped = 0;
++  pts = m_lastPTS;
++  return true;
++}
++
++void CIMXCodec::SetCodecControl(int flags)
++{
++  if (!FBRegistered())
++    return;
++
++  m_codecControlFlags = flags;
++  if (m_codecControlFlags & DVD_CODEC_CTRL_HURRY && !m_burst)
++    m_burst = std::max(0, RENDER_QUEUE_SIZE - 2);
++
++  SetDrainMode(m_codecControlFlags & DVD_CODEC_CTRL_DRAIN && !m_decInput.size() ? VPU_DEC_IN_DRAIN : VPU_DEC_IN_NORMAL);
++}
++
++bool CIMXCodec::getOutputFrame(VpuDecOutFrameInfo *frm)
++{
++  VpuDecRetCode ret = VPU_DecGetOutputFrame(m_vpuHandle, frm);
++  if(VPU_DEC_RET_SUCCESS != ret)
++    CLog::Log(LOGERROR, "%s - VPU Cannot get output frame(%d).\n", __FUNCTION__, ret);
++  return ret == VPU_DEC_RET_SUCCESS;
++}
++
++int CIMXCodec::Decode(BYTE *pData, int iSize, double dts, double pts)
++{
++  static class CIMXFps ptrn;
++
++  if (EOS() && m_drainMode && !m_decOutput.size())
++    return VC_BUFFER;
++
++  int ret = 0;
++  if (!g_IMXCodec->IsRunning())
++  {
++    if (!m_decInput.full())
++    {
++      if (pts != DVD_NOPTS_VALUE)
++        ptrn.Add(pts);
++      else if (dts != DVD_NOPTS_VALUE)
++        ptrn.Add(dts);
++
++      ret |= VC_BUFFER;
++    }
++    else
++    {
++      double fd = ptrn.GetFrameDuration(true);
++      if (fd > 80000 && m_hints.fpsscale != 0)
++        m_fps = (double)m_hints.fpsrate / m_hints.fpsscale;
++      else if (fd != 0)
++        m_fps = (double)DVD_TIME_BASE / fd;
++      else
++        m_fps = 60;
++
++      m_decOpenParam.nMapType = 1;
++
++      ptrn.Flush();
++      g_IMXCodec->Create();
++      g_IMXCodec->WaitStartup();
++    }
++  }
++
++  if (pData)
++    m_decInput.push(new VPUTask({ pData, iSize, 0, 0, 0, pts, dts, 0, 0 }, m_converter));
++
++  if (!IsDraining() &&
++      (m_decInput.size() < m_decInput.getquotasize() -1))
++  {
++    ret |= VC_BUFFER;
++    if (!m_burst && m_decInput.size() < m_decInput.getquotasize() /2)
++      return ret;
++  }
++
++  if (m_rebuffer && m_decInput.size() > m_decInput.getquotasize() /2)
++    m_rebuffer = false;
++
++  if ((m_decOutput.size() >= m_decOutput.getquotasize() /2 ||
++       m_drainMode || m_burst || !ret) && m_decOutput.size() && !m_rebuffer)
++    ret |= VC_PICTURE;
++
++  if (m_burst)
++  {
++    if (m_decInput.size() >= RENDER_QUEUE_SIZE * 2)
++      ret &= ~VC_BUFFER;
++    --m_burst;
++  }
++
++#ifdef IMX_PROFILE
++  CLog::Log(LOGDEBUG, "%s - demux size: %d  dts : %f - pts : %f - addr : 0x%x, return %d ===== in/out %d/%d =====\n",
++                       __FUNCTION__, iSize, recalcPts(dts), recalcPts(pts), (uint)pData, ret, m_decInput.size(), m_decOutput.size());
++#endif
++
++  if (!(ret & VC_PICTURE) || !ret || m_drainMode)
++    Sleep(10);
++
++  return ret;
++}
++
++void CIMXCodec::ReleaseFramebuffer(VpuFrameBuffer* fb)
++{
++  m_recycleBuffers.push_back(fb);
++}
++
++void CIMXCodec::RecycleFrameBuffers()
++{
++  while(!m_recycleBuffers.empty())
++  {
++    m_pts[m_recycleBuffers.front()] = DVD_NOPTS_VALUE;
++    VPU_DecOutFrameDisplayed(m_vpuHandle, m_recycleBuffers.front());
++    m_recycleBuffers.pop_front();
++  --m_nrOut;
++  }
++}
++
++inline
++void CIMXCodec::AddExtraData(VpuBufferNode *bn, bool force)
++{
++  if ((m_decOpenParam.CodecFormat == VPU_V_MPEG2) ||
++      (m_decOpenParam.CodecFormat == VPU_V_VC1_AP)||
++      (m_decOpenParam.CodecFormat == VPU_V_XVID)  ||
++      (force))
++    bn->sCodecData = { (unsigned char *)m_hints.extradata, m_hints.extrasize };
++  else
++    bn->sCodecData = { nullptr, 0 };
++}
++
++void CIMXCodec::Process()
++{
++  VpuDecFrameLengthInfo         frameLengthInfo;
++  VpuBufferNode                 inData;
++  VpuBufferNode                 dummy;
++  VpuDecRetCode                 ret;
++  int                           retStatus;
++  VPUTask                      *task = nullptr;
++#ifdef IMX_PROFILE
++  static unsigned long long     previous, current;
++  int                           freeInfo;
++#endif
++
++  m_threadID = GetCurrentThreadId();
++  SetPriority(GetPriority()+1);
++
++  m_recycleBuffers.clear();
++  m_pts.clear();
++  m_loaded.Set();
++
++  m_dropped = 0;
++  m_dropRequest = false;
++  m_lastPTS = DVD_NOPTS_VALUE;
++
++  memset(&dummy, 0, sizeof(dummy));
++  AddExtraData(&dummy, (m_decOpenParam.CodecFormat == VPU_V_AVC && m_hints.extrasize));
++  inData = dummy;
++  if (dummy.sCodecData.pData)
++    CLog::Log(LOGVIDEO, "Decode: MEDIAINFO: adding extra codec data\n");
++
++  VpuOpen();
++
++  while (!m_bStop && m_vpuHandle)
++  {
++    RecycleFrameBuffers();
++    SAFE_DELETE(task);
++    if (!(task = m_decInput.pop()))
++      task = new VPUTask();
++
++#if defined(IMX_PROFILE) || defined(IMX_PROFILE_BUFFERS)
++    unsigned long long before_dec;
++#ifdef IMX_PROFILE
++    current = XbmcThreads::SystemClockMillis();
++    CLog::Log(LOGDEBUG, "%s - delta time decode : %llu - demux size : %d  dts : %f - pts : %f - addr : 0x%x\n",
++                                      __FUNCTION__, current - previous, task->demux.iSize, recalcPts(task->demux.dts), recalcPts(task->demux.pts), (uint)task->demux.pData);
++    previous = current;
++#endif
++#endif
++
++    inData.nSize = task->demux.iSize;
++    inData.pPhyAddr = NULL;
++    inData.pVirAddr = task->demux.pData;
++
++    // some streams have problem with getting initial info after seek into (during playback start).
++    // feeding VPU with extra data helps
++    if (!m_vpuFrameBuffers.size() && !task->IsEmpty() && m_decRet & VPU_DEC_NO_ENOUGH_INBUF)
++      AddExtraData(&inData, true);
++
++#ifdef IMX_PROFILE_BUFFERS
++    static unsigned long long dec_time = 0;
++#endif
++
++    while (!m_bStop) // Decode as long as the VPU consumes data
++    {
++      RecycleFrameBuffers();
++      ProcessSignals();
++
++      retStatus = m_decRet & VPU_DEC_SKIP ? VC_USERDATA : 0;
++
++#if defined(IMX_PROFILE) || defined(IMX_PROFILE_BUFFERS)
++      before_dec = XbmcThreads::SystemClockMillis();
++#endif
++      ret = VPU_DecDecodeBuf(m_vpuHandle, &inData, &m_decRet);
++#ifdef IMX_PROFILE_BUFFERS
++      unsigned long long dec_single_call = XbmcThreads::SystemClockMillis()-before_dec;
++      dec_time += dec_single_call;
++#endif
++#ifdef IMX_PROFILE
++      VPU_DecGetNumAvailableFrameBuffers(m_vpuHandle, &freeInfo);
++      CLog::Log(LOGDEBUG, "%s - VPU ret %d dec 0x%x decode takes : %lld free: %d\n\n", __FUNCTION__, ret, m_decRet,  XbmcThreads::SystemClockMillis() - before_dec, freeInfo);
++#endif
++
++      if (m_skipMode == IN_DECODER_SET)
++        SetSkipMode(VPU_DEC_SKIPNONE);
++
++      if (m_drainMode == IN_DECODER_SET)
++      {
++        AddExtraData(&inData);
++        SetDrainMode(VPU_DEC_IN_NORMAL);
++      }
++
++      if (m_decRet & VPU_DEC_OUTPUT_EOS)
++        break;
++
++      if (ret != VPU_DEC_RET_SUCCESS && ret != VPU_DEC_RET_FAILURE_TIMEOUT)
++        ExitError("VPU decode failed with error code %d (0x%x).\n", ret, m_decRet);
++
++      if (m_decRet & VPU_DEC_INIT_OK || m_decRet & VPU_DEC_RESOLUTION_CHANGED)
++      // VPU decoding init OK : We can retrieve stream info
++      {
++        if (m_decRet & VPU_DEC_RESOLUTION_CHANGED)
++        {
++          while (m_nrOut > 2 && !m_bStop)
++          {
++            RecycleFrameBuffers();
++            std::this_thread::yield();
++          }
++        }
++
++        if (VPU_DecGetInitialInfo(m_vpuHandle, &m_initInfo) != VPU_DEC_RET_SUCCESS)
++          ExitError("VPU get initial info failed");
++
++        if (!VpuFreeBuffers(false) || !VpuAllocFrameBuffers())
++          ExitError("VPU error while registering frame buffers");
++
++        if (m_initInfo.nInterlace && m_fps >= 49 && m_decOpenParam.nMapType == 1)
++        {
++          m_decOpenParam.nMapType = 0;
++          Dispose();
++          VpuOpen();
++          continue;
++        }
++
++        if (m_initInfo.nInterlace && m_fps <= 30)
++          m_fps *= 2;
++
++        m_processInfo->SetVideoFps(m_fps);
++
++        CLog::Log(LOGDEBUG, "%s - VPU Init Stream Info : %dx%d (interlaced : %d - Minframe : %d)"\
++                  " - Align : %d bytes - crop : %d %d %d %d - Q16Ratio : %x, fps: %.3f\n", __FUNCTION__,
++          m_initInfo.nPicWidth, m_initInfo.nPicHeight, m_initInfo.nInterlace, m_initInfo.nMinFrameBufferCount,
++          m_initInfo.nAddressAlignment, m_initInfo.PicCropRect.nLeft, m_initInfo.PicCropRect.nTop,
++          m_initInfo.PicCropRect.nRight, m_initInfo.PicCropRect.nBottom, m_initInfo.nQ16ShiftWidthDivHeightRatio, m_fps);
++
++        m_decInput.setquotasize(m_fps / 2);
++
++        bool getFrame = !(m_decOpenParam.CodecFormat == VPU_V_AVC && *(char*)m_hints.extradata == 1);
++        getFrame &= m_decOpenParam.CodecFormat != VPU_V_MPEG2 && m_decOpenParam.CodecFormat != VPU_V_XVID;
++        if (getFrame || m_decRet & VPU_DEC_RESOLUTION_CHANGED)
++        {
++          SetDrainMode((VpuDecInputType)IN_DECODER_SET);
++          inData = dummy;
++          continue;
++        }
++      }
++
++      if (m_decRet & VPU_DEC_ONE_FRM_CONSUMED)
++        if (!VPU_DecGetConsumedFrameInfo(m_vpuHandle, &frameLengthInfo) && frameLengthInfo.pFrame)
++          m_pts[frameLengthInfo.pFrame] = task->demux.pts;
++
++      if (m_decRet & CLASS_PICTURE && getOutputFrame(&m_frameInfo))
++      {
++        ++m_nrOut;
++        CDVDVideoCodecIMXBuffer *buffer = new CDVDVideoCodecIMXBuffer(&m_frameInfo, m_fps, m_decOpenParam.nMapType);
++
++        /* quick & dirty fix to get proper timestamping for VP8 codec */
++        if (m_decOpenParam.CodecFormat == VPU_V_VP8)
++          buffer->SetPts(task->demux.pts);
++        else
++          buffer->SetPts(m_pts[m_frameInfo.pDisplayFrameBuf]);
++
++        buffer->SetDts(task->demux.dts);
++
++#ifdef IMX_PROFILE_BUFFERS
++        CLog::Log(LOGNOTICE, "+D  %f  %lld\n", recalcPts(buffer->GetPts()), dec_time);
++        dec_time = 0;
++#endif
++#ifdef TRACE_FRAMES
++        CLog::Log(LOGDEBUG, "+  0x%x dts %f pts %f  (VPU)\n", buffer->GetIdx(), recalcPts(task->demux.dts), recalcPts(buffer->GetPts()));
++#endif
++
++#ifdef IMX_PROFILE_BUFFERS
++        static unsigned long long lastD = 0;
++        unsigned long long current = XbmcThreads::SystemClockMillis();
++        CLog::Log(LOGNOTICE, "+V  %f  %lld\n", recalcPts(buffer->GetPts()), current-lastD);
++        lastD = current;
++#endif
++
++        if (m_decRet & VPU_DEC_OUTPUT_DIS)
++          buffer->SetFlags(DVP_FLAG_ALLOCATED);
++
++        if (!m_decOutput.push(buffer))
++          SAFE_RELEASE(buffer);
++        else
++          m_lastPTS = buffer->GetPts();
++
++      }
++      else if (m_decRet & CLASS_DROP)
++        ++m_dropped;
++
++      if (m_decRet & VPU_DEC_SKIP)
++        ++m_dropped;
++
++      if (m_decRet & VPU_DEC_NO_ENOUGH_BUF && m_decOutput.size())
++      {
++        m_decOutput.pop()->Release();
++        FlushVPU();
++        continue;
++      }
++
++      ProcessSignals();
++
++      if (retStatus & VC_USERDATA)
++        continue;
++
++      if (m_decRet & CLASS_FORCEBUF)
++        break;
++
++      if (!(m_drainMode ||
++            m_decRet & (CLASS_NOBUF | CLASS_DROP)))
++        break;
++
++      inData = dummy;
++    } // Decode loop
++
++    task->Release();
++  } // Process() main loop
++
++  ProcessSignals(SIGNAL_RESET | SIGNAL_DISPOSE);
++}
++
++void CIMXCodec::ProcessSignals(int signal)
++{
++  if (signal & SIGNAL_SIGNAL)
++  {
++    m_decInput.signal();
++    m_decOutput.signal();
++  }
++  if (!(m_decSignal | signal))
++    return;
++
++  CSingleLock lk(m_signalLock);
++  m_decSignal |= signal & ~SIGNAL_SIGNAL;
++
++  if (!IsCurrentThread())
++    return;
++
++  int process = m_decSignal;
++  m_decSignal = 0;
++
++  if (process & SIGNAL_FLUSH)
++  {
++    FlushVPU();
++    m_queuesLock.unlock();
++  }
++  if (process & SIGNAL_RESET)
++    DisposeDecQueues();
++  if (process & SIGNAL_DISPOSE)
++    Dispose();
++}
++
++void CIMXCodec::FlushVPU()
++{
++  int ret = VPU_DecFlushAll(m_vpuHandle);
++  if (ret != VPU_DEC_RET_SUCCESS && ret != VPU_DEC_RET_INVALID_HANDLE)
++    CLog::Log(LOGERROR, "%s: VPU flush failed with error code %d.\n", __FUNCTION__, ret);
++}
++
++inline
++void CIMXCodec::ExitError(const char *msg, ...)
++{
++  va_list va;
++  va_start(va, msg);
++  CLog::Log(LOGERROR, "%s: %s", __FUNCTION__, StringUtils::FormatV(msg, va).c_str());
++  va_end(va);
++
++  StopThread(false);
++}
++
++bool CIMXCodec::GetPicture(DVDVideoPicture* pDvdVideoPicture)
++{
++  pDvdVideoPicture->IMXBuffer = m_decOutput.pop();
++  assert(pDvdVideoPicture->IMXBuffer);
++
++#ifdef IMX_PROFILE
++  static unsigned int previous = 0;
++  unsigned int current;
++
++  current = XbmcThreads::SystemClockMillis();
++  CLog::Log(LOGDEBUG, "+G 0x%x %f/%f tm:%03d : Interlaced 0x%x\n", pDvdVideoPicture->IMXBuffer->GetIdx(),
++                            recalcPts(pDvdVideoPicture->IMXBuffer->GetDts()), recalcPts(pDvdVideoPicture->IMXBuffer->GetPts()), current - previous,
++                            m_initInfo.nInterlace ? pDvdVideoPicture->IMXBuffer->GetFieldType() : 0);
++  previous = current;
++#endif
++
++  if (m_dropRequest && !m_burst)
++  {
++    pDvdVideoPicture->iFlags = DVP_FLAG_DROPPED;
++    ++m_dropped;
++  }
++  else
++    pDvdVideoPicture->iFlags = pDvdVideoPicture->IMXBuffer->GetFlags();
++
++  if (m_initInfo.nInterlace)
++  {
++    if (pDvdVideoPicture->IMXBuffer->GetFieldType() == VPU_FIELD_NONE && m_warnOnce)
++    {
++      m_warnOnce = false;
++      CLog::Log(LOGWARNING, "Interlaced content reported by VPU, but full frames detected - Please turn off deinterlacing manually.");
++    }
++    else if (pDvdVideoPicture->IMXBuffer->GetFieldType() == VPU_FIELD_TB || pDvdVideoPicture->IMXBuffer->GetFieldType() == VPU_FIELD_TOP)
++      pDvdVideoPicture->iFlags |= DVP_FLAG_TOP_FIELD_FIRST;
++
++    pDvdVideoPicture->iFlags |= DVP_FLAG_INTERLACED;
++  }
++
++  pDvdVideoPicture->format = RENDER_FMT_IMXMAP;
++  pDvdVideoPicture->iWidth = pDvdVideoPicture->IMXBuffer->m_pctWidth;
++  pDvdVideoPicture->iHeight = pDvdVideoPicture->IMXBuffer->m_pctHeight;
++
++  pDvdVideoPicture->iDisplayWidth = ((pDvdVideoPicture->iWidth * m_frameInfo.pExtInfo->nQ16ShiftWidthDivHeightRatio) + 32767) >> 16;
++  pDvdVideoPicture->iDisplayHeight = pDvdVideoPicture->iHeight;
++
++  pDvdVideoPicture->pts = pDvdVideoPicture->IMXBuffer->GetPts();
++  pDvdVideoPicture->dts = pDvdVideoPicture->IMXBuffer->GetDts();
++
++  if (pDvdVideoPicture->iFlags & DVP_FLAG_DROPPED)
++    SAFE_RELEASE(pDvdVideoPicture->IMXBuffer);
++
++  return true;
++}
++
++void CIMXCodec::SetDropState(bool bDrop)
++{
++  m_dropRequest = bDrop;
++}
++
++bool CIMXCodec::IsCurrentThread() const
++{
++  return CThread::IsCurrentThread(m_threadID);
++}
++
++/*******************************************/
++CDVDVideoCodecIMXBuffer::CDVDVideoCodecIMXBuffer(VpuDecOutFrameInfo *frameInfo, double fps, int map)
++  : m_dts(DVD_NOPTS_VALUE)
++  , m_fieldType(frameInfo->eFieldType)
++  , m_frameBuffer(frameInfo->pDisplayFrameBuf)
++  , m_iFlags(DVP_FLAG_DROPPED)
++  , m_convBuffer(nullptr)
++{
++  m_pctWidth  = frameInfo->pExtInfo->FrmCropRect.nRight - frameInfo->pExtInfo->FrmCropRect.nLeft;
++  m_pctHeight = frameInfo->pExtInfo->FrmCropRect.nBottom - frameInfo->pExtInfo->FrmCropRect.nTop;
++
++  // Some codecs (VC1?) lie about their frame size (mod 16). Adjust...
++  iWidth      = (((frameInfo->pExtInfo->nFrmWidth) + 15) & ~15);
++  iHeight     = (((frameInfo->pExtInfo->nFrmHeight) + 15) & ~15);
++
++  pVirtAddr   = m_frameBuffer->pbufVirtY;
++  pPhysAddr   = (int)m_frameBuffer->pbufY;
++
++#ifdef IMX_INPUT_FORMAT_I420
++  iFormat     = _4CC('I', '4', '2', '0');
++#else
++  iFormat     = map == 1 ? _4CC('T', 'N', 'V', 'P'):
++                map == 0 ? _4CC('N', 'V', '1', '2'):
++                           _4CC('T', 'N', 'V', 'F');
++#endif
++  m_fps       = fps;
++#if defined(IMX_PROFILE) || defined(IMX_PROFILE_BUFFERS) || defined(TRACE_FRAMES)
++  m_idx       = i++;
++#endif
++  Lock();
++}
++
++void CDVDVideoCodecIMXBuffer::Lock()
++{
++  long count = ++m_iRefs;
++#ifdef TRACE_FRAMES
++  CLog::Log(LOGDEBUG, "R+ 0x%x  -  ref : %ld  (VPU)\n", m_idx, count);
++#endif
++}
++
++long CDVDVideoCodecIMXBuffer::Release()
++{
++  long count = --m_iRefs;
++#ifdef TRACE_FRAMES
++  CLog::Log(LOGDEBUG, "R- 0x%x  -  ref : %ld  (VPU)\n", m_idx, count);
++#endif
++
++  if (count)
++    return count;
++
++  CIMXCodec::ReleaseFramebuffer(m_frameBuffer);
++  if (m_convBuffer)
++    g2d_free(m_convBuffer);
++
++  delete this;
++  return 0;
++}
++
++CDVDVideoCodecIMXBuffer::~CDVDVideoCodecIMXBuffer()
++{
++#ifdef TRACE_FRAMES
++  CLog::Log(LOGDEBUG, "~  0x%x  (VPU)\n", m_idx);
++#endif
++}
++
++CIMXContext::CIMXContext()
++  : CThread("iMX IPU")
++  , m_fbHandle(0)
++  , m_fbCurrentPage(0)
++  , m_fbPhysAddr(0)
++  , m_fbVirtAddr(NULL)
++  , m_ipuHandle(0)
++  , m_vsync(true)
++  , m_pageCrops(NULL)
++  , m_bFbIsConfigured(false)
++  , m_g2dHandle(NULL)
++  , m_bufferCapture(NULL)
++  , m_deviceName("/dev/fb1")
++{
++  m_pageCrops = new CRectInt[m_fbPages];
++  OpenDevices();
++}
++
++CIMXContext::~CIMXContext()
++{
++  Stop(false);
++  Dispose();
++  CloseDevices();
++}
++
++bool CIMXContext::AdaptScreen(bool allocate)
++{
++  MemMap();
++
++  struct fb_var_screeninfo fbVar;
++  if (!GetFBInfo("/dev/fb0", &fbVar))
++    goto Err;
++
++  m_fbWidth = allocate ? 1920 : fbVar.xres;
++  m_fbHeight = allocate ? 1080 : fbVar.yres;
++
++  if (!GetFBInfo(m_deviceName, &m_fbVar))
++    goto Err;
++
++  m_fbVar.xoffset = 0;
++  m_fbVar.yoffset = 0;
++
++  if (!allocate && (fbVar.bits_per_pixel == 16 || m_fps >= 49 && m_fbHeight >= 1080))
++  {
++    m_fbVar.nonstd = _4CC('Y', 'U', 'Y', 'V');
++    m_fbVar.bits_per_pixel = 16;
++  }
++  else
++  {
++    m_fbVar.nonstd = _4CC('R', 'G', 'B', '4');
++    m_fbVar.bits_per_pixel = 32;
++  }
++
++  m_fbVar.activate = FB_ACTIVATE_NOW;
++  m_fbVar.xres = m_fbWidth;
++  m_fbVar.yres = m_fbHeight;
++
++  m_fbVar.yres_virtual = (m_fbVar.yres + 1) * m_fbPages;
++  m_fbVar.xres_virtual = m_fbVar.xres;
++
++  CloseIPU();
++  Blank();
++
++  struct fb_fix_screeninfo fb_fix;
++
++  if (ioctl(m_fbHandle, FBIOPUT_VSCREENINFO, &m_fbVar) == -1)
++  {
++    CLog::Log(LOGWARNING, "iMX : Failed to setup %s (%s)\n", m_deviceName.c_str(), strerror(errno));
++    goto Err;
++  }
++  else if (ioctl(m_fbHandle, FBIOGET_FSCREENINFO, &fb_fix) == -1)
++  {
++    CLog::Log(LOGWARNING, "iMX : Failed to query fixed screen info at %s (%s)\n", m_deviceName.c_str(), strerror(errno));
++    goto Err;
++  }
++
++  MemMap(&fb_fix);
++  Unblank();
++
++  OpenIPU();
++  m_bFbIsConfigured = true;
++
++  return true;
++
++Err:
++  TaskRestart();
++  return false;
++}
++
++bool CIMXContext::GetFBInfo(const std::string &fbdev, struct fb_var_screeninfo *fbVar)
++{
++  int fb = open(fbdev.c_str(), O_RDONLY, 0);
++  if (fb < 0)
++  {
++    CLog::Log(LOGWARNING, "iMX : Failed to open /dev/fb0\n");
++    return false;
++  }
++
++  int err = ioctl(fb, FBIOGET_VSCREENINFO, fbVar);
++  if (err < 0)
++    CLog::Log(LOGWARNING, "iMX : Failed to query variable screen info at %s\n", fbdev.c_str());
++
++  close(fb);
++  return err >= 0;
++}
++
++void CIMXContext::MemMap(struct fb_fix_screeninfo *fb_fix)
++{
++  if (m_fbVirtAddr && m_fbPhysSize)
++  {
++    munmap(m_fbVirtAddr, m_fbPhysSize);
++    m_fbVirtAddr = NULL;
++    m_fbPhysAddr = 0;
++  }
++  else if (fb_fix)
++  {
++    m_fbLineLength = fb_fix->line_length;
++    m_fbPhysSize = fb_fix->smem_len;
++    m_fbPageSize = m_fbLineLength * m_fbVar.yres_virtual / m_fbPages;
++    m_fbPhysAddr = fb_fix->smem_start;
++    m_fbVirtAddr = (uint8_t*)mmap(0, m_fbPhysSize, PROT_READ | PROT_WRITE, MAP_SHARED, m_fbHandle, 0);
++    Clear();
++  }
++}
++
++void CIMXContext::OnLostDisplay()
++{
++  CSingleLock lk(m_pageSwapLock);
++  if (IsRunning())
++    m_bFbIsConfigured = false;
++}
++
++void CIMXContext::OnResetDisplay()
++{
++  CSingleLock lk(m_pageSwapLock);
++  if (m_bFbIsConfigured)
++    return;
++
++  CLog::Log(LOGDEBUG, "iMX : %s - going to change screen parameters\n", __FUNCTION__);
++  AdaptScreen();
++}
++
++bool CIMXContext::TaskRestart()
++{
++  CLog::Log(LOGINFO, "iMX : %s - restarting IMX renderer\n", __FUNCTION__);
++  // Stop the ipu thread
++  Stop();
++  MemMap();
++  CloseDevices();
++
++  Create();
++  return true;
++}
++
++void CIMXContext::Dispose()
++{
++  if (!m_pageCrops)
++    return;
++
++  delete[] m_pageCrops;
++  m_pageCrops = NULL;
++}
++
++void CIMXContext::OpenIPU()
++{
++  m_ipuHandle = open("/dev/mxc_ipu", O_RDWR, 0);
++}
++
++bool CIMXContext::OpenDevices()
++{
++  m_fbHandle = open(m_deviceName.c_str(), O_RDWR, 0);
++  OpenIPU();
++
++  bool opened = m_fbHandle > 0 && m_ipuHandle > 0;
++  if (!opened)
++    CLog::Log(LOGWARNING, "iMX : Failed to open framebuffer: %s\n", m_deviceName.c_str());
++
++  return opened;
++}
++
++void CIMXContext::CloseIPU()
++{
++  if (m_ipuHandle)
++  {
++    close(m_ipuHandle);
++    m_ipuHandle = 0;
++  }
++}
++
++void CIMXContext::CloseDevices()
++{
++  CLog::Log(LOGINFO, "iMX : Closing devices\n");
++
++  if (m_fbHandle)
++  {
++    close(m_fbHandle);
++    m_fbHandle = 0;
++  }
++
++  CloseIPU();
++}
++
++bool CIMXContext::Blank()
++{
++  if (!m_fbHandle) return false;
++
++  m_bFbIsConfigured = false;
++  return ioctl(m_fbHandle, FBIOBLANK, 1) == 0;
++}
++
++bool CIMXContext::Unblank()
++{
++  if (!m_fbHandle) return false;
++
++  int ret = ioctl(m_fbHandle, FBIOBLANK, FB_BLANK_UNBLANK);
++  m_bFbIsConfigured = true;
++  return ret == 0;
++}
++
++bool CIMXContext::SetVSync(bool enable)
++{
++  m_vsync = enable;
++  return true;
++}
++
++inline
++void CIMXContext::SetFieldData(uint8_t fieldFmt, double fps)
++{
++  if (m_bStop || !IsRunning() || !m_bFbIsConfigured)
++    return;
++
++  static EINTERLACEMETHOD imPrev;
++  bool dr = IsDoubleRate();
++  bool deint = !!m_currentFieldFmt;
++  m_currentFieldFmt = fieldFmt;
++
++  if (!!fieldFmt != deint ||
++      dr != IsDoubleRate()||
++      fps != m_fps        ||
++      imPrev != CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod)
++    m_bFbIsConfigured = false;
++
++  if (m_bFbIsConfigured)
++    return;
++
++  m_fps = fps;
++  imPrev = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod;
++  CLog::Log(LOGDEBUG, "iMX : Output parameters changed - deinterlace %s%s, fps: %.3f\n", !!fieldFmt ? "active" : "not active", IsDoubleRate() ? " DR" : "", m_fps);
++  SetIPUMotion(imPrev);
++
++  CSingleLock lk(m_pageSwapLock);
++  AdaptScreen();
++}
++
++#define MASK1 (IPU_DEINTERLACE_RATE_FRAME1 | RENDER_FLAG_TOP)
++#define MASK2 (IPU_DEINTERLACE_RATE_FRAME1 | RENDER_FLAG_BOT)
++#define VAL1  MASK1
++#define VAL2  RENDER_FLAG_BOT
++
++inline
++bool checkIPUStrideOffset(struct ipu_deinterlace *d, bool DR)
++{
++  switch (d->motion)
++  {
++  case HIGH_MOTION:
++    return ((d->field_fmt & MASK1) == VAL1) || ((d->field_fmt & MASK2) == VAL2);
++  case MED_MOTION:
++    return DR && !(((d->field_fmt & MASK1) == VAL1) || ((d->field_fmt & MASK2) == VAL2));
++  default:
++    return true;
++  }
++}
++
++inline
++void CIMXContext::SetIPUMotion(EINTERLACEMETHOD imethod)
++{
++  std::string strImethod;
++
++  if (m_processInfo)
++    m_processInfo->SetVideoDeintMethod("none");
++
++  if (!m_currentFieldFmt || imethod == VS_INTERLACEMETHOD_NONE)
++    return;
++
++  switch (imethod)
++  {
++  case VS_INTERLACEMETHOD_IMX_ADVMOTION:
++    strImethod = g_localizeStrings.Get(16337);
++    m_motion   = MED_MOTION;
++    break;
++
++  case VS_INTERLACEMETHOD_AUTO:
++  case VS_INTERLACEMETHOD_IMX_ADVMOTION_HALF:
++    strImethod = g_localizeStrings.Get(16335);
++    m_motion   = MED_MOTION;
++    break;
++
++  case VS_INTERLACEMETHOD_IMX_FASTMOTION:
++    strImethod = g_localizeStrings.Get(16334);
++    m_motion   = HIGH_MOTION;
++    break;
++
++  default:
++    strImethod = g_localizeStrings.Get(16021);
++    m_motion   = HIGH_MOTION;
++    break;
++  }
++
++  if (m_processInfo)
++    m_processInfo->SetVideoDeintMethod(strImethod);
++}
++
++void CIMXContext::Blit(CIMXBuffer *source_p, CIMXBuffer *source, const CRect &srcRect,
++                       const CRect &dstRect, uint8_t fieldFmt, int page)
++{
++  static unsigned char pg;
++
++  if (page == RENDER_TASK_AUTOPAGE)
++    page = pg;
++  else if (page < 0 && page >= m_fbPages)
++    return;
++
++  IPUTaskPtr ipu(new IPUTask(source_p, source, page));
++  pg = ++pg % m_fbPages;
++
++#ifdef IMX_PROFILE_BUFFERS
++  unsigned long long before = XbmcThreads::SystemClockMillis();
++#endif
++  SetFieldData(fieldFmt, source->m_fps);
++  PrepareTask(ipu, srcRect, dstRect);
++
++  if (DoTask(ipu))
++    m_fbCurrentPage = ipu->page | checkIPUStrideOffset(&ipu->task.input.deinterlace, IsDoubleRate()) << 4;
++
++  m_pingFlip.Set();
++
++#ifdef IMX_PROFILE_BUFFERS
++  unsigned long long after = XbmcThreads::SystemClockMillis();
++  CLog::Log(LOGDEBUG, "+P 0x%x@%d  %d\n", ((CDVDVideoCodecIMXBuffer*)ipu->current)->GetIdx(), ipu->page, (int)(after-before));
++#endif
++}
++
++void CIMXContext::WaitVSync()
++{
++  m_waitVSync.WaitMSec(1300 / g_graphicsContext.GetFPS());
++}
++
++inline
++bool CIMXContext::ShowPage()
++{
++  m_pingFlip.Wait();
++
++  {
++    CSingleLock lk(m_pageSwapLock);
++    if (!m_bFbIsConfigured)
++      return false;
++  }
++
++  m_fbVar.yoffset = (m_fbVar.yres + 1) * (m_fbCurrentPage & 0xf) + !(m_fbCurrentPage >> 4);
++  if (ioctl(m_fbHandle, FBIOPAN_DISPLAY, &m_fbVar) < 0)
++    CLog::Log(LOGWARNING, "Panning failed: %s\n", strerror(errno));
++
++  m_waitVSync.Set();
++
++  if (ioctl(m_fbHandle, MXCFB_WAIT_FOR_VSYNC, nullptr) < 0 && !CIMX::IsBlank())
++    CLog::Log(LOGWARNING, "Vsync failed: %s\n", strerror(errno));
++}
++
++void CIMXContext::SetProcessInfo(CProcessInfo *m_pProcessInfo)
++{
++  m_processInfo = m_pProcessInfo;
++  if (!m_processInfo)
++    return;
++
++  SetIPUMotion(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod);
++}
++
++void CIMXContext::Clear(int page)
++{
++  if (!m_fbVirtAddr) return;
++
++  uint16_t clr = 128 << 8 | 16;
++  uint8_t *tmp_buf;
++  int bytes;
++
++  if (page < 0)
++  {
++    tmp_buf = m_fbVirtAddr;
++    bytes = m_fbPageSize*m_fbPages;
++  }
++  else if (page < m_fbPages)
++  {
++    tmp_buf = m_fbVirtAddr + page*m_fbPageSize;
++    bytes = m_fbPageSize;
++  }
++  else
++    // out of range
++    return;
++
++  if (m_fbVar.nonstd == _4CC('R', 'G', 'B', '4'))
++    memset(tmp_buf, 0, bytes);
++  else if (m_fbVar.nonstd == _4CC('Y', 'U', 'Y', 'V'))
++    for (int i = 0; i < bytes / 2; ++i, tmp_buf += 2)
++      memcpy(tmp_buf, &clr, 2);
++  else
++    CLog::Log(LOGERROR, "iMX Clear fb error : Unexpected format");
++
++  SetProcessInfo(m_processInfo);
++}
++
++void CIMXContext::PrepareTask(IPUTaskPtr &ipu, CRect srcRect, CRect dstRect)
++{
++  CRectInt iSrcRect, iDstRect;
++
++  float srcWidth = srcRect.Width();
++  float srcHeight = srcRect.Height();
++  float dstWidth = dstRect.Width();
++  float dstHeight = dstRect.Height();
++
++  // Project coordinates outside the target buffer rect to
++  // the source rect otherwise the IPU task will fail
++  // This is under the assumption that the srcRect is always
++  // inside the input buffer rect. If that is not the case
++  // it needs to be projected to the output buffer rect as well
++  if (dstRect.x1 < 0)
++  {
++    srcRect.x1 -= dstRect.x1*srcWidth / dstWidth;
++    dstRect.x1 = 0;
++  }
++  if (dstRect.x2 > m_fbWidth)
++  {
++    srcRect.x2 -= (dstRect.x2-m_fbWidth)*srcWidth / dstWidth;
++    dstRect.x2 = m_fbWidth;
++  }
++  if (dstRect.y1 < 0)
++  {
++    srcRect.y1 -= dstRect.y1*srcHeight / dstHeight;
++    dstRect.y1 = 0;
++  }
++  if (dstRect.y2 > m_fbHeight)
++  {
++    srcRect.y2 -= (dstRect.y2-m_fbHeight)*srcHeight / dstHeight;
++    dstRect.y2 = m_fbHeight;
++  }
++
++  iSrcRect.x1 = Align((int)srcRect.x1,8);
++  iSrcRect.y1 = Align((int)srcRect.y1,8);
++  iSrcRect.x2 = Align2((int)srcRect.x2,8);
++  iSrcRect.y2 = Align2((int)srcRect.y2,16);
++
++  iDstRect.x1 = Align((int)dstRect.x1,8);
++  iDstRect.y1 = Align((int)dstRect.y1,8);
++  iDstRect.x2 = Align2((int)dstRect.x2,8);
++  iDstRect.y2 = Align2((int)dstRect.y2,8);
++
++  ipu->task.input.crop.pos.x  = iSrcRect.x1;
++  ipu->task.input.crop.pos.y  = iSrcRect.y1;
++  ipu->task.input.crop.w      = iSrcRect.Width();
++  ipu->task.input.crop.h      = iSrcRect.Height();
++
++  ipu->task.output.crop.pos.x = iDstRect.x1;
++  ipu->task.output.crop.pos.y = iDstRect.y1;
++  ipu->task.output.crop.w     = iDstRect.Width();
++  ipu->task.output.crop.h     = iDstRect.Height();
++
++  // Setup deinterlacing if enabled
++  if (m_currentFieldFmt)
++  {
++    ipu->task.input.deinterlace.enable = 1;
++    ipu->task.input.deinterlace.motion = ipu->previous ? m_motion : HIGH_MOTION;
++    ipu->task.input.deinterlace.field_fmt = m_currentFieldFmt;
++  }
++}
++
++bool CIMXContext::TileTask(IPUTaskPtr &ipu)
++{
++  m_zoomAllowed = true;
++
++  // on double rate deinterlacing this is reusing previous already rasterised frame
++  if (ipu->current->iFormat != _4CC('T', 'N', 'V', 'F') && ipu->current->iFormat != _4CC('T', 'N', 'V', 'P'))
++  {
++    if (ipu->task.input.deinterlace.enable && ipu->task.input.deinterlace.motion != HIGH_MOTION)
++    {
++      ipu->task.input.paddr_n = ipu->task.input.paddr;
++      ipu->task.input.paddr   = ipu->previous->pPhysAddr;
++    }
++    return true;
++  }
++
++  // Use band mode directly to FB, as no transformations needed (eg cropping)
++  if (m_fps >= 49 && m_fbWidth == 1920 && ipu->task.input.width == 1920 && !ipu->task.input.deinterlace.enable)
++  {
++    m_zoomAllowed = false;
++    ipu->task.output.crop.pos.x = ipu->task.input.crop.pos.x = 0;
++    ipu->task.output.crop.pos.y = ipu->task.input.crop.pos.y = 0;
++    ipu->task.output.crop.h     = ipu->task.input.height     = ipu->task.input.crop.h = ipu->current->iHeight;
++    ipu->task.output.crop.w     = ipu->task.input.width      = ipu->task.input.crop.w = ipu->current->iWidth;
++    if (ipu->task.input.crop.h < m_fbHeight)
++      ipu->task.output.paddr     += m_fbLineLength * (m_fbHeight - ipu->task.input.crop.h)/2;
++    return true;
++  }
++
++  // check for 3-field deinterlace (no HIGH_MOTION allowed) from tile field format
++  if (ipu->previous && ipu->current->iFormat == _4CC('T', 'N', 'V', 'F'))
++  {
++    ipu->task.input.paddr     = ipu->previous->pPhysAddr;
++    ipu->task.input.paddr_n   = ipu->current->pPhysAddr;
++    ipu->task.input.deinterlace.field_fmt = IPU_DEINTERLACE_FIELD_TOP;
++    ipu->task.input.deinterlace.enable = true;
++
++    ipu->task.output.crop.pos.x = ipu->task.input.crop.pos.x = 0;
++    ipu->task.output.crop.pos.y = ipu->task.input.crop.pos.y = 0;
++    ipu->task.output.crop.h     = ipu->task.input.height     = ipu->task.input.crop.h = ipu->current->iHeight;
++    ipu->task.output.crop.w     = ipu->task.input.width      = ipu->task.input.crop.w = ipu->current->iWidth;
++
++    return CheckTask(ipu) == 0;
++  }
++
++  // rasterize from tile (frame)
++  struct ipu_task    vdoa;
++
++  memset(&vdoa, 0, sizeof(ipu->task));
++  vdoa.input.width   = vdoa.output.width  = ipu->current->iWidth;
++  vdoa.input.height  = vdoa.output.height = ipu->current->iHeight;
++  vdoa.input.format  = ipu->current->iFormat;
++
++  vdoa.input.paddr   = vdoa.input.paddr_n ? ipu->previous->pPhysAddr : ipu->current->pPhysAddr;
++  vdoa.output.format = ipu->task.input.format = m_fbVar.bits_per_pixel == 16 ? _4CC('Y', 'U', 'Y', 'V') : _4CC('N', 'V', '1', '2');
++
++  int check = CheckTask(ipu);
++  if (check == IPU_CHECK_ERR_PROC_NO_NEED)
++  {
++    vdoa.output.paddr = ipu->task.output.paddr;
++  }
++  else
++  {
++    struct g2d_buf *conv = g2d_alloc(ipu->current->iWidth *ipu->current->iHeight * 3, 0);
++    if (!conv)
++    {
++      CLog::Log(LOGERROR, "iMX: can't allocate crop buffer");
++      return false;
++    }
++
++    ((CDVDVideoCodecIMXBuffer*)ipu->current)->m_convBuffer = conv;
++    vdoa.output.paddr = conv->buf_paddr;
++  }
++
++  if (ioctl(m_ipuHandle, IPU_QUEUE_TASK, &vdoa) < 0)
++  {
++    int ret = ioctl(m_ipuHandle, IPU_CHECK_TASK, &vdoa);
++    CLog::Log(LOGERROR, "IPU conversion from tiled failed %d at #%d", ret, __LINE__);
++    return false;
++  }
++
++  ipu->task.input.paddr   = vdoa.output.paddr;
++
++  if (ipu->current->iFormat == _4CC('T', 'N', 'V', 'F'))
++    return true;
++
++  // output of VDOA task was sent directly to FB. no more processing needed.
++  if (check == IPU_CHECK_ERR_PROC_NO_NEED)
++    return true;
++
++  if (ipu->task.input.deinterlace.enable && ipu->task.input.deinterlace.motion != HIGH_MOTION)
++  {
++    ipu->task.input.paddr_n = ipu->task.input.paddr;
++    ipu->task.input.paddr   = ipu->previous->pPhysAddr;
++  }
++  ipu->current->iFormat   = vdoa.output.format;
++  ipu->current->pPhysAddr = vdoa.output.paddr;
++
++  return true;
++}
++
++int CIMXContext::CheckTask(IPUTaskPtr &ipu)
++{
++  //We really use IPU only if we have to deinterlace (using VDIC)
++  int ret = IPU_CHECK_ERR_INPUT_CROP;
++  while (ret > IPU_CHECK_ERR_MIN)
++  {
++    ret = ioctl(m_ipuHandle, IPU_CHECK_TASK, &ipu->task);
++    switch (ret)
++    {
++      case IPU_CHECK_OK:
++        break;
++      case IPU_CHECK_ERR_SPLIT_INPUTW_OVER:
++        ipu->task.input.crop.w -= 8;
++        break;
++      case IPU_CHECK_ERR_SPLIT_INPUTH_OVER:
++        ipu->task.input.crop.h -= 8;
++        break;
++      case IPU_CHECK_ERR_SPLIT_OUTPUTW_OVER:
++        ipu->task.output.width -= 8;
++        ipu->task.output.crop.w = ipu->task.output.width;
++        break;
++      case IPU_CHECK_ERR_SPLIT_OUTPUTH_OVER:
++        ipu->task.output.height -= 8;
++        ipu->task.output.crop.h = ipu->task.output.height;
++        break;
++      // deinterlacing setup changing, m_ipuHandle is closed
++      case -1:
++      // no IPU processing needed
++      case IPU_CHECK_ERR_PROC_NO_NEED:
++        return ret;
++      default:
++        CLog::Log(LOGWARNING, "iMX : unhandled IPU check error: %d", ret);
++        return ret;
++      }
++  }
++
++  return 0;
++}
++
++bool CIMXContext::DoTask(IPUTaskPtr &ipu, CRect *dest)
++{
++  // Clear page if cropping changes
++  CRectInt dstRect(ipu->task.output.crop.pos.x, ipu->task.output.crop.pos.y,
++                   ipu->task.output.crop.pos.x + ipu->task.output.crop.w,
++                   ipu->task.output.crop.pos.y + ipu->task.output.crop.h);
++
++  // Populate input block
++  ipu->task.input.width   = ipu->current->iWidth;
++  ipu->task.input.height  = ipu->current->iHeight;
++  ipu->task.input.format  = ipu->current->iFormat;
++  ipu->task.input.paddr   = ipu->current->pPhysAddr;
++
++  ipu->task.output.width  = m_fbWidth;
++  ipu->task.output.height = m_fbHeight;
++  ipu->task.output.format = m_fbVar.nonstd;
++  ipu->task.output.paddr  = m_fbPhysAddr + ipu->page*m_fbPageSize;
++
++  if (m_pageCrops[ipu->page] != dstRect)
++  {
++    m_pageCrops[ipu->page] = dstRect;
++    Clear(ipu->page);
++  }
++
++  if ((ipu->task.input.crop.w <= 0) || (ipu->task.input.crop.h <= 0)
++  ||  (ipu->task.output.crop.w <= 0) || (ipu->task.output.crop.h <= 0))
++    return false;
++
++  if (!TileTask(ipu))
++    return false;
++
++  if (CheckTask(ipu) == IPU_CHECK_ERR_PROC_NO_NEED)
++    return true;
++
++  int ret = ioctl(m_ipuHandle, IPU_QUEUE_TASK, &ipu->task);
++  if (ret < 0)
++    CLog::Log(LOGERROR, "IPU task failed: %s at #%d (ret %d)\n", strerror(errno), __LINE__, ret);
++
++  return ret == 0;
++}
++
++bool CIMXContext::CaptureDisplay(unsigned char *&buffer, int iWidth, int iHeight, bool blend)
++{
++  int size = iWidth * iHeight * 4;
++  m_bufferCapture = g2d_alloc(size, 0);
++
++  if (!buffer)
++    buffer = new uint8_t[size];
++  else if (blend)
++    std::memcpy(m_bufferCapture->buf_vaddr, buffer, m_bufferCapture->buf_size);
++
++  if (g2d_open(&m_g2dHandle))
++  {
++    CLog::Log(LOGERROR, "%s : Error while trying open G2D\n", __FUNCTION__);
++    return false;
++  }
++
++  CSingleLock lk(m_pageSwapLock);
++  if (m_bufferCapture && buffer)
++  {
++    struct g2d_surface src, dst;
++    memset(&src, 0, sizeof(src));
++    memset(&dst, 0, sizeof(dst));
++
++    {
++      src.planes[0] = m_fbPhysAddr + (m_fbCurrentPage & 0xf) * m_fbPageSize;
++      dst.planes[0] = m_bufferCapture->buf_paddr;
++      if (m_fbVar.bits_per_pixel == 16)
++      {
++        src.format = G2D_YUYV;
++        src.planes[1] = src.planes[0] + Align(m_fbWidth * m_fbHeight, 64);
++        src.planes[2] = src.planes[1] + Align((m_fbWidth * m_fbHeight) / 2, 64);
++      }
++      else
++      {
++        src.format = G2D_RGBX8888;
++      }
++
++      dst.left = dst.top = src.top = src.left = 0;
++      src.stride = src.right = src.width = m_fbWidth;
++      src.bottom = src.height = m_fbHeight;
++
++      dst.right = dst.stride = dst.width = iWidth;
++      dst.bottom = dst.height = iHeight;
++
++      dst.rot = src.rot = G2D_ROTATION_0;
++      dst.format = G2D_BGRA8888;
++
++      if (blend)
++      {
++        src.blendfunc = G2D_ONE_MINUS_DST_ALPHA;
++        dst.blendfunc = G2D_ONE;
++        g2d_enable(m_g2dHandle, G2D_BLEND);
++      }
++
++      g2d_blit(m_g2dHandle, &src, &dst);
++      g2d_finish(m_g2dHandle);
++      g2d_disable(m_g2dHandle, G2D_BLEND);
++    }
++
++    std::memcpy(buffer, m_bufferCapture->buf_vaddr, m_bufferCapture->buf_size);
++  }
++  else
++    CLog::Log(LOGERROR, "iMX : Error allocating capture buffer\n");
++
++  if (m_bufferCapture && g2d_free(m_bufferCapture))
++    CLog::Log(LOGERROR, "iMX : Error while freeing capture buffer\n");
++
++  if (m_g2dHandle && !g2d_close(m_g2dHandle))
++    m_g2dHandle = NULL;
++  return true;
++}
++
++void CIMXContext::Allocate()
++{
++  CSingleLock lk(m_pageSwapLock);
++  AdaptScreen(true);
++  AdaptScreen();
++  Create();
++}
++
++void CIMXContext::OnStartup()
++{
++  CSingleLock lk(m_pageSwapLock);
++  g_Windowing.Register(this);
++  CLog::Log(LOGNOTICE, "iMX : IPU thread started");
++}
++
++void CIMXContext::OnExit()
++{
++  CSingleLock lk(m_pageSwapLock);
++  g_Windowing.Unregister(this);
++  CLog::Log(LOGNOTICE, "iMX : IPU thread terminated");
++}
++
++void CIMXContext::Stop(bool bWait /*= true*/)
++{
++  if (!IsRunning())
++    return;
++
++  CThread::StopThread(false);
++  m_pingFlip.Set();
++  if (bWait && IsRunning())
++    CThread::StopThread(true);
++}
++
++void CIMXContext::Process()
++{
++  while (!m_bStop)
++    ShowPage();
++}
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h
+new file mode 100644
+index 0000000000..15af21a43b
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h
+@@ -0,0 +1,452 @@
++#pragma once
++/*
++ *      Copyright (C) 2010-2013 Team XBMC
++ *      http://www.xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "linux/imx/IMX.h"
++
++#include "threads/CriticalSection.h"
++#include "threads/Condition.h"
++#include "threads/Thread.h"
++#include "utils/BitstreamConverter.h"
++#include "guilib/Geometry.h"
++#include "DVDVideoCodec.h"
++#include "DVDStreamInfo.h"
++#include "guilib/DispResource.h"
++#include "DVDClock.h"
++#include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
++
++#include <linux/ipu.h>
++#include <linux/mxcfb.h>
++#include <imx-mm/vpu/vpu_wrapper.h>
++#include <g2d.h>
++
++#include <unordered_map>
++#include <cstring>
++#include <stdlib.h>
++
++// The decoding format of the VPU buffer. Comment this to decode
++// as NV12. The VPU works faster with NV12 in combination with
++// deinterlacing.
++// Progressive content seems to be handled faster with I420 whereas
++// interlaced content is processed faster with NV12 as output format.
++//#define IMX_INPUT_FORMAT_I420
++
++// This enables logging of times for Decode, Render->Render,
++// Deinterlace. It helps to profile several stages of
++// processing with respect to changed kernels or other configurations.
++// Since we utilize VPU, IPU and GPU at the same time different kernel
++// priorities to those subsystems can result in a very different user
++// experience. With that setting enabled we can build some statistics,
++// as numbers are always better than "feelings"
++//#define IMX_PROFILE_BUFFERS
++//#define IMX_PROFILE
++//#define TRACE_FRAMES
++
++// If uncommented a file "stream.dump" will be created in the current
++// directory whenever a new stream is started. This is only for debugging
++// and performance tests. This define must never be active in distributions.
++//#define DUMP_STREAM
++
++inline
++double recalcPts(double pts)
++{
++  return (double)(pts == DVD_NOPTS_VALUE ? 0.0 : pts*1e-6);
++}
++
++enum SIGNALS
++{
++  SIGNAL_RESET         = (1 << 0),
++  SIGNAL_DISPOSE       = (1 << 1),
++  SIGNAL_SIGNAL        = (1 << 2),
++  SIGNAL_FLUSH         = (1 << 3),
++};
++
++enum RENDER_TASK
++{
++  RENDER_TASK_AUTOPAGE = -1,
++  RENDER_TASK_CAPTURE  = -2,
++};
++
++#define CLASS_PICTURE   (VPU_DEC_OUTPUT_DIS     | VPU_DEC_OUTPUT_MOSAIC_DIS)
++#define CLASS_NOBUF     (VPU_DEC_OUTPUT_NODIS   | VPU_DEC_NO_ENOUGH_BUF | VPU_DEC_OUTPUT_REPEAT)
++#define CLASS_FORCEBUF  (VPU_DEC_OUTPUT_EOS     | VPU_DEC_NO_ENOUGH_INBUF)
++#define CLASS_DROP      (VPU_DEC_OUTPUT_DROPPED | VPU_DEC_SKIP)
++
++// iMX context class that handles all iMX hardware
++// related stuff
++class CIMXContext : private CThread, IDispResource
++{
++public:
++  CIMXContext();
++  ~CIMXContext();
++
++  bool AdaptScreen(bool allocate = false);
++  bool TaskRestart();
++  void OpenIPU();
++  void CloseIPU();
++  void CloseDevices();
++  bool OpenDevices();
++
++  bool Blank();
++  bool Unblank();
++  bool SetVSync(bool enable);
++
++  void WaitVSync();
++  void Stop(bool bWait = true);
++
++  // Blitter configuration
++  bool IsDoubleRate() const { return m_currentFieldFmt & IPU_DEINTERLACE_RATE_EN; }
++
++  bool IsZoomAllowed() const { return m_zoomAllowed; }
++  void SetProcessInfo(CProcessInfo *m_pProcessInfo);
++
++  void SetIPUMotion(EINTERLACEMETHOD imethod);
++  // Blits a buffer to a particular page (-1 for auto page)
++  // source_p (previous buffer) is required for de-interlacing
++  // modes LOW_MOTION and MED_MOTION.
++  void Blit(CIMXBuffer *source_p, CIMXBuffer *source, const CRect &srcRect, const CRect &dstRect,
++            uint8_t fieldFmt = 0, int targetPage = RENDER_TASK_AUTOPAGE);
++
++  // Shows a page vsynced
++  bool ShowPage();
++
++  // Clears the pages or a single page with 'black'
++  void Clear(int page = RENDER_TASK_AUTOPAGE);
++
++  // Captures the current visible frame buffer page and blends it into
++  // the passed overlay. The buffer format is BGRA (4 byte)
++  bool CaptureDisplay(unsigned char *&buffer, int iWidth, int iHeight, bool blend = false);
++
++  void OnResetDisplay();
++  void OnLostDisplay();
++
++  void Allocate();
++
++  static const int  m_fbPages;
++
++private:
++  struct IPUTask
++  {
++    IPUTask(CIMXBuffer *buffer_p, CIMXBuffer *buffer, int p = 0)
++      : previous(buffer_p), current(buffer), page(p)
++    {
++      memset(&task, 0, sizeof(task));
++    }
++
++    // Kept for reference
++    CIMXBuffer *previous;
++    CIMXBuffer *current;
++
++    // The actual task
++    struct ipu_task task;
++
++    unsigned int page;
++    int shift = true;
++  };
++
++  typedef std::shared_ptr<struct IPUTask> IPUTaskPtr;
++
++  bool GetFBInfo(const std::string &fbdev, struct fb_var_screeninfo *fbVar);
++
++  void PrepareTask(IPUTaskPtr &ipu, CRect srcRect, CRect dstRect);
++  bool DoTask(IPUTaskPtr &ipu, CRect *dest = nullptr);
++  bool TileTask(IPUTaskPtr &ipu);
++  int  CheckTask(IPUTaskPtr &ipu);
++
++  void SetFieldData(uint8_t fieldFmt, double fps);
++
++  void Dispose();
++  void MemMap(struct fb_fix_screeninfo *fb_fix = NULL);
++
++  virtual void OnStartup() override;
++  virtual void OnExit() override;
++  virtual void Process() override;
++
++private:
++  int                            m_fbHandle;
++  int                            m_fbCurrentPage;
++  int                            m_fbWidth;
++  int                            m_fbHeight;
++  int                            m_fbLineLength;
++  int                            m_fbPageSize;
++  int                            m_fbPhysSize;
++  int                            m_fbPhysAddr;
++  uint8_t                       *m_fbVirtAddr;
++  struct fb_var_screeninfo       m_fbVar;
++  int                            m_ipuHandle;
++  uint8_t                        m_currentFieldFmt;
++  bool                           m_vsync;
++  CRectInt                      *m_pageCrops;
++  bool                           m_bFbIsConfigured;
++  CEvent                         m_waitVSync;
++  CEvent                         m_pingFlip;
++  CProcessInfo                  *m_processInfo;
++  ipu_motion_sel                 m_motion;
++
++  bool                           m_zoomAllowed;
++  CCriticalSection               m_pageSwapLock;
++public:
++  void                          *m_g2dHandle;
++  struct g2d_buf                *m_bufferCapture;
++
++  std::string                    m_deviceName;
++
++  double                         m_fps;
++};
++
++
++extern CIMXContext g_IMXContext;
++
++/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
++
++class CDVDVideoCodecIMX;
++class CIMXCodec;
++
++class CDecMemInfo
++{
++public:
++  CDecMemInfo()
++    : nVirtNum(0)
++    , virtMem(NULL)
++    , nPhyNum(0)
++    , phyMem(NULL)
++  {}
++
++  //virtual mem info
++  int         nVirtNum;
++  void      **virtMem;
++
++  //phy mem info
++  int         nPhyNum;
++  VpuMemDesc *phyMem;
++};
++
++// Base class of IMXVPU and IMXIPU buffer
++class CDVDVideoCodecIMXBuffer : public CIMXBuffer
++{
++friend class CIMXCodec;
++friend class CIMXContext;
++public:
++  CDVDVideoCodecIMXBuffer(VpuDecOutFrameInfo *frameInfo, double fps, int map);
++  virtual ~CDVDVideoCodecIMXBuffer();
++
++  // reference counting
++  virtual void Lock();
++  virtual long Release();
++
++  void                  SetPts(double pts)      { m_pts = pts; }
++  double                GetPts() const          { return m_pts; }
++
++  void                  SetDts(double dts)      { m_dts = dts; }
++  double                GetDts() const          { return m_dts; }
++
++  void                  SetFlags(int flags)     { m_iFlags = flags; }
++  int                   GetFlags() const        { return m_iFlags; }
++
++#if defined(IMX_PROFILE) || defined(IMX_PROFILE_BUFFERS) || defined(TRACE_FRAMES)
++  int                   GetIdx()                { return m_idx; }
++#endif
++  VpuFieldType          GetFieldType() const    { return m_fieldType; }
++
++protected:
++  unsigned int             m_pctWidth;
++  unsigned int             m_pctHeight;
++
++private:
++  double                   m_pts;
++  double                   m_dts;
++  VpuFieldType             m_fieldType;
++  VpuFrameBuffer          *m_frameBuffer;
++  int                      m_iFlags;
++#if defined(IMX_PROFILE) || defined(IMX_PROFILE_BUFFERS) || defined(TRACE_FRAMES)
++  unsigned char            m_idx;
++  static unsigned char     i;
++#endif
++
++public:
++  struct g2d_buf          *m_convBuffer;
++};
++
++class CIMXCodec : public CThread
++{
++public:
++  CIMXCodec();
++  ~CIMXCodec();
++
++  bool                  Open(CDVDStreamInfo &hints, CDVDCodecOptions &options, std::string &m_pFormatName, CProcessInfo *m_pProcessInfo);
++  int                   Decode(BYTE *pData, int iSize, double dts, double pts);
++
++  void                  SetDropState(bool bDrop);
++
++  void                  Reset();
++
++  void                  WaitStartup()                           { m_loaded.Wait(); }
++
++  bool                  GetPicture(DVDVideoPicture *pDvdVideoPicture);
++
++  bool                  GetCodecStats(double &pts, int &droppedFrames, int &skippedPics);
++  void                  SetCodecControl(int flags);
++
++  virtual void Process() override;
++
++  static void           ReleaseFramebuffer(VpuFrameBuffer* fb);
++
++protected:
++  class VPUTask
++  {
++  public:
++    VPUTask(DemuxPacket pkg = { nullptr, 0, 0, 0, 0, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE, 0, 0 },
++            CBitstreamConverter *cnv = nullptr) : demux(pkg)
++    {
++      if (IsEmpty())
++        return;
++
++      bool cok = false;
++      if (cnv && (cok = cnv->Convert(pkg.pData, pkg.iSize)))
++        demux.iSize = cnv->GetConvertSize();
++
++      posix_memalign((void**)&demux.pData, 1024, demux.iSize);
++      std::memcpy(demux.pData, cok ? cnv->GetConvertBuffer() : pkg.pData, demux.iSize);
++    }
++
++    void Release()
++    {
++      if (!IsEmpty())
++        free(demux.pData);
++      demux.pData = nullptr;
++    }
++
++    bool IsEmpty() { return !demux.pData; }
++
++    DemuxPacket demux;
++  };
++
++  bool VpuOpen();
++  bool VpuAllocBuffers(VpuMemInfo *);
++  bool VpuFreeBuffers(bool dispose = true);
++  bool VpuAllocFrameBuffers();
++
++  void SetVPUParams(VpuDecConfig InDecConf, void* pInParam);
++  void SetDrainMode(VpuDecInputType drop);
++  void SetSkipMode(VpuDecSkipMode skip);
++
++  void RecycleFrameBuffers();
++
++  static void Release(VPUTask *&t)                     { SAFE_RELEASE(t); }
++  static void Release(CDVDVideoCodecIMXBuffer *&t)     { SAFE_RELEASE(t); }
++
++  lkFIFO<VPUTask*>             m_decInput;
++  lkFIFO<CDVDVideoCodecIMXBuffer*>
++                               m_decOutput;
++
++  static const unsigned int    m_extraVpuBuffers;   // Number of additional buffers for VPU
++                                                    // by both decoding and rendering threads
++  CDVDStreamInfo               m_hints;             // Hints from demuxer at stream opening
++
++  VpuDecOpenParam              m_decOpenParam;      // Parameters required to call VPU_DecOpen
++  CDecMemInfo                  m_decMemInfo;        // VPU dedicated memory description
++  VpuDecHandle                 m_vpuHandle;         // Handle for VPU library calls
++  VpuDecInitInfo               m_initInfo;          // Initial info returned from VPU at decoding start
++  VpuDecSkipMode               m_skipMode;          // Current drop state
++  VpuDecInputType              m_drainMode;
++  int                          m_dropped;
++  bool                         m_dropRequest;
++  bool                         m_rebuffer;
++
++  std::vector<VpuFrameBuffer>  m_vpuFrameBuffers;   // Table of VPU frame buffers description
++  std::unordered_map<VpuFrameBuffer*,double>
++                               m_pts;
++  double                       m_lastPTS;
++  VpuDecOutFrameInfo           m_frameInfo;         // Store last VPU output frame info
++  CBitstreamConverter         *m_converter;         // H264 annex B converter
++  bool                         m_warnOnce;          // Track warning messages to only warn once
++  int                          m_codecControlFlags;
++  CCriticalSection             m_signalLock;
++  CCriticalSection             m_queuesLock;
++#ifdef DUMP_STREAM
++  FILE                        *m_dump;
++#endif
++
++private:
++  bool                         IsDraining()             { return m_drainMode || m_codecControlFlags & DVD_CODEC_CTRL_DRAIN; }
++  bool                         EOS()                    { return m_decRet & VPU_DEC_OUTPUT_EOS; }
++  bool                         FBRegistered()           { return m_vpuFrameBuffers.size(); }
++
++  bool                         getOutputFrame(VpuDecOutFrameInfo *frm);
++  void                         ProcessSignals(int signal = 0);
++  void                         AddExtraData(VpuBufferNode *bn, bool force = false);
++
++  bool                         VpuAlloc(VpuMemDesc *vpuMem);
++
++  void                         DisposeDecQueues();
++  void                         FlushVPU();
++
++  void                         Dispose();
++
++  unsigned int                 m_decSignal;
++  ThreadIdentifier             m_threadID;
++  CEvent                       m_loaded;
++  int                          m_decRet;
++  double                       m_fps;
++  unsigned int                 m_burst;
++  bool                         m_requestDrop;
++  CProcessInfo                *m_processInfo;
++
++private:
++  void                         ExitError(const char *msg, ...);
++  bool                         IsCurrentThread() const;
++
++  CCriticalSection             m_openLock;
++  std::atomic<unsigned char>   m_nrOut;
++};
++
++
++/*
++ *
++ *  CDVDVideoCodec only wraps IMXCodec class
++ *
++ */
++class CDVDVideoCodecIMX : public CDVDVideoCodec
++{
++public:
++  explicit CDVDVideoCodecIMX(CProcessInfo &processInfo) : CDVDVideoCodec(processInfo), m_pFormatName("iMX-xxx") {}
++  virtual ~CDVDVideoCodecIMX();
++
++  // Methods from CDVDVideoCodec which require overrides
++  virtual bool          Open(CDVDStreamInfo &hints, CDVDCodecOptions &options);
++
++  virtual int           Decode(BYTE *pData, int iSize, double dts, double pts)  { return m_IMXCodec->Decode(pData, iSize, dts, pts); }
++
++  virtual void          Reset()                                                 { m_IMXCodec->Reset(); }
++  virtual const char*   GetName()                                               { return (const char*)m_pFormatName.c_str(); }
++
++  virtual bool          GetPicture(DVDVideoPicture *pDvdVideoPicture)           { return m_IMXCodec->GetPicture(pDvdVideoPicture); }
++  virtual void          SetDropState(bool bDrop)                                { m_IMXCodec->SetDropState(bDrop); }
++  virtual unsigned      GetAllowedReferences();
++
++  virtual bool          GetCodecStats(double &pts, int &droppedFrames, int &skippedPics) override
++                                                                                { return m_IMXCodec->GetCodecStats(pts, droppedFrames, skippedPics); }
++  virtual void          SetCodecControl(int flags) override                     { m_IMXCodec->SetCodecControl(flags); }
++
++private:
++  std::shared_ptr<CIMXCodec> m_IMXCodec;
++
++  std::string           m_pFormatName;       // Current decoder format name
++};
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/CMakeLists.txt b/xbmc/cores/VideoPlayer/VideoRenderers/CMakeLists.txt
+index d3bff8bd7b..97150e40bf 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/CMakeLists.txt
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/CMakeLists.txt
+@@ -46,6 +46,7 @@ if(OPENGLES_FOUND AND (CORE_PLATFORM_NAME_LC STREQUAL android OR
+                        CORE_PLATFORM_NAME_LC STREQUAL ios OR
+                        CORE_PLATFORM_NAME_LC STREQUAL aml OR
+                        CORE_PLATFORM_NAME_LC STREQUAL gbm OR
++		       CORE_PLATFORM_NAME_LC STREQUAL imx OR
+                        CORE_PLATFORM_NAME_LC STREQUAL mir OR
+                        CORE_PLATFORM_NAME_LC STREQUAL wayland))
+   list(APPEND SOURCES LinuxRendererGLES.cpp
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/CMakeLists.txt b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/CMakeLists.txt
+index d9f5fa8373..fbb09f95dc 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/CMakeLists.txt
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/CMakeLists.txt
+@@ -42,6 +42,11 @@ if(AML_FOUND)
+   list(APPEND HEADERS RendererAML.h)
+ endif()
+ 
++if(IMX_FOUND)
++  list(APPEND SOURCES RendererIMX.cpp)
++  list(APPEND HEADERS RendererIMX.h)
++endif()
++
+ if(CORE_SYSTEM_NAME STREQUAL android)
+   list(APPEND SOURCES RendererMediaCodec.cpp
+                       RendererMediaCodecSurface.cpp)
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.cpp
+new file mode 100644
+index 0000000000..bbdeb0320b
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.cpp
+@@ -0,0 +1,237 @@
++/*
++ *      Copyright (C) 2007-2015 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with Kodi; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "RendererIMX.h"
++
++#if defined(HAS_IMXVPU)
++#include "cores/IPlayer.h"
++#include "windowing/egl/EGLWrapper.h"
++#include "utils/log.h"
++#include "utils/GLUtils.h"
++#include "settings/MediaSettings.h"
++#include "windowing/WindowingFactory.h"
++#include "cores/VideoPlayer/VideoRenderers/RenderCapture.h"
++#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
++
++#define RENDER_FLAG_FIELDS (RENDER_FLAG_FIELD0 | RENDER_FLAG_FIELD1)
++
++CRendererIMX::CRendererIMX()
++{
++  m_bufHistory.clear();
++}
++
++CRendererIMX::~CRendererIMX()
++{
++  UnInit();
++  std::for_each(m_bufHistory.begin(), m_bufHistory.end(), Release);
++  g_IMX.Deinitialize();
++}
++
++bool CRendererIMX::RenderCapture(CRenderCapture* capture)
++{
++  capture->BeginRender();
++  capture->EndRender();
++  return true;
++}
++
++void CRendererIMX::AddVideoPictureHW(DVDVideoPicture &picture, int index, double currentClock)
++{
++  YUVBUFFER &buf = m_buffers[index];
++
++  buf.hwDec = picture.IMXBuffer;
++
++  if (picture.IMXBuffer)
++    picture.IMXBuffer->Lock();
++}
++
++void CRendererIMX::ReleaseBuffer(int idx)
++{
++  CDVDVideoCodecIMXBuffer *buffer =  static_cast<CDVDVideoCodecIMXBuffer*>(m_buffers[idx].hwDec);
++  SAFE_RELEASE(buffer);
++  m_buffers[idx].hwDec = NULL;
++}
++
++int CRendererIMX::GetImageHook(YuvImage *image, int source, bool readonly)
++{
++  return source;
++}
++
++bool CRendererIMX::IsGuiLayer()
++{
++  return false;
++}
++
++bool CRendererIMX::Supports(ERENDERFEATURE feature)
++{
++  if (!g_IMXContext.IsZoomAllowed())
++    return false;
++
++  if (feature == RENDERFEATURE_PIXEL_RATIO ||
++      feature == RENDERFEATURE_ZOOM)
++    return true;
++
++  return false;
++}
++
++bool CRendererIMX::Supports(ESCALINGMETHOD method)
++{
++  return method == VS_SCALINGMETHOD_AUTO;
++}
++
++bool CRendererIMX::WantsDoublePass()
++{
++  if (CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod ==
++      VS_INTERLACEMETHOD_IMX_ADVMOTION)
++    return true;
++  else
++    return false;
++}
++
++CRenderInfo CRendererIMX::GetRenderInfo()
++{
++  CRenderInfo info;
++  info.formats = m_formats;
++  info.max_buffer_size = NUM_BUFFERS;
++  // Let the codec control the buffer size
++  info.optimal_buffer_size = info.max_buffer_size;
++  return info;
++}
++
++bool CRendererIMX::LoadShadersHook()
++{
++  CLog::Log(LOGNOTICE, "GL: Using IMXMAP render method");
++  m_textureTarget = GL_TEXTURE_2D;
++  m_renderMethod = RENDER_IMXMAP;
++  return true;
++}
++
++bool CRendererIMX::RenderHook(int index)
++{
++  return true;// nothing to be done for imx
++}
++
++bool CRendererIMX::RenderUpdateVideoHook(bool clear, DWORD flags, DWORD alpha)
++{
++  static DWORD flagsPrev;
++#if 0
++  static unsigned long long previous = 0;
++  unsigned long long current = XbmcThreads::SystemClockMillis();
++  printf("r->r: %d\n", (int)(current-previous));
++  previous = current;
++#endif
++  CDVDVideoCodecIMXBuffer *buffer = static_cast<CDVDVideoCodecIMXBuffer*>(m_buffers[m_iYV12RenderBuffer].hwDec);
++  if (buffer)
++  {
++    if (!m_bufHistory.empty() && m_bufHistory.back() != buffer || m_bufHistory.empty())
++    {
++      buffer->Lock();
++      m_bufHistory.push_back(buffer);
++    }
++    else if (!m_bufHistory.empty() && m_bufHistory.back() == buffer && flagsPrev == flags)
++    {
++      g_IMX.WaitVsync();
++      return true;
++    }
++
++    flagsPrev = flags;
++
++    int size = flags & RENDER_FLAG_FIELDMASK ? 2 : 1;
++    while (m_bufHistory.size() > size)
++    {
++      m_bufHistory.front()->Release();
++      m_bufHistory.pop_front();
++    }
++
++    // this hack is needed to get the 2D mode of a 3D movie going
++    RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
++    if (stereo_mode)
++      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
++
++    ManageRenderArea();
++
++    if (stereo_mode)
++      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
++
++    CRect dstRect(m_destRect);
++    CRect srcRect(m_sourceRect);
++    switch (stereo_mode)
++    {
++      case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
++        dstRect.y2 *= 2.0;
++        srcRect.y2 *= 2.0;
++      break;
++
++      case RENDER_STEREO_MODE_SPLIT_VERTICAL:
++        dstRect.x2 *= 2.0;
++        srcRect.x2 *= 2.0;
++      break;
++
++      default:
++      break;
++    }
++
++    //CLog::Log(LOGDEBUG, "BLIT RECTS: source x1 %f x2 %f y1 %f y2 %f dest x1 %f x2 %f y1 %f y2 %f", srcRect.x1, srcRect.x2, srcRect.y1, srcRect.y2, dstRect.x1, dstRect.x2, dstRect.y1, dstRect.y2);
++    uint8_t fieldFmt = flags & RENDER_FLAG_FIELDMASK;
++
++    if (!g_graphicsContext.IsFullScreenVideo())
++      flags &= ~RENDER_FLAG_FIELDS;
++
++    if (flags & RENDER_FLAG_FIELDS)
++    {
++      fieldFmt |= IPU_DEINTERLACE_RATE_EN;
++      if (flags & RENDER_FLAG_FIELD1)
++      {
++        fieldFmt |= IPU_DEINTERLACE_RATE_FRAME1;
++        // CXBMCRenderManager::PresentFields() is swapping field flag for frame1
++        // this makes IPU render same picture as before, just shifted one line.
++        // let's correct this
++        fieldFmt ^= RENDER_FLAG_FIELDMASK;
++      }
++    }
++
++    CDVDVideoCodecIMXBuffer *buffer_p = m_bufHistory.front();
++    g_IMXContext.Blit(buffer_p == buffer ? nullptr : buffer_p, buffer, srcRect, dstRect, fieldFmt);
++  }
++
++#if 0
++  unsigned long long current2 = XbmcThreads::SystemClockMillis();
++  printf("r: %d  %d\n", m_iYV12RenderBuffer, (int)(current2-current));
++#endif
++
++  g_IMXContext.WaitVSync();
++  return true;
++}
++
++bool CRendererIMX::CreateTexture(int index)
++{
++  return true;
++}
++
++void CRendererIMX::DeleteTexture(int index)
++{
++  ReleaseBuffer(index);
++}
++
++bool CRendererIMX::UploadTexture(int index)
++{
++  return true;// nothing todo for IMX
++}
++#endif
++
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.h b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.h
+new file mode 100644
+index 0000000000..f0bebd196c
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererIMX.h
+@@ -0,0 +1,69 @@
++/*
++ *      Copyright (C) 2007-2015 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with Kodi; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++#include "system.h"
++
++#if defined(HAS_IMXVPU)
++
++#include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
++#include "linux/imx/IMX.h"
++#include "DVDCodecs/Video/DVDVideoCodecIMX.h"
++
++class CRendererIMX : public CLinuxRendererGLES
++{
++public:
++  CRendererIMX();
++  virtual ~CRendererIMX();
++  
++  virtual bool RenderCapture(CRenderCapture* capture) override;
++
++  // Player functions
++  virtual void AddVideoPictureHW(DVDVideoPicture &picture, int index, double currentClock);
++  virtual void ReleaseBuffer(int idx);
++  virtual bool IsGuiLayer();
++
++  // Feature support
++  virtual bool Supports(ESCALINGMETHOD method);
++  virtual bool Supports(ERENDERFEATURE feature);
++
++  virtual bool WantsDoublePass() override;
++
++  virtual CRenderInfo GetRenderInfo();
++
++protected:
++
++  // textures
++  virtual bool UploadTexture(int index);
++  virtual void DeleteTexture(int index);
++  virtual bool CreateTexture(int index);
++  
++  // hooks for hw dec renderer
++  virtual bool LoadShadersHook();
++  virtual bool RenderHook(int index);  
++  virtual int  GetImageHook(YuvImage *image, int source = AUTOSOURCE, bool readonly = false);
++  virtual bool RenderUpdateVideoHook(bool clear, DWORD flags = 0, DWORD alpha = 255);
++
++  std::deque<CDVDVideoCodecIMXBuffer*> m_bufHistory;
++  static void Release(CDVDVideoCodecIMXBuffer *&t) { if (t) t->Release(); }
++};
++
++#endif
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h
+index e5b9a7d1a8..25b93ce17a 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h
+@@ -71,6 +71,7 @@ enum RenderMethod
+   RENDER_CVREF  = 0x080,
+   RENDER_MEDIACODEC = 0x400,
+   RENDER_MEDIACODECSURFACE = 0x800,
++  RENDER_IMXMAP = 0x1000
+ };
+ 
+ enum RenderQuality
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.cpp
+index 667d06282f..62c08609e8 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.cpp
+@@ -59,7 +59,43 @@ bool CRenderCaptureBase::UseOcclusionQuery()
+     return true;
+ }
+ 
+-#if defined(TARGET_RASPBERRY_PI)
++
++#if defined(HAS_IMXVPU)
++CRenderCaptureIMX::CRenderCaptureIMX()
++{
++}
++
++CRenderCaptureIMX::~CRenderCaptureIMX()
++{
++}
++
++int CRenderCaptureIMX::GetCaptureFormat()
++{
++  return CAPTUREFORMAT_BGRA;
++}
++
++void CRenderCaptureIMX::BeginRender()
++{
++}
++
++void CRenderCaptureIMX::EndRender()
++{
++  if (g_IMXContext.CaptureDisplay(m_pixels, m_width, m_height))
++    SetState(CAPTURESTATE_DONE);
++  else
++    SetState(CAPTURESTATE_FAILED);
++}
++
++void* CRenderCaptureIMX::GetRenderBuffer()
++{
++  return m_pixels;
++}
++
++void CRenderCaptureIMX::ReadOut()
++{
++}
++
++#elif defined(TARGET_RASPBERRY_PI)
+ 
+ CRenderCaptureDispmanX::CRenderCaptureDispmanX()
+ {
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.h b/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.h
+index dc51cce8b4..0e1b0d07fd 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderCapture.h
+@@ -110,8 +110,32 @@ class CRenderCaptureBase
+     bool m_asyncSupported;
+     bool m_asyncChecked;
+ };
++#if defined(HAS_IMXVPU)
++#include "../VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
+ 
+-#if defined(TARGET_RASPBERRY_PI)
++class CRenderCaptureIMX : public CRenderCaptureBase
++{
++  public:
++    CRenderCaptureIMX();
++    ~CRenderCaptureIMX();
++
++    int   GetCaptureFormat();
++
++    void  BeginRender();
++    void  EndRender();
++    void  ReadOut();
++
++    void* GetRenderBuffer();
++};
++
++class CRenderCapture : public CRenderCaptureIMX
++{
++  public:
++    CRenderCapture() {};
++};
++
++
++#elif defined(TARGET_RASPBERRY_PI)
+ #include "platform/linux/RBP.h"
+ 
+ class CRenderCaptureDispmanX : public CRenderCaptureBase
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/VideoShaders/CMakeLists.txt b/xbmc/cores/VideoPlayer/VideoRenderers/VideoShaders/CMakeLists.txt
+index 62f1cc1ecc..9cc8452254 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/VideoShaders/CMakeLists.txt
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/VideoShaders/CMakeLists.txt
+@@ -26,6 +26,7 @@ if(OPENGLES_FOUND AND (CORE_PLATFORM_NAME_LC STREQUAL android OR
+                        CORE_PLATFORM_NAME_LC STREQUAL ios OR
+                        CORE_PLATFORM_NAME_LC STREQUAL aml OR
+                        CORE_PLATFORM_NAME_LC STREQUAL gbm OR
++		       CORE_PLATFORM_NAME_LC STREQUAL imx OR
+                        CORE_PLATFORM_NAME_LC STREQUAL mir OR
+                        CORE_PLATFORM_NAME_LC STREQUAL wayland))
+   list(APPEND SOURCES VideoFilterShaderGLES.cpp
+diff --git a/xbmc/cores/VideoSettings.h b/xbmc/cores/VideoSettings.h
+index 475bd527d4..061247d38a 100644
+--- a/xbmc/cores/VideoSettings.h
++++ b/xbmc/cores/VideoSettings.h
+@@ -45,6 +45,9 @@ enum EINTERLACEMETHOD
+   VS_INTERLACEMETHOD_MMAL_ADVANCED_HALF = 26,
+   VS_INTERLACEMETHOD_MMAL_BOB = 27,
+   VS_INTERLACEMETHOD_MMAL_BOB_HALF = 28,
++  VS_INTERLACEMETHOD_IMX_FASTMOTION = 29,
++  VS_INTERLACEMETHOD_IMX_ADVMOTION = 30,
++  VS_INTERLACEMETHOD_IMX_ADVMOTION_HALF = 31,
+   VS_INTERLACEMETHOD_DXVA_AUTO = 32,
+   VS_INTERLACEMETHOD_MAX // do not use and keep as last enum value.
+ };
+diff --git a/xbmc/guilib/GUIVideoControl.cpp b/xbmc/guilib/GUIVideoControl.cpp
+index d3813ce60a..cc10034518 100644
+--- a/xbmc/guilib/GUIVideoControl.cpp
++++ b/xbmc/guilib/GUIVideoControl.cpp
+@@ -59,7 +59,11 @@ void CGUIVideoControl::Render()
+       CRect region = GetRenderRegion();
+       region.Intersect(old);
+       g_graphicsContext.SetScissors(region);
++ifdef HAS_IMXVPU
++      g_graphicsContext.Clear((16 << 16)|(8 << 8)|16);
++#else
+       g_graphicsContext.Clear(0);
++#endif
+       g_graphicsContext.SetScissors(old);
+     }
+     else
+diff --git a/xbmc/peripherals/PeripheralTypes.h b/xbmc/peripherals/PeripheralTypes.h
+index 984a08d9dd..819fe98522 100644
+--- a/xbmc/peripherals/PeripheralTypes.h
++++ b/xbmc/peripherals/PeripheralTypes.h
+@@ -45,6 +45,7 @@ namespace PERIPHERALS
+ #ifdef TARGET_ANDROID
+     PERIPHERAL_BUS_ANDROID,
+ #endif
++    PERIPHERAL_BUS_IMX,
+     PERIPHERAL_BUS_APPLICATION,
+   };
+ 
+@@ -190,6 +191,8 @@ namespace PERIPHERALS
+         return "pci";
+       case PERIPHERAL_BUS_RPI:
+         return "rpi";
++      case PERIPHERAL_BUS_IMX:
++        return "imx";
+       case PERIPHERAL_BUS_CEC:
+         return "cec";
+       case PERIPHERAL_BUS_ADDON:
+@@ -216,6 +219,8 @@ namespace PERIPHERALS
+         return PERIPHERAL_BUS_PCI;
+       else if (strTypeLowerCase == "rpi")
+         return PERIPHERAL_BUS_RPI;
++      else if (strTypeLowerCase == "imx")
++        return PERIPHERAL_BUS_IMX;
+       else if (strTypeLowerCase == "cec")
+         return PERIPHERAL_BUS_CEC;
+       else if (strTypeLowerCase == "addon")
+diff --git a/xbmc/peripherals/bus/virtual/PeripheralBusCEC.cpp b/xbmc/peripherals/bus/virtual/PeripheralBusCEC.cpp
+index 3d0b446cd0..35e8cfa84c 100644
+--- a/xbmc/peripherals/bus/virtual/PeripheralBusCEC.cpp
++++ b/xbmc/peripherals/bus/virtual/PeripheralBusCEC.cpp
+@@ -101,6 +101,12 @@ bool CPeripheralBusCEC::PerformDeviceScan(PeripheralScanResults &results)
+       /** the Pi's adapter cannot be removed, no need to rescan */
+       m_bNeedsPolling = false;
+       break;
++#if defined(HAS_IMXVPU)
++    case ADAPTERTYPE_IMX:
++      result.m_mappedBusType = PERIPHERAL_BUS_IMX;
++      m_bNeedsPolling = false;
++      break;
++#endif
+     default:
+       break;
+     }
+diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
+index 9dd6355945..bce982ca2c 100644
+--- a/xbmc/settings/Settings.cpp
++++ b/xbmc/settings/Settings.cpp
+@@ -570,6 +570,9 @@ bool CSettings::InitializeDefinitions()
+ #elif defined(TARGET_FREEBSD)
+   if (CFile::Exists(SETTINGS_XML_FOLDER "freebsd.xml") && !Initialize(SETTINGS_XML_FOLDER "freebsd.xml"))
+     CLog::Log(LOGFATAL, "Unable to load freebsd-specific settings definitions");
++#elif defined(HAS_IMXVPU)
++  if (CFile::Exists(SETTINGS_XML_FOLDER "imx6.xml") && !Initialize(SETTINGS_XML_FOLDER "imx6.xml"))
++    CLog::Log(LOGFATAL, "Unable to load imx6-specific settings definitions");
+ #elif defined(TARGET_LINUX)
+   if (CFile::Exists(SETTINGS_XML_FOLDER "linux.xml") && !Initialize(SETTINGS_XML_FOLDER "linux.xml"))
+     CLog::Log(LOGFATAL, "Unable to load linux-specific settings definitions");
+diff --git a/xbmc/utils/Screenshot.cpp b/xbmc/utils/Screenshot.cpp
+index af459190da..f6ca968a4b 100644
+--- a/xbmc/utils/Screenshot.cpp
++++ b/xbmc/utils/Screenshot.cpp
+@@ -33,6 +33,11 @@
+ #include "platform/linux/RBP.h"
+ #endif
+ 
++#ifdef HAS_IMXVPU
++// This has to go into another header file
++#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
++#endif
++
+ #include "filesystem/File.h"
+ #include "guilib/GraphicContext.h"
+ #include "guilib/GUIWindowManager.h"
+@@ -172,6 +177,12 @@ bool CScreenshotSurface::capture()
+   CScreenshotAML::CaptureVideoFrame(m_buffer, m_width, m_height);
+ #endif
+ 
++#ifdef HAS_IMXVPU
++  // Captures the current visible framebuffer page and blends it into the
++  // captured GL overlay
++  g_IMXContext.CaptureDisplay(m_buffer, m_width, m_height, true);
++#endif
++
+ #else
+   //nothing to take a screenshot from
+   return false;
+diff --git a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+index 26e6286a6e..68b9cca8be 100644
+--- a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
++++ b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+@@ -316,6 +316,9 @@ void CGUIDialogVideoSettings::InitializeSettings()
+   entries.push_back(std::make_pair(16331, VS_INTERLACEMETHOD_MMAL_ADVANCED_HALF));
+   entries.push_back(std::make_pair(16332, VS_INTERLACEMETHOD_MMAL_BOB));
+   entries.push_back(std::make_pair(16333, VS_INTERLACEMETHOD_MMAL_BOB_HALF));
++  entries.push_back(std::make_pair(16334, VS_INTERLACEMETHOD_IMX_FASTMOTION));
++  entries.push_back(std::make_pair(16335, VS_INTERLACEMETHOD_IMX_ADVMOTION_HALF));
++  entries.push_back(std::make_pair(16336, VS_INTERLACEMETHOD_IMX_ADVMOTION));
+   entries.push_back(std::make_pair(16320, VS_INTERLACEMETHOD_DXVA_AUTO));
+ 
+   /* remove unsupported methods */
+diff --git a/xbmc/video/windows/GUIWindowFullScreen.cpp b/xbmc/video/windows/GUIWindowFullScreen.cpp
+index 7b3b99da74..1fcce1289c 100644
+--- a/xbmc/video/windows/GUIWindowFullScreen.cpp
++++ b/xbmc/video/windows/GUIWindowFullScreen.cpp
+@@ -173,7 +173,11 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
+ void CGUIWindowFullScreen::ClearBackground()
+ {
+   if (g_application.GetAppPlayer().IsRenderingVideoLayer())
++#ifdef HAS_IMXVPU
++    g_graphicsContext.Clear((16 << 16)|(8 << 8)|16);
++#else
+     g_graphicsContext.Clear(0);
++#endif
+ }
+ 
+ void CGUIWindowFullScreen::OnWindowLoaded()
+diff --git a/xbmc/windowing/egl/CMakeLists.txt b/xbmc/windowing/egl/CMakeLists.txt
+new file mode 100644
+index 0000000000..93ee1df20c
+--- /dev/null
++++ b/xbmc/windowing/egl/CMakeLists.txt
+@@ -0,0 +1,11 @@
++set(SOURCES EGLNativeTypeIMX.cpp
++            EGLWrapper.cpp
++            WinSystemEGL.cpp)
++
++set(HEADERS EGLNativeType.h
++            EGLNativeTypeIMX.h
++            EGLQuirks.h
++            EGLWrapper.h
++            WinSystemEGL.h)
++
++core_add_library(windowing_egl)
+diff --git a/xbmc/windowing/egl/EGLNativeType.h b/xbmc/windowing/egl/EGLNativeType.h
+new file mode 100644
+index 0000000000..3000431f3c
+--- /dev/null
++++ b/xbmc/windowing/egl/EGLNativeType.h
+@@ -0,0 +1,152 @@
++#pragma once
++
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <string>
++#include <vector>
++
++#include "guilib/Resolution.h"
++#include "EGLQuirks.h"
++
++typedef void* XBNativeDisplayType;
++typedef void* XBNativeWindowType;
++
++/*!
++This class provides extra functionality on top of EGL in order to facilitate
++the implementation-dependent functionality relating to creating, maintaining,
++and destroying screens and displays.
++
++Each implementation is required to implement each function, though it can
++simply return false to signify that the functionality does not exist.
++
++Internal state should be maintained by each implementation as little as possible.
++If any information needs to be saved outside of the NativeWindow and NativeDisplay
++for later retrieval, there is most likely a bug in the implementation, or in that
++platform's EGL implementation.
++
++Each implementation will be instantiated at runtime to see if it qualifies for use
++until one is found. For this reason, each should avoid operations in its ctors and
++dtors, instead using the provided Initialize() and Destroy() functions which are
++only called once the implementation has been selected.
++*/
++
++class CEGLNativeType
++{
++public:
++
++ /*! \brief Do NOT clean up in the destructor, use the Destroy function
++    instead.
++
++    \sa: Destroy() */
++  virtual ~CEGLNativeType(){};
++
++/*! \brief Unique identifier for this EGL implementation.
++
++   It should be unique enough to set it apart from other possible implementations
++   on a similar platform. */
++  virtual std::string GetNativeName() const = 0;
++
++/*! \brief A function for testing whether this implementation should be used.
++
++  On platforms where several implementations are possible, it should provide a
++  stringent test to rule out false-positives. */
++  virtual bool  CheckCompatibility() = 0;
++
++/*! \brief Initialize any local variables and/or structures here.
++
++    This is called after the implementation has been chosen, which is why this
++    should be used rather than the ctor. */
++  virtual void  Initialize() = 0;
++
++/*! \brief Destroy any local variables and/or structures here.
++
++    This is called when the WindowSystem has been destroyed. */
++  virtual void  Destroy() = 0;
++
++/*! \brief EGL implementation quirks.
++
++    Set any EGL oddities here so that they can be queried during the window's
++    life-cycle. */
++  virtual int   GetQuirks() = 0;
++
++/*! \brief Create the EGL Native Display
++
++    An Implementation-dependent method should be used to create a native
++    display and store it in m_nativeDisplay. XBMC will terminate if this
++    fails */
++  virtual bool  CreateNativeDisplay() = 0;
++
++/*! \brief Create the EGL Native Window
++
++    An Implementation-dependent method should be used to create a native
++    window and store it in m_nativeWindow. XBMC Will terminate if this fails.
++    If possible, the created window should use the current display's geometry
++    and allocate as needed so that it is immediately available for use.
++    If not, it must be made ready by SetNativeResolution(). */
++  virtual bool  CreateNativeWindow() = 0;
++
++/*! \brief Returns the current Native Display */
++  virtual bool  GetNativeDisplay(XBNativeDisplayType **nativeDisplay) const = 0;
++
++/*! \brief Returns the current Native Window */
++  virtual bool  GetNativeWindow(XBNativeWindowType **nativeWindow) const = 0;
++
++/*! \brief Destroy the Native Window
++
++    An Implementation-dependent method should be used to destroy the current
++    Native Window */
++  virtual bool  DestroyNativeWindow() = 0;
++
++/*! \brief Destroy The Native Display
++
++    An Implementation-dependent method should be used to destroy the current
++    Native Display */
++  virtual bool  DestroyNativeDisplay() = 0;
++
++/*! \brief Return the current display's resolution
++
++    This is completely independent of XBMC's internal resolution */
++  virtual bool  GetNativeResolution(RESOLUTION_INFO *res) const = 0;
++
++/*! \brief Set the current display's resolution
++
++    This is completely independent of XBMC's internal resolution */
++  virtual bool  SetNativeResolution(const RESOLUTION_INFO &res) = 0;
++
++/*! \brief Query the display for all possible resolutions */
++  virtual bool  ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions) = 0;
++
++/*! \brief Provide a fall-back resolution
++
++    If all queried resolutions fail, this one is guaranteed to be compatible
++    with the display */
++  virtual bool  GetPreferredResolution(RESOLUTION_INFO *res) const = 0;
++
++/*! \brief Show/Hide the current window
++
++    A platform-independent way of hiding XBMC (for example blanking the current
++    framebuffer */
++  virtual bool  ShowWindow(bool show) = 0;
++
++protected:
++  XBNativeDisplayType  m_nativeDisplay;
++  XBNativeWindowType   m_nativeWindow;
++};
+diff --git a/xbmc/windowing/egl/EGLNativeTypeIMX.cpp b/xbmc/windowing/egl/EGLNativeTypeIMX.cpp
+new file mode 100644
+index 0000000000..1e5896d3b9
+--- /dev/null
++++ b/xbmc/windowing/egl/EGLNativeTypeIMX.cpp
+@@ -0,0 +1,451 @@
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://www.xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <cstdlib>
++
++#include "system.h"
++#include <EGL/egl.h>
++
++#include "EGLNativeTypeIMX.h"
++#include <math.h>
++#include <sys/mman.h>
++#include <sys/ioctl.h>
++#ifdef HAS_IMXVPU
++#include <linux/mxcfb.h>
++#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
++#endif
++#include "utils/log.h"
++#include "utils/RegExp.h"
++#include "utils/StringUtils.h"
++#include "utils/SysfsUtils.h"
++#include "utils/Environment.h"
++#include "guilib/gui3d.h"
++#include "windowing/WindowingFactory.h"
++#include <fstream>
++
++CEGLNativeTypeIMX::CEGLNativeTypeIMX()
++  : m_sar(0.0f)
++  , m_show(true)
++  , m_display(NULL)
++  , m_window(NULL)
++{
++}
++
++CEGLNativeTypeIMX::~CEGLNativeTypeIMX()
++{
++}
++
++bool CEGLNativeTypeIMX::CheckCompatibility()
++{
++  std::ifstream file("/sys/class/graphics/fb0/fsl_disp_dev_property");
++  return file.is_open();
++}
++
++void CEGLNativeTypeIMX::Initialize()
++{
++  int fd;
++
++  // Check if we can change the framebuffer resolution
++  fd = open("/sys/class/graphics/fb0/mode", O_RDWR);
++  if (fd >= 0)
++  {
++    CLog::Log(LOGNOTICE, "%s - graphics sysfs is writable\n", __FUNCTION__);
++    m_readonly = false;
++  }
++  else
++  {
++    CLog::Log(LOGNOTICE, "%s - graphics sysfs is read-only\n", __FUNCTION__);
++    m_readonly = true;
++  }
++  close(fd);
++
++  bool alphaBlending = false;
++  std::string bpp;
++  if (SysfsUtils::GetString("/sys/class/graphics/fb0/bits_per_pixel", bpp))
++  {
++    CLog::Log(LOGWARNING, "%s - determining current bits per pixel failed, assuming 16bpp\n", __FUNCTION__);
++  }
++  else
++  {
++    StringUtils::Trim(bpp);
++    if (bpp == "32")
++    {
++      CLog::Log(LOGNOTICE, "%s - 32bpp: configure alpha blending\n", __FUNCTION__);
++      alphaBlending = true;
++    }
++    else
++    {
++      CLog::Log(LOGNOTICE, "%s - %sbpp: configure color keying\n", __FUNCTION__, bpp.c_str());
++    }
++  }
++
++  ShowWindow(false);
++
++  fd = open("/dev/fb0",O_RDWR);
++  if (fd < 0)
++  {
++    CLog::Log(LOGERROR, "%s - Error while opening /dev/fb0.\n", __FUNCTION__);
++    return;
++  }
++#ifdef HAS_IMXVPU
++  struct mxcfb_color_key colorKey;
++  struct mxcfb_gbl_alpha gbl_alpha;
++  struct mxcfb_loc_alpha lalpha;
++  memset(&lalpha, 0, sizeof(lalpha));
++
++  // Configure local alpha
++  lalpha.enable = alphaBlending?1:0;
++  lalpha.alpha_in_pixel = 1;
++  if (ioctl(fd, MXCFB_SET_LOC_ALPHA, &lalpha) < 0)
++    CLog::Log(LOGERROR, "%s - Failed to setup alpha blending\n", __FUNCTION__);
++
++  gbl_alpha.alpha = 255;
++  gbl_alpha.enable = alphaBlending?0:1;
++  if (ioctl(fd, MXCFB_SET_GBL_ALPHA, &gbl_alpha) < 0)
++    CLog::Log(LOGERROR, "%s - Failed to setup global alpha\n", __FUNCTION__);
++
++  colorKey.enable = alphaBlending?0:1;
++  colorKey.color_key = (16 << 16)|(8 << 8)|16;
++  if (ioctl(fd, MXCFB_SET_CLR_KEY, &colorKey) < 0)
++    CLog::Log(LOGERROR, "%s - Failed to setup color keying\n", __FUNCTION__);
++
++  close(fd);
++  ShowWindow(true);
++
++  g_IMXContext.Allocate();
++  m_sar = GetMonitorSAR();
++#endif
++  return;
++}
++
++void CEGLNativeTypeIMX::Destroy()
++{
++  struct fb_fix_screeninfo fixed_info;
++  void *fb_buffer;
++  int fd;
++
++  fd = open("/dev/fb0",O_RDWR);
++  if (fd < 0)
++  {
++    CLog::Log(LOGERROR, "%s - Error while opening /dev/fb0.\n", __FUNCTION__);
++    return;
++  }
++
++  ioctl( fd, FBIOGET_FSCREENINFO, &fixed_info);
++  // Black fb0
++  fb_buffer = mmap(NULL, fixed_info.smem_len, PROT_WRITE, MAP_SHARED, fd, 0);
++  if (fb_buffer == MAP_FAILED)
++  {
++    CLog::Log(LOGERROR, "%s - fb mmap failed %s.\n", __FUNCTION__, strerror(errno));
++  }
++  else
++  {
++    memset(fb_buffer, 0x0, fixed_info.smem_len);
++    munmap(fb_buffer, fixed_info.smem_len);
++  }
++
++  close(fd);
++
++  return;
++}
++
++bool CEGLNativeTypeIMX::CreateNativeDisplay()
++{
++  // Force double-buffering
++  CEnvironment::setenv("FB_MULTI_BUFFER", "2", 0);
++
++#ifdef HAS_IMXVPU
++  // EGL will be rendered on fb0
++  m_display = fbGetDisplayByIndex(0);
++  m_nativeDisplay = &m_display;
++  return true;
++#else
++  return false;
++#endif
++}
++
++bool CEGLNativeTypeIMX::CreateNativeWindow()
++{
++#ifdef HAS_IMXVPU
++  m_window = fbCreateWindow(m_display, 0, 0, 0, 0);
++  m_nativeWindow = &m_window;
++  return true;
++#else
++  return false;
++#endif
++}
++
++bool CEGLNativeTypeIMX::GetNativeDisplay(XBNativeDisplayType **nativeDisplay) const
++{
++  if (!nativeDisplay)
++    return false;
++  if (!m_nativeDisplay)
++    return false;
++  *nativeDisplay = (XBNativeDisplayType*)m_nativeDisplay;
++  return true;
++}
++
++bool CEGLNativeTypeIMX::GetNativeWindow(XBNativeWindowType **nativeWindow) const
++{
++  if (!nativeWindow)
++    return false;
++  if (!m_nativeWindow || !m_window)
++    return false;
++  *nativeWindow = (XBNativeWindowType*)m_nativeWindow;
++  return true;
++}
++
++bool CEGLNativeTypeIMX::DestroyNativeDisplay()
++{
++#ifdef HAS_IMXVPU
++  if (m_display)
++    fbDestroyDisplay(m_display);
++  m_display =  NULL;
++  return true;
++#else
++  return false;
++#endif
++}
++
++bool CEGLNativeTypeIMX::DestroyNativeWindow()
++{
++#ifdef HAS_IMXVPU
++  if (m_window)
++    fbDestroyWindow(m_window);
++  m_window =  NULL;
++  return true;
++#else
++  return false;
++#endif
++}
++
++bool CEGLNativeTypeIMX::GetNativeResolution(RESOLUTION_INFO *res) const
++{
++  std::string mode;
++  SysfsUtils::GetString("/sys/class/graphics/fb0/mode", mode);
++  return ModeToResolution(mode, res);
++}
++
++bool CEGLNativeTypeIMX::SetNativeResolution(const RESOLUTION_INFO &res)
++{
++  if (m_readonly)
++    return false;
++
++  std::string mode;
++  SysfsUtils::GetString("/sys/class/graphics/fb0/mode", mode);
++  if (res.strId == mode)
++    return false;
++
++  DestroyNativeWindow();
++  DestroyNativeDisplay();
++
++  ShowWindow(false);
++  SysfsUtils::SetString("/sys/class/graphics/fb0/mode", res.strId + "\n");
++
++  CreateNativeDisplay();
++  CreateNativeWindow();
++
++  g_IMXContext.OnResetDisplay();
++  ShowWindow(true);
++  CLog::Log(LOGDEBUG, "%s: %s",__FUNCTION__, res.strId.c_str());
++
++  return true;
++}
++
++bool CEGLNativeTypeIMX::FindMatchingResolution(const RESOLUTION_INFO &res, const std::vector<RESOLUTION_INFO> &resolutions)
++{
++  for (int i = 0; i < (int)resolutions.size(); i++)
++  {
++    if(resolutions[i].iScreenWidth == res.iScreenWidth &&
++       resolutions[i].iScreenHeight == res.iScreenHeight &&
++       resolutions[i].fRefreshRate == res.fRefreshRate &&
++      (resolutions[i].dwFlags & D3DPRESENTFLAG_MODEMASK) == (res.dwFlags & D3DPRESENTFLAG_MODEMASK))
++    {
++       return true;
++    }
++  }
++  return false;
++}
++
++bool CEGLNativeTypeIMX::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
++{
++  if (m_readonly)
++    return false;
++
++  std::string valstr;
++  SysfsUtils::GetString("/sys/class/graphics/fb0/modes", valstr);
++  std::vector<std::string> probe_str = StringUtils::Split(valstr, "\n");
++
++  // lexical order puts the modes list into our preferred
++  // order and by later filtering through FindMatchingResolution()
++  // we make sure we read _all_ S modes, following U and V modes
++  // while list will hold unique resolutions only
++  std::sort(probe_str.begin(), probe_str.end());
++
++  resolutions.clear();
++  RESOLUTION_INFO res;
++  for (size_t i = 0; i < probe_str.size(); i++)
++  {
++    if(!StringUtils::StartsWith(probe_str[i], "S:") && !StringUtils::StartsWith(probe_str[i], "U:") &&
++       !StringUtils::StartsWith(probe_str[i], "V:") && !StringUtils::StartsWith(probe_str[i], "D:"))
++      continue;
++
++    if(ModeToResolution(probe_str[i], &res))
++      if(!FindMatchingResolution(res, resolutions))
++        resolutions.push_back(res);
++  }
++  return resolutions.size() > 0;
++}
++
++bool CEGLNativeTypeIMX::GetPreferredResolution(RESOLUTION_INFO *res) const
++{
++  return GetNativeResolution(res);
++}
++
++bool CEGLNativeTypeIMX::ShowWindow(bool show)
++{
++  if (m_show == show)
++    return true;
++
++  CLog::Log(LOGDEBUG, ": %s %s", __FUNCTION__, show?"show":"hide");
++  SysfsUtils::SetInt("/sys/class/graphics/fb0/blank", show ? 0 : 1 );
++
++  m_show = show;
++
++  return true;
++}
++
++float CEGLNativeTypeIMX::GetMonitorSAR()
++{
++  FILE *f_edid;
++  char *str = NULL;
++  unsigned char p;
++  size_t n;
++  int done = 0;
++
++  // kernels <= 3.18 use ./soc0/soc.1 in official imx kernel
++  // kernels  > 3.18 use ./soc0/soc
++  f_edid = fopen("/sys/devices/soc0/soc/20e0000.hdmi_video/edid", "r");
++  if(!f_edid)
++    f_edid = fopen("/sys/devices/soc0/soc.1/20e0000.hdmi_video/edid", "r");
++
++  if(!f_edid)
++    return 0;
++
++  // first check if EDID is in binary format by reading 512bytes, compare 1st 8bytes
++  // against EDID 1.4 identificator [0x0,0xff,0xff,0xff,0xff,0xff,0xff,0x0]
++  // if no match, seek to 0 input file and continue with previous method.
++  if (((done = fread(m_edid, 1, EDID_MAXSIZE, f_edid)) % 128) == 0 && done)
++    if (!memcmp(m_edid, EDID_HEADER, EDID_HEADERSIZE))
++    {
++      fclose(f_edid);
++      return true;
++    }
++
++  done = 0;
++  memset(m_edid, 0, EDID_MAXSIZE);
++  fseek(f_edid, 0L, SEEK_SET);
++  // we need to convert mxc_hdmi output format to binary array
++  // mxc_hdmi provides the EDID as space delimited 1bytes blocks
++  // exported as text with format specifier %x eg:
++  // 0x00 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0x00 0x4C 0x2D 0x7A 0x0A 0x00 0x00 0x00 0x00
++  //
++  // this translates into the inner cycle where we move pointer first
++  // with +2 to skip '0x',
++  // we sscanf actual data (eg FF) into a byte,
++  // we move over the FF and delimiting space with +3
++  //
++  // this parses whole 512 byte long info into internal binary array for future
++  // reference and use. current use is only to grab screen's physical params
++  // at EGL init.
++  while(getline(&str, &n, f_edid) > 0)
++  {
++    char *c = str;
++    while(*c != '\n' && done < EDID_MAXSIZE)
++    {
++      c += 2;
++      sscanf(c, "%hhx", &p);
++      m_edid[done++] = p;
++      c += 3;
++    }
++    if (str)
++      free(str);
++    str = NULL;
++  }
++  fclose(f_edid);
++
++  // info related to 'Basic display parameters.' is at offset 0x14-0x18.
++  // where W is 2nd byte, H 3rd.
++  int cmWidth  = (int)*(m_edid +EDID_STRUCT_DISPLAY +1);
++  int cmHeight = (int)*(m_edid +EDID_STRUCT_DISPLAY +2);
++  if (cmHeight > 0)
++  {
++    float t_sar = (float) cmWidth / cmHeight;
++    if (t_sar >= 0.33 && t_sar <= 3.0)
++      return t_sar;
++  }
++
++  // if we end up here, H/W values or final SAR are useless
++  // return 0 and use 1.0f as PR for all resolutions
++  return 0;
++}
++
++bool CEGLNativeTypeIMX::ModeToResolution(std::string mode, RESOLUTION_INFO *res) const
++{
++  if (!res)
++    return false;
++
++  res->iWidth = 0;
++  res->iHeight= 0;
++
++  if(mode.empty())
++    return false;
++
++  std::string fromMode = StringUtils::Mid(mode, 2);
++  StringUtils::Trim(fromMode);
++
++  CRegExp split(true);
++  split.RegComp("([0-9]+)x([0-9]+)([pi])-([0-9]+)");
++  if (split.RegFind(fromMode) < 0)
++    return false;
++
++  int w = atoi(split.GetMatch(1).c_str());
++  int h = atoi(split.GetMatch(2).c_str());
++  std::string p = split.GetMatch(3);
++  int r = atoi(split.GetMatch(4).c_str());
++
++  res->iWidth = w;
++  res->iHeight= h;
++  res->iScreenWidth = w;
++  res->iScreenHeight= h;
++  res->fRefreshRate = r;
++  res->dwFlags = p[0] == 'p' ? D3DPRESENTFLAG_PROGRESSIVE : D3DPRESENTFLAG_INTERLACED;
++
++  res->iScreen       = 0;
++  res->bFullScreen   = true;
++  res->iSubtitles    = (int)(0.965 * res->iHeight);
++
++  res->fPixelRatio   = !m_sar ? 1.0f : (float)m_sar / res->iScreenWidth * res->iScreenHeight;
++  res->strMode       = StringUtils::Format("%dx%d @ %.2f%s - Full Screen", res->iScreenWidth, res->iScreenHeight, res->fRefreshRate,
++                                           res->dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "");
++  res->strId         = mode;
++
++  return res->iWidth > 0 && res->iHeight> 0;
++}
+diff --git a/xbmc/windowing/egl/EGLNativeTypeIMX.h b/xbmc/windowing/egl/EGLNativeTypeIMX.h
+new file mode 100644
+index 0000000000..53cbc2e177
+--- /dev/null
++++ b/xbmc/windowing/egl/EGLNativeTypeIMX.h
+@@ -0,0 +1,74 @@
++#pragma once
++
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://www.xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <string>
++#include <vector>
++
++#include <linux/fb.h>
++
++#include <EGL/egl.h>
++#include "EGLNativeType.h"
++
++#define EDID_STRUCT_DISPLAY     0x14
++#define EDID_MAXSIZE            512
++#define EDID_HEADERSIZE         8
++
++static const char EDID_HEADER[EDID_HEADERSIZE] = { 0x0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0 };
++
++class CEGLNativeTypeIMX : public CEGLNativeType
++{
++public:
++  CEGLNativeTypeIMX();
++  virtual ~CEGLNativeTypeIMX();
++  virtual std::string GetNativeName() const { return "iMX"; }
++  virtual bool  CheckCompatibility();
++  virtual void  Initialize();
++  virtual void  Destroy();
++  virtual int   GetQuirks() { return EGL_QUIRK_RECREATE_DISPLAY_ON_CREATE_WINDOW; }
++
++  virtual bool  CreateNativeDisplay();
++  virtual bool  CreateNativeWindow();
++  virtual bool  GetNativeDisplay(XBNativeDisplayType **nativeDisplay) const;
++  virtual bool  GetNativeWindow(XBNativeWindowType **nativeWindow) const;
++
++  virtual bool  DestroyNativeWindow();
++  virtual bool  DestroyNativeDisplay();
++
++  virtual bool  GetNativeResolution(RESOLUTION_INFO *res) const;
++  virtual bool  SetNativeResolution(const RESOLUTION_INFO &res);
++  virtual bool  ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions);
++  virtual bool  GetPreferredResolution(RESOLUTION_INFO *res) const;
++
++  virtual bool  ShowWindow(bool show);
++
++protected:
++  bool m_readonly;
++  float m_sar;
++  bool m_show;
++  bool ModeToResolution(std::string mode, RESOLUTION_INFO *res) const;
++  bool FindMatchingResolution(const RESOLUTION_INFO &res, const std::vector<RESOLUTION_INFO> &resolutions);
++  float GetMonitorSAR();
++
++  EGLNativeDisplayType m_display;
++  EGLNativeWindowType  m_window;
++  uint8_t              m_edid[EDID_MAXSIZE];
++};
+diff --git a/xbmc/windowing/egl/EGLQuirks.h b/xbmc/windowing/egl/EGLQuirks.h
+new file mode 100644
+index 0000000000..6624f23e01
+--- /dev/null
++++ b/xbmc/windowing/egl/EGLQuirks.h
+@@ -0,0 +1,42 @@
++#pragma once
++
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#define EGL_QUIRK_NONE (0)
++
++/*! \brief Enable this if the implementation does not know its native
++     resolution until a surface has been created. Used, for example, on Android
++     where we have no control over the resolution, so we query it once the
++     surface exists.
++*/
++#define EGL_QUIRK_NEED_WINDOW_FOR_RES (1 << 0)
++
++/*! \brief Enable this if the implementation should have its native window
++     destroyed when the surface is destroyed. In practice this means that a new
++     native window will be created each time the main XBMC window is recreated.
++*/
++#define EGL_QUIRK_DESTROY_NATIVE_WINDOW_WITH_SURFACE (1 << 1)
++
++/*! \brief Some drivers destroy the native display on resolution change. xbmc's EGL
++    implementation is not aware of this change. In that case a Reinit of the display
++    needs to be done.
++*/
++#define EGL_QUIRK_RECREATE_DISPLAY_ON_CREATE_WINDOW (1 << 3)
+diff --git a/xbmc/windowing/egl/EGLWrapper.cpp b/xbmc/windowing/egl/EGLWrapper.cpp
+new file mode 100644
+index 0000000000..4c8864b413
+--- /dev/null
++++ b/xbmc/windowing/egl/EGLWrapper.cpp
+@@ -0,0 +1,405 @@
++/*
++ *      Copyright (C) 2005-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#include "system.h"
++
++#ifdef HAS_EGL
++#include "utils/log.h"
++#include <assert.h>
++#if defined(HAS_IMXVPU)
++  #include "EGLNativeTypeIMX.h"
++#endif
++#include "EGLWrapper.h"
++
++#define CheckError() m_result = eglGetError(); if(m_result != EGL_SUCCESS) CLog::Log(LOGERROR, "EGL error in %s: %x",__FUNCTION__, m_result);
++
++CEGLWrapper::CEGLWrapper()
++{
++  m_nativeTypes = NULL;
++  m_result = EGL_SUCCESS;
++}
++
++CEGLWrapper::~CEGLWrapper()
++{
++  Destroy();
++}
++
++namespace
++{
++  bool
++  CorrectGuess(CEGLNativeType *guess,
++               const std::string &implementation)
++  {
++    assert(guess != NULL);
++
++    if(guess->CheckCompatibility())
++    {
++      if (implementation == guess->GetNativeName() ||
++          implementation == "auto")
++      {
++        return true;
++      }
++    }
++
++    return false;
++  }
++
++  template <class NativeType>
++  CEGLNativeType * CreateEGLNativeType(const std::string &implementation)
++  {
++    CEGLNativeType *guess = new NativeType;
++    if(CorrectGuess(guess, implementation))
++      return guess;
++
++    delete guess;
++    return NULL;
++  }
++}
++
++bool CEGLWrapper::Initialize(const std::string &implementation)
++{
++  CEGLNativeType *nativeGuess = NULL;
++
++  // Try to create each backend in sequence and go with the first one
++  // that we know will work
++  if (
++#if defined(HAS_IMXVPU)
++      (nativeGuess = CreateEGLNativeType<CEGLNativeTypeIMX>(implementation))
++#endif
++      )
++  {
++    m_nativeTypes = nativeGuess;
++
++    m_nativeTypes->Initialize();
++    return true;
++  }
++
++  return false;
++}
++
++bool CEGLWrapper::Destroy()
++{
++  if (!m_nativeTypes)
++    return false;
++
++  m_nativeTypes->Destroy();
++
++  delete m_nativeTypes;
++  m_nativeTypes = NULL;
++  return true;
++}
++
++std::string CEGLWrapper::GetNativeName()
++{
++  if (m_nativeTypes)
++    return m_nativeTypes->GetNativeName();
++  return "";
++}
++
++bool CEGLWrapper::CreateNativeDisplay()
++{
++  if(!m_nativeTypes)
++    return false;
++
++  return m_nativeTypes->CreateNativeDisplay();
++}
++
++bool CEGLWrapper::CreateNativeWindow()
++{
++  if(!m_nativeTypes)
++    return false;
++
++  return m_nativeTypes->CreateNativeWindow();
++}
++
++void CEGLWrapper::DestroyNativeDisplay()
++{
++  if(m_nativeTypes)
++    m_nativeTypes->DestroyNativeDisplay();
++}
++
++void CEGLWrapper::DestroyNativeWindow()
++{
++  if(m_nativeTypes)
++    m_nativeTypes->DestroyNativeWindow();
++}
++
++bool CEGLWrapper::SetNativeResolution(RESOLUTION_INFO& res)
++{
++  if (!m_nativeTypes)
++    return false;
++  return m_nativeTypes->SetNativeResolution(res);
++}
++
++bool CEGLWrapper::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
++{
++  if (!m_nativeTypes)
++    return false;
++  return m_nativeTypes->ProbeResolutions(resolutions);
++}
++
++bool CEGLWrapper::GetPreferredResolution(RESOLUTION_INFO *res)
++{
++  if(!m_nativeTypes || !res)
++    return false;
++
++  return m_nativeTypes->GetPreferredResolution(res);
++}
++
++bool CEGLWrapper::GetNativeResolution(RESOLUTION_INFO *res)
++{
++  if(!m_nativeTypes || !res)
++    return false;
++
++  return m_nativeTypes->GetNativeResolution(res);
++}
++
++bool CEGLWrapper::ShowWindow(bool show)
++{
++  if (!m_nativeTypes)
++    return false;
++
++  return m_nativeTypes->ShowWindow(show);
++}
++
++bool CEGLWrapper::GetQuirks(int *quirks)
++{
++  if (!m_nativeTypes || !quirks)
++    return false;
++  *quirks = m_nativeTypes->GetQuirks();
++  return true;
++}
++
++bool CEGLWrapper::InitDisplay(EGLDisplay *display)
++{
++  if (!display || !m_nativeTypes)
++    return false;
++
++  //nativeDisplay can be (and usually is) NULL. Don't use if(nativeDisplay) as a test!
++  EGLint status;
++  EGLNativeDisplayType *nativeDisplay = NULL;
++  if (!m_nativeTypes->GetNativeDisplay((XBNativeDisplayType**)&nativeDisplay))
++    return false;
++
++  *display = eglGetDisplay(*nativeDisplay);
++  CheckError();
++  if (*display == EGL_NO_DISPLAY)
++  {
++    CLog::Log(LOGERROR, "EGL failed to obtain display");
++    return false;
++  }
++
++  status = eglInitialize(*display, 0, 0);
++  CheckError();
++  return status;
++}
++
++bool CEGLWrapper::ChooseConfig(EGLDisplay display, EGLint *configAttrs, EGLConfig *config)
++{
++  EGLint     configCount = 0;
++  EGLConfig* configList = NULL;
++
++  // Find out how many configurations suit our needs
++  EGLBoolean eglStatus = eglChooseConfig(display, configAttrs, NULL, 0, &configCount);
++  CheckError();
++
++  if (!eglStatus || !configCount)
++  {
++    CLog::Log(LOGERROR, "EGL failed to return any matching configurations: %i", configCount);
++    return false;
++  }
++
++  // Allocate room for the list of matching configurations
++  configList = (EGLConfig*)malloc(configCount * sizeof(EGLConfig));
++  if (!configList)
++  {
++    CLog::Log(LOGERROR, "EGL failure obtaining configuration list");
++    return false;
++  }
++
++  // Obtain the configuration list from EGL
++  eglStatus = eglChooseConfig(display, configAttrs, configList, configCount, &configCount);
++  CheckError();
++  if (!eglStatus || !configCount)
++  {
++    CLog::Log(LOGERROR, "EGL failed to populate configuration list: %d", eglStatus);
++    return false;
++  }
++
++  // Select an EGL configuration that matches the native window
++  *config = configList[0];
++
++  free(configList);
++  return m_result == EGL_SUCCESS;
++}
++
++bool CEGLWrapper::CreateContext(EGLDisplay display, EGLConfig config, EGLint *contextAttrs, EGLContext *context)
++{
++  if (!context)
++    return false;
++
++  *context = eglCreateContext(display, config, NULL, contextAttrs);
++  CheckError();
++  return *context != EGL_NO_CONTEXT;
++}
++
++bool CEGLWrapper::CreateSurface(EGLDisplay display, EGLConfig config, EGLSurface *surface)
++{
++  if (!surface || !m_nativeTypes)
++    return false;
++
++  EGLNativeWindowType *nativeWindow=NULL;
++  if (!m_nativeTypes->GetNativeWindow((XBNativeWindowType**)&nativeWindow))
++    return false;
++
++  *surface = eglCreateWindowSurface(display, config, *nativeWindow, NULL);
++  CheckError();
++  return *surface != EGL_NO_SURFACE;
++}
++
++bool CEGLWrapper::GetSurfaceSize(EGLDisplay display, EGLSurface surface, EGLint *width, EGLint *height)
++{
++  if (!width || !height)
++    return false;
++
++  const bool failedToQuerySurfaceSize =
++    !eglQuerySurface(display, surface, EGL_WIDTH, width) ||
++    !eglQuerySurface(display, surface, EGL_HEIGHT, height);
++  const bool invalidSurfaceSize =
++    *width <= 0 || *height <= 0;
++
++  if (failedToQuerySurfaceSize || invalidSurfaceSize)
++    return false;
++
++  return true;
++}
++
++bool CEGLWrapper::BindContext(EGLDisplay display, EGLSurface surface, EGLContext context)
++{
++  EGLBoolean status;
++  status = eglMakeCurrent(display, surface, surface, context);
++  CheckError();
++  return status;
++}
++
++bool CEGLWrapper::BindAPI(EGLint type)
++{
++  EGLBoolean status;
++  status = eglBindAPI(type);
++  CheckError();
++  return status && m_result == EGL_SUCCESS;
++}
++
++bool CEGLWrapper::ReleaseContext(EGLDisplay display)
++{
++  EGLBoolean status;
++  if (display == EGL_NO_DISPLAY)
++    return false;
++  status = eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
++  CheckError();
++  return status;
++}
++
++bool CEGLWrapper::DestroyContext(EGLDisplay display, EGLContext context)
++{
++  EGLBoolean status;
++  if (display == EGL_NO_DISPLAY)
++    return false;
++  status = eglDestroyContext(display, context);
++  CheckError();
++  return status;
++}
++
++bool CEGLWrapper::DestroySurface(EGLSurface surface, EGLDisplay display)
++{
++  EGLBoolean status;
++
++  status = eglDestroySurface(display, surface);
++  CheckError();
++  return status;
++}
++
++bool CEGLWrapper::DestroyDisplay(EGLDisplay display)
++{
++  EGLBoolean eglStatus;
++
++  eglStatus = eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
++  CheckError();
++  if (!eglStatus)
++    return false;
++
++  eglStatus = eglTerminate(display);
++  CheckError();
++  if (!eglStatus)
++    return false;
++
++  return true;
++}
++
++std::string CEGLWrapper::GetExtensions(EGLDisplay display)
++{
++  std::string extensions = eglQueryString(display, EGL_EXTENSIONS);
++  CheckError();
++  return " " + extensions + " ";
++}
++
++bool CEGLWrapper::SetVSync(EGLDisplay display, bool enable)
++{
++  EGLBoolean status;
++  // depending how buffers are setup, eglSwapInterval
++  // might fail so let caller decide if this is an error.
++  status = eglSwapInterval(display, enable ? 1 : 0);
++  CheckError();
++  return status;
++}
++
++void CEGLWrapper::SwapBuffers(EGLDisplay display, EGLSurface surface)
++{
++  if ((display == EGL_NO_DISPLAY) || (surface == EGL_NO_SURFACE))
++    return;
++  eglSwapBuffers(display, surface);
++}
++
++bool CEGLWrapper::GetConfigAttrib(EGLDisplay display, EGLConfig config, EGLint attribute, EGLint *value)
++{
++  if (display == EGL_NO_DISPLAY || !config || !attribute)
++    return eglGetConfigAttrib(display, config, attribute, value);
++  return false;
++}
++
++void* CEGLWrapper::GetProcAddress(const char* function)
++{
++  void* ext = (void*) eglGetProcAddress(function);
++  if (!ext)
++  {
++    CLog::Log(LOGERROR, "EGL error in %s - cannot get proc addr of %s", __FUNCTION__, function);
++    return NULL;
++  }
++
++  return ext;
++}
++
++bool CEGLWrapper::SurfaceAttrib(EGLDisplay display, EGLSurface surface, EGLint attribute, EGLint value)
++{
++  if ((display == EGL_NO_DISPLAY) || (surface == EGL_NO_SURFACE))
++    return false;
++  return eglSurfaceAttrib(display, surface, attribute, value);
++}
++#endif
++
+diff --git a/xbmc/windowing/egl/EGLWrapper.h b/xbmc/windowing/egl/EGLWrapper.h
+new file mode 100644
+index 0000000000..5a748685de
+--- /dev/null
++++ b/xbmc/windowing/egl/EGLWrapper.h
+@@ -0,0 +1,76 @@
++#pragma once
++
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <string>
++#include <vector>
++
++#include "guilib/Resolution.h"
++#include <EGL/egl.h>
++class CEGLNativeType;
++class CEGLWrapper
++{
++public:
++  CEGLWrapper();
++  ~CEGLWrapper();
++
++  bool Initialize(const std::string &implementation = "auto");
++  bool Destroy();
++  std::string GetNativeName();
++
++  bool CreateNativeDisplay();
++  bool CreateNativeWindow();
++  void DestroyNativeDisplay();
++  void DestroyNativeWindow();
++
++  bool SetNativeResolution(RESOLUTION_INFO& res);
++  bool ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions);
++  bool ShowWindow(bool show);
++  bool GetQuirks(int *quirks);
++  bool GetPreferredResolution(RESOLUTION_INFO *res);
++  bool GetNativeResolution(RESOLUTION_INFO *res);
++
++  bool InitDisplay(EGLDisplay *display);
++  bool ChooseConfig(EGLDisplay display, EGLint *configAttrs, EGLConfig *config);
++  bool CreateContext(EGLDisplay display, EGLConfig config, EGLint *contextAttrs, EGLContext *context);
++  bool CreateSurface(EGLDisplay display, EGLConfig config, EGLSurface *surface);
++  bool GetSurfaceSize(EGLDisplay display, EGLSurface surface, EGLint *width, EGLint *height);
++  bool BindContext(EGLDisplay display, EGLSurface surface, EGLContext context);
++  bool BindAPI(EGLint type);
++  bool ReleaseContext(EGLDisplay display);
++  bool DestroyContext(EGLDisplay display, EGLContext context);
++  bool DestroySurface(EGLSurface surface, EGLDisplay display);
++  bool DestroyDisplay(EGLDisplay display);
++
++  std::string GetExtensions(EGLDisplay display);
++  void SwapBuffers(EGLDisplay display, EGLSurface surface);
++  bool SetVSync(EGLDisplay display, bool enable);
++  bool IsExtSupported(const char* extension);
++  bool GetConfigAttrib(EGLDisplay display, EGLConfig config, EGLint attribute, EGLint *value);
++  bool SurfaceAttrib(EGLDisplay display, EGLSurface surface, EGLint  attribute, EGLint  value);
++
++  static void* GetProcAddress(const char* function);
++
++private:
++
++  CEGLNativeType *m_nativeTypes;
++  EGLint         m_result;
++};
+diff --git a/xbmc/windowing/egl/VideoSyncIMX.cpp b/xbmc/windowing/egl/VideoSyncIMX.cpp
+new file mode 100644
+index 0000000000..9aa1922667
+--- /dev/null
++++ b/xbmc/windowing/egl/VideoSyncIMX.cpp
+@@ -0,0 +1,84 @@
++/*
++ *      Copyright (C) 2005-2014 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "system.h"
++
++#if defined(HAS_IMXVPU)
++
++#include "video/videosync/VideoSyncIMX.h"
++#include "guilib/GraphicContext.h"
++#include "windowing/WindowingFactory.h"
++#include "utils/TimeUtils.h"
++#include "utils/log.h"
++#include "linux/imx/IMX.h"
++
++CVideoSyncIMX::CVideoSyncIMX(CVideoReferenceClock *clock) : CVideoSync(clock)
++{
++  g_IMX.Initialize();
++}
++
++CVideoSyncIMX::~CVideoSyncIMX()
++{
++  g_IMX.Deinitialize();
++}
++
++bool CVideoSyncIMX::Setup(PUPDATECLOCK func)
++{
++  UpdateClock = func;
++
++  m_abort = false;
++
++  g_Windowing.Register(this);
++  CLog::Log(LOGDEBUG, "CVideoReferenceClock: setting up IMX");
++  return true;
++}
++
++void CVideoSyncIMX::Run(CEvent& stopEvent)
++{
++  int counter;
++
++  while (!stopEvent.Signaled() && !m_abort)
++  {
++    counter = g_IMX.WaitVsync();
++    uint64_t now = CurrentHostCounter();
++
++    UpdateClock(counter, now, m_refClock);
++  }
++}
++
++void CVideoSyncIMX::Cleanup()
++{
++  CLog::Log(LOGDEBUG, "CVideoReferenceClock: cleaning up IMX");
++  g_Windowing.Unregister(this);
++}
++
++float CVideoSyncIMX::GetFps()
++{
++  m_fps = g_graphicsContext.GetFPS();
++  CLog::Log(LOGDEBUG, "CVideoReferenceClock: fps: %.3f", m_fps);
++  return m_fps;
++}
++
++void CVideoSyncIMX::OnResetDisplay()
++{
++  m_abort = true;
++}
++
++#endif
+diff --git a/xbmc/windowing/egl/VideoSyncIMX.h b/xbmc/windowing/egl/VideoSyncIMX.h
+new file mode 100644
+index 0000000000..c1c6e16731
+--- /dev/null
++++ b/xbmc/windowing/egl/VideoSyncIMX.h
+@@ -0,0 +1,41 @@
++#pragma once
++/*
++ *      Copyright (C) 2005-2014 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#if defined(HAS_IMXVPU)
++
++#include "video/videosync/VideoSync.h"
++#include "guilib/DispResource.h"
++
++class CVideoSyncIMX : public CVideoSync, IDispResource
++{
++public:
++  CVideoSyncIMX(CVideoReferenceClock *clock);
++  virtual ~CVideoSyncIMX();
++  virtual bool Setup(PUPDATECLOCK func);
++  virtual void Run(CEvent& stop);
++  virtual void Cleanup();
++  virtual float GetFps();
++  virtual void OnResetDisplay();
++private:
++  volatile bool m_abort;
++};
++
++#endif
+diff --git a/xbmc/windowing/egl/WinSystemEGL.cpp b/xbmc/windowing/egl/WinSystemEGL.cpp
+new file mode 100644
+index 0000000000..e37d5006b0
+--- /dev/null
++++ b/xbmc/windowing/egl/WinSystemEGL.cpp
+@@ -0,0 +1,566 @@
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#include "system.h"
++
++#ifdef HAS_EGL
++
++#include "WinSystemEGL.h"
++#include "ServiceBroker.h"
++#include "filesystem/SpecialProtocol.h"
++#include "guilib/GraphicContext.h"
++#include "settings/DisplaySettings.h"
++#include "guilib/IDirtyRegionSolver.h"
++#include "settings/AdvancedSettings.h"
++#include "settings/Settings.h"
++#include "settings/DisplaySettings.h"
++#include "guilib/DispResource.h"
++#include "threads/SingleLock.h"
++
++#ifdef HAS_IMXVPU
++// This has to go into another header file
++#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
++#endif
++#include "utils/log.h"
++#include "EGLWrapper.h"
++#include "EGLQuirks.h"
++#include <vector>
++#include <float.h>
++////////////////////////////////////////////////////////////////////////////////////////////
++CWinSystemEGL::CWinSystemEGL() : CWinSystemBase()
++{
++  m_eWindowSystem = WINDOW_SYSTEM_EGL;
++
++  m_displayWidth      = 0;
++  m_displayHeight     = 0;
++
++  m_display           = EGL_NO_DISPLAY;
++  m_surface           = EGL_NO_SURFACE;
++  m_context           = EGL_NO_CONTEXT;
++  m_config            = NULL;
++  m_stereo_mode       = RENDER_STEREO_MODE_OFF;
++
++  m_egl               = NULL;
++  m_iVSyncMode        = 0;
++  m_delayDispReset    = false;
++}
++
++CWinSystemEGL::~CWinSystemEGL()
++{
++  if (m_egl)
++  {
++    DestroyWindowSystem();
++    delete m_egl;
++  }
++}
++
++bool CWinSystemEGL::InitWindowSystem()
++{
++  RESOLUTION_INFO preferred_resolution;
++  if (!m_egl)
++    m_egl = new CEGLWrapper;
++
++  if (!m_egl)
++  {
++    CLog::Log(LOGERROR, "%s: EGL not in a good state",__FUNCTION__);
++    return false;
++  }
++
++  if (!m_egl->Initialize("auto"))
++  {
++    CLog::Log(LOGERROR, "%s: Could not initialize",__FUNCTION__);
++    return false;
++  }
++
++  CLog::Log(LOGNOTICE, "%s: Using EGL Implementation: %s",__FUNCTION__,m_egl->GetNativeName().c_str());
++
++  if (!m_egl->CreateNativeDisplay())
++  {
++    CLog::Log(LOGERROR, "%s: Could not get native display",__FUNCTION__);
++    return false;
++  }
++
++  if (!m_egl->CreateNativeWindow())
++  {
++    CLog::Log(LOGERROR, "%s: Could not get native window",__FUNCTION__);
++    return false;
++  }
++
++  if (!m_egl->InitDisplay(&m_display))
++  {
++    CLog::Log(LOGERROR, "%s: Could not create display",__FUNCTION__);
++    return false;
++  }
++
++  EGLint surface_type = EGL_WINDOW_BIT;
++  // for the non-trivial dirty region modes, we need the EGL buffer to be preserved across updates
++  if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
++      g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
++    surface_type |= EGL_SWAP_BEHAVIOR_PRESERVED_BIT;
++
++  EGLint configAttrs [] = {
++        EGL_RED_SIZE,        8,
++        EGL_GREEN_SIZE,      8,
++        EGL_BLUE_SIZE,       8,
++        EGL_ALPHA_SIZE,      8,
++        EGL_DEPTH_SIZE,     16,
++        EGL_STENCIL_SIZE,    0,
++        EGL_SAMPLE_BUFFERS,  0,
++        EGL_SAMPLES,         0,
++        EGL_SURFACE_TYPE,    surface_type,
++        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
++        EGL_NONE
++  };
++
++  if (!m_egl->ChooseConfig(m_display, configAttrs, &m_config))
++  {
++    CLog::Log(LOGERROR, "%s: Could not find a compatible configuration",__FUNCTION__);
++    return false;
++  }
++
++  // Some platforms require a surface before we can probe the resolution.
++  // Create the window here, then the creation in CreateNewWindow() will be skipped.
++  int quirks;
++  m_egl->GetQuirks(&quirks);
++  if (quirks & EGL_QUIRK_NEED_WINDOW_FOR_RES)
++  {
++    RESOLUTION_INFO temp;
++    CreateWindow(temp);
++  }
++
++  m_extensions = m_egl->GetExtensions(m_display);
++  return CWinSystemBase::InitWindowSystem();
++}
++
++bool CWinSystemEGL::CreateWindow(RESOLUTION_INFO &res)
++{
++  if (!m_egl)
++  {
++    CLog::Log(LOGERROR, "CWinSystemEGL::CreateWindow no EGL!");
++    return false;
++  }
++
++  if(m_egl)
++    m_egl->SetNativeResolution(res);
++
++  int quirks;
++  m_egl->GetQuirks(&quirks);
++  if (quirks & EGL_QUIRK_RECREATE_DISPLAY_ON_CREATE_WINDOW)
++  {
++    if (m_context != EGL_NO_CONTEXT)
++      if (!m_egl->InitDisplay(&m_display))
++      {
++        CLog::Log(LOGERROR, "%s: Could not reinit display",__FUNCTION__);
++        return false;
++      }
++  }
++
++  if (!m_egl->CreateSurface(m_display, m_config, &m_surface))
++  {
++    CLog::Log(LOGNOTICE, "%s: Could not create a surface. Trying with a fresh Native Window.",__FUNCTION__);
++    m_egl->DestroyNativeWindow();
++    if (!m_egl->CreateNativeWindow())
++    {
++      CLog::Log(LOGERROR, "%s: Could not get native window",__FUNCTION__);
++      return false;
++    }
++
++    if (!m_egl->CreateSurface(m_display, m_config, &m_surface))
++    {
++      CLog::Log(LOGERROR, "%s: Could not create surface",__FUNCTION__);
++      return false;
++    }
++  }
++
++  int width = 0, height = 0;
++  if (!m_egl->GetSurfaceSize(m_display, m_surface, &width, &height))
++  {
++    CLog::Log(LOGERROR, "%s: Surface is invalid",__FUNCTION__);
++    return false;
++  }
++  CLog::Log(LOGDEBUG, "%s: Created surface of size %ix%i",__FUNCTION__, width, height);
++
++  EGLint contextAttrs[] =
++  {
++    EGL_CONTEXT_CLIENT_VERSION, 2,
++    EGL_NONE
++  };
++
++  if (!m_egl->BindAPI(EGL_OPENGL_ES_API))
++  {
++    CLog::Log(LOGERROR, "%s: Could not bind %i api",__FUNCTION__, EGL_OPENGL_ES_API);
++    return false;
++  }
++
++  if (m_context == EGL_NO_CONTEXT)
++  {
++    if (!m_egl->CreateContext(m_display, m_config, contextAttrs, &m_context))
++    {
++      CLog::Log(LOGERROR, "%s: Could not create context",__FUNCTION__);
++      return false;
++    }
++  }
++
++  if (!m_egl->BindContext(m_display, m_surface, m_context))
++  {
++    CLog::Log(LOGERROR, "%s: Could not bind to context",__FUNCTION__);
++    return false;
++  }
++
++
++  // for the non-trivial dirty region modes, we need the EGL buffer to be preserved across updates
++  if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
++      g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
++  {
++    if (!m_egl->SurfaceAttrib(m_display, m_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED))
++      CLog::Log(LOGDEBUG, "%s: Could not set EGL_SWAP_BEHAVIOR",__FUNCTION__);
++  }
++
++  m_bWindowCreated = true;
++
++  return true;
++}
++
++bool CWinSystemEGL::DestroyWindowSystem()
++{
++  if (!m_egl)
++    return true;
++
++  DestroyWindow();
++
++  if (m_context != EGL_NO_CONTEXT)
++  {
++    m_egl->DestroyContext(m_display, m_context);
++  }
++  m_context = EGL_NO_CONTEXT;
++
++  if (m_display != EGL_NO_DISPLAY)
++    m_egl->DestroyDisplay(m_display);
++  m_display = EGL_NO_DISPLAY;
++
++  m_egl->DestroyNativeWindow();
++
++  m_egl->DestroyNativeDisplay();
++
++  m_egl->Destroy();
++  delete m_egl;
++  m_egl = NULL;
++
++  CWinSystemBase::DestroyWindowSystem();
++  return true;
++}
++
++bool CWinSystemEGL::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res)
++{
++  RESOLUTION_INFO current_resolution;
++  current_resolution.iWidth = current_resolution.iHeight = 0;
++  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
++
++  m_nWidth        = res.iWidth;
++  m_nHeight       = res.iHeight;
++  m_displayWidth  = res.iScreenWidth;
++  m_displayHeight = res.iScreenHeight;
++  m_fRefreshRate  = res.fRefreshRate;
++
++  if ((m_bWindowCreated && m_egl && m_egl->GetNativeResolution(&current_resolution)) &&
++    current_resolution.iWidth == res.iWidth && current_resolution.iHeight == res.iHeight &&
++    current_resolution.iScreenWidth == res.iScreenWidth && current_resolution.iScreenHeight == res.iScreenHeight &&
++    m_bFullScreen == fullScreen && current_resolution.fRefreshRate == res.fRefreshRate &&
++    (current_resolution.dwFlags & D3DPRESENTFLAG_MODEMASK) == (res.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++    m_stereo_mode == stereo_mode)
++  {
++    CLog::Log(LOGDEBUG, "CWinSystemEGL::CreateNewWindow: No need to create a new window");
++    return true;
++  }
++
++  int delay = CServiceBroker::GetSettings().GetInt("videoscreen.delayrefreshchange");
++  if (delay > 0)
++  {
++    m_delayDispReset = true;
++    m_dispResetTimer.Set(delay * 100);
++  }
++
++  {
++    CSingleLock lock(m_resourceSection);
++    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
++      (*i)->OnLostDisplay();
++  }
++
++  m_stereo_mode = stereo_mode;
++  m_bFullScreen   = fullScreen;
++  // Destroy any existing window
++  if (m_surface != EGL_NO_SURFACE)
++    DestroyWindow();
++
++  // If we previously destroyed an existing window we need to create a new one
++  // (otherwise this is taken care of by InitWindowSystem())
++  if (!CreateWindow(res))
++  {
++    CLog::Log(LOGERROR, "%s: Could not create new window",__FUNCTION__);
++    return false;
++  }
++
++  if (!m_delayDispReset)
++  {
++    CSingleLock lock(m_resourceSection);
++    // tell any shared resources
++    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
++      (*i)->OnResetDisplay();
++  }
++
++  Show();
++  return true;
++}
++
++bool CWinSystemEGL::DestroyWindow()
++{
++  if (!m_egl)
++    return false;
++
++  m_egl->ReleaseContext(m_display);
++  if (m_surface != EGL_NO_SURFACE)
++    m_egl->DestroySurface(m_surface, m_display);
++
++  int quirks;
++  m_egl->GetQuirks(&quirks);
++  if (quirks & EGL_QUIRK_DESTROY_NATIVE_WINDOW_WITH_SURFACE)
++    m_egl->DestroyNativeWindow();
++
++  m_surface = EGL_NO_SURFACE;
++  m_bWindowCreated = false;
++  return true;
++}
++
++bool CWinSystemEGL::ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop)
++{
++  CRenderSystemGLES::ResetRenderSystem(newWidth, newHeight);
++  return true;
++}
++
++bool CWinSystemEGL::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
++{
++  CreateNewWindow("", fullScreen, res);
++  CRenderSystemGLES::ResetRenderSystem(res.iWidth, res.iHeight);
++  return true;
++}
++
++void CWinSystemEGL::UpdateResolutions()
++{
++  CWinSystemBase::UpdateResolutions();
++
++  RESOLUTION_INFO resDesktop, curDisplay;
++  std::vector<RESOLUTION_INFO> resolutions;
++
++  if (!m_egl->ProbeResolutions(resolutions) || resolutions.empty())
++  {
++    CLog::Log(LOGWARNING, "%s: ProbeResolutions failed. Trying safe default.",__FUNCTION__);
++
++    RESOLUTION_INFO fallback;
++    if (m_egl->GetPreferredResolution(&fallback))
++    {
++      resolutions.push_back(fallback);
++    }
++    else
++    {
++      CLog::Log(LOGERROR, "%s: Fatal Error, GetPreferredResolution failed",__FUNCTION__);
++      return;
++    }
++  }
++
++  /* ProbeResolutions includes already all resolutions.
++   * Only get desktop resolution so we can replace xbmc's desktop res
++   */
++  if (m_egl->GetNativeResolution(&curDisplay))
++    resDesktop = curDisplay;
++
++
++  RESOLUTION ResDesktop = RES_INVALID;
++  RESOLUTION res_index  = RES_DESKTOP;
++
++  for (size_t i = 0; i < resolutions.size(); i++)
++  {
++    // if this is a new setting,
++    // create a new empty setting to fill in.
++    if ((int)CDisplaySettings::GetInstance().ResolutionInfoSize() <= res_index)
++    {
++      RESOLUTION_INFO res;
++      CDisplaySettings::GetInstance().AddResolutionInfo(res);
++    }
++
++    g_graphicsContext.ResetOverscan(resolutions[i]);
++    CDisplaySettings::GetInstance().GetResolutionInfo(res_index) = resolutions[i];
++
++    CLog::Log(LOGNOTICE, "Found resolution %d x %d for display %d with %d x %d%s @ %f Hz\n",
++      resolutions[i].iWidth,
++      resolutions[i].iHeight,
++      resolutions[i].iScreen,
++      resolutions[i].iScreenWidth,
++      resolutions[i].iScreenHeight,
++      resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
++      resolutions[i].fRefreshRate);
++
++    if(resDesktop.iWidth == resolutions[i].iWidth &&
++       resDesktop.iHeight == resolutions[i].iHeight &&
++       resDesktop.iScreenWidth == resolutions[i].iScreenWidth &&
++       resDesktop.iScreenHeight == resolutions[i].iScreenHeight &&
++       (resDesktop.dwFlags & D3DPRESENTFLAG_MODEMASK) == (resolutions[i].dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++       fabs(resDesktop.fRefreshRate - resolutions[i].fRefreshRate) < FLT_EPSILON)
++    {
++      ResDesktop = res_index;
++    }
++
++    res_index = (RESOLUTION)((int)res_index + 1);
++  }
++
++  // swap desktop index for desktop res if available
++  if (ResDesktop != RES_INVALID)
++  {
++    CLog::Log(LOGNOTICE, "Found (%dx%d%s@%f) at %d, setting to RES_DESKTOP at %d",
++      resDesktop.iWidth, resDesktop.iHeight,
++      resDesktop.dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
++      resDesktop.fRefreshRate,
++      (int)ResDesktop, (int)RES_DESKTOP);
++
++    RESOLUTION_INFO desktop = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
++    CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP) = CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop);
++    CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop) = desktop;
++  }
++}
++
++bool CWinSystemEGL::IsExtSupported(const char* extension)
++{
++  std::string name;
++
++  name  = " ";
++  name += extension;
++  name += " ";
++
++  return (m_extensions.find(name) != std::string::npos || CRenderSystemGLES::IsExtSupported(extension));
++}
++
++void CWinSystemEGL::PresentRenderImpl(bool rendered)
++{
++  if (m_delayDispReset && m_dispResetTimer.IsTimePast())
++  {
++    m_delayDispReset = false;
++    CSingleLock lock(m_resourceSection);
++    // tell any shared resources
++    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
++      (*i)->OnResetDisplay();
++  }
++  if (!rendered)
++    return;
++  m_egl->SwapBuffers(m_display, m_surface);
++}
++
++void CWinSystemEGL::SetVSyncImpl(bool enable)
++{
++  m_iVSyncMode = enable ? 10:0;
++  if (!m_egl->SetVSync(m_display, enable))
++  {
++    m_iVSyncMode = 0;
++    CLog::Log(LOGERROR, "%s,Could not set egl vsync", __FUNCTION__);
++  }
++#ifdef HAS_IMXVPU
++  g_IMXContext.SetVSync(enable);
++#endif
++}
++
++void CWinSystemEGL::ShowOSMouse(bool show)
++{
++}
++
++bool CWinSystemEGL::HasCursor()
++{
++#ifdef TARGET_ANDROID
++  return false;
++#else
++  return true;
++#endif
++}
++
++void CWinSystemEGL::NotifyAppActiveChange(bool bActivated)
++{
++}
++
++bool CWinSystemEGL::Minimize()
++{
++  Hide();
++  return true;
++}
++
++bool CWinSystemEGL::Restore()
++{
++  Show(true);
++  return false;
++}
++
++bool CWinSystemEGL::Hide()
++{
++  return m_egl->ShowWindow(false);
++}
++
++bool CWinSystemEGL::Show(bool raise)
++{
++  return m_egl->ShowWindow(true);
++}
++
++void CWinSystemEGL::Register(IDispResource *resource)
++{
++  CSingleLock lock(m_resourceSection);
++  m_resources.push_back(resource);
++}
++
++void CWinSystemEGL::Unregister(IDispResource* resource)
++{
++  CSingleLock lock(m_resourceSection);
++  std::vector<IDispResource*>::iterator i = find(m_resources.begin(), m_resources.end(), resource);
++  if (i != m_resources.end())
++    m_resources.erase(i);
++}
++
++EGLDisplay CWinSystemEGL::GetEGLDisplay()
++{
++  return m_display;
++}
++
++EGLContext CWinSystemEGL::GetEGLContext()
++{
++  return m_context;
++}
++
++EGLConfig CWinSystemEGL::GetEGLConfig()
++{
++  return m_config;
++}
++
++bool CWinSystemEGL::ClampToGUIDisplayLimits(int &width, int &height)
++{
++  width = width > m_nWidth ? m_nWidth : width;
++  height = height > m_nHeight ? m_nHeight : height;
++  return true;
++}
++
++std::unique_ptr<CVideoSync> CWinSystemEGL::GetVideoSync(void *clock)
++{
++  return nullptr;
++}
++
++
++#endif
+diff --git a/xbmc/windowing/egl/WinSystemEGL.h b/xbmc/windowing/egl/WinSystemEGL.h
+new file mode 100644
+index 0000000000..9a78192230
+--- /dev/null
++++ b/xbmc/windowing/egl/WinSystemEGL.h
+@@ -0,0 +1,101 @@
++#ifndef WINDOW_SYSTEM_EGL_H
++#define WINDOW_SYSTEM_EGL_H
++
++#pragma once
++
++/*
++ *      Copyright (C) 2011-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <string>
++#include <vector>
++
++#include "rendering/gles/RenderSystemGLES.h"
++#include "utils/GlobalsHandling.h"
++#include <EGL/egl.h>
++#include "windowing/WinSystem.h"
++#include "threads/SystemClock.h"
++
++class CEGLWrapper;
++class IDispResource;
++
++class CWinSystemEGL : public CWinSystemBase, public CRenderSystemGLES
++{
++public:
++  CWinSystemEGL();
++  virtual ~CWinSystemEGL();
++
++  virtual bool  InitWindowSystem();
++  virtual bool  DestroyWindowSystem();
++  virtual bool  CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res);
++  virtual bool  DestroyWindow();
++  virtual bool  ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop);
++  virtual bool  SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays);
++  virtual void  UpdateResolutions();
++  virtual bool  IsExtSupported(const char* extension);
++  virtual bool  CanDoWindowed() { return false; }
++
++  virtual void  ShowOSMouse(bool show);
++  virtual bool  HasCursor();
++
++  virtual void  NotifyAppActiveChange(bool bActivated);
++
++  virtual bool  Minimize();
++  virtual bool  Restore() ;
++  virtual bool  Hide();
++  virtual bool  Show(bool raise = true);
++  virtual void  Register(IDispResource *resource);
++  virtual void  Unregister(IDispResource *resource);
++
++  virtual bool  ClampToGUIDisplayLimits(int &width, int &height);
++
++  EGLConfig     GetEGLConfig();
++
++  EGLDisplay    GetEGLDisplay();
++  EGLContext    GetEGLContext();
++
++  // videosync
++  virtual std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
++protected:
++  virtual void  PresentRenderImpl(bool rendered);
++  virtual void  SetVSyncImpl(bool enable);
++
++  bool          CreateWindow(RESOLUTION_INFO &res);
++
++  int                   m_displayWidth;
++  int                   m_displayHeight;
++
++  EGLDisplay            m_display;
++  EGLSurface            m_surface;
++  EGLContext            m_context;
++  EGLConfig             m_config;
++  RENDER_STEREO_MODE    m_stereo_mode;
++
++  CEGLWrapper           *m_egl;
++  std::string           m_extensions;
++  CCriticalSection             m_resourceSection;
++  std::vector<IDispResource*>  m_resources;
++  bool m_delayDispReset;
++  XbmcThreads::EndTime m_dispResetTimer;
++};
++
++XBMC_GLOBAL_REF(CWinSystemEGL,g_Windowing);
++#define g_Windowing XBMC_GLOBAL_USE(CWinSystemEGL)
++
++#endif // WINDOW_SYSTEM_EGL_H
+diff --git a/xbmc/windowing/imx/CMakeLists.txt b/xbmc/windowing/imx/CMakeLists.txt
+new file mode 100644
+index 0000000000..2c2fc9ae0a
+--- /dev/null
++++ b/xbmc/windowing/imx/CMakeLists.txt
+@@ -0,0 +1,6 @@
++set(SOURCES IMX.cpp
++            GlobalsIMX.cpp)
++
++set(HEADERS IMX.h)
++
++core_add_library(linuxsupport_imx)
+diff --git a/xbmc/windowing/imx/GlobalsIMX.cpp b/xbmc/windowing/imx/GlobalsIMX.cpp
+new file mode 100644
+index 0000000000..3ff6217e3a
+--- /dev/null
++++ b/xbmc/windowing/imx/GlobalsIMX.cpp
+@@ -0,0 +1,24 @@
++/*
++ *      Copyright (C) 2005-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++
++#include "IMX.h"
++
++CIMX g_IMX;
+diff --git a/xbmc/windowing/imx/IMX.cpp b/xbmc/windowing/imx/IMX.cpp
+new file mode 100644
+index 0000000000..86f10318e1
+--- /dev/null
++++ b/xbmc/windowing/imx/IMX.cpp
+@@ -0,0 +1,242 @@
++/*
++ *      Copyright (C) 2005-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++
++#include "IMX.h"
++#include <linux/mxcfb.h>
++
++/*
++ *  official imx6 -SR tree
++ *  https://github.com/SolidRun/linux-fslc.git
++ *
++ */
++
++#include <linux/mxc_dcic.h>
++#include <sys/ioctl.h>
++
++#include "guilib/GraphicContext.h"
++#include "windowing/WindowingFactory.h"
++#include "utils/log.h"
++#include "cores/VideoPlayer/DVDCodecs/DVDCodecUtils.h"
++
++#define  DCIC_DEVICE    "/dev/mxc_dcic0"
++
++CIMX::CIMX(void) : CThread("CIMX")
++  , m_change(true)
++  , m_lastSyncFlag(0)
++{
++  m_frameTime = (double)1300 / g_graphicsContext.GetFPS();
++  g_Windowing.Register(this);
++}
++
++CIMX::~CIMX(void)
++{
++  g_Windowing.Unregister(this);
++  Deinitialize();
++}
++
++bool CIMX::Initialize()
++{
++  m_change = true;
++  CSingleLock lock(m_critSection);
++
++  m_fddcic = open(DCIC_DEVICE, O_RDWR);
++  if (m_fddcic < 0)
++  {
++    m_frameTime = (int) 1000 / 25;
++    return false;
++  }
++
++  Create();
++  return true;
++}
++
++void CIMX::Deinitialize()
++{
++  StopThread(false);
++  CSingleLock lock(m_critSection);
++  StopThread();
++
++  if (m_fddcic > 0)
++    ioctl(m_fddcic, DCIC_IOC_STOP_VSYNC, 0);
++
++  if (m_fddcic > 0)
++    close(m_fddcic);
++  m_fddcic = 0;
++}
++
++bool CIMX::UpdateDCIC()
++{
++  struct fb_var_screeninfo screen_info;
++
++  if (!m_change)
++    return true;
++
++  CSingleLock lock(m_critSection);
++  m_change = false;
++
++  int fb0 = open(FB_DEVICE, O_RDONLY | O_NONBLOCK);
++  if (fb0 < 0)
++    return false;
++
++  int ret = ioctl(fb0, FBIOGET_VSCREENINFO, &screen_info);
++  close(fb0);
++
++  if (ret < 0)
++    return false;
++  else if (m_lastSyncFlag == screen_info.sync)
++    return true;
++
++  CLog::Log(LOGDEBUG, "CIMX::%s - Setting up screen_info parameters", __FUNCTION__);
++  ioctl(m_fddcic, DCIC_IOC_STOP_VSYNC, 0);
++
++  if (ioctl(m_fddcic, DCIC_IOC_CONFIG_DCIC, &screen_info.sync) < 0)
++    return false;
++
++  if (IsRunning())
++    ioctl(m_fddcic, DCIC_IOC_START_VSYNC, 0);
++
++  m_VblankEvent.Reset();
++  m_lastSyncFlag = screen_info.sync;
++
++  return true;
++}
++
++void CIMX::Process()
++{
++  ioctl(m_fddcic, DCIC_IOC_START_VSYNC, 0);
++  while (!m_bStop)
++  {
++    read(m_fddcic, &m_counter, sizeof(unsigned long));
++    m_VblankEvent.Set();
++  }
++  ioctl(m_fddcic, DCIC_IOC_STOP_VSYNC, 0);
++}
++
++int CIMX::WaitVsync()
++{
++  int diff;
++
++  if (m_fddcic < 1)
++    Initialize();
++
++  if (!m_VblankEvent.WaitMSec(m_frameTime))
++    m_counter++;
++
++  diff = m_counter - m_counterLast;
++  m_counterLast = m_counter;
++
++  return std::max(0, diff);
++}
++
++void CIMX::OnResetDisplay()
++{
++  m_frameTime = (double)1300 / g_graphicsContext.GetFPS();
++  m_change = true;
++  UpdateDCIC();
++}
++
++bool CIMX::IsBlank()
++{
++  unsigned long curBlank;
++  int fd = open(FB_DEVICE, O_RDONLY | O_NONBLOCK);
++  bool ret = ioctl(fd, MXCFB_GET_FB_BLANK, &curBlank) || curBlank != FB_BLANK_UNBLANK;
++  close(fd);
++  return ret;
++}
++
++bool CIMXFps::Recalc()
++{
++  double prev = DVD_NOPTS_VALUE;
++  unsigned int count = 0;
++  double frameDuration = 0.0;
++  bool hasMatch;
++
++  std::sort(m_ts.begin(), m_ts.end());
++
++  m_hgraph.clear();
++  for (auto d : m_ts)
++  {
++    if (prev != DVD_NOPTS_VALUE)
++    {
++      frameDuration = CDVDCodecUtils::NormalizeFrameduration((d - prev), &hasMatch);
++      if (fabs(frameDuration - rint(frameDuration)) < 0.01)
++        frameDuration = rint(frameDuration);
++
++      m_hgraph[(unsigned long)(frameDuration * 100)]++;
++    }
++    prev = d;
++  }
++
++  for (auto it = m_hgraph.begin(); it != m_hgraph.end();)
++  {
++    if (it->second > 1)
++    {
++      double duration = CDVDCodecUtils::NormalizeFrameduration((double)it->first / 100, &hasMatch);
++
++      ++it;
++    }
++    else
++    {
++      for (auto iti = m_hgraph.begin(); it != iti; iti++)
++      {
++        if (!iti->first)
++          continue;
++        int dv = it->first / iti->first;
++        if (dv * iti->first == it->first)
++        {
++          m_hgraph[it->first] += dv;
++          break;
++        }
++      }
++      m_hgraph.erase(it++);
++    }
++  }
++
++  frameDuration = 0.0;
++  for (auto h : m_hgraph)
++  {
++    count += h.second;
++    frameDuration += h.first * h.second;
++  }
++
++  if (count)
++    frameDuration /= (100 * count);
++
++  frameDuration = CDVDCodecUtils::NormalizeFrameduration(frameDuration, &hasMatch);
++
++  if (hasMatch)
++    m_frameDuration = frameDuration;
++  return true;
++}
++
++void CIMXFps::Add(double tm)
++{
++  m_ts.push_back(tm);
++  if (m_ts.size() > DIFFRINGSIZE)
++    m_ts.pop_front();
++  Recalc();
++}
++
++void CIMXFps::Flush()
++{
++  m_frameDuration = DVD_NOPTS_VALUE;
++  m_ts.clear();
++}
+diff --git a/xbmc/windowing/imx/IMX.h b/xbmc/windowing/imx/IMX.h
+new file mode 100644
+index 0000000000..101f562018
+--- /dev/null
++++ b/xbmc/windowing/imx/IMX.h
+@@ -0,0 +1,207 @@
++#pragma once
++/*
++ *      Copyright (C) 2005-2013 Team XBMC
++ *      http://xbmc.org
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "threads/CriticalSection.h"
++#include "threads/Event.h"
++#include "threads/Thread.h"
++#include "guilib/DispResource.h"
++#include "utils/log.h"
++#include "cores/VideoPlayer/DVDClock.h"
++
++#include <mutex>
++#include <queue>
++#include <condition_variable>
++#include <algorithm>
++#include <atomic>
++#include <thread>
++#include <map>
++
++#define DIFFRINGSIZE 60
++
++#define FB_DEVICE "/dev/fb0"
++
++class CIMX;
++extern CIMX g_IMX;
++
++class CIMX : public CThread, IDispResource
++{
++public:
++  CIMX(void);
++  ~CIMX(void);
++
++  bool          Initialize();
++  void          Deinitialize();
++
++  int           WaitVsync();
++  virtual void  OnResetDisplay();
++
++  static bool   IsBlank();
++
++private:
++  virtual void  Process();
++  bool          UpdateDCIC();
++
++  int           m_fddcic;
++  bool          m_change;
++  unsigned long m_counter;
++  unsigned long m_counterLast;
++  CEvent        m_VblankEvent;
++
++  int           m_frameTime;
++  CCriticalSection m_critSection;
++
++  uint32_t      m_lastSyncFlag;
++};
++
++// A blocking FIFO buffer
++template <typename T>
++class lkFIFO
++{
++public:
++  lkFIFO() { m_size = queue.max_size(); queue.clear(); m_abort = false; }
++
++public:
++  T pop()
++  {
++    std::unique_lock<std::mutex> m_lock(lkqueue);
++    m_abort = false;
++    while (!queue.size() && !m_abort)
++      read.wait(m_lock);
++
++    T val;
++    if (!queue.empty())
++    {
++      val = queue.front();
++      queue.pop_front();
++    }
++
++    m_lock.unlock();
++    write.notify_one();
++    return val;
++  }
++
++  bool push(const T& item)
++  {
++    std::unique_lock<std::mutex> m_lock(lkqueue);
++    m_abort = false;
++    while (queue.size() >= m_size && !m_abort)
++      write.wait(m_lock);
++
++    if (m_abort)
++      return false;
++
++    queue.push_back(item);
++    m_lock.unlock();
++    read.notify_one();
++    return true;
++  }
++
++  void signal()
++  {
++    m_abort = true;
++    read.notify_one();
++    write.notify_one();
++  }
++
++  void setquotasize(size_t newsize)
++  {
++    m_size = newsize;
++    write.notify_one();
++  }
++
++  size_t getquotasize()
++  {
++    return m_size;
++  }
++
++  void for_each(void (*fn)(T &t), bool clear = true)
++  {
++    std::unique_lock<std::mutex> m_lock(lkqueue);
++    std::for_each(queue.begin(), queue.end(), fn);
++
++    if (clear)
++      queue.clear();
++
++    write.notify_one();
++  }
++
++  size_t size()
++  {
++    return queue.size();
++  }
++
++  void clear()
++  {
++    std::unique_lock<std::mutex> m_lock(lkqueue);
++    queue.clear();
++    write.notify_one();
++  }
++
++  bool full()  { return queue.size() >= m_size; }
++
++private:
++  std::deque<T>           queue;
++  std::mutex              lkqueue;
++  std::condition_variable write;
++  std::condition_variable read;
++
++  size_t                  m_size;
++  volatile bool           m_abort;
++};
++
++// General description of a buffer used by
++// the IMX context, e.g. for blitting
++class CIMXBuffer {
++public:
++  CIMXBuffer() : m_iRefs(0) {}
++
++  // Shared pointer interface
++  virtual void Lock() = 0;
++  virtual long Release() = 0;
++
++  int          GetFormat()  { return iFormat; }
++
++public:
++  uint32_t     iWidth;
++  uint32_t     iHeight;
++  int          pPhysAddr;
++  uint8_t     *pVirtAddr;
++  int          iFormat;
++  double       m_fps;
++
++protected:
++  std::atomic<long> m_iRefs;
++};
++
++class CIMXFps
++{
++  public:
++    CIMXFps() { Flush(); }
++    void   Add(double pts);
++    void   Flush();
++    double GetFrameDuration(bool raw = false) { return m_frameDuration; }
++    bool   Recalc();
++
++  private:
++    std::map<unsigned long,int>  m_hgraph;
++    std::deque<double>   m_ts;
++    double               m_frameDuration;
++};
+-- 
+2.12.3
+
