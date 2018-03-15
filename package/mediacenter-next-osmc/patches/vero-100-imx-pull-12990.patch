@@ -247,7 +247,7 @@ index 0000000000..753bea94c7
 +#include "settings/MediaSettings.h"
 +#include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
 +
-+#include "linux/imx/IMX.h"
++#include "windowing/imx/IMX.h"
 +#include "libavcodec/avcodec.h"
 +
 +#include "guilib/LocalizeStrings.h"
