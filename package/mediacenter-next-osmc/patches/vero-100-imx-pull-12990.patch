@@ -2242,7 +2242,7 @@ index 0000000000..15af21a43b
 +#include "threads/Condition.h"
 +#include "threads/Thread.h"
 +#include "utils/BitstreamConverter.h"
-+#include "guilib/Geometry.h"
++#include "utils/Geometry.h"
 +#include "DVDVideoCodec.h"
 +#include "DVDStreamInfo.h"
 +#include "guilib/DispResource.h"
