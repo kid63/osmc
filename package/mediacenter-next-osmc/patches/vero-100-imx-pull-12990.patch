@@ -2236,7 +2236,7 @@ index 0000000000..15af21a43b
 + *
 + */
 +
-+#include "linux/imx/IMX.h"
++#include "windowing/imx/IMX.h"
 +
 +#include "threads/CriticalSection.h"
 +#include "threads/Condition.h"
@@ -2971,7 +2971,7 @@ index 0000000000..f0bebd196c
 +#if defined(HAS_IMXVPU)
 +
 +#include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
-+#include "linux/imx/IMX.h"
++#include "windowing/imx/IMX.h"
 +#include "DVDCodecs/Video/DVDVideoCodecIMX.h"
 +
 +class CRendererIMX : public CLinuxRendererGLES
