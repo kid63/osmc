@@ -130,12 +130,12 @@ index 42b6ff551e..8968074496 100644
    aml_disable_freeScale();
    
 + /* Take in to account custom OSMC parameters */
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCERGB)) {
++ if (CServiceBroker::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCERGB)) {
 +    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing RGB");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/output_rgb", "1");
 + }
 +
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
++ if (CServiceBroker::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
 +    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing HPD to be locked");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
 + }
