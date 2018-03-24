@@ -10,7 +10,7 @@ Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
  system/settings/settings.xml                       | 15 +++++++++++
  xbmc/settings/Settings.cpp                         |  3 +++
  xbmc/settings/Settings.h                           |  3 +++
- xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp        | 17 ++++++++++++
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp        | 13 +++++++++++++ 
  5 files changed, 69 insertions(+)
 
 diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
@@ -113,23 +113,22 @@ index ab67709..439b2b4 100644
    static const std::string SETTING_VIDEOSCREEN_STEREOSCOPICMODE;
    static const std::string SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE;
    static const std::string SETTING_VIDEOSCREEN_NOOFBUFFERS;
-diff --git a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-index 3a5e8f7..f3dd16c 100644
---- a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-+++ b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-@@ -25,6 +25,7 @@
- #include "utils/StringUtils.h"
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index 42b6ff551e..8968074496 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -43,6 +43,7 @@
  #include "utils/SysfsUtils.h"
- #include "utils/log.h"
-+#include "settings/Settings.h"
- 
- #include <stdio.h>
- #include <stdlib.h>
-@@ -67,6 +68,22 @@ void CEGLNativeTypeAmlogic::Initialize()
- {
+ #include "threads/SingleLock.h"
+ #include "../WinEventsLinux.h"
++#include "ServiceBroker.h"
+
+ #include <linux/fb.h>
+
+@@ -75,6 +76,18 @@ CWinSystemAmlogic::CWinSystemAmlogic()
    aml_permissions();
-   DisableFreeScale();
-+
+   aml_disable_freeScale();
+   
 + /* Take in to account custom OSMC parameters */
 + if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCERGB)) {
 +    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing RGB");
@@ -141,13 +140,10 @@ index 3a5e8f7..f3dd16c 100644
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
 + }
 +
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_MUTEHDMI)) {
-+    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- muting HDMI");
-+    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/config", "audio_off");
-+ }
- }
- void CEGLNativeTypeAmlogic::Destroy()
- {
++
+   m_winEvents.reset(new CWinEventsLinux());
+   // Register sink
+   AE::CAESinkFactory::ClearSinks();
 -- 
-2.7.4
+2.12.3
 
