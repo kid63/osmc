@@ -57,13 +57,21 @@ index 4186174..cef03fd 100644
            <requirement>HAS_AE_QUALITY_LEVELS</requirement>
            <level>2</level>
 diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
-index d7165de..fb87a3c 100644
+index 5cf994be26..355356eeb0 100644
 --- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
 +++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
-@@ -75,6 +75,12 @@ bool CActiveAEResampleFFMPEG::Init(uint64_t dst_chan_layout, int dst_channels, i
+@@ -21,6 +21,7 @@
+ #include "cores/AudioEngine/Utils/AEUtil.h"
+ #include "ActiveAEResampleFFMPEG.h"
+ #include "utils/log.h"
++#include "ServiceBroker.h"
+
+ extern "C" {
+ #include "libavutil/channel_layout.h"
+@@ -74,6 +75,12 @@ bool CActiveAEResampleFFMPEG::Init(uint64_t dst_chan_layout, int dst_channels, i
      return false;
    }
- 
+
 +  double mix_lfe = (float) CServiceBroker::GetSettings().GetInt("audiooutput.mixlfe") / (float) 100;
 +  if (mix_lfe)
 +  {
@@ -74,5 +82,4 @@ index d7165de..fb87a3c 100644
    {
      av_opt_set_double(m_pContext, "cutoff", 1.0, 0);
 -- 
-2.7.4
-
+2.12.3
