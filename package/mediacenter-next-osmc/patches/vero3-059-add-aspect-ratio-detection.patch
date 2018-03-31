@@ -128,7 +128,7 @@ index be942a1..c3a84bd 100644
  static const uint8_t* avc_find_startcode_internal(const uint8_t *p, const uint8_t *end)
  {
    const uint8_t *a = p + 4 - ((intptr_t)p & 3);
-@@ -1437,6 +1449,316 @@ bool CBitstreamConverter::mpeg2_sequence_header(const uint8_t *data, const uint3
+@@ -1224,3 +1224,312 @@ bool CBitstreamConverter::mpeg2_sequence_header(const uint8_t *data, const uint3
    return changed;
  }
  
@@ -442,9 +442,6 @@ index be942a1..c3a84bd 100644
 +    return changed;
 +}
 +
- void CBitstreamConverter::parseh264_sps(const uint8_t *sps, const uint32_t sps_size, bool *interlaced, int32_t *max_ref_frames)
- {
-   nal_bitstream bs;
 diff --git a/xbmc/utils/BitstreamConverter.h b/xbmc/utils/BitstreamConverter.h
 index d953907..ee64f7e 100644
 --- a/xbmc/utils/BitstreamConverter.h
