@@ -45,7 +45,7 @@ index 6925404..f3be71b 100644
 +  ResetScreenSaver();
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
 +  //ADDON::CAddonMgr::GetInstance().GetAddon("screensaver.xbmc.builtin.black", m_screenSaver);
-+  g_windowManager.CloseDialogs(true);
++  CServiceBroker::GetGUI()->GetWindowManager().CloseDialogs(true);
 +  //g_windowManager.ActivateWindow(WINDOW_SCREENSAVER);
 +}
 +
