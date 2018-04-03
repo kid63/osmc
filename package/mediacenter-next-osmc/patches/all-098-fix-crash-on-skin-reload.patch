@@ -23,8 +23,8 @@ index 5c401219d7..08a7529334 100644
 +
    std::string oldSkin = g_SkinInfo->ID();
  
-   CGUIMessage msg(GUI_MSG_LOAD_SKIN, -1, g_windowManager.GetActiveWindow());
-   g_windowManager.SendMessage(msg);
+   CGUIMessage msg(GUI_MSG_LOAD_SKIN, -1, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow()); 
+   CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg); 
  
    std::string newSkin = m_ServiceManager->GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN);
 -  if (LoadSkin(newSkin))
