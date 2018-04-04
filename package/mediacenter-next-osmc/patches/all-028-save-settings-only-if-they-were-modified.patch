@@ -16,22 +16,14 @@ default settings.
 
 With this fix the settings will be written at exit only once, minimizing the risk of being lost.
 ---
- xbmc/settings/Settings.cpp | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ xbmc/settings/Settings.cpp | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
 diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
-index 2e690e3..bd0200d 100644
+index 9dd6355945..1e40fc78e1 100644
 --- a/xbmc/settings/Settings.cpp
 +++ b/xbmc/settings/Settings.cpp
-@@ -82,6 +82,7 @@
-
- using namespace KODI;
- using namespace XFILE;
-+using KODI::UTILITY::CDigest;
-
- const std::string CSettings::SETTING_LOOKANDFEEL_SKIN = "lookandfeel.skin";
- const std::string CSettings::SETTING_LOOKANDFEEL_SKINSETTINGS = "lookandfeel.skinsettings";
-@@ -72,6 +72,7 @@
+@@ -68,6 +68,7 @@
  #include "threads/SingleLock.h"
  #include "utils/CharsetConverter.h"
  #include "utils/log.h"
@@ -39,10 +31,18 @@ index 2e690e3..bd0200d 100644
  #include "utils/RssManager.h"
  #include "utils/StringUtils.h"
  #include "utils/SystemInfo.h"
-@@ -206,6 +207,17 @@ bool CSettings::Save(const std::string &file)
-   if (!m_settingsManager->Save(root))
+@@ -82,6 +83,7 @@
+
+ using namespace KODI;
+ using namespace XFILE;
++using KODI::UTILITY::CDigest;
+
+ const std::string CSettings::SETTING_LOOKANDFEEL_SKIN = "lookandfeel.skin";
+ const std::string CSettings::SETTING_LOOKANDFEEL_SKINSETTINGS = "lookandfeel.skinsettings";
+@@ -507,6 +509,17 @@ bool CSettings::Save(const std::string &file)
+   if (!SaveValuesToXml(xmlDoc))
      return false;
- 
+
 +  // Avoid saving if the settings saved earlier are indetical to the current ones
 +  if (CFile::Exists(file))
 +  {
@@ -56,7 +56,8 @@ index 2e690e3..bd0200d 100644
 +
    return xmlDoc.SaveFile(file);
  }
- 
+
 -- 
-1.9.1
+2.12.3
+
 
