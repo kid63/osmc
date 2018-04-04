@@ -27,7 +27,7 @@ index 2e690e3..bd0200d 100644
  #include "threads/SingleLock.h"
  #include "utils/CharsetConverter.h"
  #include "utils/log.h"
-+#include "utils/md5.h"
++#include "utils/Digest.h"
  #include "utils/RssManager.h"
  #include "utils/StringUtils.h"
  #include "utils/SystemInfo.h"
