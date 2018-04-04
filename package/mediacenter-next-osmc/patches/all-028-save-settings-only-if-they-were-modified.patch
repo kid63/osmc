@@ -38,10 +38,10 @@ index 2e690e3..bd0200d 100644
 +  // Avoid saving if the settings saved earlier are indetical to the current ones
 +  if (CFile::Exists(file))
 +  {
-+    std::string fileMD5 = CUtil::GetFileMD5(file);
++    std::string fileMD5 = CUtil::GetFileDigest(file);
 +    TiXmlPrinter xmlPrinter;
 +    xmlDoc.Accept(&xmlPrinter);
-+    std::string settingsMD5 = XBMC::XBMC_MD5::GetMD5(xmlPrinter.CStr());
++    std::string settingsMD5 = CDigest::Calculate(CDigest::Type::MD5,(xmlPrinter.CStr());
 +    if (fileMD5 == settingsMD5)
 +      return true;
 +  }
