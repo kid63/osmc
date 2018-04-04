@@ -49,7 +49,7 @@ index 9dd6355945..1e40fc78e1 100644
 +    std::string fileMD5 = CUtil::GetFileDigest(file);
 +    TiXmlPrinter xmlPrinter;
 +    xmlDoc.Accept(&xmlPrinter);
-+    std::string settingsMD5 = CDigest::Calculate(CDigest::Type::MD5,(xmlPrinter.CStr());
++    std::string settingsMD5 = CDigest::Calculate(CDigest::Type::MD5,(xmlPrinter.CStr()));
 +    if (fileMD5 == settingsMD5)
 +      return true;
 +  }
