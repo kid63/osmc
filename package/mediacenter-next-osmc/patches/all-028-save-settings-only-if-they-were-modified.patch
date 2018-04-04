@@ -23,6 +23,14 @@ diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
 index 2e690e3..bd0200d 100644
 --- a/xbmc/settings/Settings.cpp
 +++ b/xbmc/settings/Settings.cpp
+@@ -82,6 +82,7 @@
+
+ using namespace KODI;
+ using namespace XFILE;
++using KODI::UTILITY::CDigest;
+
+ const std::string CSettings::SETTING_LOOKANDFEEL_SKIN = "lookandfeel.skin";
+ const std::string CSettings::SETTING_LOOKANDFEEL_SKINSETTINGS = "lookandfeel.skinsettings";
 @@ -72,6 +72,7 @@
  #include "threads/SingleLock.h"
  #include "utils/CharsetConverter.h"
