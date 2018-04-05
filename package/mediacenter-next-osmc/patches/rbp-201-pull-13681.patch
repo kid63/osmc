@@ -1,0 +1,1911 @@
+From d663ee184ce21a8c88331694e6fe388957188970 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Wed, 14 Mar 2018 12:25:36 +0100
+Subject: [PATCH 1/5] Add StringUtils::ToHexadecimal
+
+---
+ xbmc/utils/StringUtils.cpp          | 10 ++++++++++
+ xbmc/utils/StringUtils.h            |  7 +++++++
+ xbmc/utils/test/TestStringUtils.cpp | 12 ++++++++++++
+ 3 files changed, 29 insertions(+)
+
+diff --git a/xbmc/utils/StringUtils.cpp b/xbmc/utils/StringUtils.cpp
+index 11cfcfcc30e9..193da8551d54 100644
+--- a/xbmc/utils/StringUtils.cpp
++++ b/xbmc/utils/StringUtils.cpp
+@@ -1008,6 +1008,16 @@ std::string StringUtils::BinaryStringToString(const std::string& in)
+   return out;
+ }
+ 
++std::string StringUtils::ToHexadecimal(const std::string& in)
++{
++  std::ostringstream ss;
++  ss << std::hex;
++  for (unsigned char ch : in) {
++    ss << std::setw(2) << std::setfill('0') << static_cast<unsigned long> (ch);
++  }
++  return ss.str();
++}
++
+ // return -1 if not, else return the utf8 char length.
+ int IsUTF8Letter(const unsigned char *str)
+ {
+diff --git a/xbmc/utils/StringUtils.h b/xbmc/utils/StringUtils.h
+index 2cf5f63f3ab6..cf7e52f9b939 100644
+--- a/xbmc/utils/StringUtils.h
++++ b/xbmc/utils/StringUtils.h
+@@ -317,6 +317,13 @@ class StringUtils
+   \return Converted string
+   */
+   static std::string BinaryStringToString(const std::string& in);
++  /**
++   * Convert each character in the string to its hexadecimal
++   * representation and return the concatenated result
++   *
++   * example: "abc\n" -> "6162630a"
++   */
++  static std::string ToHexadecimal(const std::string& in);
+   /*! \brief Format the string with locale separators.
+ 
+   Format the string with locale separators.
+diff --git a/xbmc/utils/test/TestStringUtils.cpp b/xbmc/utils/test/TestStringUtils.cpp
+index 514e7392d6c9..6d8a23c579d0 100644
+--- a/xbmc/utils/test/TestStringUtils.cpp
++++ b/xbmc/utils/test/TestStringUtils.cpp
+@@ -548,3 +548,15 @@ TEST(TestStringUtils, FileSizeFormat)
+   //Last unit should overflow the 3 digit limit
+   EXPECT_STREQ("5432PB", StringUtils::FormatFileSize(6115888293969133568).c_str());
+ }
++
++TEST(TestStringUtils, ToHexadecimal)
++{
++  EXPECT_STREQ("", StringUtils::ToHexadecimal("").c_str());
++  EXPECT_STREQ("616263", StringUtils::ToHexadecimal("abc").c_str());
++  std::string a{"a\0b\n", 4};
++  EXPECT_STREQ("6100620a", StringUtils::ToHexadecimal(a).c_str());
++  std::string nul{"\0", 1};
++  EXPECT_STREQ("00", StringUtils::ToHexadecimal(nul).c_str());
++  std::string ff{"\xFF", 1};
++  EXPECT_STREQ("ff", StringUtils::ToHexadecimal(ff).c_str());
++}
+
+From e3a1a1b5a9cb01bb79a8f9b4348c48dff135272c Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Thu, 15 Mar 2018 12:14:56 +0100
+Subject: [PATCH 2/5] Add OpenSSL-based digest calculation utility
+
+---
+ xbmc/utils/CMakeLists.txt      |   2 +
+ xbmc/utils/Digest.cpp          | 173 +++++++++++++++++++++++++++++++++++++++++
+ xbmc/utils/Digest.h            | 112 ++++++++++++++++++++++++++
+ xbmc/utils/test/CMakeLists.txt |   1 +
+ xbmc/utils/test/TestDigest.cpp |  71 +++++++++++++++++
+ 5 files changed, 359 insertions(+)
+ create mode 100644 xbmc/utils/Digest.cpp
+ create mode 100644 xbmc/utils/Digest.h
+ create mode 100644 xbmc/utils/test/TestDigest.cpp
+
+diff --git a/xbmc/utils/CMakeLists.txt b/xbmc/utils/CMakeLists.txt
+index 3c60da8ca369..e802128bdffb 100644
+--- a/xbmc/utils/CMakeLists.txt
++++ b/xbmc/utils/CMakeLists.txt
+@@ -15,6 +15,7 @@ set(SOURCES ActorProtocol.cpp
+             Crc32.cpp
+             CryptThreading.cpp
+             DatabaseUtils.cpp
++            Digest.cpp
+             EndianSwap.cpp
+             EmbeddedArt.cpp
+             FileExtensionProvider.cpp
+@@ -90,6 +91,7 @@ set(HEADERS ActorProtocol.h
+             Crc32.h
+             CryptThreading.h
+             DatabaseUtils.h
++            Digest.h
+             EndianSwap.h
+             EventStream.h
+             EventStreamDetail.h
+diff --git a/xbmc/utils/Digest.cpp b/xbmc/utils/Digest.cpp
+new file mode 100644
+index 000000000000..04ef0e5c573d
+--- /dev/null
++++ b/xbmc/utils/Digest.cpp
+@@ -0,0 +1,173 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with Kodi; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "Digest.h"
++#include "StringUtils.h"
++
++#include <openssl/evp.h>
++
++#include <array>
++#include <stdexcept>
++
++namespace KODI
++{
++namespace UTILITY
++{
++
++namespace
++{
++
++EVP_MD const * TypeToEVPMD(CDigest::Type type)
++{
++  switch (type)
++  {
++    case CDigest::Type::MD5:
++      return EVP_md5();
++    case CDigest::Type::SHA1:
++      return EVP_sha1();
++    case CDigest::Type::SHA256:
++      return EVP_sha256();
++    case CDigest::Type::SHA512:
++      return EVP_sha512();
++    default:
++      throw std::invalid_argument("Unknown digest type");
++  }
++}
++
++}
++
++std::string CDigest::TypeToString(Type type)
++{
++  switch (type)
++  {
++    case Type::MD5:
++      return "md5";
++    case Type::SHA1:
++      return "sha1";
++    case Type::SHA256:
++      return "sha256";
++    case Type::SHA512:
++      return "sha512";
++    default:
++      throw std::invalid_argument("Unknown digest type");
++  }
++}
++
++CDigest::Type CDigest::TypeFromString(std::string const& type)
++{
++  std::string typeLower{type};
++  StringUtils::ToLower(typeLower);
++  if (type == "md5")
++  {
++    return Type::MD5;
++  }
++  else if (type == "sha1")
++  {
++    return Type::SHA1;
++  }
++  else if (type == "sha256")
++  {
++    return Type::SHA256;
++  }
++  else if (type == "sha512")
++  {
++    return Type::SHA512;
++  }
++  else
++  {
++    throw std::invalid_argument(std::string("Unknown digest type \"") + type + "\"");
++  }
++}
++
++void CDigest::MdCtxDeleter::operator()(EVP_MD_CTX* context)
++{
++  EVP_MD_CTX_destroy(context);
++}
++
++CDigest::CDigest(Type type)
++: m_context{EVP_MD_CTX_create()}, m_md(TypeToEVPMD(type))
++{
++  if (1 != EVP_DigestInit_ex(m_context.get(), m_md, nullptr))
++  {
++    throw std::runtime_error("EVP_DigestInit_ex failed");
++  }
++}
++
++void CDigest::Update(std::string const& data)
++{
++  Update(data.c_str(), data.size());
++}
++
++void CDigest::Update(void const* data, std::size_t size)
++{
++  if (m_finalized)
++  {
++    throw std::logic_error("Finalized digest cannot be updated any more");
++  }
++
++  if (1 != EVP_DigestUpdate(m_context.get(), data, size))
++  {
++    throw std::runtime_error("EVP_DigestUpdate failed");
++  }
++}
++
++std::string CDigest::FinalizeRaw()
++{
++  if (m_finalized)
++  {
++    throw std::logic_error("Digest can only be finalized once");
++  }
++
++  m_finalized = true;
++
++  std::array<unsigned char, 64> digest;
++  std::size_t size = EVP_MD_size(m_md);
++  if (size > digest.size())
++  {
++    throw std::runtime_error("Digest unexpectedly long");
++  }
++  if (1 != EVP_DigestFinal_ex(m_context.get(), digest.data(), nullptr))
++  {
++    throw std::runtime_error("EVP_DigestFinal_ex failed");
++  }
++  return {reinterpret_cast<char*> (digest.data()), size};
++}
++
++std::string CDigest::Finalize()
++{
++  return StringUtils::ToHexadecimal(FinalizeRaw());
++}
++
++std::string CDigest::Calculate(Type type, std::string const& data)
++{
++  CDigest digest{type};
++  digest.Update(data);
++  return digest.Finalize();
++}
++
++std::string CDigest::Calculate(Type type, void const* data, std::size_t size)
++{
++  CDigest digest{type};
++  digest.Update(data, size);
++  return digest.Finalize();
++}
++
++}
++}
+diff --git a/xbmc/utils/Digest.h b/xbmc/utils/Digest.h
+new file mode 100644
+index 000000000000..a3d1c869b2a3
+--- /dev/null
++++ b/xbmc/utils/Digest.h
+@@ -0,0 +1,112 @@
++#pragma once
++
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with Kodi; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <openssl/evp.h>
++
++#include <memory>
++#include <string>
++
++namespace KODI
++{
++namespace UTILITY
++{
++
++/**
++ * Utility class for calculating message digests/hashes, currently using OpenSSL
++ */
++class CDigest
++{
++public:
++  enum class Type
++  {
++    MD5,
++    SHA1,
++    SHA256,
++    SHA512
++  };
++
++  /**
++   * Convert type enumeration value to lower-case string representation
++   */
++  static std::string TypeToString(Type type);
++  /**
++   * Convert digest type string representation to enumeration value
++   */
++  static Type TypeFromString(std::string const& type);
++
++  /**
++   * Create a digest calculation object
++   */
++  CDigest(Type type);
++  /**
++   * Update digest with data
++   *
++   * Cannot be called after \ref Finalize has been called
++   */
++  void Update(std::string const& data);
++  /**
++   * Update digest with data
++   *
++   * Cannot be called after \ref Finalize has been called
++   */
++  void Update(void const* data, std::size_t size);
++  /**
++   * Finalize and return the digest
++   *
++   * The digest object cannot be used any more after this function
++   * has been called.
++   *
++   * \return digest value as string in lower-case hexadecimal notation
++   */
++  std::string Finalize();
++  /**
++   * Finalize and return the digest
++   *
++   * The digest object cannot be used any more after this
++   * function has been called.
++   *
++   * \return digest value as binary std::string
++   */
++  std::string FinalizeRaw();
++
++  /**
++   * Calculate message digest
++   */
++  static std::string Calculate(Type type, std::string const& data);
++  /**
++   * Calculate message digest
++   */
++  static std::string Calculate(Type type, void const* data, std::size_t size);
++
++private:
++  struct MdCtxDeleter
++  {
++    void operator()(EVP_MD_CTX* context);
++  };
++
++  bool m_finalized{false};
++  std::unique_ptr<EVP_MD_CTX, MdCtxDeleter> m_context;
++  EVP_MD const* m_md;
++};
++
++}
++}
+diff --git a/xbmc/utils/test/CMakeLists.txt b/xbmc/utils/test/CMakeLists.txt
+index afae88970cfe..ab17a3e35429 100644
+--- a/xbmc/utils/test/CMakeLists.txt
++++ b/xbmc/utils/test/CMakeLists.txt
+@@ -7,6 +7,7 @@ set(SOURCES TestAlarmClock.cpp
+             TestCPUInfo.cpp
+             TestCrc32.cpp
+             TestDatabaseUtils.cpp
++            TestDigest.cpp
+             TestEndianSwap.cpp
+             TestFileOperationJob.cpp
+             TestFileUtils.cpp
+diff --git a/xbmc/utils/test/TestDigest.cpp b/xbmc/utils/test/TestDigest.cpp
+new file mode 100644
+index 000000000000..5a052aef49f0
+--- /dev/null
++++ b/xbmc/utils/test/TestDigest.cpp
+@@ -0,0 +1,71 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "utils/Digest.h"
++
++#include "gtest/gtest.h"
++
++using KODI::UTILITY::CDigest;
++
++TEST(TestDigest, Digest_Empty)
++{
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::MD5, "").c_str(), "d41d8cd98f00b204e9800998ecf8427e");
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::MD5, nullptr, 0).c_str(), "d41d8cd98f00b204e9800998ecf8427e");
++  {
++    CDigest digest{CDigest::Type::MD5};
++    EXPECT_STREQ(digest.Finalize().c_str(), "d41d8cd98f00b204e9800998ecf8427e");
++  }
++  {
++    CDigest digest{CDigest::Type::MD5};
++    digest.Update("");
++    digest.Update(nullptr, 0);
++    EXPECT_STREQ(digest.Finalize().c_str(), "d41d8cd98f00b204e9800998ecf8427e");
++  }
++}
++
++TEST(TestDigest, Digest_Basic)
++{
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::MD5, "asdf").c_str(), "912ec803b2ce49e4a541068d495ab570");
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::MD5, "asdf", 4).c_str(), "912ec803b2ce49e4a541068d495ab570");
++  {
++    CDigest digest{CDigest::Type::MD5};
++    digest.Update("as");
++    digest.Update("df", 2);
++    EXPECT_STREQ(digest.Finalize().c_str(), "912ec803b2ce49e4a541068d495ab570");
++  }
++}
++
++TEST(TestDigest, Digest_SHA1)
++{
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::SHA1, "").c_str(), "da39a3ee5e6b4b0d3255bfef95601890afd80709");
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::SHA1, "asdf").c_str(), "3da541559918a808c2402bba5012f6c60b27661c");
++}
++
++TEST(TestDigest, Digest_SHA256)
++{
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::SHA256, "").c_str(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::SHA256, "asdf").c_str(), "f0e4c2f76c58916ec258f246851bea091d14d4247a2fc3e18694461b1816e13b");
++}
++
++TEST(TestDigest, Digest_SHA512)
++{
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::SHA512, "").c_str(), "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
++  EXPECT_STREQ(CDigest::Calculate(CDigest::Type::SHA512, "asdf").c_str(), "401b09eab3c013d4ca54922bb802bec8fd5318192b0a75f201d8b3727429080fb337591abd3e44453b954555b7a0812e1081c39b740293f765eae731f5a65ed1");
++}
+
+From 682f07298b087bb509e718a7a009127c19608dcc Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Thu, 15 Mar 2018 12:18:28 +0100
+Subject: [PATCH 3/5] Use generic digest implementation instead of XBMC_MD5
+
+---
+ xbmc/Util.cpp                                   | 11 ++++---
+ xbmc/Util.h                                     |  3 +-
+ xbmc/addons/AddonInstaller.cpp                  |  2 +-
+ xbmc/addons/GUIDialogAddonInfo.cpp              |  5 +--
+ xbmc/addons/interfaces/Filesystem.cpp           |  2 +-
+ xbmc/addons/interfaces/General.cpp              |  5 +--
+ xbmc/dialogs/GUIDialogGamepad.cpp               |  8 ++---
+ xbmc/dialogs/GUIDialogNumeric.cpp               |  6 ++--
+ xbmc/guilib/GUIEditControl.cpp                  |  6 ++--
+ xbmc/guilib/GUIKeyboardFactory.cpp              | 11 +++----
+ xbmc/interfaces/json-rpc/ProfilesOperations.cpp |  5 +--
+ xbmc/music/infoscanner/MusicInfoScanner.cpp     | 15 ++++-----
+ xbmc/network/AirPlayServer.cpp                  | 14 ++++-----
+ xbmc/network/upnp/UPnPServer.cpp                |  5 +--
+ xbmc/video/VideoInfoScanner.cpp                 | 41 +++++++++++++------------
+ 15 files changed, 73 insertions(+), 66 deletions(-)
+
+diff --git a/xbmc/Util.cpp b/xbmc/Util.cpp
+index f04e16ad52cc..43b507149830 100644
+--- a/xbmc/Util.cpp
++++ b/xbmc/Util.cpp
+@@ -80,8 +80,8 @@
+ #ifdef HAS_IRSERVERSUITE
+ #endif
+ #include "guilib/LocalizeStrings.h"
++#include "utils/Digest.h"
+ #include "utils/FileExtensionProvider.h"
+-#include "utils/md5.h"
+ #include "utils/TimeUtils.h"
+ #include "utils/URIUtils.h"
+ #include "utils/log.h"
+@@ -104,6 +104,7 @@ using namespace MEDIA_DETECT;
+ 
+ using namespace XFILE;
+ using namespace PLAYLIST;
++using KODI::UTILITY::CDigest;
+ 
+ #if !defined(TARGET_WINDOWS)
+ unsigned int CUtil::s_randomSeed = time(NULL);
+@@ -594,22 +595,22 @@ int CUtil::GetDVDIfoTitle(const std::string& strFile)
+   return atoi(strFilename.substr(4, 2).c_str());
+ }
+ 
+-std::string CUtil::GetFileMD5(const std::string& strPath)
++std::string CUtil::GetFileDigest(const std::string& strPath, KODI::UTILITY::CDigest::Type type)
+ {
+   CFile file;
+   std::string result;
+   if (file.Open(strPath))
+   {
+-    XBMC::XBMC_MD5 md5;
++    CDigest digest{type};
+     char temp[1024];
+     while (true)
+     {
+       ssize_t read = file.Read(temp,1024);
+       if (read <= 0)
+         break;
+-      md5.append(temp,read);
++      digest.Update(temp,read);
+     }
+-    result = md5.getDigest();
++    result = digest.Finalize();
+     file.Close();
+   }
+ 
+diff --git a/xbmc/Util.h b/xbmc/Util.h
+index ce804b0e4151..cd3b3546b290 100644
+--- a/xbmc/Util.h
++++ b/xbmc/Util.h
+@@ -25,6 +25,7 @@
+ #include <string.h>
+ #include <stdint.h>
+ #include "MediaSource.h" // Definition of VECSOURCES
++#include "utils/Digest.h"
+ 
+ #define ARRAY_SIZE(X)         (sizeof(X)/sizeof((X)[0]))
+ 
+@@ -76,7 +77,7 @@ class CUtil
+    \param strPath - path to the file to MD5sum
+    \return md5 sum of the file
+    */
+-  static std::string GetFileMD5(const std::string& strPath);
++  static std::string GetFileDigest(const std::string& strPath, KODI::UTILITY::CDigest::Type type);
+   static bool GetDirectoryName(const std::string& strFileName, std::string& strDescription);
+   static void GetDVDDriveIcon(const std::string& strPath, std::string& strIcon);
+   static void RemoveTempFiles();
+diff --git a/xbmc/addons/AddonInstaller.cpp b/xbmc/addons/AddonInstaller.cpp
+index 77a630825769..c851ce7818f2 100644
+--- a/xbmc/addons/AddonInstaller.cpp
++++ b/xbmc/addons/AddonInstaller.cpp
+@@ -567,7 +567,7 @@ bool CAddonInstallJob::DoWork()
+       SetText(g_localizeStrings.Get(24077));
+       if (!m_hash.empty())
+       {
+-        md5 = CUtil::GetFileMD5(package);
++        md5 = CUtil::GetFileDigest(package, KODI::UTILITY::CDigest::Type::MD5);
+         if (!StringUtils::EqualsNoCase(md5, m_hash))
+         {
+           CFile::Delete(package);
+diff --git a/xbmc/addons/GUIDialogAddonInfo.cpp b/xbmc/addons/GUIDialogAddonInfo.cpp
+index 3df70994cd15..170af65f4a27 100644
+--- a/xbmc/addons/GUIDialogAddonInfo.cpp
++++ b/xbmc/addons/GUIDialogAddonInfo.cpp
+@@ -41,6 +41,7 @@
+ #include "messaging/helpers/DialogOKHelper.h"
+ #include "pictures/GUIWindowSlideShow.h"
+ #include "settings/Settings.h"
++#include "utils/Digest.h"
+ #include "utils/JobManager.h"
+ #include "utils/FileOperationJob.h"
+ #include "utils/StringUtils.h"
+@@ -283,8 +284,8 @@ void CGUIDialogAddonInfo::OnUpdate()
+           std::string path(items[i]->GetPath());
+           if (database.GetPackageHash(m_localAddon->ID(), items[i]->GetPath(), hash))
+           {
+-            std::string md5 = CUtil::GetFileMD5(path);
+-            if (md5 == hash)
++            std::string md5 = CUtil::GetFileDigest(path, KODI::UTILITY::CDigest::Type::MD5);
++            if (StringUtils::EqualsNoCase(md5, hash))
+               versions.push_back(std::make_pair(AddonVersion(versionString), LOCAL_CACHE));
+           }
+         }
+diff --git a/xbmc/addons/interfaces/Filesystem.cpp b/xbmc/addons/interfaces/Filesystem.cpp
+index 27c35c2be01b..eda19d428f5b 100644
+--- a/xbmc/addons/interfaces/Filesystem.cpp
++++ b/xbmc/addons/interfaces/Filesystem.cpp
+@@ -281,7 +281,7 @@ char* Interface_Filesystem::get_file_md5(void* kodiBase, const char* filename)
+     return nullptr;
+   }
+ 
+-  std::string string = CUtil::GetFileMD5(filename);
++  std::string string = CUtil::GetFileDigest(filename, KODI::UTILITY::CDigest::Type::MD5);
+   char* buffer = strdup(string.c_str());
+   return buffer;
+ }
+diff --git a/xbmc/addons/interfaces/General.cpp b/xbmc/addons/interfaces/General.cpp
+index b0f784e5deb7..f0d3500e8019 100644
+--- a/xbmc/addons/interfaces/General.cpp
++++ b/xbmc/addons/interfaces/General.cpp
+@@ -37,15 +37,16 @@
+ #endif
+ #include "settings/Settings.h"
+ #include "utils/CharsetConverter.h"
++#include "utils/Digest.h"
+ #include "utils/log.h"
+ #include "utils/LangCodeExpander.h"
+-#include "utils/md5.h"
+ #include "utils/StringUtils.h"
+ #include "utils/URIUtils.h"
+ 
+ #include <string.h>
+ 
+ using namespace kodi; // addon-dev-kit namespace
++using KODI::UTILITY::CDigest;
+ 
+ namespace ADDON
+ {
+@@ -303,7 +304,7 @@ void Interface_General::get_md5(void* kodiBase, const char* text, char* md5)
+     return;
+   }
+ 
+-  std::string md5Int = XBMC::XBMC_MD5::GetMD5(std::string(text));
++  std::string md5Int = CDigest::Calculate(CDigest::Type::MD5, std::string(text));
+   strncpy(md5, md5Int.c_str(), 40);
+ }
+ 
+diff --git a/xbmc/dialogs/GUIDialogGamepad.cpp b/xbmc/dialogs/GUIDialogGamepad.cpp
+index 867c8942a9e4..0d28cce1f307 100644
+--- a/xbmc/dialogs/GUIDialogGamepad.cpp
++++ b/xbmc/dialogs/GUIDialogGamepad.cpp
+@@ -20,7 +20,7 @@
+ 
+ #include "GUIDialogGamepad.h"
+ #include "ServiceBroker.h"
+-#include "utils/md5.h"
++#include "utils/Digest.h"
+ #include "utils/StringUtils.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIAudioManager.h"
+@@ -33,6 +33,7 @@
+ #include <utility>
+ 
+ using namespace KODI::MESSAGING;
++using KODI::UTILITY::CDigest;
+ 
+ CGUIDialogGamepad::CGUIDialogGamepad(void)
+     : CGUIDialogBoxBase(WINDOW_DIALOG_GAMEPAD, "DialogConfirm.xml")
+@@ -117,7 +118,7 @@ bool CGUIDialogGamepad::OnAction(const CAction &action)
+     m_bConfirmed = false;
+     m_bCanceled = false;
+ 
+-    std::string md5pword2 = XBMC::XBMC_MD5::GetMD5(m_strUserInput);
++    std::string md5pword2 = CDigest::Calculate(CDigest::Type::MD5, m_strUserInput);
+ 
+     if (!StringUtils::EqualsNoCase(m_strPassword, md5pword2))
+     {
+@@ -309,8 +310,7 @@ bool CGUIDialogGamepad::ShowAndVerifyInput(std::string& strToVerify, const std::
+ 
+   if (bGetUserInput && !pDialog->IsCanceled())
+   {
+-    strToVerify = XBMC::XBMC_MD5::GetMD5(pDialog->m_strUserInput);
+-    StringUtils::ToLower(strToVerify);
++    strToVerify = CDigest::Calculate(CDigest::Type::MD5, pDialog->m_strUserInput);
+     pDialog->m_strUserInput = "";
+   }
+ 
+diff --git a/xbmc/dialogs/GUIDialogNumeric.cpp b/xbmc/dialogs/GUIDialogNumeric.cpp
+index 6c22e3a432ce..22295b6f67fb 100644
+--- a/xbmc/dialogs/GUIDialogNumeric.cpp
++++ b/xbmc/dialogs/GUIDialogNumeric.cpp
+@@ -25,9 +25,9 @@
+ #include "ServiceBroker.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUILabelControl.h"
+-#include "utils/md5.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "input/XBMC_vkeys.h"
++#include "utils/Digest.h"
+ #include "utils/StringUtils.h"
+ #include "utils/Variant.h"
+ #include "input/Key.h"
+@@ -45,6 +45,7 @@
+ #define CONTROL_BACKSPACE     23
+ 
+ using namespace KODI::MESSAGING;
++using KODI::UTILITY::CDigest;
+ 
+ CGUIDialogNumeric::CGUIDialogNumeric(void)
+   : CGUIDialog(WINDOW_DIALOG_NUMERIC, "DialogNumeric.xml")
+@@ -636,12 +637,11 @@ bool CGUIDialogNumeric::ShowAndVerifyInput(std::string& strToVerify, const std::
+     return false;
+   }
+ 
+-  std::string md5pword2 = XBMC::XBMC_MD5::GetMD5(strInput);
++  std::string md5pword2 = CDigest::Calculate(CDigest::Type::MD5, strInput);
+ 
+   if (!bVerifyInput)
+   {
+     strToVerify = md5pword2;
+-    StringUtils::ToLower(strToVerify);
+     return true;
+   }
+ 
+diff --git a/xbmc/guilib/GUIEditControl.cpp b/xbmc/guilib/GUIEditControl.cpp
+index aea931c67d8e..4f78e6577ecf 100644
+--- a/xbmc/guilib/GUIEditControl.cpp
++++ b/xbmc/guilib/GUIEditControl.cpp
+@@ -22,6 +22,7 @@
+ #include "GUIWindowManager.h"
+ #include "ServiceBroker.h"
+ #include "utils/CharsetConverter.h"
++#include "utils/Digest.h"
+ #include "utils/Variant.h"
+ #include "GUIKeyboardFactory.h"
+ #include "dialogs/GUIDialogNumeric.h"
+@@ -30,13 +31,14 @@
+ #include "LocalizeStrings.h"
+ #include "XBDateTime.h"
+ #include "windowing/WinSystem.h"
+-#include "utils/md5.h"
+ #include "GUIUserMessages.h"
+ 
+ #if defined(TARGET_DARWIN)
+ #include "platform/darwin/osx/CocoaInterface.h"
+ #endif
+ 
++using KODI::UTILITY::CDigest;
++
+ const char* CGUIEditControl::smsLetters[10] = { " !@#$%^&*()[]{}<>/\\|0", ".,;:\'\"-+_=?`~1", "abc2ABC", "def3DEF", "ghi4GHI", "jkl5JKL", "mno6MNO", "pqrs7PQRS", "tuv8TUV", "wxyz9WXYZ" };
+ const unsigned int CGUIEditControl::smsDelay = 1000;
+ 
+@@ -613,7 +615,7 @@ std::string CGUIEditControl::GetLabel2() const
+   std::string text;
+   g_charsetConverter.wToUTF8(m_text2, text);
+   if (m_inputType == INPUT_TYPE_PASSWORD_MD5 && !m_isMD5)
+-    return XBMC::XBMC_MD5::GetMD5(text);
++    return CDigest::Calculate(CDigest::Type::MD5, text);
+   return text;
+ }
+ 
+diff --git a/xbmc/guilib/GUIKeyboardFactory.cpp b/xbmc/guilib/GUIKeyboardFactory.cpp
+index dbeabe00f091..8c9e9d88145a 100644
+--- a/xbmc/guilib/GUIKeyboardFactory.cpp
++++ b/xbmc/guilib/GUIKeyboardFactory.cpp
+@@ -28,7 +28,7 @@
+ #include "GUIWindowManager.h"
+ #include "messaging/helpers/DialogOKHelper.h"
+ #include "settings/Settings.h"
+-#include "utils/md5.h"
++#include "utils/Digest.h"
+ #include "utils/StringUtils.h"
+ #include "utils/Variant.h"
+ 
+@@ -38,6 +38,7 @@
+ #endif
+ 
+ using namespace KODI::MESSAGING;
++using KODI::UTILITY::CDigest;
+ 
+ CGUIKeyboard *CGUIKeyboardFactory::g_activeKeyboard = NULL;
+ FILTERING CGUIKeyboardFactory::m_filtering = FILTERING_NONE;
+@@ -166,8 +167,7 @@ bool CGUIKeyboardFactory::ShowAndVerifyNewPassword(std::string& newPassword, CVa
+   // check the password
+   if (checkInput == userInput)
+   {
+-    newPassword = XBMC::XBMC_MD5::GetMD5(userInput);
+-    StringUtils::ToLower(newPassword);
++    newPassword = CDigest::Calculate(CDigest::Type::MD5, userInput);
+     return true;
+   }
+   HELPERS::ShowOKDialogText(CVariant{12341}, CVariant{12344});
+@@ -206,7 +206,7 @@ int CGUIKeyboardFactory::ShowAndVerifyPassword(std::string& strPassword, const s
+ 
+   if (!strPassword.empty())
+   {
+-    std::string md5pword2 = XBMC::XBMC_MD5::GetMD5(strUserInput);
++    std::string md5pword2 = CDigest::Calculate(CDigest::Type::MD5, strUserInput);
+     if (StringUtils::EqualsNoCase(strPassword, md5pword2))
+       return 0;     // user entered correct password
+     else return 1;  // user must have entered an incorrect password
+@@ -215,8 +215,7 @@ int CGUIKeyboardFactory::ShowAndVerifyPassword(std::string& strPassword, const s
+   {
+     if (!strUserInput.empty())
+     {
+-      strPassword = XBMC::XBMC_MD5::GetMD5(strUserInput);
+-      StringUtils::ToLower(strPassword);
++      strPassword = CDigest::Calculate(CDigest::Type::MD5, strUserInput);
+       return 0; // user entered correct password
+     }
+     else return 1;
+diff --git a/xbmc/interfaces/json-rpc/ProfilesOperations.cpp b/xbmc/interfaces/json-rpc/ProfilesOperations.cpp
+index 1d61b010d3e2..bdccc2a5a194 100644
+--- a/xbmc/interfaces/json-rpc/ProfilesOperations.cpp
++++ b/xbmc/interfaces/json-rpc/ProfilesOperations.cpp
+@@ -22,12 +22,13 @@
+ #include "messaging/ApplicationMessenger.h"
+ #include "guilib/LocalizeStrings.h"
+ #include "profiles/ProfilesManager.h"
+-#include "utils/md5.h"
++#include "utils/Digest.h"
+ #include "utils/Variant.h"
+ #include "ServiceBroker.h"
+ 
+ using namespace JSONRPC;
+ using namespace KODI::MESSAGING;
++using KODI::UTILITY::CDigest;
+ 
+ JSONRPC_STATUS CProfilesOperations::GetProfiles(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+@@ -126,7 +127,7 @@ JSONRPC_STATUS CProfilesOperations::LoadProfile(const std::string &method, ITran
+     std::string md5pword2;
+     std::string encryption = passwordObject["encryption"].asString();
+     if (encryption == "none")
+-      md5pword2 = XBMC::XBMC_MD5::GetMD5(password);
++      md5pword2 = CDigest::Calculate(CDigest::Type::MD5, password);
+     else if (encryption == "md5")
+       md5pword2 = password;
+ 
+diff --git a/xbmc/music/infoscanner/MusicInfoScanner.cpp b/xbmc/music/infoscanner/MusicInfoScanner.cpp
+index 8bca6665cbc1..45c772c47a84 100644
+--- a/xbmc/music/infoscanner/MusicInfoScanner.cpp
++++ b/xbmc/music/infoscanner/MusicInfoScanner.cpp
+@@ -57,9 +57,9 @@
+ #include "TextureCache.h"
+ #include "threads/SystemClock.h"
+ #include "Util.h"
++#include "utils/Digest.h"
+ #include "utils/FileExtensionProvider.h"
+ #include "utils/log.h"
+-#include "utils/md5.h"
+ #include "utils/StringUtils.h"
+ #include "utils/URIUtils.h"
+ #include "utils/Variant.h"
+@@ -69,6 +69,7 @@ using namespace XFILE;
+ using namespace MUSICDATABASEDIRECTORY;
+ using namespace MUSIC_GRABBER;
+ using namespace ADDON;
++using KODI::UTILITY::CDigest;
+ 
+ CMusicInfoScanner::CMusicInfoScanner()
+ : m_needsCleanup(false),
+@@ -484,7 +485,7 @@ bool CMusicInfoScanner::DoScan(const std::string& strDirectory)
+ 
+   // check whether we need to rescan or not
+   std::string dbHash;
+-  if ((m_flags & SCAN_RESCAN) || !m_musicDatabase.GetPathHash(strDirectory, dbHash) || dbHash != hash)
++  if ((m_flags & SCAN_RESCAN) || !m_musicDatabase.GetPathHash(strDirectory, dbHash) || !StringUtils::EqualsNoCase(dbHash, hash))
+   { // path has changed - rescan
+     if (dbHash.empty())
+       CLog::Log(LOGDEBUG, "%s Scanning dir '%s' as not in the database", __FUNCTION__, CURL::GetRedacted(strDirectory).c_str());
+@@ -1176,19 +1177,19 @@ int CMusicInfoScanner::GetPathHash(const CFileItemList &items, std::string &hash
+ {
+   // Create a hash based on the filenames, filesize and filedate.  Also count the number of files
+   if (0 == items.Size()) return 0;
+-  XBMC::XBMC_MD5 md5state;
++  CDigest digest{CDigest::Type::MD5};
+   int count = 0;
+   for (int i = 0; i < items.Size(); ++i)
+   {
+     const CFileItemPtr pItem = items[i];
+-    md5state.append(pItem->GetPath());
+-    md5state.append((unsigned char *)&pItem->m_dwSize, sizeof(pItem->m_dwSize));
++    digest.Update(pItem->GetPath());
++    digest.Update((unsigned char *)&pItem->m_dwSize, sizeof(pItem->m_dwSize));
+     FILETIME time = pItem->m_dateTime;
+-    md5state.append((unsigned char *)&time, sizeof(FILETIME));
++    digest.Update((unsigned char *)&time, sizeof(FILETIME));
+     if (pItem->IsAudio() && !pItem->IsPlayList() && !pItem->IsNFO())
+       count++;
+   }
+-  hash = md5state.getDigest();
++  hash = digest.Finalize();
+   return count;
+ }
+ 
+diff --git a/xbmc/network/AirPlayServer.cpp b/xbmc/network/AirPlayServer.cpp
+index 87d84724ec61..ca93e4a6dd1c 100644
+--- a/xbmc/network/AirPlayServer.cpp
++++ b/xbmc/network/AirPlayServer.cpp
+@@ -37,7 +37,7 @@
+ #include "ServiceBroker.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "PlayListPlayer.h"
+-#include "utils/md5.h"
++#include "utils/Digest.h"
+ #include "utils/Variant.h"
+ #include "settings/Settings.h"
+ #include "input/Key.h"
+@@ -50,6 +50,7 @@
+ 
+ using namespace ANNOUNCEMENT;
+ using namespace KODI::MESSAGING;
++using KODI::UTILITY::CDigest;
+ 
+ #ifdef TARGET_WINDOWS
+ #define close closesocket
+@@ -611,7 +612,7 @@ void CAirPlayServer::CTCPClient::ComposeAuthRequestAnswer(std::string& responseH
+ {
+   int16_t random=rand();
+   std::string randomStr = StringUtils::Format("%i", random);
+-  m_authNonce=XBMC::XBMC_MD5::GetMD5(randomStr);
++  m_authNonce=CDigest::Calculate(CDigest::Type::MD5, randomStr);
+   responseHeader = StringUtils::Format(AUTH_REQUIRED, m_authNonce.c_str());
+   responseBody.clear();
+ }
+@@ -629,12 +630,9 @@ std::string calcResponse(const std::string& username,
+   std::string HA1;
+   std::string HA2;
+ 
+-  HA1 = XBMC::XBMC_MD5::GetMD5(username + ":" + realm + ":" + password);
+-  HA2 = XBMC::XBMC_MD5::GetMD5(method + ":" + digestUri);
+-  StringUtils::ToLower(HA1);
+-  StringUtils::ToLower(HA2);
+-  response = XBMC::XBMC_MD5::GetMD5(HA1 + ":" + nonce + ":" + HA2);
+-  StringUtils::ToLower(response);
++  HA1 = CDigest::Calculate(CDigest::Type::MD5, username + ":" + realm + ":" + password);
++  HA2 = CDigest::Calculate(CDigest::Type::MD5, method + ":" + digestUri);
++  response = CDigest::Calculate(CDigest::Type::MD5, HA1 + ":" + nonce + ":" + HA2);
+   return response;
+ }
+ 
+diff --git a/xbmc/network/upnp/UPnPServer.cpp b/xbmc/network/upnp/UPnPServer.cpp
+index f8a5d9b7b68e..7194688d348a 100644
+--- a/xbmc/network/upnp/UPnPServer.cpp
++++ b/xbmc/network/upnp/UPnPServer.cpp
+@@ -38,9 +38,9 @@
+ #include "music/tags/MusicInfoTag.h"
+ #include "settings/AdvancedSettings.h"
+ #include "settings/Settings.h"
++#include "utils/Digest.h"
+ #include "utils/FileExtensionProvider.h"
+ #include "utils/log.h"
+-#include "utils/md5.h"
+ #include "utils/SortUtils.h"
+ #include "utils/StringUtils.h"
+ #include "utils/URIUtils.h"
+@@ -57,6 +57,7 @@ NPT_SET_LOCAL_LOGGER("xbmc.upnp.server")
+ 
+ using namespace ANNOUNCEMENT;
+ using namespace XFILE;
++using KODI::UTILITY::CDigest;
+ 
+ namespace UPNP
+ {
+@@ -251,7 +252,7 @@ NPT_String CUPnPServer::BuildSafeResourceUri(const NPT_HttpUrl &rooturi,
+       filename = URIUtils::GetFileName(mapped_file_path);
+ 
+     filename = CURL::Encode(filename);
+-    md5 = XBMC::XBMC_MD5::GetMD5(mapped_file_path);
++    md5 = CDigest::Calculate(CDigest::Type::MD5, mapped_file_path);
+     md5 += "/" + filename;
+     { NPT_AutoLock lock(m_FileMutex);
+       NPT_CHECK(m_FileMap.Put(md5.c_str(), mapped_file_path.c_str()));
+diff --git a/xbmc/video/VideoInfoScanner.cpp b/xbmc/video/VideoInfoScanner.cpp
+index 5675bdeb2832..d62ae3a14122 100644
+--- a/xbmc/video/VideoInfoScanner.cpp
++++ b/xbmc/video/VideoInfoScanner.cpp
+@@ -48,9 +48,9 @@
+ #include "threads/SystemClock.h"
+ #include "URL.h"
+ #include "Util.h"
++#include "utils/Digest.h"
+ #include "utils/FileExtensionProvider.h"
+ #include "utils/log.h"
+-#include "utils/md5.h"
+ #include "utils/RegExp.h"
+ #include "utils/StringUtils.h"
+ #include "utils/URIUtils.h"
+@@ -65,6 +65,7 @@ using namespace ADDON;
+ using namespace KODI::MESSAGING;
+ 
+ using KODI::MESSAGING::HELPERS::DialogResponse;
++using KODI::UTILITY::CDigest;
+ 
+ namespace VIDEO
+ {
+@@ -281,7 +282,7 @@ namespace VIDEO
+       if (g_advancedSettings.m_bVideoLibraryUseFastHash && !URIUtils::IsPlugin(strDirectory))
+         fastHash = GetFastHash(strDirectory, regexps);
+ 
+-      if (m_database.GetPathHash(strDirectory, dbHash) && !fastHash.empty() && fastHash == dbHash)
++      if (m_database.GetPathHash(strDirectory, dbHash) && !fastHash.empty() && StringUtils::EqualsNoCase(fastHash, dbHash))
+       { // fast hashes match - no need to process anything
+         hash = fastHash;
+       }
+@@ -297,7 +298,7 @@ namespace VIDEO
+           hash = fastHash;
+       }
+ 
+-      if (hash == dbHash)
++      if (StringUtils::EqualsNoCase(hash, dbHash))
+       { // hash matches - skipping
+         CLog::Log(LOGDEBUG, "VideoInfoScanner: Skipping dir '%s' due to no change%s", CURL::GetRedacted(strDirectory).c_str(), !fastHash.empty() ? " (fasthash)" : "");
+         bSkip = true;
+@@ -329,7 +330,7 @@ namespace VIDEO
+         items.SetPath(strDirectory);
+         GetPathHash(items, hash);
+         bSkip = true;
+-        if (!m_database.GetPathHash(strDirectory, dbHash) || dbHash != hash)
++        if (!m_database.GetPathHash(strDirectory, dbHash) || !StringUtils::EqualsNoCase(dbHash, hash))
+           bSkip = false;
+         else
+           items.Clear();
+@@ -363,7 +364,7 @@ namespace VIDEO
+         CLog::Log(LOGDEBUG, "VideoInfoScanner: No (new) information was found in dir %s", CURL::GetRedacted(strDirectory).c_str());
+       }
+     }
+-    else if (hash != dbHash && (content == CONTENT_MOVIES || content == CONTENT_MUSICVIDEOS))
++    else if (!StringUtils::EqualsNoCase(hash, dbHash) && (content == CONTENT_MOVIES || content == CONTENT_MUSICVIDEOS))
+     { // update the hash either way - we may have changed the hash to a fast version
+       m_database.SetPathHash(strDirectory, hash);
+     }
+@@ -1805,31 +1806,31 @@ namespace VIDEO
+   {
+     // Create a hash based on the filenames, filesize and filedate.  Also count the number of files
+     if (0 == items.Size()) return 0;
+-    XBMC::XBMC_MD5 md5state;
++    CDigest digest{CDigest::Type::MD5};
+     int count = 0;
+     for (int i = 0; i < items.Size(); ++i)
+     {
+       const CFileItemPtr pItem = items[i];
+-      md5state.append(pItem->GetPath());
++      digest.Update(pItem->GetPath());
+       if (pItem->IsPlugin())
+       {
+         // allow plugin to calculate hash itself using strings rather than binary data for size and date
+         // according to ListItem.setInfo() documentation date format should be "d.m.Y"
+         if (pItem->m_dwSize)
+-          md5state.append(std::to_string(pItem->m_dwSize));
++          digest.Update(std::to_string(pItem->m_dwSize));
+         if (pItem->m_dateTime.IsValid())
+-          md5state.append(StringUtils::Format("%02i.%02i.%04i", pItem->m_dateTime.GetDay(), pItem->m_dateTime.GetMonth(), pItem->m_dateTime.GetYear()));
++          digest.Update(StringUtils::Format("%02i.%02i.%04i", pItem->m_dateTime.GetDay(), pItem->m_dateTime.GetMonth(), pItem->m_dateTime.GetYear()));
+       }
+       else
+       {
+-        md5state.append((unsigned char *)&pItem->m_dwSize, sizeof(pItem->m_dwSize));
++        digest.Update(&pItem->m_dwSize, sizeof(pItem->m_dwSize));
+         FILETIME time = pItem->m_dateTime;
+-        md5state.append((unsigned char *)&time, sizeof(FILETIME));
++        digest.Update(&time, sizeof(FILETIME));
+       }
+       if (pItem->IsVideo() && !pItem->IsPlayList() && !pItem->IsNFO())
+         count++;
+     }
+-    hash = md5state.getDigest();
++    hash = digest.Finalize();
+     return count;
+   }
+ 
+@@ -1849,10 +1850,10 @@ namespace VIDEO
+   std::string CVideoInfoScanner::GetFastHash(const std::string &directory,
+       const std::vector<std::string> &excludes) const
+   {
+-    XBMC::XBMC_MD5 md5state;
++    CDigest digest{CDigest::Type::MD5};
+ 
+     if (excludes.size())
+-      md5state.append(StringUtils::Join(excludes, "|"));
++      digest.Update(StringUtils::Join(excludes, "|"));
+ 
+     struct __stat64 buffer;
+     if (XFILE::CFile::Stat(directory, &buffer) == 0)
+@@ -1862,8 +1863,8 @@ namespace VIDEO
+         time = buffer.st_ctime;
+       if (time)
+       {
+-        md5state.append((unsigned char *)&time, sizeof(time));
+-        return md5state.getDigest();
++        digest.Update((unsigned char *)&time, sizeof(time));
++        return digest.Finalize();
+       }
+     }
+     return "";
+@@ -1876,10 +1877,10 @@ namespace VIDEO
+     items.Add(CFileItemPtr(new CFileItem(directory, true)));
+     CUtil::GetRecursiveDirsListing(directory, items, DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_NO_FILE_INFO);
+ 
+-    XBMC::XBMC_MD5 md5state;
++    CDigest digest{CDigest::Type::MD5};
+ 
+     if (excludes.size())
+-      md5state.append(StringUtils::Join(excludes, "|"));
++      digest.Update(StringUtils::Join(excludes, "|"));
+ 
+     int64_t time = 0;
+     for (int i=0; i < items.Size(); ++i)
+@@ -1900,8 +1901,8 @@ namespace VIDEO
+ 
+     if (time)
+     {
+-      md5state.append((unsigned char *)&time, sizeof(time));
+-      return md5state.getDigest();
++      digest.Update((unsigned char *)&time, sizeof(time));
++      return digest.Finalize();
+     }
+     return "";
+   }
+
+From 87470b77fde8105a89eadcdaced307fc09652c83 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Thu, 15 Mar 2018 12:18:47 +0100
+Subject: [PATCH 4/5] Remove XBMC_MD5
+
+---
+ xbmc/utils/CMakeLists.txt      |   2 -
+ xbmc/utils/md5.cpp             | 311 -----------------------------------------
+ xbmc/utils/md5.h               |  53 -------
+ xbmc/utils/test/CMakeLists.txt |   1 -
+ xbmc/utils/test/Testmd5.cpp    |  56 --------
+ 5 files changed, 423 deletions(-)
+ delete mode 100644 xbmc/utils/md5.cpp
+ delete mode 100644 xbmc/utils/md5.h
+ delete mode 100644 xbmc/utils/test/Testmd5.cpp
+
+diff --git a/xbmc/utils/CMakeLists.txt b/xbmc/utils/CMakeLists.txt
+index e802128bdffb..2723ff646cd9 100644
+--- a/xbmc/utils/CMakeLists.txt
++++ b/xbmc/utils/CMakeLists.txt
+@@ -38,7 +38,6 @@ set(SOURCES ActorProtocol.cpp
+             LegacyPathTranslation.cpp
+             Locale.cpp
+             log.cpp
+-            md5.cpp
+             Mime.cpp
+             Observer.cpp
+             POUtils.cpp
+@@ -125,7 +124,6 @@ set(HEADERS ActorProtocol.h
+             Locale.h
+             log.h
+             MathUtils.h
+-            md5.h
+             Mime.h
+             Observer.h
+             params_check_macros.h
+diff --git a/xbmc/utils/md5.cpp b/xbmc/utils/md5.cpp
+deleted file mode 100644
+index c5cee4485637..000000000000
+--- a/xbmc/utils/md5.cpp
++++ /dev/null
+@@ -1,311 +0,0 @@
+-/*
+- *      Copyright (C) 2009-2013 Team XBMC
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with XBMC; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-
+-#include "md5.h"
+-#include "utils/StringUtils.h"
+-
+-typedef unsigned char md5byte;
+-
+-static void MD5Init(struct MD5Context *context);
+-static void MD5Update(struct MD5Context *context, md5byte const *buf, unsigned len);
+-static void MD5Final(unsigned char digest[16], struct MD5Context *context);
+-static void MD5Transform(uint32_t buf[4], uint32_t const in[16]);
+-
+-
+-XBMC::XBMC_MD5::XBMC_MD5(void)
+-{
+-  MD5Init(&m_ctx);
+-}
+-
+-XBMC::XBMC_MD5::~XBMC_MD5(void) = default;
+-
+-void XBMC::XBMC_MD5::append(const void *inBuf, size_t inLen)
+-{
+-  MD5Update(&m_ctx, (md5byte*)inBuf, inLen);
+-}
+-
+-void XBMC::XBMC_MD5::append(const std::string& str)
+-{
+-  append((unsigned char*) str.c_str(), (unsigned int) str.length());
+-}
+-
+-void XBMC::XBMC_MD5::getDigest(unsigned char digest[16])
+-{
+-  MD5Final(digest, &m_ctx);
+-}
+-
+-std::string XBMC::XBMC_MD5::getDigest()
+-{
+-  unsigned char szBuf[16] = {'\0'};
+-  getDigest(szBuf);
+-  return StringUtils::Format("%02X%02X%02X%02X%02X%02X%02X%02X"\
+-                             "%02X%02X%02X%02X%02X%02X%02X%02X",
+-                             szBuf[0], szBuf[1], szBuf[2],
+-                             szBuf[3], szBuf[4], szBuf[5], szBuf[6], szBuf[7], szBuf[8],
+-                             szBuf[9], szBuf[10], szBuf[11], szBuf[12], szBuf[13], szBuf[14],
+-                             szBuf[15]);
+-}
+-
+-std::string XBMC::XBMC_MD5::GetMD5(const std::string &text)
+-{
+-  if (text.empty())
+-    return "";
+-  XBMC_MD5 state;
+-  state.append(text);
+-  return state.getDigest();
+-}
+-
+-/*
+- * This code implements the MD5 message-digest algorithm.
+- * The algorithm is due to Ron Rivest.  This code was
+- * written by Colin Plumb in 1993, no copyright is claimed.
+- * This code is in the public domain; do with it what you wish.
+- *
+- * Equivalent code is available from RSA Data Security, Inc.
+- * This code has been tested against that, and is equivalent,
+- * except that you don't need to include two pages of legalese
+- * with every copy.
+- *
+- * To compute the message digest of a chunk of bytes, declare an
+- * MD5Context structure, pass it to MD5Init, call MD5Update as
+- * needed on buffers full of bytes, and then call MD5Final, which
+- * will fill a supplied 16-byte array with the digest.
+- *
+- * Changed so as no longer to depend on Colin Plumb's `usual.h' header
+- * definitions; now uses stuff from dpkg's config.h.
+- *  - Ian Jackson <ian@chiark.greenend.org.uk>.
+- * Still in the public domain.
+- */
+-
+-#include <sys/types.h>		/* for stupid systems */
+-#include <string.h>		/* for memcpy() */
+-
+-#ifdef WORDS_BIGENDIAN
+-void
+-byteSwap(uint32_t *buf, unsigned words)
+-{
+-	md5byte *p = (md5byte *)buf;
+-
+-	do {
+-		*buf++ = (uint32_t)((unsigned)p[3] << 8 | p[2]) << 16 |
+-			((unsigned)p[1] << 8 | p[0]);
+-		p += 4;
+-	} while (--words);
+-}
+-#else
+-#define byteSwap(buf,words)
+-#endif
+-
+-/*
+- * Start MD5 accumulation.  Set bit count to 0 and buffer to mysterious
+- * initialization constants.
+- */
+-static void
+-MD5Init(struct MD5Context *ctx)
+-{
+-	ctx->buf[0] = 0x67452301;
+-	ctx->buf[1] = 0xefcdab89;
+-	ctx->buf[2] = 0x98badcfe;
+-	ctx->buf[3] = 0x10325476;
+-
+-	ctx->bytes[0] = 0;
+-	ctx->bytes[1] = 0;
+-}
+-
+-/*
+- * Update context to reflect the concatenation of another buffer full
+- * of bytes.
+- */
+-static void
+-MD5Update(struct MD5Context *ctx, md5byte const *buf, unsigned len)
+-{
+-	uint32_t t;
+-
+-	/* Update byte count */
+-
+-	t = ctx->bytes[0];
+-	if ((ctx->bytes[0] = t + len) < t)
+-		ctx->bytes[1]++;	/* Carry from low to high */
+-
+-	t = 64 - (t & 0x3f);	/* Space available in ctx->in (at least 1) */
+-	if (t > len) {
+-		memcpy((md5byte *)ctx->in + 64 - t, buf, len);
+-		return;
+-	}
+-	/* First chunk is an odd size */
+-	memcpy((md5byte *)ctx->in + 64 - t, buf, t);
+-	byteSwap(ctx->in, 16);
+-	MD5Transform(ctx->buf, ctx->in);
+-	buf += t;
+-	len -= t;
+-
+-	/* Process data in 64-byte chunks */
+-	while (len >= 64) {
+-		memcpy(ctx->in, buf, 64);
+-		byteSwap(ctx->in, 16);
+-		MD5Transform(ctx->buf, ctx->in);
+-		buf += 64;
+-		len -= 64;
+-	}
+-
+-	/* Handle any remaining bytes of data. */
+-	memcpy(ctx->in, buf, len);
+-}
+-
+-/*
+- * Final wrapup - pad to 64-byte boundary with the bit pattern
+- * 1 0* (64-bit count of bits processed, MSB-first)
+- */
+-static void
+-MD5Final(md5byte digest[16], struct MD5Context *ctx)
+-{
+-	int count = ctx->bytes[0] & 0x3f;	/* Number of bytes in ctx->in */
+-	md5byte *p = (md5byte *)ctx->in + count;
+-
+-	/* Set the first char of padding to 0x80.  There is always room. */
+-	*p++ = 0x80;
+-
+-	/* Bytes of padding needed to make 56 bytes (-8..55) */
+-	count = 56 - 1 - count;
+-
+-	if (count < 0) {	/* Padding forces an extra block */
+-		memset(p, 0, count + 8);
+-		byteSwap(ctx->in, 16);
+-		MD5Transform(ctx->buf, ctx->in);
+-		p = (md5byte *)ctx->in;
+-		count = 56;
+-	}
+-	memset(p, 0, count);
+-	byteSwap(ctx->in, 14);
+-
+-	/* Append length in bits and transform */
+-	ctx->in[14] = ctx->bytes[0] << 3;
+-	ctx->in[15] = ctx->bytes[1] << 3 | ctx->bytes[0] >> 29;
+-	MD5Transform(ctx->buf, ctx->in);
+-
+-	byteSwap(ctx->buf, 4);
+-	memcpy(digest, ctx->buf, 16);
+-	memset(ctx, 0, sizeof(*ctx));	/* In case it's sensitive */
+-}
+-
+-#ifndef ASM_MD5
+-
+-/* The four core functions - F1 is optimized somewhat */
+-
+-/* #define F1(x, y, z) (x & y | ~x & z) */
+-#define F1(x, y, z) (z ^ (x & (y ^ z)))
+-#define F2(x, y, z) F1(z, x, y)
+-#define F3(x, y, z) (x ^ y ^ z)
+-#define F4(x, y, z) (y ^ (x | ~z))
+-
+-/* This is the central step in the MD5 algorithm. */
+-#define MD5STEP(f,w,x,y,z,in,s) \
+-	 (w += f(x,y,z) + in, w = (w<<s | w>>(32-s)) + x)
+-
+-/*
+- * The core of the MD5 algorithm, this alters an existing MD5 hash to
+- * reflect the addition of 16 longwords of new data.  MD5Update blocks
+- * the data and converts bytes into longwords for this routine.
+- */
+-static void
+-MD5Transform(uint32_t buf[4], uint32_t const in[16])
+-{
+-	uint32_t a, b, c, d;
+-
+-	a = buf[0];
+-	b = buf[1];
+-	c = buf[2];
+-	d = buf[3];
+-
+-	MD5STEP(F1, a, b, c, d, in[0] + 0xd76aa478, 7);
+-	MD5STEP(F1, d, a, b, c, in[1] + 0xe8c7b756, 12);
+-	MD5STEP(F1, c, d, a, b, in[2] + 0x242070db, 17);
+-	MD5STEP(F1, b, c, d, a, in[3] + 0xc1bdceee, 22);
+-	MD5STEP(F1, a, b, c, d, in[4] + 0xf57c0faf, 7);
+-	MD5STEP(F1, d, a, b, c, in[5] + 0x4787c62a, 12);
+-	MD5STEP(F1, c, d, a, b, in[6] + 0xa8304613, 17);
+-	MD5STEP(F1, b, c, d, a, in[7] + 0xfd469501, 22);
+-	MD5STEP(F1, a, b, c, d, in[8] + 0x698098d8, 7);
+-	MD5STEP(F1, d, a, b, c, in[9] + 0x8b44f7af, 12);
+-	MD5STEP(F1, c, d, a, b, in[10] + 0xffff5bb1, 17);
+-	MD5STEP(F1, b, c, d, a, in[11] + 0x895cd7be, 22);
+-	MD5STEP(F1, a, b, c, d, in[12] + 0x6b901122, 7);
+-	MD5STEP(F1, d, a, b, c, in[13] + 0xfd987193, 12);
+-	MD5STEP(F1, c, d, a, b, in[14] + 0xa679438e, 17);
+-	MD5STEP(F1, b, c, d, a, in[15] + 0x49b40821, 22);
+-
+-	MD5STEP(F2, a, b, c, d, in[1] + 0xf61e2562, 5);
+-	MD5STEP(F2, d, a, b, c, in[6] + 0xc040b340, 9);
+-	MD5STEP(F2, c, d, a, b, in[11] + 0x265e5a51, 14);
+-	MD5STEP(F2, b, c, d, a, in[0] + 0xe9b6c7aa, 20);
+-	MD5STEP(F2, a, b, c, d, in[5] + 0xd62f105d, 5);
+-	MD5STEP(F2, d, a, b, c, in[10] + 0x02441453, 9);
+-	MD5STEP(F2, c, d, a, b, in[15] + 0xd8a1e681, 14);
+-	MD5STEP(F2, b, c, d, a, in[4] + 0xe7d3fbc8, 20);
+-	MD5STEP(F2, a, b, c, d, in[9] + 0x21e1cde6, 5);
+-	MD5STEP(F2, d, a, b, c, in[14] + 0xc33707d6, 9);
+-	MD5STEP(F2, c, d, a, b, in[3] + 0xf4d50d87, 14);
+-	MD5STEP(F2, b, c, d, a, in[8] + 0x455a14ed, 20);
+-	MD5STEP(F2, a, b, c, d, in[13] + 0xa9e3e905, 5);
+-	MD5STEP(F2, d, a, b, c, in[2] + 0xfcefa3f8, 9);
+-	MD5STEP(F2, c, d, a, b, in[7] + 0x676f02d9, 14);
+-	MD5STEP(F2, b, c, d, a, in[12] + 0x8d2a4c8a, 20);
+-
+-	MD5STEP(F3, a, b, c, d, in[5] + 0xfffa3942, 4);
+-	MD5STEP(F3, d, a, b, c, in[8] + 0x8771f681, 11);
+-	MD5STEP(F3, c, d, a, b, in[11] + 0x6d9d6122, 16);
+-	MD5STEP(F3, b, c, d, a, in[14] + 0xfde5380c, 23);
+-	MD5STEP(F3, a, b, c, d, in[1] + 0xa4beea44, 4);
+-	MD5STEP(F3, d, a, b, c, in[4] + 0x4bdecfa9, 11);
+-	MD5STEP(F3, c, d, a, b, in[7] + 0xf6bb4b60, 16);
+-	MD5STEP(F3, b, c, d, a, in[10] + 0xbebfbc70, 23);
+-	MD5STEP(F3, a, b, c, d, in[13] + 0x289b7ec6, 4);
+-	MD5STEP(F3, d, a, b, c, in[0] + 0xeaa127fa, 11);
+-	MD5STEP(F3, c, d, a, b, in[3] + 0xd4ef3085, 16);
+-	MD5STEP(F3, b, c, d, a, in[6] + 0x04881d05, 23);
+-	MD5STEP(F3, a, b, c, d, in[9] + 0xd9d4d039, 4);
+-	MD5STEP(F3, d, a, b, c, in[12] + 0xe6db99e5, 11);
+-	MD5STEP(F3, c, d, a, b, in[15] + 0x1fa27cf8, 16);
+-	MD5STEP(F3, b, c, d, a, in[2] + 0xc4ac5665, 23);
+-
+-	MD5STEP(F4, a, b, c, d, in[0] + 0xf4292244, 6);
+-	MD5STEP(F4, d, a, b, c, in[7] + 0x432aff97, 10);
+-	MD5STEP(F4, c, d, a, b, in[14] + 0xab9423a7, 15);
+-	MD5STEP(F4, b, c, d, a, in[5] + 0xfc93a039, 21);
+-	MD5STEP(F4, a, b, c, d, in[12] + 0x655b59c3, 6);
+-	MD5STEP(F4, d, a, b, c, in[3] + 0x8f0ccc92, 10);
+-	MD5STEP(F4, c, d, a, b, in[10] + 0xffeff47d, 15);
+-	MD5STEP(F4, b, c, d, a, in[1] + 0x85845dd1, 21);
+-	MD5STEP(F4, a, b, c, d, in[8] + 0x6fa87e4f, 6);
+-	MD5STEP(F4, d, a, b, c, in[15] + 0xfe2ce6e0, 10);
+-	MD5STEP(F4, c, d, a, b, in[6] + 0xa3014314, 15);
+-	MD5STEP(F4, b, c, d, a, in[13] + 0x4e0811a1, 21);
+-	MD5STEP(F4, a, b, c, d, in[4] + 0xf7537e82, 6);
+-	MD5STEP(F4, d, a, b, c, in[11] + 0xbd3af235, 10);
+-	MD5STEP(F4, c, d, a, b, in[2] + 0x2ad7d2bb, 15);
+-	MD5STEP(F4, b, c, d, a, in[9] + 0xeb86d391, 21);
+-
+-	buf[0] += a;
+-	buf[1] += b;
+-	buf[2] += c;
+-	buf[3] += d;
+-}
+-
+-#endif
+diff --git a/xbmc/utils/md5.h b/xbmc/utils/md5.h
+deleted file mode 100644
+index 789b2a1b1088..000000000000
+--- a/xbmc/utils/md5.h
++++ /dev/null
+@@ -1,53 +0,0 @@
+-#pragma once
+-
+-/*
+- *      Copyright (C) 2009-2015 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with Kodi; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-
+-#include <string>
+-#include <stdint.h>
+-
+-struct MD5Context {
+-	uint32_t buf[4];
+-	uint32_t bytes[2];
+-	uint32_t in[16];
+-};
+-
+-namespace XBMC
+-{
+-  class XBMC_MD5
+-  {
+-  public:
+-    XBMC_MD5(void);
+-    ~XBMC_MD5(void);
+-    void append(const void *inBuf, size_t inLen);
+-    void append(const std::string& str);
+-    void getDigest(unsigned char digest[16]);
+-    std::string getDigest();
+-
+-    /*! \brief Get the MD5 digest of the given text
+-     \param text text to compute the MD5 for
+-     \return MD5 digest
+-     */
+-    static std::string GetMD5(const std::string &text);
+-private:
+-    MD5Context m_ctx;
+-  };
+-}
+-
+diff --git a/xbmc/utils/test/CMakeLists.txt b/xbmc/utils/test/CMakeLists.txt
+index ab17a3e35429..2e433ffaa3b3 100644
+--- a/xbmc/utils/test/CMakeLists.txt
++++ b/xbmc/utils/test/CMakeLists.txt
+@@ -26,7 +26,6 @@ set(SOURCES TestAlarmClock.cpp
+             TestLocale.cpp
+             Testlog.cpp
+             TestMathUtils.cpp
+-            Testmd5.cpp
+             TestMime.cpp
+             TestPOUtils.cpp
+             TestRegExp.cpp
+diff --git a/xbmc/utils/test/Testmd5.cpp b/xbmc/utils/test/Testmd5.cpp
+deleted file mode 100644
+index 8cd5b1026c21..000000000000
+--- a/xbmc/utils/test/Testmd5.cpp
++++ /dev/null
+@@ -1,56 +0,0 @@
+-/*
+- *      Copyright (C) 2005-2013 Team XBMC
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with XBMC; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-
+-#include "utils/md5.h"
+-
+-#include "gtest/gtest.h"
+-
+-TEST(Testmd5, ZeroLengthString)
+-{
+-  XBMC::XBMC_MD5 a;
+-  std::string refdigest, vardigest;
+-
+-  refdigest = "D41D8CD98F00B204E9800998ECF8427E";
+-  a.append("");
+-  vardigest = a.getDigest();
+-  EXPECT_STREQ(refdigest.c_str(), vardigest.c_str());
+-}
+-
+-TEST(Testmd5, String1)
+-{
+-  XBMC::XBMC_MD5 a;
+-  std::string refdigest, vardigest;
+-
+-  refdigest = "9E107D9D372BB6826BD81D3542A419D6";
+-  a.append("The quick brown fox jumps over the lazy dog");
+-  vardigest = a.getDigest();
+-  EXPECT_STREQ(refdigest.c_str(), vardigest.c_str());
+-}
+-
+-TEST(Testmd5, String2)
+-{
+-  XBMC::XBMC_MD5 a;
+-  std::string refdigest, vardigest;
+-
+-  refdigest = "E4D909C290D0FB1CA068FFADDF22CBD0";
+-  a.append("The quick brown fox jumps over the lazy dog.");
+-  vardigest = a.getDigest();
+-  EXPECT_STREQ(refdigest.c_str(), vardigest.c_str());
+-}
+
+From 841cef4acc34c1edeebd8f75abeaac3c3f6573ef Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Fri, 23 Mar 2018 17:18:47 +0100
+Subject: [PATCH 5/5] Use generic digest implementation instead of sha1 impl
+ copied from boost
+
+---
+ xbmc/network/websocket/CMakeLists.txt  |   3 +-
+ xbmc/network/websocket/WebSocketV8.cpp |  16 +--
+ xbmc/network/websocket/sha1.hpp        | 207 ---------------------------------
+ 3 files changed, 7 insertions(+), 219 deletions(-)
+ delete mode 100644 xbmc/network/websocket/sha1.hpp
+
+diff --git a/xbmc/network/websocket/CMakeLists.txt b/xbmc/network/websocket/CMakeLists.txt
+index 13011bc2852e..306cd6cb4a1f 100644
+--- a/xbmc/network/websocket/CMakeLists.txt
++++ b/xbmc/network/websocket/CMakeLists.txt
+@@ -3,8 +3,7 @@ set(SOURCES WebSocket.cpp
+             WebSocketV13.cpp
+             WebSocketV8.cpp)
+ 
+-set(HEADERS sha1.hpp
+-            WebSocket.h
++set(HEADERS WebSocket.h
+             WebSocketManager.h
+             WebSocketV13.h
+             WebSocketV8.h)
+diff --git a/xbmc/network/websocket/WebSocketV8.cpp b/xbmc/network/websocket/WebSocketV8.cpp
+index cc5cde313077..54b79b37cfc8 100644
+--- a/xbmc/network/websocket/WebSocketV8.cpp
++++ b/xbmc/network/websocket/WebSocketV8.cpp
+@@ -20,17 +20,19 @@
+ 
+ #include <string>
+ #include <sstream>
+-#include "sha1.hpp"
+ 
+ #include "WebSocketV8.h"
+ #include "WebSocket.h"
+ #include "utils/Base64.h"
++#include "utils/Digest.h"
+ #include "utils/EndianSwap.h"
+ #include "utils/HttpParser.h"
+ #include "utils/HttpResponse.h"
+ #include "utils/log.h"
+ #include "utils/StringUtils.h"
+ 
++using KODI::UTILITY::CDigest;
++
+ #define WS_HTTP_METHOD          "GET"
+ #define WS_HTTP_TAG             "HTTP/"
+ 
+@@ -191,14 +193,8 @@ std::string CWebSocketV8::calculateKey(const std::string &key)
+   std::string acceptKey = key;
+   acceptKey.append(WS_KEY_MAGICSTRING);
+ 
+-  boost::uuids::detail::sha1 hash;
+-  hash.process_bytes(acceptKey.c_str(), acceptKey.size());
+-
+-  unsigned int digest[5];
+-  hash.get_digest(digest);
+-
+-  for (unsigned int index = 0; index < 5; index++)
+-    digest[index] = Endian_SwapBE32(digest[index]);
++  CDigest digest{CDigest::Type::SHA1};
++  digest.Update(acceptKey);
+ 
+-  return Base64::Encode((const char*)digest, sizeof(digest));
++  return Base64::Encode(digest.FinalizeRaw());
+ }
+diff --git a/xbmc/network/websocket/sha1.hpp b/xbmc/network/websocket/sha1.hpp
+deleted file mode 100644
+index e2a0d54565b7..000000000000
+--- a/xbmc/network/websocket/sha1.hpp
++++ /dev/null
+@@ -1,207 +0,0 @@
+-// boost/uuid/sha1.hpp header file  ----------------------------------------------//
+-
+-// Copyright 2007 Andy Tompkins.
+-// Distributed under the Boost Software License, Version 1.0. (See
+-// accompanying file LICENSE_1_0.txt or copy at
+-// http://www.boost.org/LICENSE_1_0.txt)
+-
+-// Revision History
+-//  29 May 2007 - Initial Revision
+-//  25 Feb 2008 - moved to namespace boost::uuids::detail
+-
+-// This is a byte oriented implementation
+-// Note: this implementation does not handle message longer than
+-//       2^32 bytes.
+-
+-#ifndef BOOST_UUID_SHA1_H
+-#define BOOST_UUID_SHA1_H
+-
+-#include <cstddef>
+-
+-#ifdef BOOST_NO_STDC_NAMESPACE
+-namespace std {
+-    using ::size_t;
+-} // namespace std
+-#endif
+-
+-namespace boost {
+-namespace uuids {
+-namespace detail {
+-
+-static_assert(sizeof(unsigned char)*8 == 8, "Invalid sizeof(unsigned char)");
+-static_assert(sizeof(unsigned int)*8 == 32, "Invalid sizeof(unsigned int)");
+-
+-inline unsigned int left_rotate(unsigned int x, std::size_t n)
+-{
+-    return (x<<n) ^ (x>> (32-n));
+-}
+-
+-class sha1
+-{
+-public:
+-    typedef unsigned int(&digest_type)[5];
+-public:
+-    sha1();
+-
+-    void reset();
+-
+-    void process_byte(unsigned char byte);
+-    void process_block(void const* bytes_begin, void const* bytes_end);
+-    void process_bytes(void const* buffer, std::size_t byte_count);
+-
+-    void get_digest(digest_type digest);
+-
+-private:
+-    void process_block();
+-
+-private:
+-    unsigned int h_[5];
+-
+-    unsigned char block_[64];
+-
+-    std::size_t block_byte_index_;
+-    std::size_t byte_count_;
+-};
+-
+-inline sha1::sha1()
+-{
+-    reset();
+-}
+-
+-inline void sha1::reset()
+-{
+-    h_[0] = 0x67452301;
+-    h_[1] = 0xEFCDAB89;
+-    h_[2] = 0x98BADCFE;
+-    h_[3] = 0x10325476;
+-    h_[4] = 0xC3D2E1F0;
+-
+-    block_byte_index_ = 0;
+-    byte_count_ = 0;
+-}
+-
+-inline void sha1::process_byte(unsigned char byte)
+-{
+-    block_[block_byte_index_++] = byte;
+-    ++byte_count_;
+-    if (block_byte_index_ == 64) {
+-        block_byte_index_ = 0;
+-        process_block();
+-    }
+-}
+-
+-inline void sha1::process_block(void const* bytes_begin, void const* bytes_end)
+-{
+-    unsigned char const* begin = static_cast<unsigned char const*>(bytes_begin);
+-    unsigned char const* end = static_cast<unsigned char const*>(bytes_end);
+-    for(; begin != end; ++begin) {
+-        process_byte(*begin);
+-    }
+-}
+-
+-inline void sha1::process_bytes(void const* buffer, std::size_t byte_count)
+-{
+-    unsigned char const* b = static_cast<unsigned char const*>(buffer);
+-    process_block(b, b+byte_count);
+-}
+-
+-inline void sha1::process_block()
+-{
+-    unsigned int w[80];
+-    for (std::size_t i=0; i<16; ++i) {
+-        w[i]  = (block_[i*4 + 0] << 24);
+-        w[i] |= (block_[i*4 + 1] << 16);
+-        w[i] |= (block_[i*4 + 2] << 8);
+-        w[i] |= (block_[i*4 + 3]);
+-    }
+-    for (std::size_t i=16; i<80; ++i) {
+-        w[i] = left_rotate((w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]), 1);
+-    }
+-
+-    unsigned int a = h_[0];
+-    unsigned int b = h_[1];
+-    unsigned int c = h_[2];
+-    unsigned int d = h_[3];
+-    unsigned int e = h_[4];
+-
+-    for (std::size_t i=0; i<80; ++i) {
+-        unsigned int f;
+-        unsigned int k;
+-
+-        if (i<20) {
+-            f = (b & c) | (~b & d);
+-            k = 0x5A827999;
+-        } else if (i<40) {
+-            f = b ^ c ^ d;
+-            k = 0x6ED9EBA1;
+-        } else if (i<60) {
+-            f = (b & c) | (b & d) | (c & d);
+-            k = 0x8F1BBCDC;
+-        } else {
+-            f = b ^ c ^ d;
+-            k = 0xCA62C1D6;
+-        }
+-
+-        unsigned temp = left_rotate(a, 5) + f + e + k + w[i];
+-        e = d;
+-        d = c;
+-        c = left_rotate(b, 30);
+-        b = a;
+-        a = temp;
+-    }
+-
+-    h_[0] += a;
+-    h_[1] += b;
+-    h_[2] += c;
+-    h_[3] += d;
+-    h_[4] += e;
+-}
+-
+-inline void sha1::get_digest(digest_type digest)
+-{
+-    std::size_t bit_count = byte_count_*8;
+-
+-    // append the bit '1' to the message
+-    process_byte(0x80);
+-
+-    // append k bits '0', where k is the minimum number >= 0
+-    // such that the resulting message length is congruent to 56 (mod 64)
+-    // check if there is enough space for padding and bit_count
+-    if (block_byte_index_ > 56) {
+-        // finish this block
+-        while (block_byte_index_ != 0) {
+-            process_byte(0);
+-        }
+-
+-        // one more block
+-        while (block_byte_index_ < 56) {
+-            process_byte(0);
+-        }
+-    } else {
+-        while (block_byte_index_ < 56) {
+-            process_byte(0);
+-        }
+-    }
+-
+-    // append length of message (before pre-processing) 
+-    // as a 64-bit big-endian integer
+-    process_byte(0);
+-    process_byte(0);
+-    process_byte(0);
+-    process_byte(0);
+-    process_byte( static_cast<unsigned char>((bit_count>>24) & 0xFF));
+-    process_byte( static_cast<unsigned char>((bit_count>>16) & 0xFF));
+-    process_byte( static_cast<unsigned char>((bit_count>>8 ) & 0xFF));
+-    process_byte( static_cast<unsigned char>((bit_count)     & 0xFF));
+-
+-    // get final digest
+-    digest[0] = h_[0];
+-    digest[1] = h_[1];
+-    digest[2] = h_[2];
+-    digest[3] = h_[3];
+-    digest[4] = h_[4];
+-}
+-
+-}}} // namespace boost::uuids::detail
+-
+-#endif
