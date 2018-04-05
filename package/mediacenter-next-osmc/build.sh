@@ -404,7 +404,7 @@ game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance gam
 game.libretro.dosbox game.libretro.fbalpha2012 game.libretro.beetle-psx \
 game.libretro.fuse game.libretro.picodrive game.libretro.beetle-ngp game.libretro.pokemini \
 game.libretro.gambatte game.libretro.prboom game.libretro.handy game.libretro.hatari \
-game.libretro.lutro game.libretro.meteor game.libretro.nx \
+game.libretro.lutro game.libretro.meteor game.libretro.nx game.libretro.mgba \
 game.libretro.o2em game.libretro.prosystem game.libretro.quicknes game.libretro.scummvm \
 game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
 game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro \
