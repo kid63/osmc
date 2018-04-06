@@ -1,0 +1,3943 @@
+From 9e0ababa7452e9fec16ae5ca19e3e59a952f39b5 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 16:22:49 +0300
+Subject: [PATCH 01/30] [win10] filesystem: fix warnings + cleanups
+
+---
+ xbmc/filesystem/FileFactory.cpp               |  6 +-
+ xbmc/filesystem/win10/WinLibraryDirectory.cpp | 72 ++++++++++----------
+ xbmc/filesystem/win10/WinLibraryDirectory.h   | 14 ++--
+ xbmc/filesystem/win10/WinLibraryFile.cpp      | 98 ++++++++++++++++-----------
+ xbmc/filesystem/win10/WinLibraryFile.h        |  6 +-
+ 5 files changed, 112 insertions(+), 84 deletions(-)
+
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 994eedabd79f..a48b1430fcf7 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -24,6 +24,9 @@
+ #include "posix/PosixFile.h"
+ #elif defined(TARGET_WINDOWS)
+ #include "win32/Win32File.h"
++#ifdef TARGET_WINDOWS_STORE
++#include "win10/WinLibraryFile.h"
++#endif
+ #endif // TARGET_WINDOWS
+ #include "CurlFile.h"
+ #include "DAVFile.h"
+@@ -71,9 +74,6 @@
+ #include "utils/StringUtils.h"
+ #include "ServiceBroker.h"
+ #include "addons/VFSEntry.h"
+-#ifdef TARGET_WINDOWS_STORE
+-#include "win10/WinLibraryFile.h"
+-#endif
+ 
+ using namespace ADDON;
+ using namespace XFILE;
+diff --git a/xbmc/filesystem/win10/WinLibraryDirectory.cpp b/xbmc/filesystem/win10/WinLibraryDirectory.cpp
+index 70aa1e9aae5f..86ed3c843f3d 100644
+--- a/xbmc/filesystem/win10/WinLibraryDirectory.cpp
++++ b/xbmc/filesystem/win10/WinLibraryDirectory.cpp
+@@ -17,7 +17,6 @@
+  *  <http://www.gnu.org/licenses/>.
+  *
+  */
+-#ifdef TARGET_WINDOWS_STORE
+ 
+ #include "WinLibraryDirectory.h"
+ #include "FileItem.h"
+@@ -51,12 +50,10 @@ bool CWinLibraryDirectory::GetStoragePath(std::string library, std::string & pat
+ 
+ StorageFolder^ CWinLibraryDirectory::GetRootFolder(const CURL& url)
+ {
+-  std::string protocol = url.GetProtocol();
+-  std::string lib = url.GetHostName();
+-
+-  if (protocol != "win-lib")
++  if (!url.IsProtocol("win-lib"))
+     return nullptr;
+ 
++  std::string lib = url.GetHostName();
+   if (lib == "music")
+     return KnownFolders::MusicLibrary;
+   if (lib == "video")
+@@ -75,12 +72,11 @@ StorageFolder^ CWinLibraryDirectory::GetRootFolder(const CURL& url)
+ 
+ bool CWinLibraryDirectory::IsValid(const CURL & url)
+ {
+-  std::string protocol = url.GetProtocol();
+-  std::string lib = url.GetHostName();
+-
+-  if (protocol != "win-lib")
++  if (!url.IsProtocol("win-lib"))
+     return false;
+ 
++  std::string lib = url.GetHostName();
++
+   if ( lib == "music"
+     || lib == "video"
+     || lib == "pictures"
+@@ -92,28 +88,21 @@ bool CWinLibraryDirectory::IsValid(const CURL & url)
+     return false;
+ }
+ 
+-CWinLibraryDirectory::CWinLibraryDirectory()
+-{
+-}
+-
+-CWinLibraryDirectory::~CWinLibraryDirectory(void)
+-{
+-}
++CWinLibraryDirectory::CWinLibraryDirectory() = default;
++CWinLibraryDirectory::~CWinLibraryDirectory(void) = default;
+ 
+ bool CWinLibraryDirectory::GetDirectory(const CURL &url, CFileItemList &items)
+ {
+   items.Clear();
+ 
+-  // We accept win-lib://library/path[/]
+-
+-  auto libname = url.GetHostName();
+-  std::string path(url.Get());
+-  URIUtils::AddSlashAtEnd(path); //be sure the dir ends with a slash
+-
+   auto folder = GetFolder(url);
+   if (!folder)
+     return false;
+ 
++  // We accept win-lib://library/path[/]
++  std::string path = url.Get();
++  URIUtils::AddSlashAtEnd(path); //be sure the dir ends with a slash
++
+   auto vectorView = Wait(folder->GetItemsAsync());
+   for (unsigned i = 0; i < vectorView->Size; i++)
+   {
+@@ -137,11 +126,19 @@ bool CWinLibraryDirectory::GetDirectory(const CURL &url, CFileItemList &items)
+       pItem->SetProperty("file:hidden", true);
+ 
+     auto props = Wait(item->GetBasicPropertiesAsync());
+-    ULARGE_INTEGER ularge = { props->DateModified.UniversalTime };
+-    FILETIME localTime = { ularge.LowPart, ularge.HighPart };
++
++    ULARGE_INTEGER ularge = { 0 };
++    if (props->DateModified.UniversalTime > 0)
++      ularge.QuadPart = static_cast<uint64_t>(props->DateModified.UniversalTime);
++
++    FILETIME localTime = 
++    { 
++      ularge.LowPart, 
++      ularge.HighPart 
++    };
+     pItem->m_dateTime = localTime;
+     if (!pItem->m_bIsFolder)
+-      pItem->m_dwSize = props->Size;
++      pItem->m_dwSize = static_cast<int64_t>(props->Size);
+ 
+     items.Add(pItem);
+   }
+@@ -200,23 +197,32 @@ bool CWinLibraryDirectory::Remove(const CURL& url)
+ 
+ StorageFolder^ CWinLibraryDirectory::GetFolder(const CURL& url)
+ {
+-  std::string folderPath = URIUtils::FixSlashesAndDups(url.GetFileName(), '\\');
+   StorageFolder^ rootFolder = GetRootFolder(url);
++  if (!rootFolder)
++    return nullptr;
+ 
+   // find inner folder
++  std::string folderPath = URIUtils::FixSlashesAndDups(url.GetFileName(), '\\');
+   if (!folderPath.empty())
+   {
+     if (url.GetHostName() == "removable")
+     {
+-      // return root folder for win-lib://removable/F
+-      if (folderPath.length() == 1)
+-        return rootFolder;
+-
+       // here path has the form e\path where first segment is drive letter
+       // we should make path form like regular e:\path
+       auto index = folderPath.find('\\');
+-      if (index != std::string::npos && folderPath[index - 1] != ':')
++      if (index != std::string::npos)
++      {
+         folderPath = folderPath.insert(index, 1, ':');
++      }
++      // win-lib://removable/F -> folderPath contains only drive letter
++      else if (index == std::string::npos && folderPath.length() == 1)
++      {
++        folderPath += ":\\";
++      }
++      else
++      {
++        return nullptr;
++      }
+     }
+ 
+     try
+@@ -228,12 +234,10 @@ StorageFolder^ CWinLibraryDirectory::GetFolder(const CURL& url)
+     catch (Platform::Exception^ ex)
+     {
+       std::string error = FromW(std::wstring(ex->Message->Data()));
+-      CLog::LogF(LOGERROR, __FUNCTION__, "unable to get folder '%s' with error", folderPath.c_str(), error.c_str());
++      CLog::LogF(LOGERROR, "unable to get folder '%s' with error", url.GetRedacted().c_str(), error.c_str());
+     }
+     return nullptr;
+   }
+ 
+   return rootFolder;
+ }
+-
+-#endif
+\ No newline at end of file
+diff --git a/xbmc/filesystem/win10/WinLibraryDirectory.h b/xbmc/filesystem/win10/WinLibraryDirectory.h
+index 941a8b8ab2b0..0741ad2275eb 100644
+--- a/xbmc/filesystem/win10/WinLibraryDirectory.h
++++ b/xbmc/filesystem/win10/WinLibraryDirectory.h
+@@ -23,20 +23,24 @@
+ 
+ namespace XFILE
+ {
++  class CWinLibraryFile;
++
+   class CWinLibraryDirectory : public IDirectory
+   {
+   public:
+     CWinLibraryDirectory();
+     virtual ~CWinLibraryDirectory(void);
+-    virtual bool GetDirectory(const CURL& url, CFileItemList &items);
+-    virtual DIR_CACHE_TYPE GetCacheType(const CURL& url) const { return DIR_CACHE_ONCE; };
+-    virtual bool Create(const CURL& url);
+-    virtual bool Exists(const CURL& url);
+-    virtual bool Remove(const CURL& url);
++    bool GetDirectory(const CURL& url, CFileItemList &items) override;
++    DIR_CACHE_TYPE GetCacheType(const CURL& url) const override { return DIR_CACHE_ONCE; };
++    bool Create(const CURL& url) override;
++    bool Exists(const CURL& url) override;
++    bool Remove(const CURL& url) override;
+ 
+     static bool GetStoragePath(std::string library, std::string& path);
+     static bool IsValid(const CURL& url);
+ 
++  private:
++    friend CWinLibraryFile;
+     static Windows::Storage::StorageFolder^ GetRootFolder(const CURL& url);
+     static Windows::Storage::StorageFolder^ GetFolder(const CURL &url);
+   };
+diff --git a/xbmc/filesystem/win10/WinLibraryFile.cpp b/xbmc/filesystem/win10/WinLibraryFile.cpp
+index 03f0ca8f5838..ee6a723bc2a5 100644
+--- a/xbmc/filesystem/win10/WinLibraryFile.cpp
++++ b/xbmc/filesystem/win10/WinLibraryFile.cpp
+@@ -35,6 +35,7 @@
+ using namespace XFILE;
+ using namespace KODI::PLATFORM::WINDOWS;
+ using namespace Windows::Foundation;
++using namespace Windows::Security::Cryptography;
+ using namespace Windows::Storage;
+ using namespace Windows::Storage::AccessCache;
+ using namespace Windows::Storage::Search;
+@@ -43,13 +44,22 @@ using namespace Windows::Foundation::Collections;
+ 
+ byte* GetUnderlyingBuffer(IBuffer^ buf)
+ {
++  if (!buf)
++    return nullptr;
++
+   Microsoft::WRL::ComPtr<IBufferByteAccess> bufferByteAccess;
+-  HRESULT hr = reinterpret_cast<IUnknown*>(buf)->QueryInterface(IID_PPV_ARGS(&bufferByteAccess));
+-  byte* raw_buffer;
+-  hr = bufferByteAccess->Buffer(&raw_buffer);
+-  return raw_buffer;
++  if (SUCCEEDED(reinterpret_cast<IUnknown*>(buf)->QueryInterface(IID_PPV_ARGS(&bufferByteAccess))))
++  {
++    byte* raw_buffer;
++    if (SUCCEEDED(bufferByteAccess->Buffer(&raw_buffer)))
++      return raw_buffer;
++  }
++  return nullptr;
+ }
+ 
++CWinLibraryFile::CWinLibraryFile() = default;
++CWinLibraryFile::~CWinLibraryFile(void) = default;
++
+ bool CWinLibraryFile::IsValid(const CURL & url)
+ {
+   return CWinLibraryDirectory::IsValid(url)
+@@ -57,17 +67,6 @@ bool CWinLibraryFile::IsValid(const CURL & url)
+     && !URIUtils::HasSlashAtEnd(url.GetFileName(), false);
+ }
+ 
+-CWinLibraryFile::CWinLibraryFile()
+-  : m_allowWrite(false)
+-  , m_sFile(nullptr)
+-  , m_fileStream(nullptr)
+-{
+-}
+-
+-CWinLibraryFile::~CWinLibraryFile(void)
+-{
+-}
+-
+ bool CWinLibraryFile::Open(const CURL& url)
+ {
+   return OpenIntenal(url, FileAccessMode::Read);
+@@ -90,29 +89,29 @@ void CWinLibraryFile::Close()
+     m_sFile = nullptr;
+ }
+ 
+-ssize_t CWinLibraryFile::Read(void * lpBuf, size_t uiBufSize)
++ssize_t CWinLibraryFile::Read(void* lpBuf, size_t uiBufSize)
+ {
+   if (!m_fileStream)
+     return -1;
+ 
+-  IBuffer^ buf = ref new Buffer(uiBufSize);
+-  Wait(m_fileStream->ReadAsync(buf, uiBufSize, InputStreamOptions::None));
++  uint32_t bytesToRead = static_cast<uint32_t>(uiBufSize);
++  IBuffer^ buf = ref new Buffer(bytesToRead);
++  Wait(m_fileStream->ReadAsync(buf, bytesToRead, InputStreamOptions::None));
+ 
+   memcpy(lpBuf, GetUnderlyingBuffer(buf), buf->Length);
+-
+-  return buf->Length;
++  return static_cast<intptr_t>(buf->Length);
+ }
+ 
+-ssize_t CWinLibraryFile::Write(const void * lpBuf, size_t uiBufSize)
++ssize_t CWinLibraryFile::Write(const void* lpBuf, size_t uiBufSize)
+ {
+   if (!m_fileStream || !m_allowWrite)
+     return -1;
+ 
+-  auto arrByte = ref new Platform::Array<UCHAR>((PUCHAR)(lpBuf), uiBufSize);
+-  IBuffer^ buf = Windows::Security::Cryptography::CryptographicBuffer::CreateFromByteArray(arrByte);
++  auto arrByte = ref new Platform::Array<uint8_t>((uint8_t*)(lpBuf), static_cast<uint32_t>(uiBufSize));
++  IBuffer^ buf = CryptographicBuffer::CreateFromByteArray(arrByte);
+ 
+   uint32_t result = Wait(m_fileStream->WriteAsync(buf));
+-  return static_cast<ssize_t>(result);
++  return static_cast<intptr_t>(result);
+ }
+ 
+ int64_t CWinLibraryFile::Seek(int64_t iFilePosition, int iWhence)
+@@ -125,8 +124,15 @@ int64_t CWinLibraryFile::Seek(int64_t iFilePosition, int iWhence)
+     else if (iWhence == SEEK_END)
+       pos += m_fileStream->Size;
+ 
+-    m_fileStream->Seek(pos);
++    uint64_t seekTo;
++    if (pos < 0)
++      seekTo = 0;
++    else if (static_cast<uint64_t>(pos) > m_fileStream->Size)
++      seekTo = m_fileStream->Size;
++    else
++      seekTo = static_cast<uint64_t>(pos);
+ 
++    m_fileStream->Seek(seekTo);
+     return GetPosition();
+   }
+   return -1;
+@@ -140,18 +146,24 @@ int CWinLibraryFile::Truncate(int64_t toSize)
+ 
+ int64_t CWinLibraryFile::GetPosition()
+ {
+-  return m_fileStream != nullptr ? m_fileStream->Position : -1;
++  if (m_fileStream)
++    return static_cast<int64_t>(m_fileStream->Position);
++
++  return -1;
+ }
+ 
+ int64_t CWinLibraryFile::GetLength()
+ {
+-  if (m_fileStream != nullptr)
++  if (m_fileStream)
+     return m_fileStream->Size;
++
+   return 0;
+ }
+ 
+ void CWinLibraryFile::Flush()
+ {
++  if (m_fileStream)
++    m_fileStream->FlushAsync();
+ }
+ 
+ bool CWinLibraryFile::Delete(const CURL & url)
+@@ -293,30 +305,38 @@ bool CWinLibraryFile::OpenIntenal(const CURL &url, FileAccessMode mode)
+   return m_fileStream != nullptr;
+ }
+ 
+-StorageFile^ CWinLibraryFile::GetFile(const CURL & url)
++StorageFile^ CWinLibraryFile::GetFile(const CURL& url)
+ {
+   // check that url is library url
+   if (CWinLibraryDirectory::IsValid(url))
+   {
+     StorageFolder^ rootFolder = CWinLibraryDirectory::GetRootFolder(url);
++    if (!rootFolder)
++      return nullptr;
+ 
+     std::string filePath = URIUtils::FixSlashesAndDups(url.GetFileName(), '\\');
+-    std::wstring wpath = ToW(filePath);
+-
+     if (url.GetHostName() == "removable")
+     {
+-      // here path has the form e\path where first segment is drive letter
+-      // we should make path form like regular e:\path
+-      auto index = wpath.find('\\');
+-      if (index > 0 && wpath[index - 1] != ':')
+-        wpath = wpath.insert(index, 1, ':');
++      // here filePath has the form e\path\file.ext where first segment is 
++      // drive letter, we should make path form like regular e:\path\file.ext
++      auto index = filePath.find('\\');
++      if (index == std::string::npos)
++      {
++        CLog::LogF(LOGDEBUG, "wrong file path '%s'", url.GetRedacted().c_str());
++        return nullptr;
++      }
++
++      filePath = filePath.insert(index, 1, ':');
+     }
+ 
+     try
+     {
+-      Platform::String^ pFilePath = ref new Platform::String(wpath.c_str());
+-      auto item = Wait(rootFolder->TryGetItemAsync(pFilePath));
+-      return (item != nullptr && item->IsOfType(StorageItemTypes::File)) ? dynamic_cast<StorageFile^>(item) : nullptr;
++      std::wstring wpath = ToW(filePath);
++      auto item = Wait(rootFolder->TryGetItemAsync(ref new Platform::String(wpath.c_str())));
++      if (item && item->IsOfType(StorageItemTypes::File))
++        return dynamic_cast<StorageFile^>(item);
++
++      return nullptr;
+     }
+     catch (Platform::Exception^ ex)
+     {
+@@ -362,7 +382,7 @@ Platform::String^ CWinLibraryFile::GetTokenFromList(const CURL& url, IStorageIte
+   std::wstring filePathW = ToW(filePath);
+   Platform::String^ itemKey = ref new Platform::String(filePathW.c_str());
+ 
+-  for (int i = 0; i < listview->Size; i++)
++  for (uint32_t i = 0; i < listview->Size; i++)
+   {
+     auto listEntry = listview->GetAt(i);
+     if (listEntry.Metadata->Equals(itemKey))
+diff --git a/xbmc/filesystem/win10/WinLibraryFile.h b/xbmc/filesystem/win10/WinLibraryFile.h
+index 24364f583eac..0fa0e551add0 100644
+--- a/xbmc/filesystem/win10/WinLibraryFile.h
++++ b/xbmc/filesystem/win10/WinLibraryFile.h
+@@ -60,8 +60,8 @@ namespace XFILE
+     static Platform::String^ GetTokenFromList(const CURL& url, Windows::Storage::AccessCache::IStorageItemAccessList^ list);
+     static int Stat(Windows::Storage::StorageFile^ file, struct __stat64* statData);
+ 
+-    bool m_allowWrite;
+-    Windows::Storage::StorageFile^ m_sFile;
+-    Windows::Storage::Streams::IRandomAccessStream^ m_fileStream;
++    bool m_allowWrite = false;
++    Windows::Storage::StorageFile^ m_sFile = nullptr;
++    Windows::Storage::Streams::IRandomAccessStream^ m_fileStream = nullptr;
+   };
+ }
+\ No newline at end of file
+
+From 66047942b9cd900c071f21b397b5c336ae8191d5 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 16:57:06 +0300
+Subject: [PATCH 02/30] [win10] filesystem: move implementation to platform
+ folder
+
+---
+ cmake/treedata/windowsstore/subdirs.txt            | 28 +++++++++++-----------
+ xbmc/dialogs/GUIDialogMediaSource.cpp              |  2 +-
+ xbmc/filesystem/DirectoryFactory.cpp               |  6 ++---
+ xbmc/filesystem/FileFactory.cpp                    |  2 +-
+ .../win10/filesystem}/CMakeLists.txt               |  2 +-
+ .../win10/filesystem}/WinLibraryDirectory.cpp      |  0
+ .../win10/filesystem}/WinLibraryDirectory.h        |  0
+ .../win10/filesystem}/WinLibraryFile.cpp           |  0
+ .../win10/filesystem}/WinLibraryFile.h             |  0
+ xbmc/storage/win10/Win10StorageProvider.cpp        |  2 +-
+ 10 files changed, 21 insertions(+), 21 deletions(-)
+ rename xbmc/{filesystem/win10 => platform/win10/filesystem}/CMakeLists.txt (75%)
+ rename xbmc/{filesystem/win10 => platform/win10/filesystem}/WinLibraryDirectory.cpp (100%)
+ rename xbmc/{filesystem/win10 => platform/win10/filesystem}/WinLibraryDirectory.h (100%)
+ rename xbmc/{filesystem/win10 => platform/win10/filesystem}/WinLibraryFile.cpp (100%)
+ rename xbmc/{filesystem/win10 => platform/win10/filesystem}/WinLibraryFile.h (100%)
+
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index d683ad620f34..1d16c865352e 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -1,15 +1,15 @@
+-xbmc/platform/win10          platform_win10
+-xbmc/input/touch             input/touch
+-xbmc/input/touch/generic     input/touch/generic
+-xbmc/network/win10           network/win10
+-xbmc/network/mdns            network/mdns
+-xbmc/peripherals/bus/win10   peripherals/bus/win10
+-xbmc/powermanagement/win10   powermanagement/win10
+-xbmc/storage/win10           storage/win10
+-xbmc/filesystem/win32        filesystem/win32
+-xbmc/filesystem/win10        filesystem/win10
+-xbmc/utils/win32             utils_win32
+-xbmc/rendering/dx            rendering_dx
+-xbmc/threads/platform/win    threads_win
+-xbmc/windowing/win10         windowing/win10
++xbmc/platform/win10             platform_win10
++xbmc/platform/win10/filesystem  platform_win10_filesystem
++xbmc/input/touch                input/touch
++xbmc/input/touch/generic        input/touch/generic
++xbmc/network/win10              network/win10
++xbmc/network/mdns               network/mdns
++xbmc/peripherals/bus/win10      peripherals/bus/win10
++xbmc/powermanagement/win10      powermanagement/win10
++xbmc/storage/win10              storage/win10
++xbmc/filesystem/win32           filesystem/win32
++xbmc/utils/win32                utils_win32
++xbmc/rendering/dx               rendering_dx
++xbmc/threads/platform/win       threads_win
++xbmc/windowing/win10            windowing/win10
+ xbmc/cores/VideoPlayer/Process/windows cores/VideoPlayer/Process/windows
+diff --git a/xbmc/dialogs/GUIDialogMediaSource.cpp b/xbmc/dialogs/GUIDialogMediaSource.cpp
+index b9b7e5e5395e..0e4258d4653f 100644
+--- a/xbmc/dialogs/GUIDialogMediaSource.cpp
++++ b/xbmc/dialogs/GUIDialogMediaSource.cpp
+@@ -49,7 +49,7 @@
+ #endif
+ 
+ #ifdef TARGET_WINDOWS_STORE
+-#include "filesystem/win10/WinLibraryDirectory.h"
++#include "platform/win10/filesystem/WinLibraryDirectory.h"
+ #endif
+ 
+ using namespace XFILE;
+diff --git a/xbmc/filesystem/DirectoryFactory.cpp b/xbmc/filesystem/DirectoryFactory.cpp
+index 16ec08d13295..7eb82ccd8b41 100644
+--- a/xbmc/filesystem/DirectoryFactory.cpp
++++ b/xbmc/filesystem/DirectoryFactory.cpp
+@@ -45,6 +45,9 @@
+ #include "posix/PosixDirectory.h"
+ #elif defined(TARGET_WINDOWS)
+ #include "win32/Win32Directory.h"
++#ifdef TARGET_WINDOWS_STORE
++#include "platform/win10/filesystem/WinLibraryDirectory.h"
++#endif
+ #endif
+ #ifdef HAS_FILESYSTEM_SMB
+ #ifdef TARGET_WINDOWS
+@@ -86,9 +89,6 @@
+ #include "ResourceDirectory.h"
+ #include "ServiceBroker.h"
+ #include "addons/VFSEntry.h"
+-#ifdef TARGET_WINDOWS_STORE
+-#include "filesystem/win10/WinLibraryDirectory.h"
+-#endif
+ 
+ using namespace ADDON;
+ 
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index a48b1430fcf7..0feaeea1fafd 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -25,7 +25,7 @@
+ #elif defined(TARGET_WINDOWS)
+ #include "win32/Win32File.h"
+ #ifdef TARGET_WINDOWS_STORE
+-#include "win10/WinLibraryFile.h"
++#include "platform/win10/filesystem/WinLibraryFile.h"
+ #endif
+ #endif // TARGET_WINDOWS
+ #include "CurlFile.h"
+diff --git a/xbmc/filesystem/win10/CMakeLists.txt b/xbmc/platform/win10/filesystem/CMakeLists.txt
+similarity index 75%
+rename from xbmc/filesystem/win10/CMakeLists.txt
+rename to xbmc/platform/win10/filesystem/CMakeLists.txt
+index 7f5a970aa998..9848f6e18620 100644
+--- a/xbmc/filesystem/win10/CMakeLists.txt
++++ b/xbmc/platform/win10/filesystem/CMakeLists.txt
+@@ -4,4 +4,4 @@ set(SOURCES WinLibraryDirectory.cpp
+ set(HEADERS WinLibraryDirectory.h
+             WinLibraryFile.h)
+ 
+-core_add_library(filesystem_win10)
++core_add_library(platform_win10_filesystem)
+diff --git a/xbmc/filesystem/win10/WinLibraryDirectory.cpp b/xbmc/platform/win10/filesystem/WinLibraryDirectory.cpp
+similarity index 100%
+rename from xbmc/filesystem/win10/WinLibraryDirectory.cpp
+rename to xbmc/platform/win10/filesystem/WinLibraryDirectory.cpp
+diff --git a/xbmc/filesystem/win10/WinLibraryDirectory.h b/xbmc/platform/win10/filesystem/WinLibraryDirectory.h
+similarity index 100%
+rename from xbmc/filesystem/win10/WinLibraryDirectory.h
+rename to xbmc/platform/win10/filesystem/WinLibraryDirectory.h
+diff --git a/xbmc/filesystem/win10/WinLibraryFile.cpp b/xbmc/platform/win10/filesystem/WinLibraryFile.cpp
+similarity index 100%
+rename from xbmc/filesystem/win10/WinLibraryFile.cpp
+rename to xbmc/platform/win10/filesystem/WinLibraryFile.cpp
+diff --git a/xbmc/filesystem/win10/WinLibraryFile.h b/xbmc/platform/win10/filesystem/WinLibraryFile.h
+similarity index 100%
+rename from xbmc/filesystem/win10/WinLibraryFile.h
+rename to xbmc/platform/win10/filesystem/WinLibraryFile.h
+diff --git a/xbmc/storage/win10/Win10StorageProvider.cpp b/xbmc/storage/win10/Win10StorageProvider.cpp
+index 4492931e6079..ac22df724f41 100644
+--- a/xbmc/storage/win10/Win10StorageProvider.cpp
++++ b/xbmc/storage/win10/Win10StorageProvider.cpp
+@@ -20,8 +20,8 @@
+ #include "Win10StorageProvider.h"
+ #include "guilib/LocalizeStrings.h"
+ #include "filesystem/SpecialProtocol.h"
+-#include "filesystem/win10/WinLibraryDirectory.h"
+ #include "platform/win10/AsyncHelpers.h"
++#include "platform/win10/filesystem/WinLibraryDirectory.h"
+ #include "platform/win32/CharsetConverter.h"
+ #include "storage/MediaManager.h"
+ #include "utils/JobManager.h"
+
+From cde9602e736292ad651304cf6816794d64734fa1 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:09:05 +0300
+Subject: [PATCH 03/30] [win32] filesystem: move implementation to platform
+ folder
+
+---
+ cmake/treedata/windows/subdirs.txt                 | 28 +++++++++++-----------
+ cmake/treedata/windowsstore/subdirs.txt            | 12 +++++-----
+ xbmc/filesystem/CacheStrategy.cpp                  |  2 +-
+ xbmc/filesystem/DirectoryFactory.cpp               |  4 ++--
+ xbmc/filesystem/FileFactory.cpp                    |  4 ++--
+ .../win32/filesystem}/CMakeLists.txt               |  0
+ .../win32/filesystem}/Win32Directory.cpp           |  0
+ .../win32/filesystem}/Win32Directory.h             |  0
+ .../win32/filesystem}/Win32File.cpp                |  0
+ .../win32/filesystem}/Win32File.h                  |  0
+ .../win32/filesystem}/Win32SMBDirectory.cpp        |  0
+ .../win32/filesystem}/Win32SMBDirectory.h          |  0
+ .../win32/filesystem}/Win32SMBFile.cpp             |  0
+ .../win32/filesystem}/Win32SMBFile.h               |  0
+ 14 files changed, 25 insertions(+), 25 deletions(-)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/CMakeLists.txt (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32Directory.cpp (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32Directory.h (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32File.cpp (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32File.h (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32SMBDirectory.cpp (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32SMBDirectory.h (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32SMBFile.cpp (100%)
+ rename xbmc/{filesystem/win32 => platform/win32/filesystem}/Win32SMBFile.h (100%)
+
+diff --git a/cmake/treedata/windows/subdirs.txt b/cmake/treedata/windows/subdirs.txt
+index b08283fcb4a4..0a894ecc597c 100644
+--- a/cmake/treedata/windows/subdirs.txt
++++ b/cmake/treedata/windows/subdirs.txt
+@@ -1,17 +1,17 @@
+-xbmc/platform/win32          platform/win32
+-xbmc/platform/win32/input    platworm/win32/input
+-xbmc/input/touch             input/touch
+-xbmc/input/touch/generic     input/touch/generic
+-xbmc/network/windows         network/windows
+-xbmc/network/mdns            network/mdns
+-xbmc/peripherals/bus/win32   peripherals/bus/win32
+-xbmc/powermanagement/windows powermanagement/windows
+-xbmc/storage/windows         storage/windows
+-xbmc/filesystem/win32        filesystem/win32
+-xbmc/utils/win32             utils/win32
+-xbmc/rendering/dx            rendering/dx
+-xbmc/threads/platform/win    threads/win
+-xbmc/windowing/windows       windowing/windows
++xbmc/platform/win32             platform/win32
++xbmc/platform/win32/input       platworm/win32/input
++xbmc/platform/win32/filesystem  platform/win32/filesystem
++xbmc/input/touch                input/touch
++xbmc/input/touch/generic        input/touch/generic
++xbmc/network/windows            network/windows
++xbmc/network/mdns               network/mdns
++xbmc/peripherals/bus/win32      peripherals/bus/win32
++xbmc/powermanagement/windows    powermanagement/windows
++xbmc/storage/windows            storage/windows
++xbmc/utils/win32                utils/win32
++xbmc/rendering/dx               rendering/dx
++xbmc/threads/platform/win       threads/win
++xbmc/windowing/windows          windowing/windows
+ xbmc/cores/RetroPlayer/process/windows cores/RetroPlayer/process/windows
+ xbmc/cores/RetroPlayer/rendering/VideoShaders/windows cores/RetroPlayer/rendering/VideoShaders/windows
+ xbmc/cores/VideoPlayer/Process/windows cores/VideoPlayer/Process/windows
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index 1d16c865352e..4b94e81e4490 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -1,5 +1,6 @@
+-xbmc/platform/win10             platform_win10
+-xbmc/platform/win10/filesystem  platform_win10_filesystem
++xbmc/platform/win10             platform/win10
++xbmc/platform/win10/filesystem  platform/win10/filesystem
++xbmc/platform/win32/filesystem  platform/win32/filesystem
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+ xbmc/network/win10              network/win10
+@@ -7,9 +8,8 @@ xbmc/network/mdns               network/mdns
+ xbmc/peripherals/bus/win10      peripherals/bus/win10
+ xbmc/powermanagement/win10      powermanagement/win10
+ xbmc/storage/win10              storage/win10
+-xbmc/filesystem/win32           filesystem/win32
+-xbmc/utils/win32                utils_win32
+-xbmc/rendering/dx               rendering_dx
+-xbmc/threads/platform/win       threads_win
++xbmc/utils/win32                utils/win32
++xbmc/rendering/dx               rendering/dx
++xbmc/threads/platform/win       threads/win
+ xbmc/windowing/win10            windowing/win10
+ xbmc/cores/VideoPlayer/Process/windows cores/VideoPlayer/Process/windows
+diff --git a/xbmc/filesystem/CacheStrategy.cpp b/xbmc/filesystem/CacheStrategy.cpp
+index 10c332e500d1..442cb2ddc948 100644
+--- a/xbmc/filesystem/CacheStrategy.cpp
++++ b/xbmc/filesystem/CacheStrategy.cpp
+@@ -33,7 +33,7 @@
+ #include "posix/PosixFile.h"
+ #define CacheLocalFile CPosixFile
+ #elif defined(TARGET_WINDOWS)
+-#include "win32/Win32File.h"
++#include "platform/win32/filesystem/Win32File.h"
+ #define CacheLocalFile CWin32File
+ #endif // TARGET_WINDOWS
+ 
+diff --git a/xbmc/filesystem/DirectoryFactory.cpp b/xbmc/filesystem/DirectoryFactory.cpp
+index 7eb82ccd8b41..16309d7182ad 100644
+--- a/xbmc/filesystem/DirectoryFactory.cpp
++++ b/xbmc/filesystem/DirectoryFactory.cpp
+@@ -44,14 +44,14 @@
+ #ifdef TARGET_POSIX
+ #include "posix/PosixDirectory.h"
+ #elif defined(TARGET_WINDOWS)
+-#include "win32/Win32Directory.h"
++#include "platform/win32/filesystem/Win32Directory.h"
+ #ifdef TARGET_WINDOWS_STORE
+ #include "platform/win10/filesystem/WinLibraryDirectory.h"
+ #endif
+ #endif
+ #ifdef HAS_FILESYSTEM_SMB
+ #ifdef TARGET_WINDOWS
+-#include "win32/Win32SMBDirectory.h"
++#include "platform/win32/filesystem/Win32SMBDirectory.h"
+ #else
+ #include "SMBDirectory.h"
+ #endif
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 0feaeea1fafd..7cf6e6f77634 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -23,7 +23,7 @@
+ #ifdef TARGET_POSIX
+ #include "posix/PosixFile.h"
+ #elif defined(TARGET_WINDOWS)
+-#include "win32/Win32File.h"
++#include "platform/win32/filesystem/Win32File.h"
+ #ifdef TARGET_WINDOWS_STORE
+ #include "platform/win10/filesystem/WinLibraryFile.h"
+ #endif
+@@ -33,7 +33,7 @@
+ #include "ShoutcastFile.h"
+ #ifdef HAS_FILESYSTEM_SMB
+ #ifdef TARGET_WINDOWS
+-#include "win32/Win32SMBFile.h"
++#include "platform/win32/filesystem/Win32SMBFile.h"
+ #else
+ #include "SMBFile.h"
+ #endif
+diff --git a/xbmc/filesystem/win32/CMakeLists.txt b/xbmc/platform/win32/filesystem/CMakeLists.txt
+similarity index 100%
+rename from xbmc/filesystem/win32/CMakeLists.txt
+rename to xbmc/platform/win32/filesystem/CMakeLists.txt
+diff --git a/xbmc/filesystem/win32/Win32Directory.cpp b/xbmc/platform/win32/filesystem/Win32Directory.cpp
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32Directory.cpp
+rename to xbmc/platform/win32/filesystem/Win32Directory.cpp
+diff --git a/xbmc/filesystem/win32/Win32Directory.h b/xbmc/platform/win32/filesystem/Win32Directory.h
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32Directory.h
+rename to xbmc/platform/win32/filesystem/Win32Directory.h
+diff --git a/xbmc/filesystem/win32/Win32File.cpp b/xbmc/platform/win32/filesystem/Win32File.cpp
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32File.cpp
+rename to xbmc/platform/win32/filesystem/Win32File.cpp
+diff --git a/xbmc/filesystem/win32/Win32File.h b/xbmc/platform/win32/filesystem/Win32File.h
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32File.h
+rename to xbmc/platform/win32/filesystem/Win32File.h
+diff --git a/xbmc/filesystem/win32/Win32SMBDirectory.cpp b/xbmc/platform/win32/filesystem/Win32SMBDirectory.cpp
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32SMBDirectory.cpp
+rename to xbmc/platform/win32/filesystem/Win32SMBDirectory.cpp
+diff --git a/xbmc/filesystem/win32/Win32SMBDirectory.h b/xbmc/platform/win32/filesystem/Win32SMBDirectory.h
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32SMBDirectory.h
+rename to xbmc/platform/win32/filesystem/Win32SMBDirectory.h
+diff --git a/xbmc/filesystem/win32/Win32SMBFile.cpp b/xbmc/platform/win32/filesystem/Win32SMBFile.cpp
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32SMBFile.cpp
+rename to xbmc/platform/win32/filesystem/Win32SMBFile.cpp
+diff --git a/xbmc/filesystem/win32/Win32SMBFile.h b/xbmc/platform/win32/filesystem/Win32SMBFile.h
+similarity index 100%
+rename from xbmc/filesystem/win32/Win32SMBFile.h
+rename to xbmc/platform/win32/filesystem/Win32SMBFile.h
+
+From d780542170cf094d3a4abec6547da547fd21af14 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:10:41 +0300
+Subject: [PATCH 04/30] [win10] storage: cover enumerating removable storage
+ into try-catch.
+
+---
+ xbmc/storage/win10/Win10StorageProvider.cpp | 26 ++++++++++++++++----------
+ 1 file changed, 16 insertions(+), 10 deletions(-)
+
+diff --git a/xbmc/storage/win10/Win10StorageProvider.cpp b/xbmc/storage/win10/Win10StorageProvider.cpp
+index ac22df724f41..56371ba6a8a7 100644
+--- a/xbmc/storage/win10/Win10StorageProvider.cpp
++++ b/xbmc/storage/win10/Win10StorageProvider.cpp
+@@ -78,17 +78,23 @@ void CStorageProvider::GetLocalDrives(VECSOURCES &localDrives)
+ void CStorageProvider::GetRemovableDrives(VECSOURCES &removableDrives)
+ {
+   using KODI::PLATFORM::WINDOWS::FromW;
+-
+-  auto devicesView = Wait(Windows::Storage::KnownFolders::RemovableDevices->GetFoldersAsync());
+-  for (unsigned i = 0; i < devicesView->Size; i++)
++  try
++  {
++    auto devicesView = Wait(Windows::Storage::KnownFolders::RemovableDevices->GetFoldersAsync());
++    for (unsigned i = 0; i < devicesView->Size; i++)
++    {
++      CMediaSource source;
++      auto device = devicesView->GetAt(i);
++      source.strName = FromW(device->DisplayName->Data());
++      std::string driveLetter = FromW(device->Name->Data()).substr(0, 1);
++      source.strPath = "win-lib://removable/" + driveLetter + "/";
++      source.m_iDriveType = CMediaSource::SOURCE_TYPE_REMOVABLE;
++
++      removableDrives.push_back(source);
++    }
++  }
++  catch (Platform::Exception^)
+   {
+-    CMediaSource source;
+-    auto device = devicesView->GetAt(i);
+-    source.strName = FromW(device->DisplayName->Data());
+-    source.strPath = "win-lib://removable/" + FromW(device->Name->Data()).substr(0, 1) + "/";
+-    source.m_iDriveType = CMediaSource::SOURCE_TYPE_REMOVABLE;
+-
+-    removableDrives.push_back(source);
+   }
+ }
+ 
+
+From 242dc3d579d1affbede9df6e838574e318c8d6e5 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:19:34 +0300
+Subject: [PATCH 05/30] [win10] storage: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/windowsstore/subdirs.txt                                 | 2 +-
+ xbmc/{storage/win10 => platform/win10/storage}/CMakeLists.txt           | 2 +-
+ xbmc/{storage/win10 => platform/win10/storage}/Win10StorageProvider.cpp | 0
+ xbmc/{storage/win10 => platform/win10/storage}/Win10StorageProvider.h   | 0
+ 4 files changed, 2 insertions(+), 2 deletions(-)
+ rename xbmc/{storage/win10 => platform/win10/storage}/CMakeLists.txt (64%)
+ rename xbmc/{storage/win10 => platform/win10/storage}/Win10StorageProvider.cpp (100%)
+ rename xbmc/{storage/win10 => platform/win10/storage}/Win10StorageProvider.h (100%)
+
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index 4b94e81e4490..97d22730d568 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -1,5 +1,6 @@
+ xbmc/platform/win10             platform/win10
+ xbmc/platform/win10/filesystem  platform/win10/filesystem
++xbmc/platform/win10/storage     platfrom/win10/storage
+ xbmc/platform/win32/filesystem  platform/win32/filesystem
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+@@ -7,7 +8,6 @@ xbmc/network/win10              network/win10
+ xbmc/network/mdns               network/mdns
+ xbmc/peripherals/bus/win10      peripherals/bus/win10
+ xbmc/powermanagement/win10      powermanagement/win10
+-xbmc/storage/win10              storage/win10
+ xbmc/utils/win32                utils/win32
+ xbmc/rendering/dx               rendering/dx
+ xbmc/threads/platform/win       threads/win
+diff --git a/xbmc/storage/win10/CMakeLists.txt b/xbmc/platform/win10/storage/CMakeLists.txt
+similarity index 64%
+rename from xbmc/storage/win10/CMakeLists.txt
+rename to xbmc/platform/win10/storage/CMakeLists.txt
+index 22d796e8df87..84f3f595bf59 100644
+--- a/xbmc/storage/win10/CMakeLists.txt
++++ b/xbmc/platform/win10/storage/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES Win10StorageProvider.cpp)
+ 
+ set(HEADERS Win10StorageProvider.h)
+ 
+-core_add_library(storage_win10)
++core_add_library(platform_win10_storage)
+diff --git a/xbmc/storage/win10/Win10StorageProvider.cpp b/xbmc/platform/win10/storage/Win10StorageProvider.cpp
+similarity index 100%
+rename from xbmc/storage/win10/Win10StorageProvider.cpp
+rename to xbmc/platform/win10/storage/Win10StorageProvider.cpp
+diff --git a/xbmc/storage/win10/Win10StorageProvider.h b/xbmc/platform/win10/storage/Win10StorageProvider.h
+similarity index 100%
+rename from xbmc/storage/win10/Win10StorageProvider.h
+rename to xbmc/platform/win10/storage/Win10StorageProvider.h
+
+From ae3e0577943aa64b412dcc73d8b67acf29faee4b Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:25:36 +0300
+Subject: [PATCH 06/30] [win32] storage: move implementation to platform file
+
+---
+ cmake/treedata/windows/subdirs.txt                                    | 4 ++--
+ xbmc/{storage/windows => platform/win32/storage}/CMakeLists.txt       | 2 +-
+ .../windows => platform/win32/storage}/Win32StorageProvider.cpp       | 0
+ .../windows => platform/win32/storage}/Win32StorageProvider.h         | 0
+ xbmc/windowing/windows/WinEventsWin32.cpp                             | 2 +-
+ 5 files changed, 4 insertions(+), 4 deletions(-)
+ rename xbmc/{storage/windows => platform/win32/storage}/CMakeLists.txt (64%)
+ rename xbmc/{storage/windows => platform/win32/storage}/Win32StorageProvider.cpp (100%)
+ rename xbmc/{storage/windows => platform/win32/storage}/Win32StorageProvider.h (100%)
+
+diff --git a/cmake/treedata/windows/subdirs.txt b/cmake/treedata/windows/subdirs.txt
+index 0a894ecc597c..3d7c7ba85024 100644
+--- a/cmake/treedata/windows/subdirs.txt
++++ b/cmake/treedata/windows/subdirs.txt
+@@ -1,13 +1,13 @@
+ xbmc/platform/win32             platform/win32
+-xbmc/platform/win32/input       platworm/win32/input
++xbmc/platform/win32/input       platform/win32/input
+ xbmc/platform/win32/filesystem  platform/win32/filesystem
++xbmc/platform/win32/storage     platform/win32/storage
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+ xbmc/network/windows            network/windows
+ xbmc/network/mdns               network/mdns
+ xbmc/peripherals/bus/win32      peripherals/bus/win32
+ xbmc/powermanagement/windows    powermanagement/windows
+-xbmc/storage/windows            storage/windows
+ xbmc/utils/win32                utils/win32
+ xbmc/rendering/dx               rendering/dx
+ xbmc/threads/platform/win       threads/win
+diff --git a/xbmc/storage/windows/CMakeLists.txt b/xbmc/platform/win32/storage/CMakeLists.txt
+similarity index 64%
+rename from xbmc/storage/windows/CMakeLists.txt
+rename to xbmc/platform/win32/storage/CMakeLists.txt
+index 638b55fed408..d6cb64c18ed0 100644
+--- a/xbmc/storage/windows/CMakeLists.txt
++++ b/xbmc/platform/win32/storage/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES Win32StorageProvider.cpp)
+ 
+ set(HEADERS Win32StorageProvider.h)
+ 
+-core_add_library(storage_windows)
++core_add_library(platform_win32_storage)
+diff --git a/xbmc/storage/windows/Win32StorageProvider.cpp b/xbmc/platform/win32/storage/Win32StorageProvider.cpp
+similarity index 100%
+rename from xbmc/storage/windows/Win32StorageProvider.cpp
+rename to xbmc/platform/win32/storage/Win32StorageProvider.cpp
+diff --git a/xbmc/storage/windows/Win32StorageProvider.h b/xbmc/platform/win32/storage/Win32StorageProvider.h
+similarity index 100%
+rename from xbmc/storage/windows/Win32StorageProvider.h
+rename to xbmc/platform/win32/storage/Win32StorageProvider.h
+diff --git a/xbmc/windowing/windows/WinEventsWin32.cpp b/xbmc/windowing/windows/WinEventsWin32.cpp
+index 18a5bb0ed97e..a87cec995073 100644
+--- a/xbmc/windowing/windows/WinEventsWin32.cpp
++++ b/xbmc/windowing/windows/WinEventsWin32.cpp
+@@ -42,7 +42,7 @@
+ #include "powermanagement/windows/Win32PowerSyscall.h"
+ #include "ServiceBroker.h"
+ #include "storage/MediaManager.h"
+-#include "storage/windows/Win32StorageProvider.h"
++#include "platform/win32/storage/Win32StorageProvider.h"
+ #include "Util.h"
+ #include "utils/JobManager.h"
+ #include "utils/log.h"
+
+From 1ecb944d42b261897f4f1e4f7eca8af1277c90d9 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:29:13 +0300
+Subject: [PATCH 07/30] [android] storage: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/android/subdirs.txt                                      | 2 +-
+ .../android => platform/android/storage}/AndroidStorageProvider.cpp     | 0
+ .../android => platform/android/storage}/AndroidStorageProvider.h       | 0
+ xbmc/{storage/android => platform/android/storage}/CMakeLists.txt       | 2 +-
+ 4 files changed, 2 insertions(+), 2 deletions(-)
+ rename xbmc/{storage/android => platform/android/storage}/AndroidStorageProvider.cpp (100%)
+ rename xbmc/{storage/android => platform/android/storage}/AndroidStorageProvider.h (100%)
+ rename xbmc/{storage/android => platform/android/storage}/CMakeLists.txt (65%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index b56618a5439d..070743582f17 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -7,10 +7,10 @@ xbmc/network/android                    network/android
+ xbmc/peripherals/bus/linux              peripherals/bus/linux
+ xbmc/peripherals/bus/android            peripherals/bus/android
+ xbmc/powermanagement/android            powermanagement/android
+-xbmc/storage/android                    storage/android
+ xbmc/filesystem/posix                   filesystem/posix
+ xbmc/utils/posix                        utils_posix
+ xbmc/windowing/android                  windowing/android
+ xbmc/platform/posix                     posix
+ xbmc/platform/android/activity          android_activity
+ xbmc/platform/android/bionic_supplement android_bionicsupplement
++xbmc/platform/android/storage           platform/android/storage
+diff --git a/xbmc/storage/android/AndroidStorageProvider.cpp b/xbmc/platform/android/storage/AndroidStorageProvider.cpp
+similarity index 100%
+rename from xbmc/storage/android/AndroidStorageProvider.cpp
+rename to xbmc/platform/android/storage/AndroidStorageProvider.cpp
+diff --git a/xbmc/storage/android/AndroidStorageProvider.h b/xbmc/platform/android/storage/AndroidStorageProvider.h
+similarity index 100%
+rename from xbmc/storage/android/AndroidStorageProvider.h
+rename to xbmc/platform/android/storage/AndroidStorageProvider.h
+diff --git a/xbmc/storage/android/CMakeLists.txt b/xbmc/platform/android/storage/CMakeLists.txt
+similarity index 65%
+rename from xbmc/storage/android/CMakeLists.txt
+rename to xbmc/platform/android/storage/CMakeLists.txt
+index ce6a51e5a791..c3b66fa01e9f 100644
+--- a/xbmc/storage/android/CMakeLists.txt
++++ b/xbmc/platform/android/storage/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES AndroidStorageProvider.cpp)
+ 
+ set(HEADERS AndroidStorageProvider.h)
+ 
+-core_add_library(storage_android)
++core_add_library(platform_android_storage)
+
+From c50913862df5e61818ca8bd97e73b7414932b7a4 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:34:27 +0300
+Subject: [PATCH 08/30] [linux] storage: move implementation to platform folder
+
+---
+ cmake/treedata/freebsd/subdirs.txt                                      | 2 +-
+ cmake/treedata/linux/subdirs.txt                                        | 2 +-
+ xbmc/{storage/linux => platform/linux/storage}/CMakeLists.txt           | 2 +-
+ xbmc/{storage/linux => platform/linux/storage}/LinuxStorageProvider.cpp | 0
+ xbmc/{storage/linux => platform/linux/storage}/LinuxStorageProvider.h   | 0
+ xbmc/{storage/linux => platform/linux/storage}/UDevProvider.cpp         | 0
+ xbmc/{storage/linux => platform/linux/storage}/UDevProvider.h           | 0
+ xbmc/{storage/linux => platform/linux/storage}/UDisksProvider.cpp       | 0
+ xbmc/{storage/linux => platform/linux/storage}/UDisksProvider.h         | 0
+ 9 files changed, 3 insertions(+), 3 deletions(-)
+ rename xbmc/{storage/linux => platform/linux/storage}/CMakeLists.txt (87%)
+ rename xbmc/{storage/linux => platform/linux/storage}/LinuxStorageProvider.cpp (100%)
+ rename xbmc/{storage/linux => platform/linux/storage}/LinuxStorageProvider.h (100%)
+ rename xbmc/{storage/linux => platform/linux/storage}/UDevProvider.cpp (100%)
+ rename xbmc/{storage/linux => platform/linux/storage}/UDevProvider.h (100%)
+ rename xbmc/{storage/linux => platform/linux/storage}/UDisksProvider.cpp (100%)
+ rename xbmc/{storage/linux => platform/linux/storage}/UDisksProvider.h (100%)
+
+diff --git a/cmake/treedata/freebsd/subdirs.txt b/cmake/treedata/freebsd/subdirs.txt
+index f7651ee4e518..c4cc776464fc 100644
+--- a/cmake/treedata/freebsd/subdirs.txt
++++ b/cmake/treedata/freebsd/subdirs.txt
+@@ -1,11 +1,11 @@
+ xbmc/platform/linux        platform/linux
+ xbmc/platform/linux/input  platform/linux/input
++xbmc/platform/linux/storage platform/linux/storage
+ xbmc/input/touch           input/touch
+ xbmc/input/touch/generic   input/touch/generic
+ xbmc/network/linux         network/linux
+ xbmc/peripherals/bus/linux peripherals/bus/linux
+ xbmc/powermanagement/linux powermanagement/linux
+-xbmc/storage/linux         storage/linux
+ xbmc/filesystem/posix      filesystem/posix
+ xbmc/utils/posix           utils_posix
+ xbmc/platform/posix        posix
+diff --git a/cmake/treedata/linux/subdirs.txt b/cmake/treedata/linux/subdirs.txt
+index b310b539b0a4..6dc55fe4e7c0 100644
+--- a/cmake/treedata/linux/subdirs.txt
++++ b/cmake/treedata/linux/subdirs.txt
+@@ -1,11 +1,11 @@
+ xbmc/platform/linux        platform/linux
+ xbmc/platform/linux/input  platform/linux/input
++xbmc/platform/linux/storage platform/linux/storage
+ xbmc/input/touch           input/touch
+ xbmc/input/touch/generic   input/touch/generic
+ xbmc/network/linux         network/linux
+ xbmc/peripherals/bus/linux peripherals/bus/linux
+ xbmc/powermanagement/linux powermanagement/linux
+-xbmc/storage/linux         storage/linux
+ xbmc/filesystem/posix      filesystem/posix
+ xbmc/utils/posix           utils_posix
+ xbmc/platform/posix        posix
+diff --git a/xbmc/storage/linux/CMakeLists.txt b/xbmc/platform/linux/storage/CMakeLists.txt
+similarity index 87%
+rename from xbmc/storage/linux/CMakeLists.txt
+rename to xbmc/platform/linux/storage/CMakeLists.txt
+index 6cbcb6444f99..16ccced3ee59 100644
+--- a/xbmc/storage/linux/CMakeLists.txt
++++ b/xbmc/platform/linux/storage/CMakeLists.txt
+@@ -13,5 +13,5 @@ if(UDEV_FOUND)
+ endif()
+ 
+ if(SOURCES)
+-  core_add_library(storage_linux)
++  core_add_library(platform_linux_storage)
+ endif()
+diff --git a/xbmc/storage/linux/LinuxStorageProvider.cpp b/xbmc/platform/linux/storage/LinuxStorageProvider.cpp
+similarity index 100%
+rename from xbmc/storage/linux/LinuxStorageProvider.cpp
+rename to xbmc/platform/linux/storage/LinuxStorageProvider.cpp
+diff --git a/xbmc/storage/linux/LinuxStorageProvider.h b/xbmc/platform/linux/storage/LinuxStorageProvider.h
+similarity index 100%
+rename from xbmc/storage/linux/LinuxStorageProvider.h
+rename to xbmc/platform/linux/storage/LinuxStorageProvider.h
+diff --git a/xbmc/storage/linux/UDevProvider.cpp b/xbmc/platform/linux/storage/UDevProvider.cpp
+similarity index 100%
+rename from xbmc/storage/linux/UDevProvider.cpp
+rename to xbmc/platform/linux/storage/UDevProvider.cpp
+diff --git a/xbmc/storage/linux/UDevProvider.h b/xbmc/platform/linux/storage/UDevProvider.h
+similarity index 100%
+rename from xbmc/storage/linux/UDevProvider.h
+rename to xbmc/platform/linux/storage/UDevProvider.h
+diff --git a/xbmc/storage/linux/UDisksProvider.cpp b/xbmc/platform/linux/storage/UDisksProvider.cpp
+similarity index 100%
+rename from xbmc/storage/linux/UDisksProvider.cpp
+rename to xbmc/platform/linux/storage/UDisksProvider.cpp
+diff --git a/xbmc/storage/linux/UDisksProvider.h b/xbmc/platform/linux/storage/UDisksProvider.h
+similarity index 100%
+rename from xbmc/storage/linux/UDisksProvider.h
+rename to xbmc/platform/linux/storage/UDisksProvider.h
+
+From 8a0c0d5ea46c238b5b784f098e5cf12aa92c1af5 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:38:26 +0300
+Subject: [PATCH 09/30] [darwin] storage: move implementation to platform
+ folder
+
+---
+ cmake/treedata/ios/subdirs.txt                                 | 10 +++++-----
+ cmake/treedata/osx/subdirs.txt                                 |  8 ++++----
+ xbmc/platform/darwin/osx/SDLMain.mm                            |  2 +-
+ .../osx => platform/darwin/osx/storage}/CMakeLists.txt         |  2 +-
+ .../darwin/osx/storage}/DarwinStorageProvider.cpp              |  0
+ .../darwin/osx/storage}/DarwinStorageProvider.h                |  0
+ 6 files changed, 11 insertions(+), 11 deletions(-)
+ rename xbmc/{storage/osx => platform/darwin/osx/storage}/CMakeLists.txt (66%)
+ rename xbmc/{storage/osx => platform/darwin/osx/storage}/DarwinStorageProvider.cpp (100%)
+ rename xbmc/{storage/osx => platform/darwin/osx/storage}/DarwinStorageProvider.h (100%)
+
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index 00f5cf115c9d..feafe5480a07 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -5,13 +5,13 @@ xbmc/network/linux               network/linux
+ xbmc/network/osx                 network/osx
+ xbmc/peripherals/bus/osx         peripherals/bus/osx
+ xbmc/powermanagement/osx         powermanagement/osx
+-xbmc/storage/osx                 storage/osx
+ xbmc/platform/posix              posix
+-xbmc/platform/darwin             platform_darwin
+-xbmc/platform/darwin/ios         platform_ios
+-xbmc/platform/darwin/ios-common  platform_ios-common
++xbmc/platform/darwin             platform/darwin
++xbmc/platform/darwin/ios         platform/ios
++xbmc/platform/darwin/ios-common  platform/ios-common
++xbmc/platform/darwin/osx/storage  platform/osx/storage
+ xbmc/filesystem/posix            filesystem/posix
+-xbmc/utils/posix                 utils_posix
++xbmc/utils/posix                 utils/posix
+ xbmc/windowing/osx               windowing/osx
+ xbmc/cores/RetroPlayer/process/ios cores/RetroPlayer/process/ios
+ xbmc/cores/VideoPlayer/Process/ios cores/VideoPlayer/Process/ios
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index 5b1b3021d608..de61ea494024 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -3,12 +3,12 @@ xbmc/network/linux           network/linux
+ xbmc/network/osx             network/osx
+ xbmc/peripherals/bus/osx     peripherals/bus/osx
+ xbmc/powermanagement/osx     powermanagement/osx
+-xbmc/storage/osx             storage/osx
+ xbmc/platform/posix          posix
+-xbmc/platform/darwin         platform_darwin
+-xbmc/platform/darwin/osx     platform_osx
++xbmc/platform/darwin         platform/darwin
++xbmc/platform/darwin/osx     platform/osx
++xbmc/platform/darwin/osx/storage  platform/osx/storage
+ xbmc/filesystem/posix        filesystem/posix
+-xbmc/utils/posix             utils_posix
++xbmc/utils/posix             utils/posix
+ xbmc/windowing/osx           windowing/osx
+ xbmc/cores/RetroPlayer/process/osx cores/RetroPlayer/process/osx
+ xbmc/cores/VideoPlayer/Process/osx cores/VideoPlayer/Process/osx
+diff --git a/xbmc/platform/darwin/osx/SDLMain.mm b/xbmc/platform/darwin/osx/SDLMain.mm
+index f7aa09a81b5c..a301d845ebe8 100644
+--- a/xbmc/platform/darwin/osx/SDLMain.mm
++++ b/xbmc/platform/darwin/osx/SDLMain.mm
+@@ -18,7 +18,7 @@
+ #import "platform/darwin/osx/CocoaInterface.h"
+ #import "PlatformDefs.h"
+ #import "messaging/ApplicationMessenger.h"
+-#import "storage/osx/DarwinStorageProvider.h"
++#import "platform/darwin/osx/storage/DarwinStorageProvider.h"
+ 
+ #import "platform/darwin/osx/HotKeyController.h"
+ #import "platform/darwin/DarwinUtils.h"
+diff --git a/xbmc/storage/osx/CMakeLists.txt b/xbmc/platform/darwin/osx/storage/CMakeLists.txt
+similarity index 66%
+rename from xbmc/storage/osx/CMakeLists.txt
+rename to xbmc/platform/darwin/osx/storage/CMakeLists.txt
+index 8d1e86c4c830..9407297191c2 100644
+--- a/xbmc/storage/osx/CMakeLists.txt
++++ b/xbmc/platform/darwin/osx/storage/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES DarwinStorageProvider.cpp)
+ 
+ set(HEADERS DarwinStorageProvider.h)
+ 
+-core_add_library(storage_osx)
++core_add_library(platform_osx_storage)
+diff --git a/xbmc/storage/osx/DarwinStorageProvider.cpp b/xbmc/platform/darwin/osx/storage/DarwinStorageProvider.cpp
+similarity index 100%
+rename from xbmc/storage/osx/DarwinStorageProvider.cpp
+rename to xbmc/platform/darwin/osx/storage/DarwinStorageProvider.cpp
+diff --git a/xbmc/storage/osx/DarwinStorageProvider.h b/xbmc/platform/darwin/osx/storage/DarwinStorageProvider.h
+similarity index 100%
+rename from xbmc/storage/osx/DarwinStorageProvider.h
+rename to xbmc/platform/darwin/osx/storage/DarwinStorageProvider.h
+
+From 65a34fc4e7c2980f3b6f071336bab35a2d26f2df Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 17:57:30 +0300
+Subject: [PATCH 10/30] [win10] network: move implementation to platform folder
+
+---
+ cmake/treedata/windowsstore/subdirs.txt                         | 2 +-
+ xbmc/network/Network.h                                          | 2 +-
+ xbmc/{network/win10 => platform/win10/network}/CMakeLists.txt   | 2 +-
+ xbmc/{network/win10 => platform/win10/network}/NetworkWin10.cpp | 0
+ xbmc/{network/win10 => platform/win10/network}/NetworkWin10.h   | 0
+ 5 files changed, 3 insertions(+), 3 deletions(-)
+ rename xbmc/{network/win10 => platform/win10/network}/CMakeLists.txt (59%)
+ rename xbmc/{network/win10 => platform/win10/network}/NetworkWin10.cpp (100%)
+ rename xbmc/{network/win10 => platform/win10/network}/NetworkWin10.h (100%)
+
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index 97d22730d568..d66845cb18cd 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -1,10 +1,10 @@
+ xbmc/platform/win10             platform/win10
+ xbmc/platform/win10/filesystem  platform/win10/filesystem
+ xbmc/platform/win10/storage     platfrom/win10/storage
++xbmc/platform/win10/network     platform/win10/network
+ xbmc/platform/win32/filesystem  platform/win32/filesystem
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+-xbmc/network/win10              network/win10
+ xbmc/network/mdns               network/mdns
+ xbmc/peripherals/bus/win10      peripherals/bus/win10
+ xbmc/powermanagement/win10      powermanagement/win10
+diff --git a/xbmc/network/Network.h b/xbmc/network/Network.h
+index d1bab96f26df..2a975c003045 100644
+--- a/xbmc/network/Network.h
++++ b/xbmc/network/Network.h
+@@ -159,7 +159,7 @@ class CNetwork
+ #elif defined(HAS_WIN32_NETWORK)
+ #include "windows/NetworkWin32.h"
+ #elif defined(HAS_WIN10_NETWORK)
+-#include "win10/NetworkWin10.h"
++#include "platform/win10/network/NetworkWin10.h"
+ #endif
+ 
+ //creates, binds and listens a tcp socket on the desired port. Set bindLocal to
+diff --git a/xbmc/network/win10/CMakeLists.txt b/xbmc/platform/win10/network/CMakeLists.txt
+similarity index 59%
+rename from xbmc/network/win10/CMakeLists.txt
+rename to xbmc/platform/win10/network/CMakeLists.txt
+index 0fe16d6f7770..eb933c76e2f9 100644
+--- a/xbmc/network/win10/CMakeLists.txt
++++ b/xbmc/platform/win10/network/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES NetworkWin10.cpp)
+ 
+ set(HEADERS NetworkWin10.h)
+ 
+-core_add_library(network_win10)
++core_add_library(platform_win10_network)
+diff --git a/xbmc/network/win10/NetworkWin10.cpp b/xbmc/platform/win10/network/NetworkWin10.cpp
+similarity index 100%
+rename from xbmc/network/win10/NetworkWin10.cpp
+rename to xbmc/platform/win10/network/NetworkWin10.cpp
+diff --git a/xbmc/network/win10/NetworkWin10.h b/xbmc/platform/win10/network/NetworkWin10.h
+similarity index 100%
+rename from xbmc/network/win10/NetworkWin10.h
+rename to xbmc/platform/win10/network/NetworkWin10.h
+
+From 64e24a938132d7c7be9a90b4a4cfd1ae6af2819b Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 18:00:40 +0300
+Subject: [PATCH 11/30] [win32] network: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/windows/subdirs.txt                                | 2 +-
+ xbmc/network/Network.h                                            | 2 +-
+ xbmc/{network/windows => platform/win32/network}/CMakeLists.txt   | 2 +-
+ xbmc/{network/windows => platform/win32/network}/NetworkWin32.cpp | 0
+ xbmc/{network/windows => platform/win32/network}/NetworkWin32.h   | 0
+ 5 files changed, 3 insertions(+), 3 deletions(-)
+ rename xbmc/{network/windows => platform/win32/network}/CMakeLists.txt (59%)
+ rename xbmc/{network/windows => platform/win32/network}/NetworkWin32.cpp (100%)
+ rename xbmc/{network/windows => platform/win32/network}/NetworkWin32.h (100%)
+
+diff --git a/cmake/treedata/windows/subdirs.txt b/cmake/treedata/windows/subdirs.txt
+index 3d7c7ba85024..65ae2fa29727 100644
+--- a/cmake/treedata/windows/subdirs.txt
++++ b/cmake/treedata/windows/subdirs.txt
+@@ -1,10 +1,10 @@
+ xbmc/platform/win32             platform/win32
+ xbmc/platform/win32/input       platform/win32/input
+ xbmc/platform/win32/filesystem  platform/win32/filesystem
++xbmc/platform/win32/network     platform/win32/network
+ xbmc/platform/win32/storage     platform/win32/storage
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+-xbmc/network/windows            network/windows
+ xbmc/network/mdns               network/mdns
+ xbmc/peripherals/bus/win32      peripherals/bus/win32
+ xbmc/powermanagement/windows    powermanagement/windows
+diff --git a/xbmc/network/Network.h b/xbmc/network/Network.h
+index 2a975c003045..368b22680952 100644
+--- a/xbmc/network/Network.h
++++ b/xbmc/network/Network.h
+@@ -157,7 +157,7 @@ class CNetwork
+ #elif defined(HAS_LINUX_NETWORK)
+ #include "linux/NetworkLinux.h"
+ #elif defined(HAS_WIN32_NETWORK)
+-#include "windows/NetworkWin32.h"
++#include "platform/win32/network/NetworkWin32.h"
+ #elif defined(HAS_WIN10_NETWORK)
+ #include "platform/win10/network/NetworkWin10.h"
+ #endif
+diff --git a/xbmc/network/windows/CMakeLists.txt b/xbmc/platform/win32/network/CMakeLists.txt
+similarity index 59%
+rename from xbmc/network/windows/CMakeLists.txt
+rename to xbmc/platform/win32/network/CMakeLists.txt
+index a4b3910e0a0a..0395de7a711d 100644
+--- a/xbmc/network/windows/CMakeLists.txt
++++ b/xbmc/platform/win32/network/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES NetworkWin32.cpp)
+ 
+ set(HEADERS NetworkWin32.h)
+ 
+-core_add_library(network_windows)
++core_add_library(platform_win32_network)
+diff --git a/xbmc/network/windows/NetworkWin32.cpp b/xbmc/platform/win32/network/NetworkWin32.cpp
+similarity index 100%
+rename from xbmc/network/windows/NetworkWin32.cpp
+rename to xbmc/platform/win32/network/NetworkWin32.cpp
+diff --git a/xbmc/network/windows/NetworkWin32.h b/xbmc/platform/win32/network/NetworkWin32.h
+similarity index 100%
+rename from xbmc/network/windows/NetworkWin32.h
+rename to xbmc/platform/win32/network/NetworkWin32.h
+
+From 1801edeb7276af7053cfc89b39ad36fb3efe4d92 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 18:07:56 +0300
+Subject: [PATCH 12/30] [android] network: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/android/subdirs.txt                                      | 2 +-
+ xbmc/network/GUIDialogAccessPoints.cpp                                  | 2 +-
+ xbmc/network/Network.h                                                  | 2 +-
+ xbmc/network/Zeroconf.cpp                                               | 2 +-
+ xbmc/network/ZeroconfBrowser.cpp                                        | 2 +-
+ xbmc/platform/android/activity/XBMCApp.cpp                              | 2 +-
+ xbmc/{network/android => platform/android/network}/CMakeLists.txt       | 2 +-
+ xbmc/{network/android => platform/android/network}/NetworkAndroid.cpp   | 0
+ xbmc/{network/android => platform/android/network}/NetworkAndroid.h     | 0
+ xbmc/{network/android => platform/android/network}/ZeroconfAndroid.cpp  | 0
+ xbmc/{network/android => platform/android/network}/ZeroconfAndroid.h    | 0
+ .../android => platform/android/network}/ZeroconfBrowserAndroid.cpp     | 0
+ .../android => platform/android/network}/ZeroconfBrowserAndroid.h       | 0
+ 13 files changed, 7 insertions(+), 7 deletions(-)
+ rename xbmc/{network/android => platform/android/network}/CMakeLists.txt (83%)
+ rename xbmc/{network/android => platform/android/network}/NetworkAndroid.cpp (100%)
+ rename xbmc/{network/android => platform/android/network}/NetworkAndroid.h (100%)
+ rename xbmc/{network/android => platform/android/network}/ZeroconfAndroid.cpp (100%)
+ rename xbmc/{network/android => platform/android/network}/ZeroconfAndroid.h (100%)
+ rename xbmc/{network/android => platform/android/network}/ZeroconfBrowserAndroid.cpp (100%)
+ rename xbmc/{network/android => platform/android/network}/ZeroconfBrowserAndroid.h (100%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 070743582f17..c2c7b2eb0b3b 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -3,7 +3,6 @@ xbmc/platform/linux                     platform/linux
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+ xbmc/network/linux                      network/linux
+-xbmc/network/android                    network/android
+ xbmc/peripherals/bus/linux              peripherals/bus/linux
+ xbmc/peripherals/bus/android            peripherals/bus/android
+ xbmc/powermanagement/android            powermanagement/android
+@@ -13,4 +12,5 @@ xbmc/windowing/android                  windowing/android
+ xbmc/platform/posix                     posix
+ xbmc/platform/android/activity          android_activity
+ xbmc/platform/android/bionic_supplement android_bionicsupplement
++xbmc/platform/android/network           platform/android/network
+ xbmc/platform/android/storage           platform/android/storage
+diff --git a/xbmc/network/GUIDialogAccessPoints.cpp b/xbmc/network/GUIDialogAccessPoints.cpp
+index c6d8352de404..db7cd68204ef 100644
+--- a/xbmc/network/GUIDialogAccessPoints.cpp
++++ b/xbmc/network/GUIDialogAccessPoints.cpp
+@@ -21,7 +21,7 @@
+ #include "GUIDialogAccessPoints.h"
+ #include "guilib/GUIKeyboardFactory.h"
+ #if defined(TARGET_ANDROID)
+-#include "android/NetworkAndroid.h"
++#include "platform/android/network/NetworkAndroid.h"
+ #elif defined(TARGET_POSIX)
+ #include "linux/NetworkLinux.h"
+ #endif
+diff --git a/xbmc/network/Network.h b/xbmc/network/Network.h
+index 368b22680952..0e161907a37b 100644
+--- a/xbmc/network/Network.h
++++ b/xbmc/network/Network.h
+@@ -153,7 +153,7 @@ class CNetwork
+ };
+ 
+ #if defined(TARGET_ANDROID)
+-#include "android/NetworkAndroid.h"
++#include "platform/android/network/NetworkAndroid.h"
+ #elif defined(HAS_LINUX_NETWORK)
+ #include "linux/NetworkLinux.h"
+ #elif defined(HAS_WIN32_NETWORK)
+diff --git a/xbmc/network/Zeroconf.cpp b/xbmc/network/Zeroconf.cpp
+index 444dcafcb642..18b8b04f5214 100644
+--- a/xbmc/network/Zeroconf.cpp
++++ b/xbmc/network/Zeroconf.cpp
+@@ -34,7 +34,7 @@
+ //on osx use the native implementation
+ #include "osx/ZeroconfOSX.h"
+ #elif defined(TARGET_ANDROID)
+-#include "android/ZeroconfAndroid.h"
++#include "platform/android/network/ZeroconfAndroid.h"
+ #elif defined(HAS_MDNS)
+ #include "mdns/ZeroconfMDNS.h"
+ #endif
+diff --git a/xbmc/network/ZeroconfBrowser.cpp b/xbmc/network/ZeroconfBrowser.cpp
+index 77cd801917e4..d568d1dc52eb 100644
+--- a/xbmc/network/ZeroconfBrowser.cpp
++++ b/xbmc/network/ZeroconfBrowser.cpp
+@@ -28,7 +28,7 @@
+ //on osx use the native implementation
+ #include "osx/ZeroconfBrowserOSX.h"
+ #elif defined(TARGET_ANDROID)
+-#include "android/ZeroconfBrowserAndroid.h"
++#include "platform/android/network/ZeroconfBrowserAndroid.h"
+ #elif defined(HAS_MDNS)
+ #include "mdns/ZeroconfBrowserMDNS.h"
+ #endif
+diff --git a/xbmc/platform/android/activity/XBMCApp.cpp b/xbmc/platform/android/activity/XBMCApp.cpp
+index 22ceadf06b93..cc91221a05ec 100644
+--- a/xbmc/platform/android/activity/XBMCApp.cpp
++++ b/xbmc/platform/android/activity/XBMCApp.cpp
+@@ -85,7 +85,7 @@
+ #include "input/mouse/MouseStat.h"
+ #include "input/Key.h"
+ #include "utils/log.h"
+-#include "network/android/NetworkAndroid.h"
++#include "platform/android/network/NetworkAndroid.h"
+ #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
+ #include "filesystem/SpecialProtocol.h"
+ #include "TextureCache.h"
+diff --git a/xbmc/network/android/CMakeLists.txt b/xbmc/platform/android/network/CMakeLists.txt
+similarity index 83%
+rename from xbmc/network/android/CMakeLists.txt
+rename to xbmc/platform/android/network/CMakeLists.txt
+index 68b3502d4b26..5b55ec9bf264 100644
+--- a/xbmc/network/android/CMakeLists.txt
++++ b/xbmc/platform/android/network/CMakeLists.txt
+@@ -8,4 +8,4 @@ set(HEADERS NetworkAndroid.h
+             ZeroconfBrowserAndroid.h
+       )
+ 
+-core_add_library(network_android)
++core_add_library(platform_android_network)
+diff --git a/xbmc/network/android/NetworkAndroid.cpp b/xbmc/platform/android/network/NetworkAndroid.cpp
+similarity index 100%
+rename from xbmc/network/android/NetworkAndroid.cpp
+rename to xbmc/platform/android/network/NetworkAndroid.cpp
+diff --git a/xbmc/network/android/NetworkAndroid.h b/xbmc/platform/android/network/NetworkAndroid.h
+similarity index 100%
+rename from xbmc/network/android/NetworkAndroid.h
+rename to xbmc/platform/android/network/NetworkAndroid.h
+diff --git a/xbmc/network/android/ZeroconfAndroid.cpp b/xbmc/platform/android/network/ZeroconfAndroid.cpp
+similarity index 100%
+rename from xbmc/network/android/ZeroconfAndroid.cpp
+rename to xbmc/platform/android/network/ZeroconfAndroid.cpp
+diff --git a/xbmc/network/android/ZeroconfAndroid.h b/xbmc/platform/android/network/ZeroconfAndroid.h
+similarity index 100%
+rename from xbmc/network/android/ZeroconfAndroid.h
+rename to xbmc/platform/android/network/ZeroconfAndroid.h
+diff --git a/xbmc/network/android/ZeroconfBrowserAndroid.cpp b/xbmc/platform/android/network/ZeroconfBrowserAndroid.cpp
+similarity index 100%
+rename from xbmc/network/android/ZeroconfBrowserAndroid.cpp
+rename to xbmc/platform/android/network/ZeroconfBrowserAndroid.cpp
+diff --git a/xbmc/network/android/ZeroconfBrowserAndroid.h b/xbmc/platform/android/network/ZeroconfBrowserAndroid.h
+similarity index 100%
+rename from xbmc/network/android/ZeroconfBrowserAndroid.h
+rename to xbmc/platform/android/network/ZeroconfBrowserAndroid.h
+
+From bf3fdfc10bee113a1aef0d58ba2f8cc152c8f73b Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 18:14:50 +0300
+Subject: [PATCH 13/30] [linux] network: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/android/subdirs.txt                                      | 2 +-
+ cmake/treedata/freebsd/subdirs.txt                                      | 2 +-
+ cmake/treedata/ios/subdirs.txt                                          | 2 +-
+ cmake/treedata/linux/subdirs.txt                                        | 2 +-
+ cmake/treedata/osx/subdirs.txt                                          | 2 +-
+ xbmc/network/GUIDialogAccessPoints.cpp                                  | 2 +-
+ xbmc/network/Network.h                                                  | 2 +-
+ xbmc/network/Zeroconf.cpp                                               | 2 +-
+ xbmc/network/ZeroconfBrowser.cpp                                        | 2 +-
+ xbmc/{network/linux => platform/linux/network}/CMakeLists.txt           | 2 +-
+ xbmc/{network/linux => platform/linux/network}/NetworkLinux.cpp         | 0
+ xbmc/{network/linux => platform/linux/network}/NetworkLinux.h           | 0
+ xbmc/{network/linux => platform/linux/network}/ZeroconfAvahi.cpp        | 0
+ xbmc/{network/linux => platform/linux/network}/ZeroconfAvahi.h          | 0
+ xbmc/{network/linux => platform/linux/network}/ZeroconfBrowserAvahi.cpp | 0
+ xbmc/{network/linux => platform/linux/network}/ZeroconfBrowserAvahi.h   | 0
+ 16 files changed, 10 insertions(+), 10 deletions(-)
+ rename xbmc/{network/linux => platform/linux/network}/CMakeLists.txt (86%)
+ rename xbmc/{network/linux => platform/linux/network}/NetworkLinux.cpp (100%)
+ rename xbmc/{network/linux => platform/linux/network}/NetworkLinux.h (100%)
+ rename xbmc/{network/linux => platform/linux/network}/ZeroconfAvahi.cpp (100%)
+ rename xbmc/{network/linux => platform/linux/network}/ZeroconfAvahi.h (100%)
+ rename xbmc/{network/linux => platform/linux/network}/ZeroconfBrowserAvahi.cpp (100%)
+ rename xbmc/{network/linux => platform/linux/network}/ZeroconfBrowserAvahi.h (100%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index c2c7b2eb0b3b..94342b4113f2 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -2,7 +2,6 @@ xbmc/cores/RetroPlayer/process/android  cores/RetroPlayer/process/android
+ xbmc/platform/linux                     platform/linux
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+-xbmc/network/linux                      network/linux
+ xbmc/peripherals/bus/linux              peripherals/bus/linux
+ xbmc/peripherals/bus/android            peripherals/bus/android
+ xbmc/powermanagement/android            powermanagement/android
+@@ -10,6 +9,7 @@ xbmc/filesystem/posix                   filesystem/posix
+ xbmc/utils/posix                        utils_posix
+ xbmc/windowing/android                  windowing/android
+ xbmc/platform/posix                     posix
++xbmc/platform/linux/network             platform/linux/network
+ xbmc/platform/android/activity          android_activity
+ xbmc/platform/android/bionic_supplement android_bionicsupplement
+ xbmc/platform/android/network           platform/android/network
+diff --git a/cmake/treedata/freebsd/subdirs.txt b/cmake/treedata/freebsd/subdirs.txt
+index c4cc776464fc..58139267a8b1 100644
+--- a/cmake/treedata/freebsd/subdirs.txt
++++ b/cmake/treedata/freebsd/subdirs.txt
+@@ -1,9 +1,9 @@
+ xbmc/platform/linux        platform/linux
+ xbmc/platform/linux/input  platform/linux/input
++xbmc/platform/linux/network platform/linux/network
+ xbmc/platform/linux/storage platform/linux/storage
+ xbmc/input/touch           input/touch
+ xbmc/input/touch/generic   input/touch/generic
+-xbmc/network/linux         network/linux
+ xbmc/peripherals/bus/linux peripherals/bus/linux
+ xbmc/powermanagement/linux powermanagement/linux
+ xbmc/filesystem/posix      filesystem/posix
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index feafe5480a07..652854cbb0c8 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -1,7 +1,7 @@
+ xbmc/platform/linux              platform/linux
++xbmc/platform/linux/network      platform/linux/network
+ xbmc/input/touch                 input/touch
+ xbmc/input/touch/generic         input/touch/generic
+-xbmc/network/linux               network/linux
+ xbmc/network/osx                 network/osx
+ xbmc/peripherals/bus/osx         peripherals/bus/osx
+ xbmc/powermanagement/osx         powermanagement/osx
+diff --git a/cmake/treedata/linux/subdirs.txt b/cmake/treedata/linux/subdirs.txt
+index 6dc55fe4e7c0..9385000e8607 100644
+--- a/cmake/treedata/linux/subdirs.txt
++++ b/cmake/treedata/linux/subdirs.txt
+@@ -1,9 +1,9 @@
+ xbmc/platform/linux        platform/linux
+ xbmc/platform/linux/input  platform/linux/input
++xbmc/platform/linux/network platform/linux/network
+ xbmc/platform/linux/storage platform/linux/storage
+ xbmc/input/touch           input/touch
+ xbmc/input/touch/generic   input/touch/generic
+-xbmc/network/linux         network/linux
+ xbmc/peripherals/bus/linux peripherals/bus/linux
+ xbmc/powermanagement/linux powermanagement/linux
+ xbmc/filesystem/posix      filesystem/posix
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index de61ea494024..c58921d2af5d 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -1,5 +1,5 @@
+ xbmc/platform/linux          platform/linux
+-xbmc/network/linux           network/linux
++xbmc/platform/linux/network  platform/linux/network
+ xbmc/network/osx             network/osx
+ xbmc/peripherals/bus/osx     peripherals/bus/osx
+ xbmc/powermanagement/osx     powermanagement/osx
+diff --git a/xbmc/network/GUIDialogAccessPoints.cpp b/xbmc/network/GUIDialogAccessPoints.cpp
+index db7cd68204ef..1d646e2e7b29 100644
+--- a/xbmc/network/GUIDialogAccessPoints.cpp
++++ b/xbmc/network/GUIDialogAccessPoints.cpp
+@@ -23,7 +23,7 @@
+ #if defined(TARGET_ANDROID)
+ #include "platform/android/network/NetworkAndroid.h"
+ #elif defined(TARGET_POSIX)
+-#include "linux/NetworkLinux.h"
++#include "platform/linux/network/NetworkLinux.h"
+ #endif
+ #include "ServiceBroker.h"
+ #include "FileItem.h"
+diff --git a/xbmc/network/Network.h b/xbmc/network/Network.h
+index 0e161907a37b..d970a83cb50f 100644
+--- a/xbmc/network/Network.h
++++ b/xbmc/network/Network.h
+@@ -155,7 +155,7 @@ class CNetwork
+ #if defined(TARGET_ANDROID)
+ #include "platform/android/network/NetworkAndroid.h"
+ #elif defined(HAS_LINUX_NETWORK)
+-#include "linux/NetworkLinux.h"
++#include "platform/linux/network/NetworkLinux.h"
+ #elif defined(HAS_WIN32_NETWORK)
+ #include "platform/win32/network/NetworkWin32.h"
+ #elif defined(HAS_WIN10_NETWORK)
+diff --git a/xbmc/network/Zeroconf.cpp b/xbmc/network/Zeroconf.cpp
+index 18b8b04f5214..e86c4ea00139 100644
+--- a/xbmc/network/Zeroconf.cpp
++++ b/xbmc/network/Zeroconf.cpp
+@@ -29,7 +29,7 @@
+ #include "utils/JobManager.h"
+ 
+ #if defined(HAS_AVAHI)
+-#include "linux/ZeroconfAvahi.h"
++#include "platform/linux/network/ZeroconfAvahi.h"
+ #elif defined(TARGET_DARWIN)
+ //on osx use the native implementation
+ #include "osx/ZeroconfOSX.h"
+diff --git a/xbmc/network/ZeroconfBrowser.cpp b/xbmc/network/ZeroconfBrowser.cpp
+index d568d1dc52eb..125e7aa597cc 100644
+--- a/xbmc/network/ZeroconfBrowser.cpp
++++ b/xbmc/network/ZeroconfBrowser.cpp
+@@ -23,7 +23,7 @@
+ #include <cassert>
+ 
+ #if defined (HAS_AVAHI)
+-#include "linux/ZeroconfBrowserAvahi.h"
++#include "platform/linux/network/ZeroconfBrowserAvahi.h"
+ #elif defined(TARGET_DARWIN)
+ //on osx use the native implementation
+ #include "osx/ZeroconfBrowserOSX.h"
+diff --git a/xbmc/network/linux/CMakeLists.txt b/xbmc/platform/linux/network/CMakeLists.txt
+similarity index 86%
+rename from xbmc/network/linux/CMakeLists.txt
+rename to xbmc/platform/linux/network/CMakeLists.txt
+index 3efb0f415c87..9a99ed1c209c 100644
+--- a/xbmc/network/linux/CMakeLists.txt
++++ b/xbmc/platform/linux/network/CMakeLists.txt
+@@ -9,4 +9,4 @@ if(AVAHI_FOUND)
+                       ZeroconfBrowserAvahi.h)
+ endif()
+ 
+-core_add_library(network_linux)
++core_add_library(platform_linux_network)
+diff --git a/xbmc/network/linux/NetworkLinux.cpp b/xbmc/platform/linux/network/NetworkLinux.cpp
+similarity index 100%
+rename from xbmc/network/linux/NetworkLinux.cpp
+rename to xbmc/platform/linux/network/NetworkLinux.cpp
+diff --git a/xbmc/network/linux/NetworkLinux.h b/xbmc/platform/linux/network/NetworkLinux.h
+similarity index 100%
+rename from xbmc/network/linux/NetworkLinux.h
+rename to xbmc/platform/linux/network/NetworkLinux.h
+diff --git a/xbmc/network/linux/ZeroconfAvahi.cpp b/xbmc/platform/linux/network/ZeroconfAvahi.cpp
+similarity index 100%
+rename from xbmc/network/linux/ZeroconfAvahi.cpp
+rename to xbmc/platform/linux/network/ZeroconfAvahi.cpp
+diff --git a/xbmc/network/linux/ZeroconfAvahi.h b/xbmc/platform/linux/network/ZeroconfAvahi.h
+similarity index 100%
+rename from xbmc/network/linux/ZeroconfAvahi.h
+rename to xbmc/platform/linux/network/ZeroconfAvahi.h
+diff --git a/xbmc/network/linux/ZeroconfBrowserAvahi.cpp b/xbmc/platform/linux/network/ZeroconfBrowserAvahi.cpp
+similarity index 100%
+rename from xbmc/network/linux/ZeroconfBrowserAvahi.cpp
+rename to xbmc/platform/linux/network/ZeroconfBrowserAvahi.cpp
+diff --git a/xbmc/network/linux/ZeroconfBrowserAvahi.h b/xbmc/platform/linux/network/ZeroconfBrowserAvahi.h
+similarity index 100%
+rename from xbmc/network/linux/ZeroconfBrowserAvahi.h
+rename to xbmc/platform/linux/network/ZeroconfBrowserAvahi.h
+
+From 7fbeeed1a120d11b14ae56f2d563f45621832b7d Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 18:26:14 +0300
+Subject: [PATCH 14/30] [darwin] network: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/ios/subdirs.txt                                          | 2 +-
+ cmake/treedata/osx/subdirs.txt                                          | 2 +-
+ xbmc/network/Zeroconf.cpp                                               | 2 +-
+ xbmc/network/ZeroconfBrowser.cpp                                        | 2 +-
+ xbmc/{network/osx => platform/darwin/osx/network}/CMakeLists.txt        | 2 +-
+ .../{network/osx => platform/darwin/osx/network}/ZeroconfBrowserOSX.cpp | 0
+ xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfBrowserOSX.h  | 0
+ xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfOSX.cpp       | 0
+ xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfOSX.h         | 0
+ xbmc/{network/osx => platform/darwin/osx/network}/ioshacks.h            | 0
+ xbmc/platform/linux/network/NetworkLinux.cpp                            | 2 +-
+ 11 files changed, 6 insertions(+), 6 deletions(-)
+ rename xbmc/{network/osx => platform/darwin/osx/network}/CMakeLists.txt (79%)
+ rename xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfBrowserOSX.cpp (100%)
+ rename xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfBrowserOSX.h (100%)
+ rename xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfOSX.cpp (100%)
+ rename xbmc/{network/osx => platform/darwin/osx/network}/ZeroconfOSX.h (100%)
+ rename xbmc/{network/osx => platform/darwin/osx/network}/ioshacks.h (100%)
+
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index 652854cbb0c8..5ac22d903c17 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -2,13 +2,13 @@ xbmc/platform/linux              platform/linux
+ xbmc/platform/linux/network      platform/linux/network
+ xbmc/input/touch                 input/touch
+ xbmc/input/touch/generic         input/touch/generic
+-xbmc/network/osx                 network/osx
+ xbmc/peripherals/bus/osx         peripherals/bus/osx
+ xbmc/powermanagement/osx         powermanagement/osx
+ xbmc/platform/posix              posix
+ xbmc/platform/darwin             platform/darwin
+ xbmc/platform/darwin/ios         platform/ios
+ xbmc/platform/darwin/ios-common  platform/ios-common
++xbmc/platform/darwin/osx/network  platform/osx/network
+ xbmc/platform/darwin/osx/storage  platform/osx/storage
+ xbmc/filesystem/posix            filesystem/posix
+ xbmc/utils/posix                 utils/posix
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index c58921d2af5d..53e2608e3a70 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -1,11 +1,11 @@
+ xbmc/platform/linux          platform/linux
+ xbmc/platform/linux/network  platform/linux/network
+-xbmc/network/osx             network/osx
+ xbmc/peripherals/bus/osx     peripherals/bus/osx
+ xbmc/powermanagement/osx     powermanagement/osx
+ xbmc/platform/posix          posix
+ xbmc/platform/darwin         platform/darwin
+ xbmc/platform/darwin/osx     platform/osx
++xbmc/platform/darwin/osx/network  platform/osx/network
+ xbmc/platform/darwin/osx/storage  platform/osx/storage
+ xbmc/filesystem/posix        filesystem/posix
+ xbmc/utils/posix             utils/posix
+diff --git a/xbmc/network/Zeroconf.cpp b/xbmc/network/Zeroconf.cpp
+index e86c4ea00139..b0c1b54575e7 100644
+--- a/xbmc/network/Zeroconf.cpp
++++ b/xbmc/network/Zeroconf.cpp
+@@ -32,7 +32,7 @@
+ #include "platform/linux/network/ZeroconfAvahi.h"
+ #elif defined(TARGET_DARWIN)
+ //on osx use the native implementation
+-#include "osx/ZeroconfOSX.h"
++#include "platform/darwin/osx/network/ZeroconfOSX.h"
+ #elif defined(TARGET_ANDROID)
+ #include "platform/android/network/ZeroconfAndroid.h"
+ #elif defined(HAS_MDNS)
+diff --git a/xbmc/network/ZeroconfBrowser.cpp b/xbmc/network/ZeroconfBrowser.cpp
+index 125e7aa597cc..a89e0151a143 100644
+--- a/xbmc/network/ZeroconfBrowser.cpp
++++ b/xbmc/network/ZeroconfBrowser.cpp
+@@ -26,7 +26,7 @@
+ #include "platform/linux/network/ZeroconfBrowserAvahi.h"
+ #elif defined(TARGET_DARWIN)
+ //on osx use the native implementation
+-#include "osx/ZeroconfBrowserOSX.h"
++#include "platform/darwin/osx/network/ZeroconfBrowserOSX.h"
+ #elif defined(TARGET_ANDROID)
+ #include "platform/android/network/ZeroconfBrowserAndroid.h"
+ #elif defined(HAS_MDNS)
+diff --git a/xbmc/network/osx/CMakeLists.txt b/xbmc/platform/darwin/osx/network/CMakeLists.txt
+similarity index 79%
+rename from xbmc/network/osx/CMakeLists.txt
+rename to xbmc/platform/darwin/osx/network/CMakeLists.txt
+index 89d83b4108c3..e0219bbea445 100644
+--- a/xbmc/network/osx/CMakeLists.txt
++++ b/xbmc/platform/darwin/osx/network/CMakeLists.txt
+@@ -5,4 +5,4 @@ set(HEADERS ioshacks.h
+             ZeroconfBrowserOSX.h
+             ZeroconfOSX.h)
+ 
+-core_add_library(network_osx)
++core_add_library(platform_osx_network)
+diff --git a/xbmc/network/osx/ZeroconfBrowserOSX.cpp b/xbmc/platform/darwin/osx/network/ZeroconfBrowserOSX.cpp
+similarity index 100%
+rename from xbmc/network/osx/ZeroconfBrowserOSX.cpp
+rename to xbmc/platform/darwin/osx/network/ZeroconfBrowserOSX.cpp
+diff --git a/xbmc/network/osx/ZeroconfBrowserOSX.h b/xbmc/platform/darwin/osx/network/ZeroconfBrowserOSX.h
+similarity index 100%
+rename from xbmc/network/osx/ZeroconfBrowserOSX.h
+rename to xbmc/platform/darwin/osx/network/ZeroconfBrowserOSX.h
+diff --git a/xbmc/network/osx/ZeroconfOSX.cpp b/xbmc/platform/darwin/osx/network/ZeroconfOSX.cpp
+similarity index 100%
+rename from xbmc/network/osx/ZeroconfOSX.cpp
+rename to xbmc/platform/darwin/osx/network/ZeroconfOSX.cpp
+diff --git a/xbmc/network/osx/ZeroconfOSX.h b/xbmc/platform/darwin/osx/network/ZeroconfOSX.h
+similarity index 100%
+rename from xbmc/network/osx/ZeroconfOSX.h
+rename to xbmc/platform/darwin/osx/network/ZeroconfOSX.h
+diff --git a/xbmc/network/osx/ioshacks.h b/xbmc/platform/darwin/osx/network/ioshacks.h
+similarity index 100%
+rename from xbmc/network/osx/ioshacks.h
+rename to xbmc/platform/darwin/osx/network/ioshacks.h
+diff --git a/xbmc/platform/linux/network/NetworkLinux.cpp b/xbmc/platform/linux/network/NetworkLinux.cpp
+index 9771763818c3..13d973f18cbe 100644
+--- a/xbmc/platform/linux/network/NetworkLinux.cpp
++++ b/xbmc/platform/linux/network/NetworkLinux.cpp
+@@ -45,7 +45,7 @@
+   #include <net/route.h>
+   #include <netinet/if_ether.h>
+ #else //IOS
+-  #include "network/osx/ioshacks.h"
++  #include "platform/darwin/osx/network/ioshacks.h"
+ #endif
+   #include <ifaddrs.h>
+ #elif defined(TARGET_FREEBSD)
+
+From 374841d68b1eea4923e428c2138cd779b399abd2 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Tue, 3 Apr 2018 18:33:01 +0300
+Subject: [PATCH 15/30] [win10] peripherals: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/windowsstore/subdirs.txt                               | 4 ++--
+ xbmc/peripherals/bus/PeripheralBusUSB.h                               | 2 +-
+ .../bus/win10 => platform/win10/peripherals}/CMakeLists.txt           | 2 +-
+ .../bus/win10 => platform/win10/peripherals}/PeripheralBusUSB.cpp     | 0
+ .../bus/win10 => platform/win10/peripherals}/PeripheralBusUSB.h       | 0
+ 5 files changed, 4 insertions(+), 4 deletions(-)
+ rename xbmc/{peripherals/bus/win10 => platform/win10/peripherals}/CMakeLists.txt (60%)
+ rename xbmc/{peripherals/bus/win10 => platform/win10/peripherals}/PeripheralBusUSB.cpp (100%)
+ rename xbmc/{peripherals/bus/win10 => platform/win10/peripherals}/PeripheralBusUSB.h (100%)
+
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index d66845cb18cd..82d49b1f7140 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -1,12 +1,12 @@
+ xbmc/platform/win10             platform/win10
+ xbmc/platform/win10/filesystem  platform/win10/filesystem
+-xbmc/platform/win10/storage     platfrom/win10/storage
+ xbmc/platform/win10/network     platform/win10/network
++xbmc/platform/win10/peripherals platform/win10/peripherals
++xbmc/platform/win10/storage     platfrom/win10/storage
+ xbmc/platform/win32/filesystem  platform/win32/filesystem
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+ xbmc/network/mdns               network/mdns
+-xbmc/peripherals/bus/win10      peripherals/bus/win10
+ xbmc/powermanagement/win10      powermanagement/win10
+ xbmc/utils/win32                utils/win32
+ xbmc/rendering/dx               rendering/dx
+diff --git a/xbmc/peripherals/bus/PeripheralBusUSB.h b/xbmc/peripherals/bus/PeripheralBusUSB.h
+index baff025659b9..82bf8ee577b5 100644
+--- a/xbmc/peripherals/bus/PeripheralBusUSB.h
++++ b/xbmc/peripherals/bus/PeripheralBusUSB.h
+@@ -24,7 +24,7 @@
+ #include "win32/PeripheralBusUSB.h"
+ #elif defined(TARGET_WINDOWS_STORE)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+-#include "win10/PeripheralBusUSB.h"
++#include "platform/win10/peripherals/PeripheralBusUSB.h"
+ #elif defined(TARGET_LINUX) && defined(HAVE_LIBUDEV)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+ #include "linux/PeripheralBusUSBLibUdev.h"
+diff --git a/xbmc/peripherals/bus/win10/CMakeLists.txt b/xbmc/platform/win10/peripherals/CMakeLists.txt
+similarity index 60%
+rename from xbmc/peripherals/bus/win10/CMakeLists.txt
+rename to xbmc/platform/win10/peripherals/CMakeLists.txt
+index b334acd48b16..b27b4074942d 100644
+--- a/xbmc/peripherals/bus/win10/CMakeLists.txt
++++ b/xbmc/platform/win10/peripherals/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES PeripheralBusUSB.cpp)
+ 
+ set(HEADERS PeripheralBusUSB.h)
+ 
+-core_add_library(peripherals_bus_win10)
++core_add_library(platform_win10_peripherals)
+diff --git a/xbmc/peripherals/bus/win10/PeripheralBusUSB.cpp b/xbmc/platform/win10/peripherals/PeripheralBusUSB.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/win10/PeripheralBusUSB.cpp
+rename to xbmc/platform/win10/peripherals/PeripheralBusUSB.cpp
+diff --git a/xbmc/peripherals/bus/win10/PeripheralBusUSB.h b/xbmc/platform/win10/peripherals/PeripheralBusUSB.h
+similarity index 100%
+rename from xbmc/peripherals/bus/win10/PeripheralBusUSB.h
+rename to xbmc/platform/win10/peripherals/PeripheralBusUSB.h
+
+From 07792c33c62cc2824b8be9fb6f51014c349bf3f1 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 08:47:22 +0300
+Subject: [PATCH 16/30] [win32] peripherals: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/windows/subdirs.txt                                      | 2 +-
+ xbmc/peripherals/bus/PeripheralBusUSB.h                                 | 2 +-
+ .../bus/win32 => platform/win32/peripherals}/CMakeLists.txt             | 2 +-
+ .../bus/win32 => platform/win32/peripherals}/PeripheralBusUSB.cpp       | 0
+ .../bus/win32 => platform/win32/peripherals}/PeripheralBusUSB.h         | 0
+ 5 files changed, 3 insertions(+), 3 deletions(-)
+ rename xbmc/{peripherals/bus/win32 => platform/win32/peripherals}/CMakeLists.txt (60%)
+ rename xbmc/{peripherals/bus/win32 => platform/win32/peripherals}/PeripheralBusUSB.cpp (100%)
+ rename xbmc/{peripherals/bus/win32 => platform/win32/peripherals}/PeripheralBusUSB.h (100%)
+
+diff --git a/cmake/treedata/windows/subdirs.txt b/cmake/treedata/windows/subdirs.txt
+index 65ae2fa29727..10bdfbea53d4 100644
+--- a/cmake/treedata/windows/subdirs.txt
++++ b/cmake/treedata/windows/subdirs.txt
+@@ -2,11 +2,11 @@ xbmc/platform/win32             platform/win32
+ xbmc/platform/win32/input       platform/win32/input
+ xbmc/platform/win32/filesystem  platform/win32/filesystem
+ xbmc/platform/win32/network     platform/win32/network
++xbmc/platform/win32/peripherals platform/win32/peripherals
+ xbmc/platform/win32/storage     platform/win32/storage
+ xbmc/input/touch                input/touch
+ xbmc/input/touch/generic        input/touch/generic
+ xbmc/network/mdns               network/mdns
+-xbmc/peripherals/bus/win32      peripherals/bus/win32
+ xbmc/powermanagement/windows    powermanagement/windows
+ xbmc/utils/win32                utils/win32
+ xbmc/rendering/dx               rendering/dx
+diff --git a/xbmc/peripherals/bus/PeripheralBusUSB.h b/xbmc/peripherals/bus/PeripheralBusUSB.h
+index 82bf8ee577b5..75039285bdd0 100644
+--- a/xbmc/peripherals/bus/PeripheralBusUSB.h
++++ b/xbmc/peripherals/bus/PeripheralBusUSB.h
+@@ -21,7 +21,7 @@
+ 
+ #if   defined(TARGET_WINDOWS_DESKTOP)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+-#include "win32/PeripheralBusUSB.h"
++#include "platform/win32/peripherals/PeripheralBusUSB.h"
+ #elif defined(TARGET_WINDOWS_STORE)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+ #include "platform/win10/peripherals/PeripheralBusUSB.h"
+diff --git a/xbmc/peripherals/bus/win32/CMakeLists.txt b/xbmc/platform/win32/peripherals/CMakeLists.txt
+similarity index 60%
+rename from xbmc/peripherals/bus/win32/CMakeLists.txt
+rename to xbmc/platform/win32/peripherals/CMakeLists.txt
+index fd5c472fc12a..e98f2294dc40 100644
+--- a/xbmc/peripherals/bus/win32/CMakeLists.txt
++++ b/xbmc/platform/win32/peripherals/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES PeripheralBusUSB.cpp)
+ 
+ set(HEADERS PeripheralBusUSB.h)
+ 
+-core_add_library(peripherals_bus_win32)
++core_add_library(platform_win32_peripherals)
+diff --git a/xbmc/peripherals/bus/win32/PeripheralBusUSB.cpp b/xbmc/platform/win32/peripherals/PeripheralBusUSB.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/win32/PeripheralBusUSB.cpp
+rename to xbmc/platform/win32/peripherals/PeripheralBusUSB.cpp
+diff --git a/xbmc/peripherals/bus/win32/PeripheralBusUSB.h b/xbmc/platform/win32/peripherals/PeripheralBusUSB.h
+similarity index 100%
+rename from xbmc/peripherals/bus/win32/PeripheralBusUSB.h
+rename to xbmc/platform/win32/peripherals/PeripheralBusUSB.h
+
+From 18440250ca0297ea6b3b0f212c176f31f7943ab9 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 08:55:14 +0300
+Subject: [PATCH 17/30] [linux] peripherals: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/android/subdirs.txt                 | 10 ++++-----
+ cmake/treedata/freebsd/subdirs.txt                 | 24 +++++++++++-----------
+ cmake/treedata/linux/subdirs.txt                   | 24 +++++++++++-----------
+ xbmc/peripherals/bus/PeripheralBusUSB.h            |  6 +++---
+ .../linux/peripherals}/CMakeLists.txt              |  2 +-
+ .../linux/peripherals}/PeripheralBusUSBLibUSB.cpp  |  0
+ .../linux/peripherals}/PeripheralBusUSBLibUSB.h    |  0
+ .../linux/peripherals}/PeripheralBusUSBLibUdev.cpp |  0
+ .../linux/peripherals}/PeripheralBusUSBLibUdev.h   |  0
+ 9 files changed, 33 insertions(+), 33 deletions(-)
+ rename xbmc/{peripherals/bus/linux => platform/linux/peripherals}/CMakeLists.txt (84%)
+ rename xbmc/{peripherals/bus/linux => platform/linux/peripherals}/PeripheralBusUSBLibUSB.cpp (100%)
+ rename xbmc/{peripherals/bus/linux => platform/linux/peripherals}/PeripheralBusUSBLibUSB.h (100%)
+ rename xbmc/{peripherals/bus/linux => platform/linux/peripherals}/PeripheralBusUSBLibUdev.cpp (100%)
+ rename xbmc/{peripherals/bus/linux => platform/linux/peripherals}/PeripheralBusUSBLibUdev.h (100%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 94342b4113f2..8c5ef255aa75 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -1,16 +1,16 @@
+ xbmc/cores/RetroPlayer/process/android  cores/RetroPlayer/process/android
+-xbmc/platform/linux                     platform/linux
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+-xbmc/peripherals/bus/linux              peripherals/bus/linux
+ xbmc/peripherals/bus/android            peripherals/bus/android
+ xbmc/powermanagement/android            powermanagement/android
+ xbmc/filesystem/posix                   filesystem/posix
+-xbmc/utils/posix                        utils_posix
++xbmc/utils/posix                        utils/posix
+ xbmc/windowing/android                  windowing/android
+ xbmc/platform/posix                     posix
++xbmc/platform/linux                     platform/linux
+ xbmc/platform/linux/network             platform/linux/network
+-xbmc/platform/android/activity          android_activity
+-xbmc/platform/android/bionic_supplement android_bionicsupplement
++xbmc/platform/linux/peripherals         platform/linux/peripherals
++xbmc/platform/android/activity          android/activity
++xbmc/platform/android/bionic_supplement android/bionicsupplement
+ xbmc/platform/android/network           platform/android/network
+ xbmc/platform/android/storage           platform/android/storage
+diff --git a/cmake/treedata/freebsd/subdirs.txt b/cmake/treedata/freebsd/subdirs.txt
+index 58139267a8b1..263ecc442f11 100644
+--- a/cmake/treedata/freebsd/subdirs.txt
++++ b/cmake/treedata/freebsd/subdirs.txt
+@@ -1,12 +1,12 @@
+-xbmc/platform/linux        platform/linux
+-xbmc/platform/linux/input  platform/linux/input
+-xbmc/platform/linux/network platform/linux/network
+-xbmc/platform/linux/storage platform/linux/storage
+-xbmc/input/touch           input/touch
+-xbmc/input/touch/generic   input/touch/generic
+-xbmc/peripherals/bus/linux peripherals/bus/linux
+-xbmc/powermanagement/linux powermanagement/linux
+-xbmc/filesystem/posix      filesystem/posix
+-xbmc/utils/posix           utils_posix
+-xbmc/platform/posix        posix
+-xbmc/freebsd               freebsdsupport
++xbmc/platform/posix                 platform/posix
++xbmc/platform/linux                 platform/linux
++xbmc/platform/linux/input           platform/linux/input
++xbmc/platform/linux/network         platform/linux/network
++xbmc/platform/linux/peripherals     platform/linux/peripherals
++xbmc/platform/linux/storage         platform/linux/storage
++xbmc/input/touch                    input/touch
++xbmc/input/touch/generic            input/touch/generic
++xbmc/powermanagement/linux          powermanagement/linux
++xbmc/filesystem/posix               filesystem/posix
++xbmc/utils/posix                    utils/posix
++xbmc/freebsd                        freebsdsupport
+diff --git a/cmake/treedata/linux/subdirs.txt b/cmake/treedata/linux/subdirs.txt
+index 9385000e8607..fa2e8b04f974 100644
+--- a/cmake/treedata/linux/subdirs.txt
++++ b/cmake/treedata/linux/subdirs.txt
+@@ -1,14 +1,14 @@
+-xbmc/platform/linux        platform/linux
+-xbmc/platform/linux/input  platform/linux/input
+-xbmc/platform/linux/network platform/linux/network
+-xbmc/platform/linux/storage platform/linux/storage
+-xbmc/input/touch           input/touch
+-xbmc/input/touch/generic   input/touch/generic
+-xbmc/peripherals/bus/linux peripherals/bus/linux
+-xbmc/powermanagement/linux powermanagement/linux
+-xbmc/filesystem/posix      filesystem/posix
+-xbmc/utils/posix           utils_posix
+-xbmc/platform/posix        posix
++xbmc/platform/posix                 platform/posix
++xbmc/platform/linux                 platform/linux
++xbmc/platform/linux/input           platform/linux/input
++xbmc/platform/linux/network         platform/linux/network
++xbmc/platform/linux/peripherals     platform/linux/peripherals
++xbmc/platform/linux/storage         platform/linux/storage
++xbmc/input/touch                    input/touch
++xbmc/input/touch/generic            input/touch/generic
++xbmc/powermanagement/linux          powermanagement/linux
++xbmc/filesystem/posix               filesystem/posix
++xbmc/utils/posix                    utils/posix
+ xbmc/cores/RetroPlayer/process/rbpi cores/RetroPlayer/process/rbpi
+ xbmc/cores/VideoPlayer/Process/rbpi cores/VideoPlayer/Process/rbpi
+-xbmc/windowing/linux       windowing/linux
++xbmc/windowing/linux                windowing/linux
+diff --git a/xbmc/peripherals/bus/PeripheralBusUSB.h b/xbmc/peripherals/bus/PeripheralBusUSB.h
+index 75039285bdd0..d8191fd0eb3b 100644
+--- a/xbmc/peripherals/bus/PeripheralBusUSB.h
++++ b/xbmc/peripherals/bus/PeripheralBusUSB.h
+@@ -27,13 +27,13 @@
+ #include "platform/win10/peripherals/PeripheralBusUSB.h"
+ #elif defined(TARGET_LINUX) && defined(HAVE_LIBUDEV)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+-#include "linux/PeripheralBusUSBLibUdev.h"
++#include "platform/linux/peripherals/PeripheralBusUSBLibUdev.h"
+ #elif defined(TARGET_LINUX) && defined(HAVE_LIBUSB)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+-#include "linux/PeripheralBusUSBLibUSB.h"
++#include "platform/linux/peripherals/PeripheralBusUSBLibUSB.h"
+ #elif defined(TARGET_FREEBSD) && defined(HAVE_LIBUSB)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+-#include "linux/PeripheralBusUSBLibUSB.h"
++#include "platform/linux/peripherals/PeripheralBusUSBLibUSB.h"
+ #elif defined(TARGET_DARWIN)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+ #include "osx/PeripheralBusUSB.h"
+diff --git a/xbmc/peripherals/bus/linux/CMakeLists.txt b/xbmc/platform/linux/peripherals/CMakeLists.txt
+similarity index 84%
+rename from xbmc/peripherals/bus/linux/CMakeLists.txt
+rename to xbmc/platform/linux/peripherals/CMakeLists.txt
+index f9ab837ef0c7..626aa4020575 100644
+--- a/xbmc/peripherals/bus/linux/CMakeLists.txt
++++ b/xbmc/platform/linux/peripherals/CMakeLists.txt
+@@ -7,5 +7,5 @@ elseif(LIBUSB_FOUND)
+ endif()
+ 
+ if(SOURCES)
+-  core_add_library(peripherals_bus_linux)
++  core_add_library(platform_linux_peripherals)
+ endif()
+diff --git a/xbmc/peripherals/bus/linux/PeripheralBusUSBLibUSB.cpp b/xbmc/platform/linux/peripherals/PeripheralBusUSBLibUSB.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/linux/PeripheralBusUSBLibUSB.cpp
+rename to xbmc/platform/linux/peripherals/PeripheralBusUSBLibUSB.cpp
+diff --git a/xbmc/peripherals/bus/linux/PeripheralBusUSBLibUSB.h b/xbmc/platform/linux/peripherals/PeripheralBusUSBLibUSB.h
+similarity index 100%
+rename from xbmc/peripherals/bus/linux/PeripheralBusUSBLibUSB.h
+rename to xbmc/platform/linux/peripherals/PeripheralBusUSBLibUSB.h
+diff --git a/xbmc/peripherals/bus/linux/PeripheralBusUSBLibUdev.cpp b/xbmc/platform/linux/peripherals/PeripheralBusUSBLibUdev.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/linux/PeripheralBusUSBLibUdev.cpp
+rename to xbmc/platform/linux/peripherals/PeripheralBusUSBLibUdev.cpp
+diff --git a/xbmc/peripherals/bus/linux/PeripheralBusUSBLibUdev.h b/xbmc/platform/linux/peripherals/PeripheralBusUSBLibUdev.h
+similarity index 100%
+rename from xbmc/peripherals/bus/linux/PeripheralBusUSBLibUdev.h
+rename to xbmc/platform/linux/peripherals/PeripheralBusUSBLibUdev.h
+
+From fd9ffca2fb7757578319449744018146e14f78ce Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 08:59:44 +0300
+Subject: [PATCH 18/30] [android] peripherals: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/android/subdirs.txt                                      | 2 +-
+ xbmc/peripherals/Peripherals.cpp                                        | 2 +-
+ xbmc/peripherals/devices/PeripheralJoystick.cpp                         | 2 +-
+ .../android => platform/android/peripherals}/AndroidJoystickState.cpp   | 0
+ .../bus/android => platform/android/peripherals}/AndroidJoystickState.h | 0
+ .../bus/android => platform/android/peripherals}/CMakeLists.txt         | 2 +-
+ .../android => platform/android/peripherals}/PeripheralBusAndroid.cpp   | 0
+ .../bus/android => platform/android/peripherals}/PeripheralBusAndroid.h | 2 +-
+ 8 files changed, 5 insertions(+), 5 deletions(-)
+ rename xbmc/{peripherals/bus/android => platform/android/peripherals}/AndroidJoystickState.cpp (100%)
+ rename xbmc/{peripherals/bus/android => platform/android/peripherals}/AndroidJoystickState.h (100%)
+ rename xbmc/{peripherals/bus/android => platform/android/peripherals}/CMakeLists.txt (75%)
+ rename xbmc/{peripherals/bus/android => platform/android/peripherals}/PeripheralBusAndroid.cpp (100%)
+ rename xbmc/{peripherals/bus/android => platform/android/peripherals}/PeripheralBusAndroid.h (97%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 8c5ef255aa75..18cc4340cedf 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -1,7 +1,6 @@
+ xbmc/cores/RetroPlayer/process/android  cores/RetroPlayer/process/android
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+-xbmc/peripherals/bus/android            peripherals/bus/android
+ xbmc/powermanagement/android            powermanagement/android
+ xbmc/filesystem/posix                   filesystem/posix
+ xbmc/utils/posix                        utils/posix
+@@ -13,4 +12,5 @@ xbmc/platform/linux/peripherals         platform/linux/peripherals
+ xbmc/platform/android/activity          android/activity
+ xbmc/platform/android/bionic_supplement android/bionicsupplement
+ xbmc/platform/android/network           platform/android/network
++xbmc/platform/android/peripherals       platform/android/peripherals
+ xbmc/platform/android/storage           platform/android/storage
+diff --git a/xbmc/peripherals/Peripherals.cpp b/xbmc/peripherals/Peripherals.cpp
+index 330684b7da89..44dad79589bc 100644
+--- a/xbmc/peripherals/Peripherals.cpp
++++ b/xbmc/peripherals/Peripherals.cpp
+@@ -30,7 +30,7 @@
+ #include "bus/PeripheralBus.h"
+ #include "bus/PeripheralBusUSB.h"
+ #if defined(TARGET_ANDROID)
+-#include "bus/android/PeripheralBusAndroid.h"
++#include "platform/android/peripherals/PeripheralBusAndroid.h"
+ #endif
+ #include "bus/virtual/PeripheralBusAddon.h"
+ #include "devices/PeripheralBluetooth.h"
+diff --git a/xbmc/peripherals/devices/PeripheralJoystick.cpp b/xbmc/peripherals/devices/PeripheralJoystick.cpp
+index d5cb6610893b..baf99572ff8f 100644
+--- a/xbmc/peripherals/devices/PeripheralJoystick.cpp
++++ b/xbmc/peripherals/devices/PeripheralJoystick.cpp
+@@ -29,7 +29,7 @@
+ #include "input/InputManager.h"
+ #include "peripherals/Peripherals.h"
+ #include "peripherals/addons/AddonButtonMap.h"
+-#include "peripherals/bus/android/PeripheralBusAndroid.h"
++#include "platform/android/peripherals/PeripheralBusAndroid.h"
+ #include "peripherals/bus/virtual/PeripheralBusAddon.h"
+ #include "threads/SingleLock.h"
+ #include "utils/log.h"
+diff --git a/xbmc/peripherals/bus/android/AndroidJoystickState.cpp b/xbmc/platform/android/peripherals/AndroidJoystickState.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/android/AndroidJoystickState.cpp
+rename to xbmc/platform/android/peripherals/AndroidJoystickState.cpp
+diff --git a/xbmc/peripherals/bus/android/AndroidJoystickState.h b/xbmc/platform/android/peripherals/AndroidJoystickState.h
+similarity index 100%
+rename from xbmc/peripherals/bus/android/AndroidJoystickState.h
+rename to xbmc/platform/android/peripherals/AndroidJoystickState.h
+diff --git a/xbmc/peripherals/bus/android/CMakeLists.txt b/xbmc/platform/android/peripherals/CMakeLists.txt
+similarity index 75%
+rename from xbmc/peripherals/bus/android/CMakeLists.txt
+rename to xbmc/platform/android/peripherals/CMakeLists.txt
+index 0959c0f75ac0..c73e73daefe3 100644
+--- a/xbmc/peripherals/bus/android/CMakeLists.txt
++++ b/xbmc/platform/android/peripherals/CMakeLists.txt
+@@ -4,4 +4,4 @@ set(SOURCES AndroidJoystickState.cpp
+ set(HEADERS AndroidJoystickState.h
+             PeripheralBusAndroid.h)
+ 
+-core_add_library(peripherals_bus_android)
++core_add_library(platform_android_peripherals)
+diff --git a/xbmc/peripherals/bus/android/PeripheralBusAndroid.cpp b/xbmc/platform/android/peripherals/PeripheralBusAndroid.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/android/PeripheralBusAndroid.cpp
+rename to xbmc/platform/android/peripherals/PeripheralBusAndroid.cpp
+diff --git a/xbmc/peripherals/bus/android/PeripheralBusAndroid.h b/xbmc/platform/android/peripherals/PeripheralBusAndroid.h
+similarity index 97%
+rename from xbmc/peripherals/bus/android/PeripheralBusAndroid.h
+rename to xbmc/platform/android/peripherals/PeripheralBusAndroid.h
+index 4366a443307b..9d552ec5efe3 100644
+--- a/xbmc/peripherals/bus/android/PeripheralBusAndroid.h
++++ b/xbmc/platform/android/peripherals/PeripheralBusAndroid.h
+@@ -24,7 +24,7 @@
+ 
+ #include "peripherals/PeripheralTypes.h"
+ #include "peripherals/bus/PeripheralBus.h"
+-#include "peripherals/bus/android/AndroidJoystickState.h"
++#include "platform/android/peripherals/AndroidJoystickState.h"
+ #include "platform/android/activity/IInputDeviceCallbacks.h"
+ #include "platform/android/activity/IInputDeviceEventHandler.h"
+ #include "threads/CriticalSection.h"
+
+From 3f6be20ed10933f7a625850f0f44ec7be0578b49 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:04:41 +0300
+Subject: [PATCH 19/30] [darwin] peripherals: move implementation to platform
+ folder
+
+---
+ cmake/treedata/ios/subdirs.txt                     | 34 +++++++++++-----------
+ cmake/treedata/osx/subdirs.txt                     | 28 +++++++++---------
+ xbmc/peripherals/bus/PeripheralBusUSB.h            |  2 +-
+ .../darwin/osx/peripherals}/CMakeLists.txt         |  2 +-
+ .../darwin/osx/peripherals}/PeripheralBusUSB.cpp   |  0
+ .../darwin/osx/peripherals}/PeripheralBusUSB.h     |  0
+ 6 files changed, 33 insertions(+), 33 deletions(-)
+ rename xbmc/{peripherals/bus/osx => platform/darwin/osx/peripherals}/CMakeLists.txt (57%)
+ rename xbmc/{peripherals/bus/osx => platform/darwin/osx/peripherals}/PeripheralBusUSB.cpp (100%)
+ rename xbmc/{peripherals/bus/osx => platform/darwin/osx/peripherals}/PeripheralBusUSB.h (100%)
+
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index 5ac22d903c17..b12a7ba8580b 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -1,17 +1,17 @@
+-xbmc/platform/linux              platform/linux
+-xbmc/platform/linux/network      platform/linux/network
+-xbmc/input/touch                 input/touch
+-xbmc/input/touch/generic         input/touch/generic
+-xbmc/peripherals/bus/osx         peripherals/bus/osx
+-xbmc/powermanagement/osx         powermanagement/osx
+-xbmc/platform/posix              posix
+-xbmc/platform/darwin             platform/darwin
+-xbmc/platform/darwin/ios         platform/ios
+-xbmc/platform/darwin/ios-common  platform/ios-common
+-xbmc/platform/darwin/osx/network  platform/osx/network
+-xbmc/platform/darwin/osx/storage  platform/osx/storage
+-xbmc/filesystem/posix            filesystem/posix
+-xbmc/utils/posix                 utils/posix
+-xbmc/windowing/osx               windowing/osx
+-xbmc/cores/RetroPlayer/process/ios cores/RetroPlayer/process/ios
+-xbmc/cores/VideoPlayer/Process/ios cores/VideoPlayer/Process/ios
++xbmc/platform/linux                   platform/linux
++xbmc/platform/linux/network           platform/linux/network
++xbmc/input/touch                      input/touch
++xbmc/input/touch/generic              input/touch/generic
++xbmc/powermanagement/osx              powermanagement/osx
++xbmc/platform/posix                   posix
++xbmc/platform/darwin                  platform/darwin
++xbmc/platform/darwin/ios              platform/ios
++xbmc/platform/darwin/ios-common       platform/ios-common
++xbmc/platform/darwin/osx/network      platform/osx/network
++xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
++xbmc/platform/darwin/osx/storage      platform/osx/storage
++xbmc/filesystem/posix                 filesystem/posix
++xbmc/utils/posix                      utils/posix
++xbmc/windowing/osx                    windowing/osx
++xbmc/cores/RetroPlayer/process/ios    cores/RetroPlayer/process/ios
++xbmc/cores/VideoPlayer/Process/ios    cores/VideoPlayer/Process/ios
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index 53e2608e3a70..8708ff532a3b 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -1,14 +1,14 @@
+-xbmc/platform/linux          platform/linux
+-xbmc/platform/linux/network  platform/linux/network
+-xbmc/peripherals/bus/osx     peripherals/bus/osx
+-xbmc/powermanagement/osx     powermanagement/osx
+-xbmc/platform/posix          posix
+-xbmc/platform/darwin         platform/darwin
+-xbmc/platform/darwin/osx     platform/osx
+-xbmc/platform/darwin/osx/network  platform/osx/network
+-xbmc/platform/darwin/osx/storage  platform/osx/storage
+-xbmc/filesystem/posix        filesystem/posix
+-xbmc/utils/posix             utils/posix
+-xbmc/windowing/osx           windowing/osx
+-xbmc/cores/RetroPlayer/process/osx cores/RetroPlayer/process/osx
+-xbmc/cores/VideoPlayer/Process/osx cores/VideoPlayer/Process/osx
++xbmc/platform/posix                   posix
++xbmc/platform/linux                   platform/linux
++xbmc/platform/linux/network           platform/linux/network
++xbmc/powermanagement/osx              powermanagement/osx
++xbmc/platform/darwin                  platform/darwin
++xbmc/platform/darwin/osx              platform/osx
++xbmc/platform/darwin/osx/network      platform/osx/network
++xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
++xbmc/platform/darwin/osx/storage      platform/osx/storage
++xbmc/filesystem/posix                 filesystem/posix
++xbmc/utils/posix                      utils/posix
++xbmc/windowing/osx                    windowing/osx
++xbmc/cores/RetroPlayer/process/osx    cores/RetroPlayer/process/osx
++xbmc/cores/VideoPlayer/Process/osx    cores/VideoPlayer/Process/osx
+diff --git a/xbmc/peripherals/bus/PeripheralBusUSB.h b/xbmc/peripherals/bus/PeripheralBusUSB.h
+index d8191fd0eb3b..fe2f3d08b29e 100644
+--- a/xbmc/peripherals/bus/PeripheralBusUSB.h
++++ b/xbmc/peripherals/bus/PeripheralBusUSB.h
+@@ -36,5 +36,5 @@
+ #include "platform/linux/peripherals/PeripheralBusUSBLibUSB.h"
+ #elif defined(TARGET_DARWIN)
+ #define HAVE_PERIPHERAL_BUS_USB 1
+-#include "osx/PeripheralBusUSB.h"
++#include "platform/darwin/osx/peripherals/PeripheralBusUSB.h"
+ #endif
+diff --git a/xbmc/peripherals/bus/osx/CMakeLists.txt b/xbmc/platform/darwin/osx/peripherals/CMakeLists.txt
+similarity index 57%
+rename from xbmc/peripherals/bus/osx/CMakeLists.txt
+rename to xbmc/platform/darwin/osx/peripherals/CMakeLists.txt
+index 03e348a49550..7cc42cea2fa2 100644
+--- a/xbmc/peripherals/bus/osx/CMakeLists.txt
++++ b/xbmc/platform/darwin/osx/peripherals/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES PeripheralBusUSB.cpp)
+ 
+ set(HEADERS PeripheralBusUSB.h)
+ 
+-core_add_library(peripherals_bus_osx)
++core_add_library(platform_darwin_osx_peripherals)
+diff --git a/xbmc/peripherals/bus/osx/PeripheralBusUSB.cpp b/xbmc/platform/darwin/osx/peripherals/PeripheralBusUSB.cpp
+similarity index 100%
+rename from xbmc/peripherals/bus/osx/PeripheralBusUSB.cpp
+rename to xbmc/platform/darwin/osx/peripherals/PeripheralBusUSB.cpp
+diff --git a/xbmc/peripherals/bus/osx/PeripheralBusUSB.h b/xbmc/platform/darwin/osx/peripherals/PeripheralBusUSB.h
+similarity index 100%
+rename from xbmc/peripherals/bus/osx/PeripheralBusUSB.h
+rename to xbmc/platform/darwin/osx/peripherals/PeripheralBusUSB.h
+
+From fdc169468972edf6fc3e39dc2f2e4df00d0db504 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:10:02 +0300
+Subject: [PATCH 20/30] [win10] powermanagement: move implementation to
+ platform folder
+
+---
+ cmake/treedata/windowsstore/subdirs.txt            | 28 +++++++++++-----------
+ .../win10/powermanagement}/CMakeLists.txt          |  2 +-
+ .../win10/powermanagement}/Win10PowerSyscall.cpp   |  0
+ .../win10/powermanagement}/Win10PowerSyscall.h     |  0
+ .../win10/powermanagement}/WinIdleTimer.cpp        |  0
+ xbmc/windowing/win10/WinSystemWin10.cpp            |  2 +-
+ 6 files changed, 16 insertions(+), 16 deletions(-)
+ rename xbmc/{powermanagement/win10 => platform/win10/powermanagement}/CMakeLists.txt (66%)
+ rename xbmc/{powermanagement/win10 => platform/win10/powermanagement}/Win10PowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/win10 => platform/win10/powermanagement}/Win10PowerSyscall.h (100%)
+ rename xbmc/{powermanagement/win10 => platform/win10/powermanagement}/WinIdleTimer.cpp (100%)
+
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index 82d49b1f7140..1084447281d0 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -1,15 +1,15 @@
+-xbmc/platform/win10             platform/win10
+-xbmc/platform/win10/filesystem  platform/win10/filesystem
+-xbmc/platform/win10/network     platform/win10/network
+-xbmc/platform/win10/peripherals platform/win10/peripherals
+-xbmc/platform/win10/storage     platfrom/win10/storage
+-xbmc/platform/win32/filesystem  platform/win32/filesystem
+-xbmc/input/touch                input/touch
+-xbmc/input/touch/generic        input/touch/generic
+-xbmc/network/mdns               network/mdns
+-xbmc/powermanagement/win10      powermanagement/win10
+-xbmc/utils/win32                utils/win32
+-xbmc/rendering/dx               rendering/dx
+-xbmc/threads/platform/win       threads/win
+-xbmc/windowing/win10            windowing/win10
++xbmc/platform/win10                    platform/win10
++xbmc/platform/win10/filesystem         platform/win10/filesystem
++xbmc/platform/win10/network            platform/win10/network
++xbmc/platform/win10/peripherals        platform/win10/peripherals
++xbmc/platform/win10/powermanagement    platfrom/win10/powermanagement
++xbmc/platform/win10/storage            platfrom/win10/storage
++xbmc/platform/win32/filesystem         platform/win32/filesystem
++xbmc/input/touch                       input/touch
++xbmc/input/touch/generic               input/touch/generic
++xbmc/network/mdns                      network/mdns
++xbmc/utils/win32                       utils/win32
++xbmc/rendering/dx                      rendering/dx
++xbmc/threads/platform/win              threads/win
++xbmc/windowing/win10                   windowing/win10
+ xbmc/cores/VideoPlayer/Process/windows cores/VideoPlayer/Process/windows
+diff --git a/xbmc/powermanagement/win10/CMakeLists.txt b/xbmc/platform/win10/powermanagement/CMakeLists.txt
+similarity index 66%
+rename from xbmc/powermanagement/win10/CMakeLists.txt
+rename to xbmc/platform/win10/powermanagement/CMakeLists.txt
+index 1f33c272079f..2b80d3736aa9 100644
+--- a/xbmc/powermanagement/win10/CMakeLists.txt
++++ b/xbmc/platform/win10/powermanagement/CMakeLists.txt
+@@ -3,4 +3,4 @@ set(SOURCES Win10PowerSyscall.cpp
+ 
+ set(HEADERS Win10PowerSyscall.h)
+ 
+-core_add_library(powermanagement_win10)
++core_add_library(platform_win10_powermanagement)
+diff --git a/xbmc/powermanagement/win10/Win10PowerSyscall.cpp b/xbmc/platform/win10/powermanagement/Win10PowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/win10/Win10PowerSyscall.cpp
+rename to xbmc/platform/win10/powermanagement/Win10PowerSyscall.cpp
+diff --git a/xbmc/powermanagement/win10/Win10PowerSyscall.h b/xbmc/platform/win10/powermanagement/Win10PowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/win10/Win10PowerSyscall.h
+rename to xbmc/platform/win10/powermanagement/Win10PowerSyscall.h
+diff --git a/xbmc/powermanagement/win10/WinIdleTimer.cpp b/xbmc/platform/win10/powermanagement/WinIdleTimer.cpp
+similarity index 100%
+rename from xbmc/powermanagement/win10/WinIdleTimer.cpp
+rename to xbmc/platform/win10/powermanagement/WinIdleTimer.cpp
+diff --git a/xbmc/windowing/win10/WinSystemWin10.cpp b/xbmc/windowing/win10/WinSystemWin10.cpp
+index 1b654dd82d6b..8654570bc62b 100644
+--- a/xbmc/windowing/win10/WinSystemWin10.cpp
++++ b/xbmc/windowing/win10/WinSystemWin10.cpp
+@@ -27,8 +27,8 @@
+ #include "messaging/ApplicationMessenger.h"
+ #include "platform/win10/AsyncHelpers.h"
+ #include "platform/win10/input/RemoteControlXbox.h"
++#include "platform/win10/powermanagement/Win10PowerSyscall.h"
+ #include "platform/win32/CharsetConverter.h"
+-#include "powermanagement/win10/Win10PowerSyscall.h"
+ #include "rendering/dx/DirectXHelper.h"
+ #include "rendering/dx/RenderContext.h"
+ #include "ServiceBroker.h"
+
+From 67225d5bc66a147aa8f5758a6ec80d14d990a7c5 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:15:28 +0300
+Subject: [PATCH 21/30] [win32] powermanagement: move implementation to
+ platform folder
+
+---
+ cmake/treedata/windows/subdirs.txt                 | 28 +++++++++++-----------
+ xbmc/platform/win32/IMMNotificationClient.h        |  4 ++--
+ .../win32/powermanagement}/CMakeLists.txt          |  2 +-
+ .../win32/powermanagement}/Win32PowerSyscall.cpp   |  0
+ .../win32/powermanagement}/Win32PowerSyscall.h     |  0
+ .../win32/powermanagement}/WinIdleTimer.cpp        |  0
+ xbmc/windowing/windows/WinEventsWin32.cpp          |  6 ++---
+ xbmc/windowing/windows/WinSystemWin32.cpp          |  4 ++--
+ 8 files changed, 22 insertions(+), 22 deletions(-)
+ rename xbmc/{powermanagement/windows => platform/win32/powermanagement}/CMakeLists.txt (66%)
+ rename xbmc/{powermanagement/windows => platform/win32/powermanagement}/Win32PowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/windows => platform/win32/powermanagement}/Win32PowerSyscall.h (100%)
+ rename xbmc/{powermanagement/windows => platform/win32/powermanagement}/WinIdleTimer.cpp (100%)
+
+diff --git a/cmake/treedata/windows/subdirs.txt b/cmake/treedata/windows/subdirs.txt
+index 10bdfbea53d4..8294c3ccf249 100644
+--- a/cmake/treedata/windows/subdirs.txt
++++ b/cmake/treedata/windows/subdirs.txt
+@@ -1,17 +1,17 @@
+-xbmc/platform/win32             platform/win32
+-xbmc/platform/win32/input       platform/win32/input
+-xbmc/platform/win32/filesystem  platform/win32/filesystem
+-xbmc/platform/win32/network     platform/win32/network
+-xbmc/platform/win32/peripherals platform/win32/peripherals
+-xbmc/platform/win32/storage     platform/win32/storage
+-xbmc/input/touch                input/touch
+-xbmc/input/touch/generic        input/touch/generic
+-xbmc/network/mdns               network/mdns
+-xbmc/powermanagement/windows    powermanagement/windows
+-xbmc/utils/win32                utils/win32
+-xbmc/rendering/dx               rendering/dx
+-xbmc/threads/platform/win       threads/win
+-xbmc/windowing/windows          windowing/windows
++xbmc/platform/win32                    platform/win32
++xbmc/platform/win32/input              platform/win32/input
++xbmc/platform/win32/filesystem         platform/win32/filesystem
++xbmc/platform/win32/network            platform/win32/network
++xbmc/platform/win32/peripherals        platform/win32/peripherals
++xbmc/platform/win32/powermanagement    platform/win32/powermanagement
++xbmc/platform/win32/storage            platform/win32/storage
++xbmc/input/touch                       input/touch
++xbmc/input/touch/generic               input/touch/generic
++xbmc/network/mdns                      network/mdns
++xbmc/utils/win32                       utils/win32
++xbmc/rendering/dx                      rendering/dx
++xbmc/threads/platform/win              threads/win
++xbmc/windowing/windows                 windowing/windows
+ xbmc/cores/RetroPlayer/process/windows cores/RetroPlayer/process/windows
+ xbmc/cores/RetroPlayer/rendering/VideoShaders/windows cores/RetroPlayer/rendering/VideoShaders/windows
+ xbmc/cores/VideoPlayer/Process/windows cores/VideoPlayer/Process/windows
+diff --git a/xbmc/platform/win32/IMMNotificationClient.h b/xbmc/platform/win32/IMMNotificationClient.h
+index c067cd0930f2..c67a876f01db 100644
+--- a/xbmc/platform/win32/IMMNotificationClient.h
++++ b/xbmc/platform/win32/IMMNotificationClient.h
+@@ -20,10 +20,10 @@
+  */
+ 
+ #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+-#include "powermanagement/windows/Win32PowerSyscall.h"
++#include "platform/win32/CharsetConverter.h"
++#include "platform/win32/powermanagement/Win32PowerSyscall.h"
+ #include "ServiceBroker.h"
+ #include "utils/log.h"
+-#include "platform/win32/CharsetConverter.h"
+ 
+ #include <mmdeviceapi.h>
+ #include <wrl/client.h>
+diff --git a/xbmc/powermanagement/windows/CMakeLists.txt b/xbmc/platform/win32/powermanagement/CMakeLists.txt
+similarity index 66%
+rename from xbmc/powermanagement/windows/CMakeLists.txt
+rename to xbmc/platform/win32/powermanagement/CMakeLists.txt
+index 4973eb9f76d1..5f0bfd243a47 100644
+--- a/xbmc/powermanagement/windows/CMakeLists.txt
++++ b/xbmc/platform/win32/powermanagement/CMakeLists.txt
+@@ -3,4 +3,4 @@ set(SOURCES Win32PowerSyscall.cpp
+ 
+ set(HEADERS Win32PowerSyscall.h)
+ 
+-core_add_library(powermanagement_windows)
++core_add_library(platform_win32_powermanagement)
+diff --git a/xbmc/powermanagement/windows/Win32PowerSyscall.cpp b/xbmc/platform/win32/powermanagement/Win32PowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/windows/Win32PowerSyscall.cpp
+rename to xbmc/platform/win32/powermanagement/Win32PowerSyscall.cpp
+diff --git a/xbmc/powermanagement/windows/Win32PowerSyscall.h b/xbmc/platform/win32/powermanagement/Win32PowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/windows/Win32PowerSyscall.h
+rename to xbmc/platform/win32/powermanagement/Win32PowerSyscall.h
+diff --git a/xbmc/powermanagement/windows/WinIdleTimer.cpp b/xbmc/platform/win32/powermanagement/WinIdleTimer.cpp
+similarity index 100%
+rename from xbmc/powermanagement/windows/WinIdleTimer.cpp
+rename to xbmc/platform/win32/powermanagement/WinIdleTimer.cpp
+diff --git a/xbmc/windowing/windows/WinEventsWin32.cpp b/xbmc/windowing/windows/WinEventsWin32.cpp
+index a87cec995073..31f1b6b7a8be 100644
+--- a/xbmc/windowing/windows/WinEventsWin32.cpp
++++ b/xbmc/windowing/windows/WinEventsWin32.cpp
+@@ -37,12 +37,13 @@
+ #include "messaging/ApplicationMessenger.h"
+ #include "network/Zeroconf.h"
+ #include "network/ZeroconfBrowser.h"
++#include "platform/win32/CharsetConverter.h"
++#include "platform/win32/powermanagement/Win32PowerSyscall.h"
++#include "platform/win32/storage/Win32StorageProvider.h"
+ #include "platform/win32/WIN32Util.h"
+ #include "peripherals/Peripherals.h"
+-#include "powermanagement/windows/Win32PowerSyscall.h"
+ #include "ServiceBroker.h"
+ #include "storage/MediaManager.h"
+-#include "platform/win32/storage/Win32StorageProvider.h"
+ #include "Util.h"
+ #include "utils/JobManager.h"
+ #include "utils/log.h"
+@@ -50,7 +51,6 @@
+ #include "rendering/dx/RenderContext.h"
+ #include "WinKeyMap.h"
+ #include "WinEventsWin32.h"
+-#include "platform/win32/CharsetConverter.h"
+ 
+ #ifdef TARGET_WINDOWS
+ 
+diff --git a/xbmc/windowing/windows/WinSystemWin32.cpp b/xbmc/windowing/windows/WinSystemWin32.cpp
+index 718513b78126..0ef9ed73b913 100644
+--- a/xbmc/windowing/windows/WinSystemWin32.cpp
++++ b/xbmc/windowing/windows/WinSystemWin32.cpp
+@@ -29,7 +29,8 @@
+ #include "guilib/gui3d.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "platform/win32/CharsetConverter.h"
+-#include "powermanagement/windows/Win32PowerSyscall.h"
++#include "platform/win32/input/IRServerSuite.h"
++#include "platform/win32/powermanagement/Win32PowerSyscall.h"
+ #include "settings/AdvancedSettings.h"
+ #include "settings/DisplaySettings.h"
+ #include "settings/Settings.h"
+@@ -38,7 +39,6 @@
+ #include "utils/CharsetConverter.h"
+ #include "utils/SystemInfo.h"
+ #include "VideoSyncD3D.h"
+-#include "platform/win32/input/IRServerSuite.h"
+ 
+ #include <tpcshrd.h>
+ #include "guilib/GraphicContext.h"
+
+From c55d8d6c84155d0ce93bdcb20e42eca9c398c553 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:18:48 +0300
+Subject: [PATCH 22/30] [android] powermanagement: move implementation to
+ platform folder
+
+---
+ cmake/treedata/android/subdirs.txt                                      | 2 +-
+ .../android/powermanagement}/AndroidPowerSyscall.cpp                    | 0
+ .../android => platform/android/powermanagement}/AndroidPowerSyscall.h  | 0
+ .../android => platform/android/powermanagement}/CMakeLists.txt         | 2 +-
+ xbmc/windowing/android/WinSystemAndroid.cpp                             | 2 +-
+ 5 files changed, 3 insertions(+), 3 deletions(-)
+ rename xbmc/{powermanagement/android => platform/android/powermanagement}/AndroidPowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/android => platform/android/powermanagement}/AndroidPowerSyscall.h (100%)
+ rename xbmc/{powermanagement/android => platform/android/powermanagement}/CMakeLists.txt (59%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 18cc4340cedf..2d011bf3f6cb 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -1,7 +1,6 @@
+ xbmc/cores/RetroPlayer/process/android  cores/RetroPlayer/process/android
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+-xbmc/powermanagement/android            powermanagement/android
+ xbmc/filesystem/posix                   filesystem/posix
+ xbmc/utils/posix                        utils/posix
+ xbmc/windowing/android                  windowing/android
+@@ -13,4 +12,5 @@ xbmc/platform/android/activity          android/activity
+ xbmc/platform/android/bionic_supplement android/bionicsupplement
+ xbmc/platform/android/network           platform/android/network
+ xbmc/platform/android/peripherals       platform/android/peripherals
++xbmc/platform/android/powermanagement   platform/android/powermanagement
+ xbmc/platform/android/storage           platform/android/storage
+diff --git a/xbmc/powermanagement/android/AndroidPowerSyscall.cpp b/xbmc/platform/android/powermanagement/AndroidPowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/android/AndroidPowerSyscall.cpp
+rename to xbmc/platform/android/powermanagement/AndroidPowerSyscall.cpp
+diff --git a/xbmc/powermanagement/android/AndroidPowerSyscall.h b/xbmc/platform/android/powermanagement/AndroidPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/android/AndroidPowerSyscall.h
+rename to xbmc/platform/android/powermanagement/AndroidPowerSyscall.h
+diff --git a/xbmc/powermanagement/android/CMakeLists.txt b/xbmc/platform/android/powermanagement/CMakeLists.txt
+similarity index 59%
+rename from xbmc/powermanagement/android/CMakeLists.txt
+rename to xbmc/platform/android/powermanagement/CMakeLists.txt
+index 18e69f302207..fdf3005b4d88 100644
+--- a/xbmc/powermanagement/android/CMakeLists.txt
++++ b/xbmc/platform/android/powermanagement/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES AndroidPowerSyscall.cpp)
+ 
+ set(HEADERS AndroidPowerSyscall.h)
+ 
+-core_add_library(powermanagement_android)
++core_add_library(platform_android_powermanagement)
+diff --git a/xbmc/windowing/android/WinSystemAndroid.cpp b/xbmc/windowing/android/WinSystemAndroid.cpp
+index f916052b2532..84fa6d0671d6 100644
+--- a/xbmc/windowing/android/WinSystemAndroid.cpp
++++ b/xbmc/windowing/android/WinSystemAndroid.cpp
+@@ -40,7 +40,7 @@
+ #include "cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecAndroidMediaCodec.h"
+ #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodec.h"
+ #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodecSurface.h"
+-#include "powermanagement/android/AndroidPowerSyscall.h"
++#include "platform/android/powermanagement/AndroidPowerSyscall.h"
+ #include "addons/interfaces/platform/android/System.h"
+ 
+ #include <EGL/egl.h>
+
+From d077fc85c74f11665a376615376fb456d12ceb7f Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:26:09 +0300
+Subject: [PATCH 23/30] [linux] powermanagement: move implementation to
+ platform folder
+
+---
+ cmake/treedata/freebsd/subdirs.txt                                      | 2 +-
+ cmake/treedata/linux/subdirs.txt                                        | 2 +-
+ .../linux => platform/linux/powermanagement}/CMakeLists.txt             | 2 +-
+ .../linux => platform/linux/powermanagement}/ConsoleUPowerSyscall.cpp   | 0
+ .../linux => platform/linux/powermanagement}/ConsoleUPowerSyscall.h     | 0
+ .../linux => platform/linux/powermanagement}/FallbackPowerSyscall.h     | 0
+ .../linux => platform/linux/powermanagement}/LinuxPowerSyscall.cpp      | 0
+ .../linux => platform/linux/powermanagement}/LinuxPowerSyscall.h        | 0
+ .../linux => platform/linux/powermanagement}/LogindUPowerSyscall.cpp    | 0
+ .../linux => platform/linux/powermanagement}/LogindUPowerSyscall.h      | 0
+ .../linux => platform/linux/powermanagement}/UPowerSyscall.cpp          | 0
+ .../linux => platform/linux/powermanagement}/UPowerSyscall.h            | 0
+ xbmc/windowing/X11/WinSystemX11.cpp                                     | 2 +-
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp                             | 2 +-
+ xbmc/windowing/gbm/WinSystemGbm.cpp                                     | 2 +-
+ xbmc/windowing/mir/WinSystemMir.cpp                                     | 2 +-
+ xbmc/windowing/rpi/WinSystemRpi.cpp                                     | 2 +-
+ xbmc/windowing/wayland/WinSystemWayland.cpp                             | 2 +-
+ 18 files changed, 9 insertions(+), 9 deletions(-)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/CMakeLists.txt (88%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/ConsoleUPowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/ConsoleUPowerSyscall.h (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/FallbackPowerSyscall.h (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/LinuxPowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/LinuxPowerSyscall.h (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/LogindUPowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/LogindUPowerSyscall.h (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/UPowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/linux => platform/linux/powermanagement}/UPowerSyscall.h (100%)
+
+diff --git a/cmake/treedata/freebsd/subdirs.txt b/cmake/treedata/freebsd/subdirs.txt
+index 263ecc442f11..78d717bb08fd 100644
+--- a/cmake/treedata/freebsd/subdirs.txt
++++ b/cmake/treedata/freebsd/subdirs.txt
+@@ -3,10 +3,10 @@ xbmc/platform/linux                 platform/linux
+ xbmc/platform/linux/input           platform/linux/input
+ xbmc/platform/linux/network         platform/linux/network
+ xbmc/platform/linux/peripherals     platform/linux/peripherals
++xbmc/platform/linux/powermanagement platform/linux/powermanagement
+ xbmc/platform/linux/storage         platform/linux/storage
+ xbmc/input/touch                    input/touch
+ xbmc/input/touch/generic            input/touch/generic
+-xbmc/powermanagement/linux          powermanagement/linux
+ xbmc/filesystem/posix               filesystem/posix
+ xbmc/utils/posix                    utils/posix
+ xbmc/freebsd                        freebsdsupport
+diff --git a/cmake/treedata/linux/subdirs.txt b/cmake/treedata/linux/subdirs.txt
+index fa2e8b04f974..7755ab64999c 100644
+--- a/cmake/treedata/linux/subdirs.txt
++++ b/cmake/treedata/linux/subdirs.txt
+@@ -3,10 +3,10 @@ xbmc/platform/linux                 platform/linux
+ xbmc/platform/linux/input           platform/linux/input
+ xbmc/platform/linux/network         platform/linux/network
+ xbmc/platform/linux/peripherals     platform/linux/peripherals
++xbmc/platform/linux/powermanagement platform/linux/powermanagement
+ xbmc/platform/linux/storage         platform/linux/storage
+ xbmc/input/touch                    input/touch
+ xbmc/input/touch/generic            input/touch/generic
+-xbmc/powermanagement/linux          powermanagement/linux
+ xbmc/filesystem/posix               filesystem/posix
+ xbmc/utils/posix                    utils/posix
+ xbmc/cores/RetroPlayer/process/rbpi cores/RetroPlayer/process/rbpi
+diff --git a/xbmc/powermanagement/linux/CMakeLists.txt b/xbmc/platform/linux/powermanagement/CMakeLists.txt
+similarity index 88%
+rename from xbmc/powermanagement/linux/CMakeLists.txt
+rename to xbmc/platform/linux/powermanagement/CMakeLists.txt
+index 76336eab47c7..3694a7967e50 100644
+--- a/xbmc/powermanagement/linux/CMakeLists.txt
++++ b/xbmc/platform/linux/powermanagement/CMakeLists.txt
+@@ -13,5 +13,5 @@ if(DBUS_FOUND)
+ endif()
+ 
+ if(SOURCES)
+-  core_add_library(powermanagement_linux)
++  core_add_library(platform_linux_powermanagement)
+ endif()
+diff --git a/xbmc/powermanagement/linux/ConsoleUPowerSyscall.cpp b/xbmc/platform/linux/powermanagement/ConsoleUPowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/linux/ConsoleUPowerSyscall.cpp
+rename to xbmc/platform/linux/powermanagement/ConsoleUPowerSyscall.cpp
+diff --git a/xbmc/powermanagement/linux/ConsoleUPowerSyscall.h b/xbmc/platform/linux/powermanagement/ConsoleUPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/linux/ConsoleUPowerSyscall.h
+rename to xbmc/platform/linux/powermanagement/ConsoleUPowerSyscall.h
+diff --git a/xbmc/powermanagement/linux/FallbackPowerSyscall.h b/xbmc/platform/linux/powermanagement/FallbackPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/linux/FallbackPowerSyscall.h
+rename to xbmc/platform/linux/powermanagement/FallbackPowerSyscall.h
+diff --git a/xbmc/powermanagement/linux/LinuxPowerSyscall.cpp b/xbmc/platform/linux/powermanagement/LinuxPowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/linux/LinuxPowerSyscall.cpp
+rename to xbmc/platform/linux/powermanagement/LinuxPowerSyscall.cpp
+diff --git a/xbmc/powermanagement/linux/LinuxPowerSyscall.h b/xbmc/platform/linux/powermanagement/LinuxPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/linux/LinuxPowerSyscall.h
+rename to xbmc/platform/linux/powermanagement/LinuxPowerSyscall.h
+diff --git a/xbmc/powermanagement/linux/LogindUPowerSyscall.cpp b/xbmc/platform/linux/powermanagement/LogindUPowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/linux/LogindUPowerSyscall.cpp
+rename to xbmc/platform/linux/powermanagement/LogindUPowerSyscall.cpp
+diff --git a/xbmc/powermanagement/linux/LogindUPowerSyscall.h b/xbmc/platform/linux/powermanagement/LogindUPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/linux/LogindUPowerSyscall.h
+rename to xbmc/platform/linux/powermanagement/LogindUPowerSyscall.h
+diff --git a/xbmc/powermanagement/linux/UPowerSyscall.cpp b/xbmc/platform/linux/powermanagement/UPowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/linux/UPowerSyscall.cpp
+rename to xbmc/platform/linux/powermanagement/UPowerSyscall.cpp
+diff --git a/xbmc/powermanagement/linux/UPowerSyscall.h b/xbmc/platform/linux/powermanagement/UPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/linux/UPowerSyscall.h
+rename to xbmc/platform/linux/powermanagement/UPowerSyscall.h
+diff --git a/xbmc/windowing/X11/WinSystemX11.cpp b/xbmc/windowing/X11/WinSystemX11.cpp
+index e51371193c47..ab6ddea68635 100644
+--- a/xbmc/windowing/X11/WinSystemX11.cpp
++++ b/xbmc/windowing/X11/WinSystemX11.cpp
+@@ -41,7 +41,7 @@
+ #include "WinEventsX11.h"
+ #include "input/InputManager.h"
+ #include "OSScreenSaverX11.h"
+-#include "powermanagement/linux/LinuxPowerSyscall.h"
++#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
+ 
+ using namespace KODI::MESSAGING;
+ using namespace KODI::WINDOWING;
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index 42b6ff551edc..1fe4eaf259b5 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -34,7 +34,7 @@
+ #include "cores/AudioEngine/Sinks/AESinkALSA.h"
+ #include "guilib/GraphicContext.h"
+ #include "guilib/Resolution.h"
+-#include "powermanagement/linux/LinuxPowerSyscall.h"
++#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
+ #include "settings/Settings.h"
+ #include "settings/DisplaySettings.h"
+ #include "guilib/DispResource.h"
+diff --git a/xbmc/windowing/gbm/WinSystemGbm.cpp b/xbmc/windowing/gbm/WinSystemGbm.cpp
+index 906b53783d5b..2786e867d24d 100644
+--- a/xbmc/windowing/gbm/WinSystemGbm.cpp
++++ b/xbmc/windowing/gbm/WinSystemGbm.cpp
+@@ -27,7 +27,7 @@
+ 
+ #include "OptionalsReg.h"
+ #include "guilib/GraphicContext.h"
+-#include "powermanagement/linux/LinuxPowerSyscall.h"
++#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
+ #include "settings/DisplaySettings.h"
+ #include "utils/log.h"
+ #include "utils/StringUtils.h"
+diff --git a/xbmc/windowing/mir/WinSystemMir.cpp b/xbmc/windowing/mir/WinSystemMir.cpp
+index 08150c63ebb0..fb7fae652a66 100644
+--- a/xbmc/windowing/mir/WinSystemMir.cpp
++++ b/xbmc/windowing/mir/WinSystemMir.cpp
+@@ -24,7 +24,7 @@
+ #include <string.h>
+ 
+ #include "guilib/GraphicContext.h"
+-#include "powermanagement/linux/LinuxPowerSyscall.h"
++#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
+ #include "settings/DisplaySettings.h"
+ #include "utils/log.h"
+ #include "WinEventsMir.h"
+diff --git a/xbmc/windowing/rpi/WinSystemRpi.cpp b/xbmc/windowing/rpi/WinSystemRpi.cpp
+index b1caf8395a1b..c7b8319f45ec 100644
+--- a/xbmc/windowing/rpi/WinSystemRpi.cpp
++++ b/xbmc/windowing/rpi/WinSystemRpi.cpp
+@@ -35,7 +35,7 @@
+ #include "../WinEventsLinux.h"
+ #include "cores/AudioEngine/AESinkFactory.h"
+ #include "cores/AudioEngine/Sinks/AESinkPi.h"
+-#include "powermanagement/linux/LinuxPowerSyscall.h"
++#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
+ 
+ #include <EGL/egl.h>
+ #include <EGL/eglplatform.h>
+diff --git a/xbmc/windowing/wayland/WinSystemWayland.cpp b/xbmc/windowing/wayland/WinSystemWayland.cpp
+index 60ad51de3e40..1ac470d61b4e 100644
+--- a/xbmc/windowing/wayland/WinSystemWayland.cpp
++++ b/xbmc/windowing/wayland/WinSystemWayland.cpp
+@@ -34,7 +34,7 @@
+ #include "input/InputManager.h"
+ #include "input/touch/generic/GenericTouchActionHandler.h"
+ #include "input/touch/generic/GenericTouchInputHandler.h"
+-#include "powermanagement/linux/LinuxPowerSyscall.h"
++#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
+ #include "platform/linux/PlatformConstants.h"
+ #include "platform/linux/TimeUtils.h"
+ #include "messaging/ApplicationMessenger.h"
+
+From 378c7d07d6c68c8244a8bb0804b3816a581e2e2c Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:30:25 +0300
+Subject: [PATCH 24/30] [darwin] powermanagement: move implementation to
+ platform folder
+
+---
+ cmake/treedata/ios/subdirs.txt                                          | 2 +-
+ cmake/treedata/osx/subdirs.txt                                          | 2 +-
+ .../osx => platform/darwin/osx/powermanagement}/CMakeLists.txt          | 2 +-
+ .../osx => platform/darwin/osx/powermanagement}/CocoaPowerSyscall.cpp   | 0
+ .../osx => platform/darwin/osx/powermanagement}/CocoaPowerSyscall.h     | 0
+ xbmc/windowing/osx/WinSystemOSX.mm                                      | 2 +-
+ 6 files changed, 4 insertions(+), 4 deletions(-)
+ rename xbmc/{powermanagement/osx => platform/darwin/osx/powermanagement}/CMakeLists.txt (56%)
+ rename xbmc/{powermanagement/osx => platform/darwin/osx/powermanagement}/CocoaPowerSyscall.cpp (100%)
+ rename xbmc/{powermanagement/osx => platform/darwin/osx/powermanagement}/CocoaPowerSyscall.h (100%)
+
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index b12a7ba8580b..0a70152c75df 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -2,13 +2,13 @@ xbmc/platform/linux                   platform/linux
+ xbmc/platform/linux/network           platform/linux/network
+ xbmc/input/touch                      input/touch
+ xbmc/input/touch/generic              input/touch/generic
+-xbmc/powermanagement/osx              powermanagement/osx
+ xbmc/platform/posix                   posix
+ xbmc/platform/darwin                  platform/darwin
+ xbmc/platform/darwin/ios              platform/ios
+ xbmc/platform/darwin/ios-common       platform/ios-common
+ xbmc/platform/darwin/osx/network      platform/osx/network
+ xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
++xbmc/platform/darwin/osx/powermanagement platform/darwin/osx/powermanagement
+ xbmc/platform/darwin/osx/storage      platform/osx/storage
+ xbmc/filesystem/posix                 filesystem/posix
+ xbmc/utils/posix                      utils/posix
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index 8708ff532a3b..cb72ad6f6c54 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -1,11 +1,11 @@
+ xbmc/platform/posix                   posix
+ xbmc/platform/linux                   platform/linux
+ xbmc/platform/linux/network           platform/linux/network
+-xbmc/powermanagement/osx              powermanagement/osx
+ xbmc/platform/darwin                  platform/darwin
+ xbmc/platform/darwin/osx              platform/osx
+ xbmc/platform/darwin/osx/network      platform/osx/network
+ xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
++xbmc/platform/darwin/osx/powermanagement platform/darwin/osx/powermanagement
+ xbmc/platform/darwin/osx/storage      platform/osx/storage
+ xbmc/filesystem/posix                 filesystem/posix
+ xbmc/utils/posix                      utils/posix
+diff --git a/xbmc/powermanagement/osx/CMakeLists.txt b/xbmc/platform/darwin/osx/powermanagement/CMakeLists.txt
+similarity index 56%
+rename from xbmc/powermanagement/osx/CMakeLists.txt
+rename to xbmc/platform/darwin/osx/powermanagement/CMakeLists.txt
+index f382b219c7cc..e787e6f3d5e8 100644
+--- a/xbmc/powermanagement/osx/CMakeLists.txt
++++ b/xbmc/platform/darwin/osx/powermanagement/CMakeLists.txt
+@@ -2,4 +2,4 @@ set(SOURCES CocoaPowerSyscall.cpp)
+ 
+ set(HEADERS CocoaPowerSyscall.h)
+ 
+-core_add_library(powermanagement_osx)
++core_add_library(platform_darwin_osx_powermanagement)
+diff --git a/xbmc/powermanagement/osx/CocoaPowerSyscall.cpp b/xbmc/platform/darwin/osx/powermanagement/CocoaPowerSyscall.cpp
+similarity index 100%
+rename from xbmc/powermanagement/osx/CocoaPowerSyscall.cpp
+rename to xbmc/platform/darwin/osx/powermanagement/CocoaPowerSyscall.cpp
+diff --git a/xbmc/powermanagement/osx/CocoaPowerSyscall.h b/xbmc/platform/darwin/osx/powermanagement/CocoaPowerSyscall.h
+similarity index 100%
+rename from xbmc/powermanagement/osx/CocoaPowerSyscall.h
+rename to xbmc/platform/darwin/osx/powermanagement/CocoaPowerSyscall.h
+diff --git a/xbmc/windowing/osx/WinSystemOSX.mm b/xbmc/windowing/osx/WinSystemOSX.mm
+index 15a78019139e..01bc462f1189 100644
+--- a/xbmc/windowing/osx/WinSystemOSX.mm
++++ b/xbmc/windowing/osx/WinSystemOSX.mm
+@@ -38,7 +38,7 @@
+ #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGL.h"
+ #include "guilib/DispResource.h"
+ #include "guilib/GUIWindowManager.h"
+-#include "powermanagement/osx/CocoaPowerSyscall.h"
++#include "platform/darwin/osx/powermanagement/CocoaPowerSyscall.h"
+ #include "settings/DisplaySettings.h"
+ #include "settings/Settings.h"
+ #include "settings/DisplaySettings.h"
+
+From 04ff33f632e0a01433f6992a24acf8ebbde009de Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:39:59 +0300
+Subject: [PATCH 25/30] [posix] utils: move to platform folder
+
+---
+ cmake/treedata/android/subdirs.txt                                | 8 ++++----
+ cmake/treedata/freebsd/subdirs.txt                                | 2 +-
+ cmake/treedata/ios/subdirs.txt                                    | 2 +-
+ cmake/treedata/linux/subdirs.txt                                  | 2 +-
+ cmake/treedata/osx/subdirs.txt                                    | 2 +-
+ xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.h      | 2 +-
+ xbmc/{utils/posix => platform/posix/utils}/CMakeLists.txt         | 2 +-
+ xbmc/{utils/posix => platform/posix/utils}/FileHandle.h           | 0
+ xbmc/{utils/posix => platform/posix/utils}/Mmap.cpp               | 0
+ xbmc/{utils/posix => platform/posix/utils}/Mmap.h                 | 0
+ .../posix => platform/posix/utils}/PosixInterfaceForCLog.cpp      | 0
+ .../{utils/posix => platform/posix/utils}/PosixInterfaceForCLog.h | 0
+ xbmc/{utils/posix => platform/posix/utils}/SharedMemory.cpp       | 0
+ xbmc/{utils/posix => platform/posix/utils}/SharedMemory.h         | 0
+ xbmc/utils/log.cpp                                                | 2 +-
+ xbmc/windowing/wayland/InputProcessorKeyboard.cpp                 | 2 +-
+ xbmc/windowing/wayland/SeatSelection.cpp                          | 2 +-
+ xbmc/windowing/wayland/WinEventsWayland.cpp                       | 2 +-
+ xbmc/windowing/wayland/WindowDecorator.h                          | 2 +-
+ xbmc/windowing/wayland/XkbcommonKeymap.cpp                        | 2 +-
+ 20 files changed, 16 insertions(+), 16 deletions(-)
+ rename xbmc/{utils/posix => platform/posix/utils}/CMakeLists.txt (83%)
+ rename xbmc/{utils/posix => platform/posix/utils}/FileHandle.h (100%)
+ rename xbmc/{utils/posix => platform/posix/utils}/Mmap.cpp (100%)
+ rename xbmc/{utils/posix => platform/posix/utils}/Mmap.h (100%)
+ rename xbmc/{utils/posix => platform/posix/utils}/PosixInterfaceForCLog.cpp (100%)
+ rename xbmc/{utils/posix => platform/posix/utils}/PosixInterfaceForCLog.h (100%)
+ rename xbmc/{utils/posix => platform/posix/utils}/SharedMemory.cpp (100%)
+ rename xbmc/{utils/posix => platform/posix/utils}/SharedMemory.h (100%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 2d011bf3f6cb..01e8e73a0c47 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -2,14 +2,14 @@ xbmc/cores/RetroPlayer/process/android  cores/RetroPlayer/process/android
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+ xbmc/filesystem/posix                   filesystem/posix
+-xbmc/utils/posix                        utils/posix
+ xbmc/windowing/android                  windowing/android
+-xbmc/platform/posix                     posix
++xbmc/platform/posix                     platform/posix
++xbmc/platform/posix/utils               platform/posix/utils
+ xbmc/platform/linux                     platform/linux
+ xbmc/platform/linux/network             platform/linux/network
+ xbmc/platform/linux/peripherals         platform/linux/peripherals
+-xbmc/platform/android/activity          android/activity
+-xbmc/platform/android/bionic_supplement android/bionicsupplement
++xbmc/platform/android/activity          platform/android/activity
++xbmc/platform/android/bionic_supplement platform/android/bionicsupplement
+ xbmc/platform/android/network           platform/android/network
+ xbmc/platform/android/peripherals       platform/android/peripherals
+ xbmc/platform/android/powermanagement   platform/android/powermanagement
+diff --git a/cmake/treedata/freebsd/subdirs.txt b/cmake/treedata/freebsd/subdirs.txt
+index 78d717bb08fd..486f7afdfda1 100644
+--- a/cmake/treedata/freebsd/subdirs.txt
++++ b/cmake/treedata/freebsd/subdirs.txt
+@@ -1,4 +1,5 @@
+ xbmc/platform/posix                 platform/posix
++xbmc/platform/posix/utils           platform/posix/utils
+ xbmc/platform/linux                 platform/linux
+ xbmc/platform/linux/input           platform/linux/input
+ xbmc/platform/linux/network         platform/linux/network
+@@ -8,5 +9,4 @@ xbmc/platform/linux/storage         platform/linux/storage
+ xbmc/input/touch                    input/touch
+ xbmc/input/touch/generic            input/touch/generic
+ xbmc/filesystem/posix               filesystem/posix
+-xbmc/utils/posix                    utils/posix
+ xbmc/freebsd                        freebsdsupport
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index 0a70152c75df..9be854ad8adc 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -3,6 +3,7 @@ xbmc/platform/linux/network           platform/linux/network
+ xbmc/input/touch                      input/touch
+ xbmc/input/touch/generic              input/touch/generic
+ xbmc/platform/posix                   posix
++xbmc/platform/posix/utils             platform/posix/utils
+ xbmc/platform/darwin                  platform/darwin
+ xbmc/platform/darwin/ios              platform/ios
+ xbmc/platform/darwin/ios-common       platform/ios-common
+@@ -11,7 +12,6 @@ xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
+ xbmc/platform/darwin/osx/powermanagement platform/darwin/osx/powermanagement
+ xbmc/platform/darwin/osx/storage      platform/osx/storage
+ xbmc/filesystem/posix                 filesystem/posix
+-xbmc/utils/posix                      utils/posix
+ xbmc/windowing/osx                    windowing/osx
+ xbmc/cores/RetroPlayer/process/ios    cores/RetroPlayer/process/ios
+ xbmc/cores/VideoPlayer/Process/ios    cores/VideoPlayer/Process/ios
+diff --git a/cmake/treedata/linux/subdirs.txt b/cmake/treedata/linux/subdirs.txt
+index 7755ab64999c..1b8375646e74 100644
+--- a/cmake/treedata/linux/subdirs.txt
++++ b/cmake/treedata/linux/subdirs.txt
+@@ -1,4 +1,5 @@
+ xbmc/platform/posix                 platform/posix
++xbmc/platform/posix/utils           platform/posix/utils
+ xbmc/platform/linux                 platform/linux
+ xbmc/platform/linux/input           platform/linux/input
+ xbmc/platform/linux/network         platform/linux/network
+@@ -8,7 +9,6 @@ xbmc/platform/linux/storage         platform/linux/storage
+ xbmc/input/touch                    input/touch
+ xbmc/input/touch/generic            input/touch/generic
+ xbmc/filesystem/posix               filesystem/posix
+-xbmc/utils/posix                    utils/posix
+ xbmc/cores/RetroPlayer/process/rbpi cores/RetroPlayer/process/rbpi
+ xbmc/cores/VideoPlayer/Process/rbpi cores/VideoPlayer/Process/rbpi
+ xbmc/windowing/linux                windowing/linux
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index cb72ad6f6c54..479cd2266fd0 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -1,4 +1,5 @@
+ xbmc/platform/posix                   posix
++xbmc/platform/posix/utils             platform/posix/utils
+ xbmc/platform/linux                   platform/linux
+ xbmc/platform/linux/network           platform/linux/network
+ xbmc/platform/darwin                  platform/darwin
+@@ -8,7 +9,6 @@ xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
+ xbmc/platform/darwin/osx/powermanagement platform/darwin/osx/powermanagement
+ xbmc/platform/darwin/osx/storage      platform/osx/storage
+ xbmc/filesystem/posix                 filesystem/posix
+-xbmc/utils/posix                      utils/posix
+ xbmc/windowing/osx                    windowing/osx
+ xbmc/cores/RetroPlayer/process/osx    cores/RetroPlayer/process/osx
+ xbmc/cores/VideoPlayer/Process/osx    cores/VideoPlayer/Process/osx
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.h b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.h
+index e3e13f489df6..93806889f23b 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.h
+@@ -35,7 +35,7 @@
+ #include <va/va.h>
+ 
+ #include "utils/Geometry.h"
+-#include "utils/posix/FileHandle.h"
++#include "platform/posix/utils/FileHandle.h"
+ 
+ namespace VAAPI
+ {
+diff --git a/xbmc/utils/posix/CMakeLists.txt b/xbmc/platform/posix/utils/CMakeLists.txt
+similarity index 83%
+rename from xbmc/utils/posix/CMakeLists.txt
+rename to xbmc/platform/posix/utils/CMakeLists.txt
+index 712c288e3fd4..8fb2abce070f 100644
+--- a/xbmc/utils/posix/CMakeLists.txt
++++ b/xbmc/platform/posix/utils/CMakeLists.txt
+@@ -7,4 +7,4 @@ set(HEADERS FileHandle.h
+             PosixInterfaceForCLog.h
+             SharedMemory.h)
+ 
+-core_add_library(utils_posix)
++core_add_library(platform_posix_utils)
+diff --git a/xbmc/utils/posix/FileHandle.h b/xbmc/platform/posix/utils/FileHandle.h
+similarity index 100%
+rename from xbmc/utils/posix/FileHandle.h
+rename to xbmc/platform/posix/utils/FileHandle.h
+diff --git a/xbmc/utils/posix/Mmap.cpp b/xbmc/platform/posix/utils/Mmap.cpp
+similarity index 100%
+rename from xbmc/utils/posix/Mmap.cpp
+rename to xbmc/platform/posix/utils/Mmap.cpp
+diff --git a/xbmc/utils/posix/Mmap.h b/xbmc/platform/posix/utils/Mmap.h
+similarity index 100%
+rename from xbmc/utils/posix/Mmap.h
+rename to xbmc/platform/posix/utils/Mmap.h
+diff --git a/xbmc/utils/posix/PosixInterfaceForCLog.cpp b/xbmc/platform/posix/utils/PosixInterfaceForCLog.cpp
+similarity index 100%
+rename from xbmc/utils/posix/PosixInterfaceForCLog.cpp
+rename to xbmc/platform/posix/utils/PosixInterfaceForCLog.cpp
+diff --git a/xbmc/utils/posix/PosixInterfaceForCLog.h b/xbmc/platform/posix/utils/PosixInterfaceForCLog.h
+similarity index 100%
+rename from xbmc/utils/posix/PosixInterfaceForCLog.h
+rename to xbmc/platform/posix/utils/PosixInterfaceForCLog.h
+diff --git a/xbmc/utils/posix/SharedMemory.cpp b/xbmc/platform/posix/utils/SharedMemory.cpp
+similarity index 100%
+rename from xbmc/utils/posix/SharedMemory.cpp
+rename to xbmc/platform/posix/utils/SharedMemory.cpp
+diff --git a/xbmc/utils/posix/SharedMemory.h b/xbmc/platform/posix/utils/SharedMemory.h
+similarity index 100%
+rename from xbmc/utils/posix/SharedMemory.h
+rename to xbmc/platform/posix/utils/SharedMemory.h
+diff --git a/xbmc/utils/log.cpp b/xbmc/utils/log.cpp
+index 36907c2662c4..3223f888261b 100644
+--- a/xbmc/utils/log.cpp
++++ b/xbmc/utils/log.cpp
+@@ -27,7 +27,7 @@
+ #include "utils/StringUtils.h"
+ 
+ #if defined(TARGET_POSIX)
+-#include "posix/PosixInterfaceForCLog.h"
++#include "platform/posix/utils/PosixInterfaceForCLog.h"
+ typedef class CPosixInterfaceForCLog PlatformInterfaceForCLog;
+ #elif defined(TARGET_WINDOWS)
+ #include "win32/Win32InterfaceForCLog.h"
+diff --git a/xbmc/windowing/wayland/InputProcessorKeyboard.cpp b/xbmc/windowing/wayland/InputProcessorKeyboard.cpp
+index f0518c31f868..3288aaab30ba 100644
+--- a/xbmc/windowing/wayland/InputProcessorKeyboard.cpp
++++ b/xbmc/windowing/wayland/InputProcessorKeyboard.cpp
+@@ -26,7 +26,7 @@
+ #include <limits>
+ 
+ #include "utils/log.h"
+-#include "utils/posix/FileHandle.h"
++#include "platform/posix/utils/FileHandle.h"
+ 
+ using namespace KODI::WINDOWING::WAYLAND;
+ 
+diff --git a/xbmc/windowing/wayland/SeatSelection.cpp b/xbmc/windowing/wayland/SeatSelection.cpp
+index 9850ec3678e3..cf06bb134daa 100644
+--- a/xbmc/windowing/wayland/SeatSelection.cpp
++++ b/xbmc/windowing/wayland/SeatSelection.cpp
+@@ -32,7 +32,7 @@
+ #include "Registry.h"
+ #include "threads/SingleLock.h"
+ #include "utils/log.h"
+-#include "utils/posix/FileHandle.h"
++#include "platform/posix/utils/FileHandle.h"
+ #include "utils/StringUtils.h"
+ #include "WinEventsWayland.h"
+ 
+diff --git a/xbmc/windowing/wayland/WinEventsWayland.cpp b/xbmc/windowing/wayland/WinEventsWayland.cpp
+index 34245a40c874..dfa39573caff 100644
+--- a/xbmc/windowing/wayland/WinEventsWayland.cpp
++++ b/xbmc/windowing/wayland/WinEventsWayland.cpp
+@@ -34,7 +34,7 @@
+ #include "threads/SingleLock.h"
+ #include "threads/Thread.h"
+ #include "utils/log.h"
+-#include "utils/posix/FileHandle.h"
++#include "platform/posix/utils/FileHandle.h"
+ 
+ using namespace KODI::UTILS::POSIX;
+ using namespace KODI::WINDOWING::WAYLAND;
+diff --git a/xbmc/windowing/wayland/WindowDecorator.h b/xbmc/windowing/wayland/WindowDecorator.h
+index 0c422e85f829..737c93e87e38 100644
+--- a/xbmc/windowing/wayland/WindowDecorator.h
++++ b/xbmc/windowing/wayland/WindowDecorator.h
+@@ -32,7 +32,7 @@
+ #include "threads/CriticalSection.h"
+ #include "Util.h"
+ #include "utils/Geometry.h"
+-#include "utils/posix/SharedMemory.h"
++#include "platform/posix/utils/SharedMemory.h"
+ #include "WindowDecorationHandler.h"
+ 
+ namespace KODI
+diff --git a/xbmc/windowing/wayland/XkbcommonKeymap.cpp b/xbmc/windowing/wayland/XkbcommonKeymap.cpp
+index 5d330e79f212..35365651b791 100644
+--- a/xbmc/windowing/wayland/XkbcommonKeymap.cpp
++++ b/xbmc/windowing/wayland/XkbcommonKeymap.cpp
+@@ -28,7 +28,7 @@
+ #include "Application.h"
+ #include "Util.h"
+ #include "utils/log.h"
+-#include "utils/posix/Mmap.h"
++#include "platform/posix/utils/Mmap.h"
+ 
+ using namespace KODI::WINDOWING::WAYLAND;
+ using namespace KODI::UTILS::POSIX;
+
+From 870f6007c174c587c220e4ca99f7888db943e413 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:44:34 +0300
+Subject: [PATCH 26/30] [win32] utils: move to platform folder
+
+---
+ cmake/treedata/windows/subdirs.txt                                   | 2 +-
+ cmake/treedata/windowsstore/subdirs.txt                              | 2 +-
+ xbmc/cores/VideoPlayer/VideoRenderers/WinRenderBuffer.cpp            | 4 ++--
+ xbmc/{utils/win32 => platform/win32/utils}/CMakeLists.txt            | 2 +-
+ xbmc/{utils/win32 => platform/win32/utils}/Win32InterfaceForCLog.cpp | 0
+ xbmc/{utils/win32 => platform/win32/utils}/Win32InterfaceForCLog.h   | 0
+ xbmc/{utils/win32 => platform/win32/utils}/gpu_memcpy_sse4.h         | 0
+ xbmc/{utils/win32 => platform/win32/utils}/memcpy_sse2.h             | 0
+ xbmc/utils/log.cpp                                                   | 2 +-
+ 9 files changed, 6 insertions(+), 6 deletions(-)
+ rename xbmc/{utils/win32 => platform/win32/utils}/CMakeLists.txt (77%)
+ rename xbmc/{utils/win32 => platform/win32/utils}/Win32InterfaceForCLog.cpp (100%)
+ rename xbmc/{utils/win32 => platform/win32/utils}/Win32InterfaceForCLog.h (100%)
+ rename xbmc/{utils/win32 => platform/win32/utils}/gpu_memcpy_sse4.h (100%)
+ rename xbmc/{utils/win32 => platform/win32/utils}/memcpy_sse2.h (100%)
+
+diff --git a/cmake/treedata/windows/subdirs.txt b/cmake/treedata/windows/subdirs.txt
+index 8294c3ccf249..a2c8c29f1478 100644
+--- a/cmake/treedata/windows/subdirs.txt
++++ b/cmake/treedata/windows/subdirs.txt
+@@ -5,10 +5,10 @@ xbmc/platform/win32/network            platform/win32/network
+ xbmc/platform/win32/peripherals        platform/win32/peripherals
+ xbmc/platform/win32/powermanagement    platform/win32/powermanagement
+ xbmc/platform/win32/storage            platform/win32/storage
++xbmc/platform/win32/utils              platform/win32/utils
+ xbmc/input/touch                       input/touch
+ xbmc/input/touch/generic               input/touch/generic
+ xbmc/network/mdns                      network/mdns
+-xbmc/utils/win32                       utils/win32
+ xbmc/rendering/dx                      rendering/dx
+ xbmc/threads/platform/win              threads/win
+ xbmc/windowing/windows                 windowing/windows
+diff --git a/cmake/treedata/windowsstore/subdirs.txt b/cmake/treedata/windowsstore/subdirs.txt
+index 1084447281d0..604be08cd31e 100644
+--- a/cmake/treedata/windowsstore/subdirs.txt
++++ b/cmake/treedata/windowsstore/subdirs.txt
+@@ -5,10 +5,10 @@ xbmc/platform/win10/peripherals        platform/win10/peripherals
+ xbmc/platform/win10/powermanagement    platfrom/win10/powermanagement
+ xbmc/platform/win10/storage            platfrom/win10/storage
+ xbmc/platform/win32/filesystem         platform/win32/filesystem
++xbmc/platform/win32/utils              platform/win32/utils
+ xbmc/input/touch                       input/touch
+ xbmc/input/touch/generic               input/touch/generic
+ xbmc/network/mdns                      network/mdns
+-xbmc/utils/win32                       utils/win32
+ xbmc/rendering/dx                      rendering/dx
+ xbmc/threads/platform/win              threads/win
+ xbmc/windowing/win10                   windowing/win10
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderBuffer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderBuffer.cpp
+index 147f570d94ec..f8aaca8a5ed5 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderBuffer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderBuffer.cpp
+@@ -28,9 +28,9 @@
+ #include "rendering/dx/RenderContext.h"
+ #include "utils/log.h"
+ #if defined(HAVE_SSE2)
+-#include "utils/win32/gpu_memcpy_sse4.h"
++#include "platform/win32/utils/gpu_memcpy_sse4.h"
+ #endif
+-#include "utils/win32/memcpy_sse2.h"
++#include "platform/win32/utils/memcpy_sse2.h"
+ #include "utils/CPUInfo.h"
+ 
+ #define PLANE_Y 0
+diff --git a/xbmc/utils/win32/CMakeLists.txt b/xbmc/platform/win32/utils/CMakeLists.txt
+similarity index 77%
+rename from xbmc/utils/win32/CMakeLists.txt
+rename to xbmc/platform/win32/utils/CMakeLists.txt
+index 3f71e0bfc25e..3c32cb498663 100644
+--- a/xbmc/utils/win32/CMakeLists.txt
++++ b/xbmc/platform/win32/utils/CMakeLists.txt
+@@ -4,4 +4,4 @@ set(HEADERS gpu_memcpy_sse4.h
+             memcpy_sse2.h
+             Win32InterfaceForCLog.h)
+ 
+-core_add_library(utils_win32)
++core_add_library(platform_win32_utils)
+diff --git a/xbmc/utils/win32/Win32InterfaceForCLog.cpp b/xbmc/platform/win32/utils/Win32InterfaceForCLog.cpp
+similarity index 100%
+rename from xbmc/utils/win32/Win32InterfaceForCLog.cpp
+rename to xbmc/platform/win32/utils/Win32InterfaceForCLog.cpp
+diff --git a/xbmc/utils/win32/Win32InterfaceForCLog.h b/xbmc/platform/win32/utils/Win32InterfaceForCLog.h
+similarity index 100%
+rename from xbmc/utils/win32/Win32InterfaceForCLog.h
+rename to xbmc/platform/win32/utils/Win32InterfaceForCLog.h
+diff --git a/xbmc/utils/win32/gpu_memcpy_sse4.h b/xbmc/platform/win32/utils/gpu_memcpy_sse4.h
+similarity index 100%
+rename from xbmc/utils/win32/gpu_memcpy_sse4.h
+rename to xbmc/platform/win32/utils/gpu_memcpy_sse4.h
+diff --git a/xbmc/utils/win32/memcpy_sse2.h b/xbmc/platform/win32/utils/memcpy_sse2.h
+similarity index 100%
+rename from xbmc/utils/win32/memcpy_sse2.h
+rename to xbmc/platform/win32/utils/memcpy_sse2.h
+diff --git a/xbmc/utils/log.cpp b/xbmc/utils/log.cpp
+index 3223f888261b..e38037a81df7 100644
+--- a/xbmc/utils/log.cpp
++++ b/xbmc/utils/log.cpp
+@@ -30,7 +30,7 @@
+ #include "platform/posix/utils/PosixInterfaceForCLog.h"
+ typedef class CPosixInterfaceForCLog PlatformInterfaceForCLog;
+ #elif defined(TARGET_WINDOWS)
+-#include "win32/Win32InterfaceForCLog.h"
++#include "platform/win32/utils/Win32InterfaceForCLog.h"
+ typedef class CWin32InterfaceForCLog PlatformInterfaceForCLog;
+ #endif
+ 
+
+From ecb08aaa9eea7e4302ec6673daed202d32847554 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 09:51:36 +0300
+Subject: [PATCH 27/30] [posix] filesystem: move to platform folder
+
+---
+ cmake/treedata/android/subdirs.txt                                      | 2 +-
+ cmake/treedata/freebsd/subdirs.txt                                      | 2 +-
+ cmake/treedata/ios/subdirs.txt                                          | 2 +-
+ cmake/treedata/linux/subdirs.txt                                        | 2 +-
+ cmake/treedata/osx/subdirs.txt                                          | 2 +-
+ xbmc/Application.cpp                                                    | 2 +-
+ xbmc/filesystem/CacheStrategy.cpp                                       | 2 +-
+ xbmc/filesystem/DirectoryFactory.cpp                                    | 2 +-
+ xbmc/filesystem/FileFactory.cpp                                         | 2 +-
+ xbmc/{filesystem/posix => platform/posix/filesystem}/CMakeLists.txt     | 2 +-
+ xbmc/{filesystem/posix => platform/posix/filesystem}/PosixDirectory.cpp | 0
+ xbmc/{filesystem/posix => platform/posix/filesystem}/PosixDirectory.h   | 0
+ xbmc/{filesystem/posix => platform/posix/filesystem}/PosixFile.cpp      | 0
+ xbmc/{filesystem/posix => platform/posix/filesystem}/PosixFile.h        | 0
+ 14 files changed, 10 insertions(+), 10 deletions(-)
+ rename xbmc/{filesystem/posix => platform/posix/filesystem}/CMakeLists.txt (72%)
+ rename xbmc/{filesystem/posix => platform/posix/filesystem}/PosixDirectory.cpp (100%)
+ rename xbmc/{filesystem/posix => platform/posix/filesystem}/PosixDirectory.h (100%)
+ rename xbmc/{filesystem/posix => platform/posix/filesystem}/PosixFile.cpp (100%)
+ rename xbmc/{filesystem/posix => platform/posix/filesystem}/PosixFile.h (100%)
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 01e8e73a0c47..469a5ccfc4d7 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -1,9 +1,9 @@
+ xbmc/cores/RetroPlayer/process/android  cores/RetroPlayer/process/android
+ xbmc/input/touch                        input/touch
+ xbmc/input/touch/generic                input/touch/generic
+-xbmc/filesystem/posix                   filesystem/posix
+ xbmc/windowing/android                  windowing/android
+ xbmc/platform/posix                     platform/posix
++xbmc/platform/posix/filesystem          platform/posix/filesystem
+ xbmc/platform/posix/utils               platform/posix/utils
+ xbmc/platform/linux                     platform/linux
+ xbmc/platform/linux/network             platform/linux/network
+diff --git a/cmake/treedata/freebsd/subdirs.txt b/cmake/treedata/freebsd/subdirs.txt
+index 486f7afdfda1..00237e1addf8 100644
+--- a/cmake/treedata/freebsd/subdirs.txt
++++ b/cmake/treedata/freebsd/subdirs.txt
+@@ -1,4 +1,5 @@
+ xbmc/platform/posix                 platform/posix
++xbmc/platform/posix/filesystem      platform/posix/filesystem
+ xbmc/platform/posix/utils           platform/posix/utils
+ xbmc/platform/linux                 platform/linux
+ xbmc/platform/linux/input           platform/linux/input
+@@ -8,5 +9,4 @@ xbmc/platform/linux/powermanagement platform/linux/powermanagement
+ xbmc/platform/linux/storage         platform/linux/storage
+ xbmc/input/touch                    input/touch
+ xbmc/input/touch/generic            input/touch/generic
+-xbmc/filesystem/posix               filesystem/posix
+ xbmc/freebsd                        freebsdsupport
+diff --git a/cmake/treedata/ios/subdirs.txt b/cmake/treedata/ios/subdirs.txt
+index 9be854ad8adc..a287418eb800 100644
+--- a/cmake/treedata/ios/subdirs.txt
++++ b/cmake/treedata/ios/subdirs.txt
+@@ -3,6 +3,7 @@ xbmc/platform/linux/network           platform/linux/network
+ xbmc/input/touch                      input/touch
+ xbmc/input/touch/generic              input/touch/generic
+ xbmc/platform/posix                   posix
++xbmc/platform/posix/filesystem        platform/posix/filesystem
+ xbmc/platform/posix/utils             platform/posix/utils
+ xbmc/platform/darwin                  platform/darwin
+ xbmc/platform/darwin/ios              platform/ios
+@@ -11,7 +12,6 @@ xbmc/platform/darwin/osx/network      platform/osx/network
+ xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
+ xbmc/platform/darwin/osx/powermanagement platform/darwin/osx/powermanagement
+ xbmc/platform/darwin/osx/storage      platform/osx/storage
+-xbmc/filesystem/posix                 filesystem/posix
+ xbmc/windowing/osx                    windowing/osx
+ xbmc/cores/RetroPlayer/process/ios    cores/RetroPlayer/process/ios
+ xbmc/cores/VideoPlayer/Process/ios    cores/VideoPlayer/Process/ios
+diff --git a/cmake/treedata/linux/subdirs.txt b/cmake/treedata/linux/subdirs.txt
+index 1b8375646e74..6e1d013de177 100644
+--- a/cmake/treedata/linux/subdirs.txt
++++ b/cmake/treedata/linux/subdirs.txt
+@@ -1,4 +1,5 @@
+ xbmc/platform/posix                 platform/posix
++xbmc/platform/posix/filesystem      platform/posix/filesystem
+ xbmc/platform/posix/utils           platform/posix/utils
+ xbmc/platform/linux                 platform/linux
+ xbmc/platform/linux/input           platform/linux/input
+@@ -8,7 +9,6 @@ xbmc/platform/linux/powermanagement platform/linux/powermanagement
+ xbmc/platform/linux/storage         platform/linux/storage
+ xbmc/input/touch                    input/touch
+ xbmc/input/touch/generic            input/touch/generic
+-xbmc/filesystem/posix               filesystem/posix
+ xbmc/cores/RetroPlayer/process/rbpi cores/RetroPlayer/process/rbpi
+ xbmc/cores/VideoPlayer/Process/rbpi cores/VideoPlayer/Process/rbpi
+ xbmc/windowing/linux                windowing/linux
+diff --git a/cmake/treedata/osx/subdirs.txt b/cmake/treedata/osx/subdirs.txt
+index 479cd2266fd0..166a966d72f5 100644
+--- a/cmake/treedata/osx/subdirs.txt
++++ b/cmake/treedata/osx/subdirs.txt
+@@ -1,4 +1,5 @@
+ xbmc/platform/posix                   posix
++xbmc/platform/posix/filesystem        platform/posix/filesystem
+ xbmc/platform/posix/utils             platform/posix/utils
+ xbmc/platform/linux                   platform/linux
+ xbmc/platform/linux/network           platform/linux/network
+@@ -8,7 +9,6 @@ xbmc/platform/darwin/osx/network      platform/osx/network
+ xbmc/platform/darwin/osx/peripherals  platform/osx/peripherals
+ xbmc/platform/darwin/osx/powermanagement platform/darwin/osx/powermanagement
+ xbmc/platform/darwin/osx/storage      platform/osx/storage
+-xbmc/filesystem/posix                 filesystem/posix
+ xbmc/windowing/osx                    windowing/osx
+ xbmc/cores/RetroPlayer/process/osx    cores/RetroPlayer/process/osx
+ xbmc/cores/VideoPlayer/Process/osx    cores/VideoPlayer/Process/osx
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 9c1f8186db34..b6ed0f95c07f 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -187,7 +187,7 @@
+ #ifdef TARGET_POSIX
+ #include "XHandle.h"
+ #include "XTimeUtils.h"
+-#include "filesystem/posix/PosixDirectory.h"
++#include "platform/posix/filesystem/PosixDirectory.h"
+ #endif
+ 
+ #if defined(TARGET_ANDROID)
+diff --git a/xbmc/filesystem/CacheStrategy.cpp b/xbmc/filesystem/CacheStrategy.cpp
+index 442cb2ddc948..f97ee0bf5216 100644
+--- a/xbmc/filesystem/CacheStrategy.cpp
++++ b/xbmc/filesystem/CacheStrategy.cpp
+@@ -30,7 +30,7 @@
+ #include "SpecialProtocol.h"
+ #include "URL.h"
+ #if defined(TARGET_POSIX)
+-#include "posix/PosixFile.h"
++#include "platform/posix/filesystem/PosixFile.h"
+ #define CacheLocalFile CPosixFile
+ #elif defined(TARGET_WINDOWS)
+ #include "platform/win32/filesystem/Win32File.h"
+diff --git a/xbmc/filesystem/DirectoryFactory.cpp b/xbmc/filesystem/DirectoryFactory.cpp
+index 16309d7182ad..fa2529a5967a 100644
+--- a/xbmc/filesystem/DirectoryFactory.cpp
++++ b/xbmc/filesystem/DirectoryFactory.cpp
+@@ -42,7 +42,7 @@
+ #include "network/WakeOnAccess.h"
+ 
+ #ifdef TARGET_POSIX
+-#include "posix/PosixDirectory.h"
++#include "platform/posix/filesystem/PosixDirectory.h"
+ #elif defined(TARGET_WINDOWS)
+ #include "platform/win32/filesystem/Win32Directory.h"
+ #ifdef TARGET_WINDOWS_STORE
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 7cf6e6f77634..88a0d26fb5fb 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -21,7 +21,7 @@
+ #include "network/Network.h"
+ #include "FileFactory.h"
+ #ifdef TARGET_POSIX
+-#include "posix/PosixFile.h"
++#include "platform/posix/filesystem/PosixFile.h"
+ #elif defined(TARGET_WINDOWS)
+ #include "platform/win32/filesystem/Win32File.h"
+ #ifdef TARGET_WINDOWS_STORE
+diff --git a/xbmc/filesystem/posix/CMakeLists.txt b/xbmc/platform/posix/filesystem/CMakeLists.txt
+similarity index 72%
+rename from xbmc/filesystem/posix/CMakeLists.txt
+rename to xbmc/platform/posix/filesystem/CMakeLists.txt
+index f94dce2bb13a..6640bbe639d1 100644
+--- a/xbmc/filesystem/posix/CMakeLists.txt
++++ b/xbmc/platform/posix/filesystem/CMakeLists.txt
+@@ -4,4 +4,4 @@ set(SOURCES PosixDirectory.cpp
+ set(HEADERS PosixDirectory.h
+             PosixFile.h)
+ 
+-core_add_library(filesystem_posix)
++core_add_library(platform_posix_filesystem)
+diff --git a/xbmc/filesystem/posix/PosixDirectory.cpp b/xbmc/platform/posix/filesystem/PosixDirectory.cpp
+similarity index 100%
+rename from xbmc/filesystem/posix/PosixDirectory.cpp
+rename to xbmc/platform/posix/filesystem/PosixDirectory.cpp
+diff --git a/xbmc/filesystem/posix/PosixDirectory.h b/xbmc/platform/posix/filesystem/PosixDirectory.h
+similarity index 100%
+rename from xbmc/filesystem/posix/PosixDirectory.h
+rename to xbmc/platform/posix/filesystem/PosixDirectory.h
+diff --git a/xbmc/filesystem/posix/PosixFile.cpp b/xbmc/platform/posix/filesystem/PosixFile.cpp
+similarity index 100%
+rename from xbmc/filesystem/posix/PosixFile.cpp
+rename to xbmc/platform/posix/filesystem/PosixFile.cpp
+diff --git a/xbmc/filesystem/posix/PosixFile.h b/xbmc/platform/posix/filesystem/PosixFile.h
+similarity index 100%
+rename from xbmc/filesystem/posix/PosixFile.h
+rename to xbmc/platform/posix/filesystem/PosixFile.h
+
+From 229a80ddb26075773a87c0db392f50e18f907637 Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 12:42:19 +0300
+Subject: [PATCH 28/30] [android] filesystem: move implementation to platform
+ folder.
+
+---
+ cmake/treedata/android/subdirs.txt                            |  1 +
+ xbmc/filesystem/CMakeLists.txt                                | 11 -----------
+ xbmc/filesystem/DirectoryFactory.cpp                          |  4 ++--
+ xbmc/filesystem/FileDirectoryFactory.cpp                      |  2 +-
+ xbmc/filesystem/FileFactory.cpp                               |  4 ++--
+ xbmc/guilib/Texture.cpp                                       |  2 +-
+ xbmc/{ => platform/android}/filesystem/APKDirectory.cpp       |  0
+ xbmc/{ => platform/android}/filesystem/APKDirectory.h         |  2 +-
+ xbmc/{ => platform/android}/filesystem/APKFile.cpp            |  0
+ xbmc/{ => platform/android}/filesystem/APKFile.h              |  2 +-
+ .../{ => platform/android}/filesystem/AndroidAppDirectory.cpp |  2 +-
+ xbmc/{ => platform/android}/filesystem/AndroidAppDirectory.h  |  2 +-
+ xbmc/{ => platform/android}/filesystem/AndroidAppFile.cpp     |  0
+ xbmc/{ => platform/android}/filesystem/AndroidAppFile.h       |  2 +-
+ xbmc/platform/android/filesystem/CMakeLists.txt               | 10 ++++++++++
+ 15 files changed, 22 insertions(+), 22 deletions(-)
+ rename xbmc/{ => platform/android}/filesystem/APKDirectory.cpp (100%)
+ rename xbmc/{ => platform/android}/filesystem/APKDirectory.h (96%)
+ rename xbmc/{ => platform/android}/filesystem/APKFile.cpp (100%)
+ rename xbmc/{ => platform/android}/filesystem/APKFile.h (98%)
+ rename xbmc/{ => platform/android}/filesystem/AndroidAppDirectory.cpp (98%)
+ rename xbmc/{ => platform/android}/filesystem/AndroidAppDirectory.h (97%)
+ rename xbmc/{ => platform/android}/filesystem/AndroidAppFile.cpp (100%)
+ rename xbmc/{ => platform/android}/filesystem/AndroidAppFile.h (98%)
+ create mode 100644 xbmc/platform/android/filesystem/CMakeLists.txt
+
+diff --git a/cmake/treedata/android/subdirs.txt b/cmake/treedata/android/subdirs.txt
+index 469a5ccfc4d7..7f7fef53e728 100644
+--- a/cmake/treedata/android/subdirs.txt
++++ b/cmake/treedata/android/subdirs.txt
+@@ -10,6 +10,7 @@ xbmc/platform/linux/network             platform/linux/network
+ xbmc/platform/linux/peripherals         platform/linux/peripherals
+ xbmc/platform/android/activity          platform/android/activity
+ xbmc/platform/android/bionic_supplement platform/android/bionicsupplement
++xbmc/platform/android/filesystem        platform/android/filesystem
+ xbmc/platform/android/network           platform/android/network
+ xbmc/platform/android/peripherals       platform/android/peripherals
+ xbmc/platform/android/powermanagement   platform/android/powermanagement
+diff --git a/xbmc/filesystem/CMakeLists.txt b/xbmc/filesystem/CMakeLists.txt
+index c2bd2176609e..fce2cfcefdca 100644
+--- a/xbmc/filesystem/CMakeLists.txt
++++ b/xbmc/filesystem/CMakeLists.txt
+@@ -133,17 +133,6 @@ set(HEADERS AddonsDirectory.h
+             ZipFile.h
+             ZipManager.h)
+ 
+-if(CORE_SYSTEM_NAME STREQUAL android)
+-  list(APPEND SOURCES APKDirectory.cpp
+-                      APKFile.cpp
+-                      AndroidAppDirectory.cpp
+-                      AndroidAppFile.cpp)
+-  list(APPEND HEADERS APKDirectory.h
+-                      APKFile.h
+-                      AndroidAppDirectory.h
+-                      AndroidAppFile.h)
+-endif()
+-
+ if(NOT CORE_SYSTEM_NAME STREQUAL windows AND NOT CORE_SYSTEM_NAME STREQUAL windowsstore AND SMBCLIENT_FOUND)
+   list(APPEND SOURCES SMBDirectory.cpp
+                       SMBFile.cpp)
+diff --git a/xbmc/filesystem/DirectoryFactory.cpp b/xbmc/filesystem/DirectoryFactory.cpp
+index fa2529a5967a..a43cb33629ca 100644
+--- a/xbmc/filesystem/DirectoryFactory.cpp
++++ b/xbmc/filesystem/DirectoryFactory.cpp
+@@ -64,7 +64,7 @@
+ #endif
+ #include "PVRDirectory.h"
+ #if defined(TARGET_ANDROID)
+-#include "APKDirectory.h"
++#include "platform/android/filesystem/APKDirectory.h"
+ #endif
+ #include "XbtDirectory.h"
+ #include "ZipDirectory.h"
+@@ -84,7 +84,7 @@
+ #include "BlurayDirectory.h"
+ #endif
+ #if defined(TARGET_ANDROID)
+-#include "AndroidAppDirectory.h"
++#include "platform/android/filesystem/AndroidAppDirectory.h"
+ #endif
+ #include "ResourceDirectory.h"
+ #include "ServiceBroker.h"
+diff --git a/xbmc/filesystem/FileDirectoryFactory.cpp b/xbmc/filesystem/FileDirectoryFactory.cpp
+index 9cef61664caf..195945bd72ad 100644
+--- a/xbmc/filesystem/FileDirectoryFactory.cpp
++++ b/xbmc/filesystem/FileDirectoryFactory.cpp
+@@ -23,7 +23,7 @@
+ #include "UDFDirectory.h"
+ #include "RSSDirectory.h"
+ #if defined(TARGET_ANDROID)
+-#include "APKDirectory.h"
++#include "platform/android/filesystem/APKDirectory.h"
+ #endif
+ #include "XbtDirectory.h"
+ #include "ZipDirectory.h"
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 88a0d26fb5fb..1ab388c12c7b 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -41,7 +41,7 @@
+ #include "CDDAFile.h"
+ #include "ISOFile.h"
+ #if defined(TARGET_ANDROID)
+-#include "APKFile.h"
++#include "platform/android/filesystem/APKFile.h"
+ #endif
+ #include "XbtFile.h"
+ #include "ZipFile.h"
+@@ -52,7 +52,7 @@
+ #include "NFSFile.h"
+ #endif
+ #if defined(TARGET_ANDROID)
+-#include "AndroidAppFile.h"
++#include "platform/android/filesystem/AndroidAppFile.h"
+ #endif
+ #ifdef HAS_UPNP
+ #include "UPnPFile.h"
+diff --git a/xbmc/guilib/Texture.cpp b/xbmc/guilib/Texture.cpp
+index 96249495eb6e..4d223d4ada97 100644
+--- a/xbmc/guilib/Texture.cpp
++++ b/xbmc/guilib/Texture.cpp
+@@ -33,7 +33,7 @@
+ #endif
+ #if defined(TARGET_ANDROID)
+ #include "URL.h"
+-#include "filesystem/AndroidAppFile.h"
++#include "platform/android/filesystem/AndroidAppFile.h"
+ #endif
+ #ifdef TARGET_POSIX
+ #include "platform/linux/XMemUtils.h"
+diff --git a/xbmc/filesystem/APKDirectory.cpp b/xbmc/platform/android/filesystem/APKDirectory.cpp
+similarity index 100%
+rename from xbmc/filesystem/APKDirectory.cpp
+rename to xbmc/platform/android/filesystem/APKDirectory.cpp
+diff --git a/xbmc/filesystem/APKDirectory.h b/xbmc/platform/android/filesystem/APKDirectory.h
+similarity index 96%
+rename from xbmc/filesystem/APKDirectory.h
+rename to xbmc/platform/android/filesystem/APKDirectory.h
+index 2e1060488851..39d7d0248eb3 100644
+--- a/xbmc/filesystem/APKDirectory.h
++++ b/xbmc/platform/android/filesystem/APKDirectory.h
+@@ -19,7 +19,7 @@
+  *
+  */
+ 
+-#include "IFileDirectory.h"
++#include "filesystem/IFileDirectory.h"
+ 
+ namespace XFILE
+ {
+diff --git a/xbmc/filesystem/APKFile.cpp b/xbmc/platform/android/filesystem/APKFile.cpp
+similarity index 100%
+rename from xbmc/filesystem/APKFile.cpp
+rename to xbmc/platform/android/filesystem/APKFile.cpp
+diff --git a/xbmc/filesystem/APKFile.h b/xbmc/platform/android/filesystem/APKFile.h
+similarity index 98%
+rename from xbmc/filesystem/APKFile.h
+rename to xbmc/platform/android/filesystem/APKFile.h
+index 25c1ad9984a3..e7d376ca8dce 100644
+--- a/xbmc/filesystem/APKFile.h
++++ b/xbmc/platform/android/filesystem/APKFile.h
+@@ -19,7 +19,7 @@
+  *
+  */
+ 
+-#include "IFile.h"
++#include "filesystem/IFile.h"
+ #include "URL.h"
+ 
+ struct zip;
+diff --git a/xbmc/filesystem/AndroidAppDirectory.cpp b/xbmc/platform/android/filesystem/AndroidAppDirectory.cpp
+similarity index 98%
+rename from xbmc/filesystem/AndroidAppDirectory.cpp
+rename to xbmc/platform/android/filesystem/AndroidAppDirectory.cpp
+index 48239b68f0be..cccc03b81747 100644
+--- a/xbmc/filesystem/AndroidAppDirectory.cpp
++++ b/xbmc/platform/android/filesystem/AndroidAppDirectory.cpp
+@@ -22,7 +22,7 @@
+ #include "AndroidAppDirectory.h"
+ #include "platform/android/activity/XBMCApp.h"
+ #include "FileItem.h"
+-#include "File.h"
++#include "filesystem/File.h"
+ #include "utils/URIUtils.h"
+ #include <vector>
+ #include "utils/log.h"
+diff --git a/xbmc/filesystem/AndroidAppDirectory.h b/xbmc/platform/android/filesystem/AndroidAppDirectory.h
+similarity index 97%
+rename from xbmc/filesystem/AndroidAppDirectory.h
+rename to xbmc/platform/android/filesystem/AndroidAppDirectory.h
+index 659f67b1b92c..afd35ac31771 100644
+--- a/xbmc/filesystem/AndroidAppDirectory.h
++++ b/xbmc/platform/android/filesystem/AndroidAppDirectory.h
+@@ -20,7 +20,7 @@
+ 
+ #pragma once
+ #if defined(TARGET_ANDROID)
+-#include "IDirectory.h"
++#include "filesystem/IDirectory.h"
+ #include "FileItem.h"
+ namespace XFILE
+ {
+diff --git a/xbmc/filesystem/AndroidAppFile.cpp b/xbmc/platform/android/filesystem/AndroidAppFile.cpp
+similarity index 100%
+rename from xbmc/filesystem/AndroidAppFile.cpp
+rename to xbmc/platform/android/filesystem/AndroidAppFile.cpp
+diff --git a/xbmc/filesystem/AndroidAppFile.h b/xbmc/platform/android/filesystem/AndroidAppFile.h
+similarity index 98%
+rename from xbmc/filesystem/AndroidAppFile.h
+rename to xbmc/platform/android/filesystem/AndroidAppFile.h
+index a9ab1c19b082..00e5bb7b673e 100644
+--- a/xbmc/filesystem/AndroidAppFile.h
++++ b/xbmc/platform/android/filesystem/AndroidAppFile.h
+@@ -20,7 +20,7 @@
+  */
+ 
+ #if defined(TARGET_ANDROID)
+-#include "IFile.h"
++#include "filesystem/IFile.h"
+ #include "URL.h"
+ #include "string.h"
+ 
+diff --git a/xbmc/platform/android/filesystem/CMakeLists.txt b/xbmc/platform/android/filesystem/CMakeLists.txt
+new file mode 100644
+index 000000000000..32ab91850d69
+--- /dev/null
++++ b/xbmc/platform/android/filesystem/CMakeLists.txt
+@@ -0,0 +1,10 @@
++set(SOURCES APKDirectory.cpp
++            APKFile.cpp
++            AndroidAppDirectory.cpp
++            AndroidAppFile.cpp)
++set(HEADERS APKDirectory.h
++            APKFile.h
++            AndroidAppDirectory.h
++            AndroidAppFile.h)
++
++core_add_library(platform_android_filesystem)
+
+From e178ae8962837058610c4244c5ef89118b31cfbb Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 12:50:26 +0300
+Subject: [PATCH 29/30] [posix] move SMB implementation to platform folder
+
+---
+ xbmc/Application.cpp                                  | 2 +-
+ xbmc/filesystem/CMakeLists.txt                        | 7 -------
+ xbmc/filesystem/DirectoryFactory.cpp                  | 2 +-
+ xbmc/filesystem/FileFactory.cpp                       | 2 +-
+ xbmc/platform/posix/filesystem/CMakeLists.txt         | 7 +++++++
+ xbmc/{ => platform/posix}/filesystem/SMBDirectory.cpp | 0
+ xbmc/{ => platform/posix}/filesystem/SMBDirectory.h   | 2 +-
+ xbmc/{ => platform/posix}/filesystem/SMBFile.cpp      | 0
+ xbmc/{ => platform/posix}/filesystem/SMBFile.h        | 2 +-
+ 9 files changed, 12 insertions(+), 12 deletions(-)
+ rename xbmc/{ => platform/posix}/filesystem/SMBDirectory.cpp (100%)
+ rename xbmc/{ => platform/posix}/filesystem/SMBDirectory.h (97%)
+ rename xbmc/{ => platform/posix}/filesystem/SMBFile.cpp (100%)
+ rename xbmc/{ => platform/posix}/filesystem/SMBFile.h (98%)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index b6ed0f95c07f..47cc21a50c9f 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -106,7 +106,7 @@
+ #include "filesystem/UPnPDirectory.h"
+ #endif
+ #if defined(TARGET_POSIX) && defined(HAS_FILESYSTEM_SMB)
+-#include "filesystem/SMBDirectory.h"
++#include "platform/posix/filesystem/SMBDirectory.h"
+ #endif
+ #ifdef HAS_FILESYSTEM_NFS
+ #include "filesystem/NFSFile.h"
+diff --git a/xbmc/filesystem/CMakeLists.txt b/xbmc/filesystem/CMakeLists.txt
+index fce2cfcefdca..e07e0c6bb148 100644
+--- a/xbmc/filesystem/CMakeLists.txt
++++ b/xbmc/filesystem/CMakeLists.txt
+@@ -133,13 +133,6 @@ set(HEADERS AddonsDirectory.h
+             ZipFile.h
+             ZipManager.h)
+ 
+-if(NOT CORE_SYSTEM_NAME STREQUAL windows AND NOT CORE_SYSTEM_NAME STREQUAL windowsstore AND SMBCLIENT_FOUND)
+-  list(APPEND SOURCES SMBDirectory.cpp
+-                      SMBFile.cpp)
+-  list(APPEND HEADERS SMBDirectory.h
+-                      SMBFile.h)
+-endif()
+-
+ if(BLURAY_FOUND)
+   list(APPEND SOURCES BlurayDirectory.cpp
+                       BlurayFile.cpp)
+diff --git a/xbmc/filesystem/DirectoryFactory.cpp b/xbmc/filesystem/DirectoryFactory.cpp
+index a43cb33629ca..7266aa52a019 100644
+--- a/xbmc/filesystem/DirectoryFactory.cpp
++++ b/xbmc/filesystem/DirectoryFactory.cpp
+@@ -53,7 +53,7 @@
+ #ifdef TARGET_WINDOWS
+ #include "platform/win32/filesystem/Win32SMBDirectory.h"
+ #else
+-#include "SMBDirectory.h"
++#include "platform/posix/filesystem/SMBDirectory.h"
+ #endif
+ #endif
+ #include "CDDADirectory.h"
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 1ab388c12c7b..30c01c4c375f 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -35,7 +35,7 @@
+ #ifdef TARGET_WINDOWS
+ #include "platform/win32/filesystem/Win32SMBFile.h"
+ #else
+-#include "SMBFile.h"
++#include "platform/posix/filesystem/SMBFile.h"
+ #endif
+ #endif
+ #include "CDDAFile.h"
+diff --git a/xbmc/platform/posix/filesystem/CMakeLists.txt b/xbmc/platform/posix/filesystem/CMakeLists.txt
+index 6640bbe639d1..cda084b96ebc 100644
+--- a/xbmc/platform/posix/filesystem/CMakeLists.txt
++++ b/xbmc/platform/posix/filesystem/CMakeLists.txt
+@@ -4,4 +4,11 @@ set(SOURCES PosixDirectory.cpp
+ set(HEADERS PosixDirectory.h
+             PosixFile.h)
+ 
++if(SMBCLIENT_FOUND)
++  list(APPEND SOURCES SMBDirectory.cpp
++                      SMBFile.cpp)
++  list(APPEND HEADERS SMBDirectory.h
++                      SMBFile.h)
++endif()
++
+ core_add_library(platform_posix_filesystem)
+diff --git a/xbmc/filesystem/SMBDirectory.cpp b/xbmc/platform/posix/filesystem/SMBDirectory.cpp
+similarity index 100%
+rename from xbmc/filesystem/SMBDirectory.cpp
+rename to xbmc/platform/posix/filesystem/SMBDirectory.cpp
+diff --git a/xbmc/filesystem/SMBDirectory.h b/xbmc/platform/posix/filesystem/SMBDirectory.h
+similarity index 97%
+rename from xbmc/filesystem/SMBDirectory.h
+rename to xbmc/platform/posix/filesystem/SMBDirectory.h
+index 019c18e025c7..d618d0f97663 100644
+--- a/xbmc/filesystem/SMBDirectory.h
++++ b/xbmc/platform/posix/filesystem/SMBDirectory.h
+@@ -19,7 +19,7 @@
+  *
+  */
+ 
+-#include "IDirectory.h"
++#include "filesystem/IDirectory.h"
+ #include "SMBFile.h"
+ #include "MediaSource.h"
+ 
+diff --git a/xbmc/filesystem/SMBFile.cpp b/xbmc/platform/posix/filesystem/SMBFile.cpp
+similarity index 100%
+rename from xbmc/filesystem/SMBFile.cpp
+rename to xbmc/platform/posix/filesystem/SMBFile.cpp
+diff --git a/xbmc/filesystem/SMBFile.h b/xbmc/platform/posix/filesystem/SMBFile.h
+similarity index 98%
+rename from xbmc/filesystem/SMBFile.h
+rename to xbmc/platform/posix/filesystem/SMBFile.h
+index 39fb35ea5f3c..ed9e2cd2d55b 100644
+--- a/xbmc/filesystem/SMBFile.h
++++ b/xbmc/platform/posix/filesystem/SMBFile.h
+@@ -27,7 +27,7 @@
+ //////////////////////////////////////////////////////////////////////
+ 
+ 
+-#include "IFile.h"
++#include "filesystem/IFile.h"
+ #include "URL.h"
+ #include "threads/CriticalSection.h"
+ 
+
+From b8731149d16d1f8818dff64cbb1eaa567a843eeb Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Wed, 4 Apr 2018 13:08:09 +0300
+Subject: [PATCH 30/30] [win10] do not include Win32SMBFile into build tree.
+
+---
+ xbmc/platform/win32/filesystem/CMakeLists.txt | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/xbmc/platform/win32/filesystem/CMakeLists.txt b/xbmc/platform/win32/filesystem/CMakeLists.txt
+index 1ed9cab3c8e1..f08d8d3e8b51 100644
+--- a/xbmc/platform/win32/filesystem/CMakeLists.txt
++++ b/xbmc/platform/win32/filesystem/CMakeLists.txt
+@@ -1,14 +1,14 @@
+ set(SOURCES Win32Directory.cpp
+-            Win32File.cpp
+-            Win32SMBFile.cpp)
++            Win32File.cpp)
+ 
+ set(HEADERS Win32Directory.h
+-            Win32File.h
+-            Win32SMBFile.h)
++            Win32File.h)
+ 
+ if(NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
+-  list(APPEND SOURCES Win32SMBDirectory.cpp)
+-  list(APPEND HEADERS Win32SMBDirectory.h)
++  list(APPEND SOURCES Win32SMBDirectory.cpp
++                      Win32SMBFile.cpp)
++  list(APPEND HEADERS Win32SMBDirectory.h
++                      Win32SMBFile.h)
+ endif()
+ 
+ core_add_library(filesystem_win32)
