@@ -6,7 +6,7 @@ Subject: [PATCH] Use UDevil to unmount disks if it is available
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
  xbmc/platform/linux/PosixMountProvider.cpp   | 12 +++++++++++-
- xbmc/storage/linux/UDevProvider.cpp | 12 +++++++++++-
+ xbmc/platform/linux/storage/UDevProvider.cpp | 12 +++++++++++-
  2 files changed, 22 insertions(+), 2 deletions(-)
 
 diff --git a/xbmc/platform/linux/PosixMountProvider.cpp b/xbmc/platform/linux/PosixMountProvider.cpp
@@ -32,10 +32,10 @@ index 218d10b..4aca9c7 100644
    int status = system(cmd.c_str());
  
    if (status == 0)
-diff --git a/xbmc/storage/linux/UDevProvider.cpp b/xbmc/storage/linux/UDevProvider.cpp
+diff --git a/xbmc/platform/linux/storage/UDevProvider.cpp b/xbmc/platform/linux/storage/UDevProvider.cpp
 index 0ca370b..ec3dce2 100644
---- a/xbmc/storage/linux/UDevProvider.cpp
-+++ b/xbmc/storage/linux/UDevProvider.cpp
+--- a/xbmc/platform/linux/storage/UDevProvider.cpp
++++ b/xbmc/platform/linux/storage/UDevProvider.cpp
 @@ -207,7 +207,17 @@ bool CUDevProvider::Eject(const std::string& mountpath)
  {
    // just go ahead and try to umount the disk
