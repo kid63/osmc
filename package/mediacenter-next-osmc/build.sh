@@ -20,7 +20,7 @@ if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
 # Build in native environment
 BUILD_OPTS=$BUILD_OPTION_DEFAULTS
 BUILD_OPTS=$(($BUILD_OPTS - $BUILD_OPTION_USE_CCACHE))
-if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ]
+if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ]
 then
     BUILD_OPTS=$(($BUILD_OPTS + $BUILD_OPTION_NEEDS_SWAP))
 fi
@@ -104,10 +104,6 @@ then
 	then
 		handle_dep "rbp-userland-dev-osmc"
 	fi
-	if [ "$1" == "vero" ]
-	then
-		handle_dep "vero-userland-dev-osmc"
-	fi
 	if [ "$1" == "rbp1" ]
 	then
 		handle_dep "rbp1-libcec-dev-osmc"
@@ -122,17 +118,6 @@ then
 	if [ "$1" == "rbp2" ]
 	then
 		handle_dep "rbp2-libcec-dev-osmc"
-		handle_dep "armv7-libshairplay-dev-osmc"
-		handle_dep "armv7-librtmp-dev-osmc"
-		handle_dep "armv7-libnfs-dev-osmc"
-		handle_dep "armv7-libplatform-dev-osmc"
-		handle_dep "armv7-libbluray-dev-osmc"
-		handle_dep "armv7-libsqlite-dev-osmc"
-		handle_dep "armv7-libass-dev-osmc"
-	fi
-	if [ "$1" == "vero" ]
-	then
-		handle_dep "vero-libcec-dev-osmc"
 		handle_dep "armv7-libshairplay-dev-osmc"
 		handle_dep "armv7-librtmp-dev-osmc"
 		handle_dep "armv7-libnfs-dev-osmc"
@@ -212,16 +197,15 @@ then
 	echo $VERSION_DBG >> files-debug/DEBIAN/control
 	echo "Depends: ${1}-mediacenter-osmc (=${VERSION_NUM})" >> files-debug/DEBIAN/control
 	pushd src/xbmc-*
-	install_patch "../../patches" "all"
 	test "$1" == atv && install_patch "../../patches" "atv"
 	test "$1" == pc && install_patch "../../patches" "pc"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
 		install_patch "../../patches" "rbp"
 	fi
-	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ]; then install_patch "../../patches" "arm"; fi
+	install_patch "../../patches" "all"
+	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ]; then install_patch "../../patches" "arm"; fi
 
-	test "$1" == vero && install_patch "../../patches" "vero"
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
 	# Apple TV configuration
@@ -297,34 +281,6 @@ then
             -DWITH_CPU=${CPU} \
 	    -DENABLE_APP_AUTONAME=OFF \
 	.
-	fi
-	if [ "$1" == "vero" ]; then
-		LIBRARY_PATH+="/opt/vero/lib" && \
-		COMPFLAGS="-I/opt/vero/include -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
-		export CFLAGS+=${COMPFLAGS} && \
-		export CXXFLAGS+=${COMPFLAGS} && \
-		export CPPFLAGS+=${COMPFLAGS} && \
-		export LDFLAGS="-L/opt/vero/lib" && \
-        cmake -DCMAKE_INSTALL_PREFIX=/usr \
-            -DCMAKE_INSTALL_LIBDIR=/usr/lib \
-            -DCMAKE_PREFIX_PATH=/opt/vero \
-            -DCMAKE_INCLUDE_PATH=/opt/vero/include \
-            -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
-            -DOPENGLES_gl_LIBRARY=/opt/vero/lib \
-            -DENABLE_AML=ON \
-            -DASS_INCLUDE_DIR=/usr/osmc/lib \
-            -DAML_INCLUDE_DIR=/opt/vero/include \
-            -DRapidJSON_INCLUDE_DIR=/opt/vero/include \
-            -DENABLE_OPENGLES=ON \
-            -DENABLE_OPENGL=OFF \
-            -DENABLE_OPTICAL=1 \
-            -DENABLE_DVDCSS=1 \
-            -DWITH_ARCH=arm \
-            -DWITH_CPU=${CPU} \
-            -DCORE_PLATFORM_NAME=imx \
-            -DCORE_SYSTEM_NAME=linux \
-            -DENABLE_APP_AUTONAME=OFF \
-        .
 	fi
 	if [ "$1" == "vero2" ]; then
 		LIBRARY_PATH+="/opt/vero2/lib" && \
@@ -425,11 +381,6 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
 	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vc/include:/opt/vc/include/interface:/opt/vc/include/interface/vcos/pthreads:/opt/vc/include/interface/vmcs_host/linux -DCMAKE_LIBRARY_PATH=/opt/vc/lib"
   	fi
-	if [ "$1" == "vero" ]
-	then
-           ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
-	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero/lib -DCMAKE_LIBRARY_PATH=/opt/vero/include"
-	fi
 	if [ "$1" == "vero2" ]
 	then
 	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
@@ -488,13 +439,11 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	test "$1" == pc && echo "Depends: ${COMMON_DEPENDS}, amd64-libnfs-osmc, amd64-librtmp-osmc, amd64-libshairplay-osmc, amd64-libbluray-osmc, amd64-libsqlite-osmc, libxrandr2, xserver-xorg-core, xserver-xorg, xinit, xfonts-base, x11-xserver-utils, xauth, alsa-utils, xserver-xorg-video-intel, amd64-libass-osmc" >> files/DEBIAN/control
   	test "$1" == rbp1 && echo "Depends: ${COMMON_DEPENDS}, rbp1-libcec-osmc (>=3.1.0-2), armv6l-libnfs-osmc, armv6l-librtmp-osmc, armv6l-libshairplay-osmc, armv6l-libbluray-osmc, armv6l-libsqlite-osmc, rbp-userland-osmc, armv6l-splash-osmc, armv6l-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
 	test "$1" == rbp2 && echo "Depends: ${COMMON_DEPENDS}, rbp2-libcec-osmc (>=3.1.0-2), armv7-libnfs-osmc, armv7-librtmp-osmc, armv7-libshairplay-osmc, armv7-libbluray-osmc, armv7-libsqlite-osmc, rbp-userland-osmc, armv7-splash-osmc, armv7-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
-	test "$1" == vero && echo "Depends: ${COMMON_DEPENDS}, vero-libcec-osmc, armv7-libnfs-osmc, armv7-librtmp-osmc, armv7-libshairplay-osmc, armv7-libbluray-osmc, armv7-libsqlite-osmc, vero-userland-osmc, armv7-splash-osmc, armv7-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
 	test "$1" == vero2 && echo "Depends: ${COMMON_DEPENDS}, vero2-libcec-osmc, armv7-libnfs-osmc, armv7-librtmp-osmc, armv7-libshairplay-osmc, armv7-libbluray-osmc, armv7-libsqlite-osmc, vero2-userland-osmc, armv7-splash-osmc, vero2-libamcodec-osmc, armv7-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
 	test "$1" == vero3 && echo "Depends: ${COMMON_DEPENDS}, vero3-libcec-osmc, armv7-libnfs-osmc, armv7-librtmp-osmc, armv7-libshairplay-osmc, armv7-libbluray-osmc, armv7-libsqlite-osmc, vero3-userland-osmc, armv7-splash-osmc, vero3-libamcodec-osmc, armv7-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
 	cp patches/${1}-watchdog ${out}/usr/bin/mediacenter
 	cp patches/${1}-advancedsettings.xml ${out}/usr/share/kodi/system/advancedsettings.xml
 	chmod +x ${out}/usr/bin/mediacenter
-	test "$1" == vero && cp patches/${1}-hdmi-trace ${out}/usr/bin/hdmi-trace && chmod +x ${out}/usr/bin/hdmi-trace
 	fix_arch_ctl "files/DEBIAN/control"
 	fix_arch_ctl "files-debug/DEBIAN/control"
 	dpkg_build files/ ${1}-mediacenter-osmc.deb
