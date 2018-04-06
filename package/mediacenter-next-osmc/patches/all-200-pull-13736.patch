@@ -1,0 +1,53 @@
+From f7bcf8482430214931adbf098ad6307a804db45b Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Wed, 4 Apr 2018 11:56:47 +0200
+Subject: [PATCH] ADSP: Remove skin conditions
+
+---
+ addons/skin.estouchy/xml/Includes.xml      | 6 ------
+ addons/skin.estuary/xml/DialogSettings.xml | 1 -
+ addons/skin.estuary/xml/VideoOSD.xml       | 2 +-
+ 3 files changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/addons/skin.estouchy/xml/Includes.xml b/addons/skin.estouchy/xml/Includes.xml
+index dacb4def6eba..de8f2a273d90 100644
+--- a/addons/skin.estouchy/xml/Includes.xml
++++ b/addons/skin.estouchy/xml/Includes.xml
+@@ -2491,12 +2491,6 @@
+ 			<onclick>PlayerControl(ShowVideoMenu)</onclick>
+ 			<visible>VideoPlayer.HasMenu + !VideoPlayer.Content(LiveTV)</visible>
+ 		</control>
+-		<control type="button">
+-			<label>15047</label>
+-			<include>MenuButtonCommonValues</include>
+-			<onclick>ActivateWindow(OSDAudioDSPSettings)</onclick>
+-			<visible>system.getbool(audiooutput.dspaddonsenabled)</visible>
+-		</control>
+ 		<control type="button">
+ 			<label>Player info</label>
+ 			<include>MenuButtonCommonValues</include>
+diff --git a/addons/skin.estuary/xml/DialogSettings.xml b/addons/skin.estuary/xml/DialogSettings.xml
+index 5aa2972e1873..06768db57d71 100644
+--- a/addons/skin.estuary/xml/DialogSettings.xml
++++ b/addons/skin.estuary/xml/DialogSettings.xml
+@@ -9,7 +9,6 @@
+ 			<width>1520</width>
+ 			<include>Animation_DialogPopupVisible</include>
+ 			<visible>!Window.IsVisible(sliderdialog)</visible>
+-			<visible>![Window.IsActive(osdaudiodspsettings) + Window.Is(osdaudiosettings)]</visible>
+ 			<include content="DialogBackgroundCommons">
+ 				<param name="width" value="1520" />
+ 				<param name="height" value="870" />
+diff --git a/addons/skin.estuary/xml/VideoOSD.xml b/addons/skin.estuary/xml/VideoOSD.xml
+index 7b59b8c2cd35..5a5b6818530b 100644
+--- a/addons/skin.estuary/xml/VideoOSD.xml
++++ b/addons/skin.estuary/xml/VideoOSD.xml
+@@ -18,7 +18,7 @@
+ 		<control type="group">
+ 			<bottom>0</bottom>
+ 			<height>180</height>
+-			<visible>![Window.IsVisible(SliderDialog) | Window.IsVisible(osdaudiosettings) | Window.IsVisible(osdvideosettings) | Window.IsVisible(OSDAudioDSPSettings) | Window.IsVisible(VideoBookmarks) | Window.IsVisible(playerprocessinfo) | Window.IsVisible(osdcmssettings) | Window.IsVisible(PVROSDChannels) | Window.IsVisible(pvrchannelguide)]</visible>
++			<visible>![Window.IsVisible(SliderDialog) | Window.IsVisible(osdaudiosettings) | Window.IsVisible(osdvideosettings) | Window.IsVisible(VideoBookmarks) | Window.IsVisible(playerprocessinfo) | Window.IsVisible(osdcmssettings) | Window.IsVisible(PVROSDChannels) | Window.IsVisible(pvrchannelguide)]</visible>
+ 			<animation effect="fade" time="200">VisibleChange</animation>
+ 			<control type="label">
+ 				<right>30</right>
