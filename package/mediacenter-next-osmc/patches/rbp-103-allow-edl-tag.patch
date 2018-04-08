@@ -1,0 +1,361 @@
+From 81077ef237eac6a4f83078ebe989be5d4b59002d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ren=C3=A9=20B=C3=BChlmann?= <rene@buehlmann.net>
+Date: Mon, 2 Apr 2018 18:20:25 +0200
+Subject: [PATCH] Allow a PVR to provide an EDL for an EPG tag
+
+---
+ xbmc/addons/PVRClient.cpp                          | 19 +++++++++++
+ xbmc/addons/PVRClient.h                            | 14 ++++++++
+ .../kodi-addon-dev-kit/include/kodi/versions.h     |  4 +--
+ .../kodi-addon-dev-kit/include/kodi/xbmc_pvr_dll.h | 13 +++++++-
+ .../include/kodi/xbmc_pvr_types.h                  |  2 ++
+ xbmc/cores/VideoPlayer/Edl.cpp                     | 37 +++++++++++++++-------
+ xbmc/cores/VideoPlayer/Edl.h                       |  6 ++--
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp             |  2 +-
+ xbmc/pvr/addons/PVRClients.cpp                     |  9 ++++++
+ xbmc/pvr/addons/PVRClients.h                       |  7 ++++
+ xbmc/pvr/epg/EpgInfoTag.cpp                        |  9 ++++++
+ xbmc/pvr/epg/EpgInfoTag.h                          |  6 ++++
+ 12 files changed, 111 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/addons/PVRClient.cpp b/xbmc/addons/PVRClient.cpp
+index a5c34a1a9af0..d991c53c8d24 100644
+--- a/xbmc/addons/PVRClient.cpp
++++ b/xbmc/addons/PVRClient.cpp
+@@ -787,6 +787,25 @@ PVR_ERROR CPVRClient::FillEpgTagStreamFileItem(CFileItem &fileItem)
+   });
+ }
+ 
++PVR_ERROR CPVRClient::GetEpgTagEdl(const CConstPVREpgInfoTagPtr &epgTag, std::vector<PVR_EDL_ENTRY> &edls)
++{
++  edls.clear();
++  return DoAddonCall(__FUNCTION__, [&epgTag, &edls](const AddonInstance* addon) {
++    CAddonEpgTag addonTag(epgTag);
++
++    PVR_EDL_ENTRY edl_array[PVR_ADDON_EDL_LENGTH];
++    int size = PVR_ADDON_EDL_LENGTH;
++    PVR_ERROR error = addon->GetEPGTagEdl(&addonTag, edl_array, &size);
++    if (error == PVR_ERROR_NO_ERROR)
++    {
++      edls.reserve(size);
++      for (int i = 0; i < size; ++i)
++        edls.emplace_back(edl_array[i]);
++    }
++    return error;
++  }, m_clientCapabilities.SupportsEpgTagEdl());
++}
++
+ PVR_ERROR CPVRClient::GetChannelGroupsAmount(int &iGroups)
+ {
+   iGroups = -1;
+diff --git a/xbmc/addons/PVRClient.h b/xbmc/addons/PVRClient.h
+index e2b37c033232..9aff246e6dec 100644
+--- a/xbmc/addons/PVRClient.h
++++ b/xbmc/addons/PVRClient.h
+@@ -161,6 +161,12 @@ namespace PVR
+      */
+     bool SupportsRecordingsEdl() const { return m_addonCapabilities && m_addonCapabilities->bSupportsRecordings && m_addonCapabilities->bSupportsRecordingEdl; }
+ 
++    /*!
++     * @brief Check whether this add-on supports retrieving an edit decision list for epg tags.
++     * @return True if supported, false otherwise.
++     */
++    bool SupportsEpgTagEdl() const { return m_addonCapabilities && m_addonCapabilities->bSupportsEPG && m_addonCapabilities->bSupportsEPGEdl; }
++
+     /*!
+      * @brief Check whether this add-on supports renaming recordings..
+      * @return True if supported, false otherwise.
+@@ -565,6 +571,14 @@ namespace PVR
+     * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
+     */
+     PVR_ERROR GetRecordingEdl(const CPVRRecording &recording, std::vector<PVR_EDL_ENTRY> &edls);
++    
++    /*!
++    * @brief Retrieve the edit decision list (EDL) from the backend.
++    * @param epgTag The EPG tag.
++    * @param edls The edit decision list (empty on error).
++    * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
++    */
++    PVR_ERROR GetEpgTagEdl(const CConstPVREpgInfoTagPtr &epgTag, std::vector<PVR_EDL_ENTRY> &edls);
+ 
+     //@}
+     /** @name PVR timer methods */
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+index 6ad93541ec4c..a72bc080303a 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+@@ -114,8 +114,8 @@
+ #define ADDON_INSTANCE_VERSION_PERIPHERAL_DEPENDS     "addon-instance/Peripheral.h" \
+                                                       "addon-instance/PeripheralUtils.h"
+ 
+-#define ADDON_INSTANCE_VERSION_PVR                    "5.8.0"
+-#define ADDON_INSTANCE_VERSION_PVR_MIN                "5.8.0"
++#define ADDON_INSTANCE_VERSION_PVR                    "5.9.0"
++#define ADDON_INSTANCE_VERSION_PVR_MIN                "5.9.0"
+ #define ADDON_INSTANCE_VERSION_PVR_XML_ID             "kodi.binary.instance.pvr"
+ #define ADDON_INSTANCE_VERSION_PVR_DEPENDS            "xbmc_pvr_dll.h" \
+                                                       "xbmc_pvr_types.h" \
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_dll.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_dll.h
+index 25cacb45c98d..d36effa201e7 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_dll.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_dll.h
+@@ -115,6 +115,16 @@ extern "C"
+    * @remarks Required if add-on supports playing epg tags. Return PVR_ERROR_NOT_IMPLEMENTED if this add-on won't provide this function.
+    */
+   PVR_ERROR IsEPGTagPlayable(const EPG_TAG* tag, bool* bIsPlayable);
++  
++  /*!
++  * Retrieve the edit decision list (EDL) of an EPG tag on the backend.
++  * @param epgTag The EPG tag.
++  * @param edl out: The function has to write the EDL list into this array.
++  * @param size in: The maximum size of the EDL, out: the actual size of the EDL.
++  * @return PVR_ERROR_NO_ERROR if the EDL was successfully read.
++  * @remarks Required if bSupportsEpgEdl is set to true. Return PVR_ERROR_NOT_IMPLEMENTED if this add-on won't provide this function.
++  */
++  PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size);
+ 
+   /*!
+    * Get the stream properties for an epg tag from the backend.
+@@ -324,7 +334,7 @@ extern "C"
+   * @return PVR_ERROR_NO_ERROR if the EDL was successfully read.
+   * @remarks Required if bSupportsRecordingEdl is set to true. Return PVR_ERROR_NOT_IMPLEMENTED if this add-on won't provide this function.
+   */
+-  PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY edl[], int *size);
++  PVR_ERROR GetRecordingEdl(const PVR_RECORDING& recording, PVR_EDL_ENTRY edl[], int *size);
+ 
+   /*!
+   * Retrieve the timer types supported by the backend.
+@@ -650,6 +660,7 @@ extern "C"
+     pClient->toAddon.GetEPGForChannel               = GetEPGForChannel;
+     pClient->toAddon.IsEPGTagRecordable             = IsEPGTagRecordable;
+     pClient->toAddon.IsEPGTagPlayable               = IsEPGTagPlayable;
++    pClient->toAddon.GetEPGTagEdl                   = GetEPGTagEdl;
+     pClient->toAddon.GetEPGTagStreamProperties      = GetEPGTagStreamProperties;
+ 
+     pClient->toAddon.GetChannelGroupsAmount         = GetChannelGroupsAmount;
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h
+index b5081a812901..32303d4167b8 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h
+@@ -303,6 +303,7 @@ extern "C" {
+   typedef struct PVR_ADDON_CAPABILITIES
+   {
+     bool bSupportsEPG;                  /*!< @brief true if the add-on provides EPG information */
++    bool bSupportsEPGEdl;               /*!< @brief true if the backend supports retrieving an edit decision list for an EPG tag. */
+     bool bSupportsTV;                   /*!< @brief true if this add-on provides TV channels */
+     bool bSupportsRadio;                /*!< @brief true if this add-on supports radio channels */
+     bool bSupportsRecordings;           /*!< @brief true if this add-on supports playback of recordings stored on the backend */
+@@ -643,6 +644,7 @@ extern "C" {
+     PVR_ERROR (__cdecl* GetEPGForChannel)(ADDON_HANDLE, const PVR_CHANNEL&, time_t, time_t);
+     PVR_ERROR (__cdecl* IsEPGTagRecordable)(const EPG_TAG*, bool*);
+     PVR_ERROR (__cdecl* IsEPGTagPlayable)(const EPG_TAG*, bool*);
++    PVR_ERROR (__cdecl* GetEPGTagEdl)(const EPG_TAG*, PVR_EDL_ENTRY[], int*);
+     PVR_ERROR (__cdecl* GetEPGTagStreamProperties)(const EPG_TAG*, PVR_NAMED_VALUE*, unsigned int*);
+     int (__cdecl* GetChannelGroupsAmount)(void);
+     PVR_ERROR (__cdecl* GetChannelGroups)(ADDON_HANDLE, bool);
+diff --git a/xbmc/cores/VideoPlayer/Edl.cpp b/xbmc/cores/VideoPlayer/Edl.cpp
+index 3eadf3f33ff9..b165cf2fcd67 100644
+--- a/xbmc/cores/VideoPlayer/Edl.cpp
++++ b/xbmc/cores/VideoPlayer/Edl.cpp
+@@ -50,7 +50,7 @@ void CEdl::Clear()
+   m_lastCutTime = 0;
+ }
+ 
+-bool CEdl::ReadEditDecisionLists(const std::string& strMovie, const float fFrameRate, const int iHeight)
++bool CEdl::ReadEditDecisionLists(const CFileItem& fileItem, const float fFrameRate, const int iHeight)
+ {
+   /*
+    * The frame rate hints returned from ffmpeg for the video stream do not appear to take into
+@@ -98,8 +98,9 @@ bool CEdl::ReadEditDecisionLists(const std::string& strMovie, const float fFrame
+    * Only check for edit decision lists if the movie is on the local hard drive, or accessed over a
+    * network share.
+    */
++  const std::string strMovie = fileItem.GetDynPath();
+   if ((URIUtils::IsHD(strMovie) || URIUtils::IsOnLAN(strMovie)) &&
+-      !URIUtils::IsPVRRecording(strMovie) &&
++      !fileItem.IsPVRRecording() &&
+       !URIUtils::IsInternetStream(strMovie))
+   {
+     CLog::Log(LOGDEBUG, "%s - Checking for edit decision lists (EDL) on local drive or remote share for: %s",
+@@ -124,12 +125,19 @@ bool CEdl::ReadEditDecisionLists(const std::string& strMovie, const float fFrame
+   /*
+    * PVR Recordings
+    */
+-  else if (URIUtils::IsPVRRecording(strMovie))
++  else if (fileItem.IsPVRRecording())
+   {
+     CLog::Log(LOGDEBUG, "%s - Checking for edit decision list (EDL) for PVR recording: %s",
+       __FUNCTION__, strMovie.c_str());
+ 
+-    bFound = ReadPvr(strMovie);
++    bFound = ReadPvr(fileItem);
++  }
++  else if (fileItem.IsEPG())
++  {
++    CLog::Log(LOGDEBUG, "%s - Checking for edit decision list (EDL) for EPG entry: %s",
++      __FUNCTION__, strMovie.c_str());
++
++    bFound = ReadPvr(fileItem);
+   }
+ 
+   if (bFound)
+@@ -561,26 +569,33 @@ bool CEdl::ReadBeyondTV(const std::string& strMovie)
+   }
+ }
+ 
+-bool CEdl::ReadPvr(const std::string &strMovie)
++bool CEdl::ReadPvr(const CFileItem &fileItem)
+ {
++  const std::string strMovie = fileItem.GetDynPath();
+   if (!CServiceBroker::GetPVRManager().IsStarted())
+   {
+     CLog::Log(LOGERROR, "%s - PVR Manager not started, cannot read Edl for %s", __FUNCTION__, strMovie.c_str());
+     return false;
+   }
+-
+-  CFileItemPtr tag =  CServiceBroker::GetPVRManager().Recordings()->GetByPath(strMovie);
+-  if (tag && tag->HasPVRRecordingInfoTag())
++  
++  std::vector<PVR_EDL_ENTRY> edl;
++  
++  if (fileItem.HasPVRRecordingInfoTag())
++  {
++    CLog::Log(LOGDEBUG, "%s - Reading Edl for recording: %s", __FUNCTION__, fileItem.GetPVRRecordingInfoTag()->m_strTitle.c_str());
++    edl = fileItem.GetPVRRecordingInfoTag()->GetEdl();
++  }
++  else if (fileItem.HasEPGInfoTag())
+   {
+-    CLog::Log(LOGDEBUG, "%s - Reading Edl for recording: %s", __FUNCTION__, tag->GetPVRRecordingInfoTag()->m_strTitle.c_str());
++    CLog::Log(LOGDEBUG, "%s - Reading Edl for EPG: %s", __FUNCTION__, fileItem.GetEPGInfoTag()->Title(true).c_str());
++    edl = fileItem.GetEPGInfoTag()->GetEdl();
+   }
+   else
+   {
+-    CLog::Log(LOGERROR, "%s - Unable to find PVR recording: %s", __FUNCTION__, strMovie.c_str());
++    CLog::Log(LOGERROR, "%s - Unknown file item type : %s", __FUNCTION__, strMovie.c_str());
+     return false;
+   }
+ 
+-  std::vector<PVR_EDL_ENTRY> edl = tag->GetPVRRecordingInfoTag()->GetEdl();
+   std::vector<PVR_EDL_ENTRY>::const_iterator it;
+   for (it = edl.begin(); it != edl.end(); ++it)
+   {
+diff --git a/xbmc/cores/VideoPlayer/Edl.h b/xbmc/cores/VideoPlayer/Edl.h
+index a18a89c11d58..9e2ae2b234e0 100644
+--- a/xbmc/cores/VideoPlayer/Edl.h
++++ b/xbmc/cores/VideoPlayer/Edl.h
+@@ -23,6 +23,8 @@
+ #include <string>
+ #include <vector>
+ 
++class CFileItem;
++
+ class CEdl
+ {
+ public:
+@@ -43,7 +45,7 @@ class CEdl
+     Action action;
+   };
+ 
+-  bool ReadEditDecisionLists(const std::string& strMovie, const float fFramesPerSecond, const int iHeight);
++  bool ReadEditDecisionLists(const CFileItem& fileItem, const float fFramesPerSecond, const int iHeight);
+   void Clear();
+ 
+   bool HasCut() const;
+@@ -73,7 +75,7 @@ class CEdl
+   bool ReadComskip(const std::string& strMovie, const float fFramesPerSecond);
+   bool ReadVideoReDo(const std::string& strMovie);
+   bool ReadBeyondTV(const std::string& strMovie);
+-  bool ReadPvr(const std::string& strMovie);
++  bool ReadPvr(const CFileItem& fileItem);
+ 
+   bool AddCut(Cut& NewCut);
+   bool AddSceneMarker(const int sceneMarker);
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 953c021fd139..d4e02c1318af 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -3685,7 +3685,7 @@ bool CVideoPlayer::OpenVideoStream(CDVDStreamInfo& hint, bool reset)
+     if (hint.fpsrate > 0 && hint.fpsscale > 0)
+     {
+       float fFramesPerSecond = (float)m_CurrentVideo.hint.fpsrate / (float)m_CurrentVideo.hint.fpsscale;
+-      m_Edl.ReadEditDecisionLists(m_item.GetDynPath(), fFramesPerSecond, m_CurrentVideo.hint.height);
++      m_Edl.ReadEditDecisionLists(m_item, fFramesPerSecond, m_CurrentVideo.hint.height);
+     }
+ 
+     static_cast<IDVDStreamPlayerVideo*>(player)->SetSpeed(m_streamPlayerSpeed);
+diff --git a/xbmc/pvr/addons/PVRClients.cpp b/xbmc/pvr/addons/PVRClients.cpp
+index 5441d895f3ba..3e5b2631d53d 100644
+--- a/xbmc/pvr/addons/PVRClients.cpp
++++ b/xbmc/pvr/addons/PVRClients.cpp
+@@ -875,6 +875,15 @@ std::vector<PVR_EDL_ENTRY> CPVRClients::GetRecordingEdl(const CPVRRecording &rec
+   return edls;
+ }
+ 
++std::vector<PVR_EDL_ENTRY> CPVRClients::GetEpgTagEdl(const CConstPVREpgInfoTagPtr &epgTag)
++{
++  std::vector<PVR_EDL_ENTRY> edls;
++  ForCreatedClient(__FUNCTION__, epgTag->ClientID(), [&epgTag, &edls](const CPVRClientPtr &client) {
++    return client->GetEpgTagEdl(epgTag, edls);
++  });
++  return edls;
++}
++
+ PVR_ERROR CPVRClients::GetEPGForChannel(const CPVRChannelPtr &channel, CPVREpg *epg, time_t start, time_t end)
+ {
+   return ForCreatedClient(__FUNCTION__, channel->ClientID(), [&channel, epg, start, end](const CPVRClientPtr &client) {
+diff --git a/xbmc/pvr/addons/PVRClients.h b/xbmc/pvr/addons/PVRClients.h
+index 3eb40d95a448..1b198b08cb98 100644
+--- a/xbmc/pvr/addons/PVRClients.h
++++ b/xbmc/pvr/addons/PVRClients.h
+@@ -472,6 +472,13 @@ namespace PVR
+     * @return The edit decision list (empty on error).
+     */
+     std::vector<PVR_EDL_ENTRY> GetRecordingEdl(const CPVRRecording &recording);
++    
++    /*!
++    * @brief Retrieve the edit decision list (EDL) for a given EPG tag from the backend.
++    * @param epgTag The EPG tag.
++    * @return The edit decision list (empty on error).
++    */
++    std::vector<PVR_EDL_ENTRY> GetEpgTagEdl(const CConstPVREpgInfoTagPtr &epgTag);
+ 
+     //@}
+ 
+diff --git a/xbmc/pvr/epg/EpgInfoTag.cpp b/xbmc/pvr/epg/EpgInfoTag.cpp
+index 26b5f311a978..0ed77cdbd365 100644
+--- a/xbmc/pvr/epg/EpgInfoTag.cpp
++++ b/xbmc/pvr/epg/EpgInfoTag.cpp
+@@ -717,6 +717,15 @@ bool CPVREpgInfoTag::Persist(bool bSingleUpdate /* = true */)
+   return bReturn;
+ }
+ 
++std::vector<PVR_EDL_ENTRY> CPVREpgInfoTag::GetEdl() const
++{
++  if (CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(m_iClientId).SupportsEpgTagEdl())
++  {
++    return CServiceBroker::GetPVRManager().Clients()->GetEpgTagEdl(shared_from_this());
++  }
++  return std::vector<PVR_EDL_ENTRY>();
++}
++
+ void CPVREpgInfoTag::UpdatePath(void)
+ {
+   m_strFileNameAndPath = StringUtils::Format("pvr://guide/%04i/%s.epg", EpgID(), m_startTime.GetAsDBDateTime().c_str());
+diff --git a/xbmc/pvr/epg/EpgInfoTag.h b/xbmc/pvr/epg/EpgInfoTag.h
+index 3607766dd613..cbdb56d8f0dc 100644
+--- a/xbmc/pvr/epg/EpgInfoTag.h
++++ b/xbmc/pvr/epg/EpgInfoTag.h
+@@ -450,6 +450,12 @@ namespace PVR
+      * @return True if something changed, false otherwise.
+      */
+     bool Update(const CPVREpgInfoTag &tag, bool bUpdateBroadcastId = true);
++    
++    /*!
++     * @brief Retrieve the edit decision list (EDL) of an EPG tag.
++     * @return The edit decision list (empty on error)
++     */
++    std::vector<PVR_EDL_ENTRY> GetEdl() const;
+ 
+     /*!
+      * @return True if this tag has any series attributes, false otherwise
