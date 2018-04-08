@@ -13,15 +13,15 @@ index 56bcc6b..bdf9f41 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
 @@ -1950,6 +1950,9 @@ int CAMLCodec::Decode(uint8_t *pData, size_t iSize, double dts, double pts)
- 
-   int rtn(0);
- 
+  {
+   if (!m_opened || !pData) 
+     return false;
 +  // bandfix
 +  SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "round1");
 +
-   if (pData)
-   {
-     m_frameSizes.push_back(iSize);
+   
+   m_frameSizes.push_back(iSize);
+   m_frameSizeSum += iSize;
 -- 
 2.7.4
 
