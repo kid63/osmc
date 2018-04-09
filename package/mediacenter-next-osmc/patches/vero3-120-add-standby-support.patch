@@ -42,7 +42,7 @@ index 6925404..fdee533 100644
 +{
 +  CLog::Log(LOGINFO, "Activating Vero standby mode");
 +    if (g_application.m_pPlayer->IsPlayingVideo())
-+      g_application.StopPlaying();
++      StopPlaying();
 +  ToggleStandby();
 +  m_screenSaver.reset();
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
@@ -116,7 +116,7 @@ index 25645f6..2d3f695 100644
  bool CNetwork::WakeOnLan(const char* mac)
  {
 +  /* Don't do this in standby */
-+  if (g_application.IsVeroStandby())
++  if (IsVeroStandby())
 +	return true;
 +
    int i, j, packet;
@@ -132,7 +132,7 @@ index 33c4eb4..4ca5441 100644
  {
 -  return (CanSuspend() && m_instance->Suspend());
 +  CLog::Log(LOGNOTICE, "Activating standby mode");
-+  g_application.ActivateScreenSaverStandby();
++  ActivateScreenSaverStandby();
 +  return true;
  }
  
