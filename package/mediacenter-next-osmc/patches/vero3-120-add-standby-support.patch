@@ -116,7 +116,7 @@ index 25645f6..2d3f695 100644
  bool CNetwork::WakeOnLan(const char* mac)
  {
 +  /* Don't do this in standby */
-+  if (IsVeroStandby())
++  if (g_application.IsVeroStandby())
 +	return true;
 +
    int i, j, packet;
