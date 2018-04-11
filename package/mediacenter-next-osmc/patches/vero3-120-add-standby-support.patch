@@ -79,9 +79,9 @@ index 49f9bcb..374cdff 100644
    void ActivateScreenSaver(bool forceType = false);
 +  void ActivateScreenSaverStandby();
 +  void ToggleStandby();
-   bool SetupNetwork();
    void CloseNetworkShares();
- 
+
+   void ShowAppMigrationMessage();
 @@ -427,6 +429,8 @@ public:
    */
    void UnlockFrameMoveGuard();
