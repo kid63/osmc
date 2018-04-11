@@ -44,7 +44,7 @@ index 6925404..a7aa59c 100644
 +    if (m_papPlayer.IsPlayingVideo())
 +      g_application.StopPlaying();
 +  ToggleStandby();
-+  m_bScreenSave = true;
++  m_screensaverActive = true;
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
 +  CServiceBroker::GetGUI()->GetWindowManager().CloseDialogs(true); 
 +}
