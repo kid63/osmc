@@ -12,7 +12,7 @@ Do not worry about /etc/hosts as libnss-myhostname should handle this.
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
  xbmc/Application.cpp             |  1 +
- xbmc/GUIInfoManager.cpp          |  6 +++++-
+ xbmc/guilib/guiinfo/SystemGUIInfo.cpp          |  6 +++++-
  xbmc/network/NetworkServices.cpp | 17 +++++++++++++++++
  xbmc/settings/Settings.cpp       |  1 +
  4 files changed, 24 insertions(+), 1 deletion(-)
@@ -29,10 +29,10 @@ index af16cab..469a612 100644
  
    CLog::Log(LOGINFO, "creating subdirectories");
    CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(CProfilesManager::GetInstance().GetProfileUserDataFolder()).c_str());
-diff --git a/xbmc/GUIInfoManager.cpp b/xbmc/GUIInfoManager.cpp
+diff --git a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 index d683351..17bb28b 100644
---- a/xbmc/GUIInfoManager.cpp
-+++ b/xbmc/GUIInfoManager.cpp
+--- a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 @@ -6583,7 +6583,11 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
      }
      break;
@@ -43,7 +43,7 @@ index d683351..17bb28b 100644
 +      CServiceBroker::GetNetwork().GetHostName(hostname);
 +      strLabel = hostname.c_str();
 +    }
-     break;
+     return true;
    case SYSTEM_STEREOSCOPIC_MODE:
      {
 diff --git a/xbmc/network/NetworkServices.cpp b/xbmc/network/NetworkServices.cpp
