@@ -30,22 +30,24 @@ index af16cab..469a612 100644
    CLog::Log(LOGINFO, "creating subdirectories");
    CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(CProfilesManager::GetInstance().GetProfileUserDataFolder()).c_str());
 diff --git a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
-index d683351..17bb28b 100644
+index 34ff2df2d2..b27fe31900 100644
 --- a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 +++ b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
-@@ -6583,7 +6583,11 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
-     value = g_langInfo.GetTemperatureUnitString();
-     return true;
-   case SYSTEM_FRIENDLY_NAME:
--    strLabel = CSysInfo::GetDeviceName();
+@@ -291,8 +291,12 @@ bool CSystemGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
+       value = g_langInfo.GetTemperatureUnitString();
+       return true;
+     case SYSTEM_FRIENDLY_NAME:
+-      value = CSysInfo::GetDeviceName();
+-      return true;
 +    {
-+      std::string hostname("osmc");
-+      CServiceBroker::GetNetwork().GetHostName(hostname);
-+      strLabel = hostname.c_str();
++       std::string hostname("osmc");
++       CServiceBroker::GetNetwork().GetHostName(hostname);
++       strLabel = hostname.c_str();
++       return true;
 +    }
-     return true;
-   case SYSTEM_STEREOSCOPIC_MODE:
+     case SYSTEM_STEREOSCOPIC_MODE:
      {
+       int iStereoMode = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE);
 diff --git a/xbmc/network/NetworkServices.cpp b/xbmc/network/NetworkServices.cpp
 index 393dabc..27c6074 100644
 --- a/xbmc/network/NetworkServices.cpp
