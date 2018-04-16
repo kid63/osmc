@@ -33,6 +33,14 @@ diff --git a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp b/xbmc/guilib/guiinfo/SystemG
 index 34ff2df2d2..b27fe31900 100644
 --- a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 +++ b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
+@@ -151,6 +151,7 @@ bool CSystemGUIInfo::InitCurrentItem(CFileItem *item)
+
+ bool CSystemGUIInfo::GetLabel(std::string& value, const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback) const
+ {
++  std::string strLabel;
+   switch (info.m_info)
+   {
+     ///////////////////////////////////////////////////////////////////////////////////////////////
 @@ -291,8 +291,12 @@ bool CSystemGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
        value = g_langInfo.GetTemperatureUnitString();
        return true;
