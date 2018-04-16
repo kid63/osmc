@@ -34,8 +34,8 @@ index d683351..17bb28b 100644
 --- a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 +++ b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 @@ -6583,7 +6583,11 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
-     }
-     break;
+     value = g_langInfo.GetTemperatureUnitString();
+     return true;
    case SYSTEM_FRIENDLY_NAME:
 -    strLabel = CSysInfo::GetDeviceName();
 +    {
