@@ -20,9 +20,9 @@ index 0b921a8..c3f3bc5 100644
 +#include "cores/playercorefactory/PlayerCoreConfig.h"
 +#include "cores/playercorefactory/PlayerCoreFactory.h"
 +
+ using namespace KODI;
  using namespace KODI::MESSAGING;
  
- #ifdef TARGET_POSIX
 @@ -529,6 +533,34 @@ namespace XBMCAddon
        return CSysInfo::GetUserAgent();
      }
