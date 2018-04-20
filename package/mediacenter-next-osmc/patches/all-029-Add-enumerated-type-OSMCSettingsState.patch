@@ -20,7 +20,7 @@ index 137bed7..34a0615 100644
 +  , m_eOSMCWalkthroughState(OSMC_WALKTHROUGH_NOTRUNNING)
    , m_WaitingExternalCalls(0)
    , m_ProcessedExternalCalls(0)
- {
+   , m_playerEvent(true, true)
 @@ -2981,6 +2982,12 @@ void CApplication::Stop(int exitCode)
    Sleep(200);
  }
