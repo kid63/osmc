@@ -1,0 +1,40 @@
+From 9d48f0337238a1c2362fffbf4b769cfd0344b85b Mon Sep 17 00:00:00 2001
+From: Unknown <gelotus@gmail.com>
+Date: Sat, 21 Apr 2018 13:28:37 +0200
+Subject: [PATCH] [aml][wip] Register lirc in AML after #13761
+
+---
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp | 1 +
+ xbmc/windowing/amlogic/WinSystemAmlogic.h   | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index 1db2ba77c653..4b3129722c2b 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -80,6 +80,7 @@ CWinSystemAmlogic::CWinSystemAmlogic()
+   AE::CAESinkFactory::ClearSinks();
+   CAESinkALSA::Register();
+   CLinuxPowerSyscall::Register();
++  m_lirc.reset(OPTIONALS::LircRegister());
+ }
+ 
+ CWinSystemAmlogic::~CWinSystemAmlogic()
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.h b/xbmc/windowing/amlogic/WinSystemAmlogic.h
+index cfe53d71075e..e813926270c0 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.h
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.h
+@@ -20,6 +20,7 @@
+ 
+ #pragma once
+ 
++#include "platform/linux/OptionalsReg.h"
+ #include "rendering/gles/RenderSystemGLES.h"
+ #include "threads/CriticalSection.h"
+ #include "windowing/WinSystem.h"
+@@ -63,4 +64,5 @@ class CWinSystemAmlogic : public CWinSystemBase
+ 
+   CCriticalSection m_resourceSection;
+   std::vector<IDispResource*> m_resources;
++  std::unique_ptr<OPTIONALS::CLircContainer, OPTIONALS::delete_CLircContainer> m_lirc;
+ };
