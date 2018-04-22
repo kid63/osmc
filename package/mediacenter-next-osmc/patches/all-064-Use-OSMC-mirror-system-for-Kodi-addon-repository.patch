@@ -10,10 +10,10 @@ Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/addons/repository.xbmc.org/addon.xml b/addons/repository.xbmc.org/addon.xml
-index 4d6552c757..4fe854d896 100644
+index 4d6552c757..ad559b6248 100644
 --- a/addons/repository.xbmc.org/addon.xml
 +++ b/addons/repository.xbmc.org/addon.xml
-@@ -1,15 +1,15 @@
+@@ -1,17 +1,17 @@
  <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
  <addon id="repository.xbmc.org"
                 name="Kodi Add-on repository"
@@ -24,14 +24,17 @@ index 4d6552c757..4fe854d896 100644
      <import addon="xbmc.addon" version="12.0.0"/>
    </requires>
         <extension point="xbmc.addon.repository">
--               <info>http://mirrors.kodi.tv/addons/leia/addons.xml.gz</info>
+                <info>http://mirrors.kodi.tv/addons/leia/addons.xml.gz</info>
 -               <checksum verify="sha256">http://mirrors.kodi.tv/addons/leia/addons.xml.gz?sha256</checksum>
 -               <datadir>https://mirrors.kodi.tv/addons/leia</datadir>
-+               <info>http://download.osmc.tv/kodi/addons/leia/addons.xml.gz</info>  
+-               <artdir>http://mirrors.kodi.tv/addons/leia</artdir>
+-               <hashes>sha256</hashes>
 +               <checksum verify="sha256">http://download.osmc.tv/kodi/addons/leia/addons.xml.gz?sha256</checksum>
 +               <datadir>http://download.osmc.tv/kodi/addons/leia</datadir>
-                <artdir>http://mirrors.kodi.tv/addons/leia</artdir>
-                <hashes>sha256</hashes>
++               <artdir>http://download.osmc.tv/kodi/addons/leia</artdir>
++               <hashes>false</hashes>
         </extension>
+        <extension point="xbmc.addon.metadata">
+                <summary lang="af_ZA">Installeer Byvoegsels vanaf Kodi.tv</summary>
 -- 
 2.12.3
