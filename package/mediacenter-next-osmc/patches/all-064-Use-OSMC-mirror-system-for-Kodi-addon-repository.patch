@@ -32,7 +32,7 @@ index 4d6552c757..ad559b6248 100644
 +               <checksum verify="sha256">http://download.osmc.tv/kodi/addons/leia/addons.xml.gz?sha256</checksum>
 +               <datadir>http://download.osmc.tv/kodi/addons/leia</datadir>
 +               <artdir>http://download.osmc.tv/kodi/addons/leia</artdir>
-+               <hashes>false</hashes>
++               <hashes>sha256</hashes>
         </extension>
         <extension point="xbmc.addon.metadata">
                 <summary lang="af_ZA">Installeer Byvoegsels vanaf Kodi.tv</summary>
