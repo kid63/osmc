@@ -27,7 +27,7 @@ index 1107097..146eaea 100644
 +      CLog::Log(LOGERROR, "Failed to find hash for {} from HTTP header and in separate file using querystring", path);
 +      return {};
 +    }
-+
++  }
    if (hash.Empty())
    {
      // Expected hash, but none found -> fall back to old method
