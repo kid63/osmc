@@ -1,0 +1,1504 @@
+From 939cbc8da2f6653f4c536f601def04ea908addea Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Fri, 13 Apr 2018 16:14:34 +0200
+Subject: [PATCH] add application inbound port as a service
+
+---
+ xbmc/AppInboundProtocol.cpp                        | 37 ++++++++
+ xbmc/AppInboundProtocol.h                          | 36 ++++++++
+ xbmc/Application.cpp                               | 36 ++++++--
+ xbmc/Application.h                                 | 60 +++++++------
+ xbmc/CMakeLists.txt                                |  3 +-
+ xbmc/ServiceBroker.cpp                             | 15 ++++
+ xbmc/ServiceBroker.h                               |  8 ++
+ xbmc/XBApplicationEx.h                             |  1 -
+ xbmc/input/InputManager.cpp                        |  3 +-
+ .../touch/generic/GenericTouchActionHandler.cpp    | 12 ++-
+ xbmc/platform/android/activity/AndroidMouse.cpp    | 15 +++-
+ xbmc/platform/darwin/ios/IOSEAGLView.mm            | 10 ++-
+ xbmc/platform/darwin/ios/XBMCController.mm         | 14 ++-
+ xbmc/platform/linux/input/LIRC.cpp                 | 10 ++-
+ xbmc/platform/win10/input/RemoteControlXbox.cpp    | 22 +++--
+ xbmc/platform/win32/input/IRServerSuite.cpp        |  8 +-
+ xbmc/windowing/WinEventsLinux.cpp                  | 10 ++-
+ xbmc/windowing/X11/WinEventsX11.cpp                | 25 ++++--
+ xbmc/windowing/android/WinEventsAndroid.cpp        |  6 +-
+ xbmc/windowing/mir/WinEventsMir.cpp                |  8 +-
+ xbmc/windowing/osx/WinEventsIOS.mm                 |  7 +-
+ xbmc/windowing/osx/WinEventsSDL.cpp                | 33 ++++++--
+ xbmc/windowing/osx/WinSystemOSX.mm                 | 27 ++----
+ xbmc/windowing/wayland/WinEventsWayland.cpp        |  9 +-
+ xbmc/windowing/win10/WinEventsWin10.cpp            | 28 ++++--
+ xbmc/windowing/windows/WinEventsWin32.cpp          | 99 +++++++++++++++-------
+ 26 files changed, 391 insertions(+), 151 deletions(-)
+ create mode 100644 xbmc/AppInboundProtocol.cpp
+ create mode 100644 xbmc/AppInboundProtocol.h
+
+diff --git a/xbmc/AppInboundProtocol.cpp b/xbmc/AppInboundProtocol.cpp
+new file mode 100644
+index 000000000000..c40ecb53904a
+--- /dev/null
++++ b/xbmc/AppInboundProtocol.cpp
+@@ -0,0 +1,37 @@
++/*
++ *      Copyright (C) 2005-2018 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "AppInboundProtocol.h"
++#include "Application.h"
++
++CAppInboundProtocol::CAppInboundProtocol(CApplication &app) : m_pApp(app)
++{
++
++}
++
++bool CAppInboundProtocol::OnEvent(XBMC_Event &event)
++{
++  return m_pApp.OnEvent(event);
++}
++
++void CAppInboundProtocol::SetRenderGUI(bool renderGUI)
++{
++  m_pApp.SetRenderGUI(renderGUI);
++}
+diff --git a/xbmc/AppInboundProtocol.h b/xbmc/AppInboundProtocol.h
+new file mode 100644
+index 000000000000..f101b787307e
+--- /dev/null
++++ b/xbmc/AppInboundProtocol.h
+@@ -0,0 +1,36 @@
++/*
++ *      Copyright (C) 2005-2018 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++#include "windowing/XBMC_events.h"
++
++class CApplication;
++
++class CAppInboundProtocol
++{
++public:
++  CAppInboundProtocol(CApplication &app);
++  bool OnEvent(XBMC_Event &event);
++  void SetRenderGUI(bool renderGUI);
++
++protected:
++  CApplication &m_pApp;
++};
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index b4799ff5dc87..f43eefecfa23 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -22,6 +22,7 @@
+ #include "network/Network.h"
+ #include "threads/SystemClock.h"
+ #include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "dialogs/GUIDialogBusy.h"
+ #include "events/EventLog.h"
+ #include "events/NotificationEvent.h"
+@@ -287,16 +288,19 @@ CApplication::~CApplication(void)
+ 
+ bool CApplication::OnEvent(XBMC_Event& newEvent)
+ {
+-  m_winEvents.push_back(newEvent);
++  CSingleLock lock(m_portSection);
++  m_portEvents.push_back(newEvent);
+   return true;
+ }
+ 
+-void CApplication::HandleWinEvents()
++void CApplication::HandlePortEvents()
+ {
+-  while (!m_winEvents.empty())
++  CSingleLock lock(m_portSection);
++  while (!m_portEvents.empty())
+   {
+-    auto newEvent = m_winEvents.front();
+-    m_winEvents.pop_front();
++    auto newEvent = m_portEvents.front();
++    m_portEvents.pop_front();
++    CSingleExit lock(m_portSection);
+     switch(newEvent.type)
+     {
+       case XBMC_QUIT:
+@@ -578,6 +582,10 @@ bool CApplication::Create(const CAppParamParser &params)
+   CWIN32Util::SetThreadLocalLocale(true); // enable independent locale for each thread, see https://connect.microsoft.com/VisualStudio/feedback/details/794122
+ #endif // TARGET_WINDOWS
+ 
++  // application inbound service
++  m_pAppPort = std::make_shared<CAppInboundProtocol>(*this);
++  CServiceBroker::RegisterAppPort(m_pAppPort);
++  
+   m_pWinSystem = CWinSystemBase::CreateWinSystem();
+   CServiceBroker::RegisterWinSystem(m_pWinSystem.get());
+ 
+@@ -2639,7 +2647,7 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
+       }
+     }
+ 
+-    HandleWinEvents();
++    HandlePortEvents();
+     CServiceBroker::GetInputManager().Process(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog(), frameTime);
+ 
+     if (processGUI && m_renderGUI)
+@@ -2793,6 +2801,22 @@ bool CApplication::Cleanup()
+ 
+ void CApplication::Stop(int exitCode)
+ {
++  {
++    // close inbound port
++    CServiceBroker::UnregisterAppPort();
++    XbmcThreads::EndTime timer(1000);
++    while (m_pAppPort.use_count() > 1)
++    {
++      Sleep(100);
++      if (timer.IsTimePast())
++      {
++        CLog::Log(LOGERROR, "CApplication::Stop - CAppPort still in use, app may crash");
++        break;
++      }
++    }
++    m_pAppPort.reset();
++  }
++
+   try
+   {
+     m_frameMoveGuard.unlock();
+diff --git a/xbmc/Application.h b/xbmc/Application.h
+index 90550d597e7e..edccb963abb9 100644
+--- a/xbmc/Application.h
++++ b/xbmc/Application.h
+@@ -37,29 +37,6 @@
+ #include <string>
+ #include <vector>
+ 
+-class CAction;
+-class CFileItem;
+-class CFileItemList;
+-class CKey;
+-
+-
+-namespace ADDON
+-{
+-  class CSkinInfo;
+-  class IAddon;
+-  typedef std::shared_ptr<IAddon> AddonPtr;
+-}
+-
+-namespace MEDIA_DETECT
+-{
+-  class CAutorun;
+-}
+-
+-namespace PLAYLIST
+-{
+-  class CPlayList;
+-}
+-
+ #include "cores/IPlayerCallback.h"
+ #include "settings/lib/ISettingsHandler.h"
+ #include "settings/lib/ISettingCallback.h"
+@@ -79,6 +56,10 @@ namespace PLAYLIST
+ #include "ApplicationPlayer.h"
+ #include "FileItem.h"
+ 
++class CAction;
++class CFileItem;
++class CFileItemList;
++class CKey;
+ class CSeekHandler;
+ class CInertialScrollingHandler;
+ class DPMSSupport;
+@@ -86,6 +67,24 @@ class CSplash;
+ class CBookmark;
+ class IActionListener;
+ class CGUIComponent;
++class CAppInboundProtocol;
++
++namespace ADDON
++{
++  class CSkinInfo;
++  class IAddon;
++  typedef std::shared_ptr<IAddon> AddonPtr;
++}
++
++namespace MEDIA_DETECT
++{
++  class CAutorun;
++}
++
++namespace PLAYLIST
++{
++  class CPlayList;
++}
+ 
+ namespace ActiveAE
+ {
+@@ -127,6 +126,8 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+                      public ISettingCallback, public ISettingsHandler, public ISubSettings,
+                      public KODI::MESSAGING::IMessageTarget
+ {
++friend class CAppInboundProtocol;
++
+ public:
+ 
+   enum ESERVERS
+@@ -293,8 +294,6 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+ 
+   bool ExecuteXBMCAction(std::string action, const CGUIListItemPtr &item = NULL);
+ 
+-  bool OnEvent(XBMC_Event& newEvent);
+-
+ #ifdef HAS_DVD_DRIVE
+   std::unique_ptr<MEDIA_DETECT::CAutorun> m_Autorun;
+ #endif
+@@ -357,7 +356,6 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+ 
+   bool SwitchToFullScreen(bool force = false);
+ 
+-  void SetRenderGUI(bool renderGUI) override;
+   bool GetRenderGUI() const { return m_renderGUI; };
+ 
+   bool SetLanguage(const std::string &strLanguage);
+@@ -403,6 +401,10 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+   void CheckOSScreenSaverInhibitionSetting();
+   void PlaybackCleanup();
+ 
++  // inbound protocol
++  bool OnEvent(XBMC_Event& newEvent);
++  void SetRenderGUI(bool renderGUI);
++
+   /*!
+    \brief Delegates the action to all registered action handlers.
+    \param action The action
+@@ -413,6 +415,9 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+   std::unique_ptr<CGUIComponent> m_pGUI;
+   std::unique_ptr<CWinSystemBase> m_pWinSystem;
+   std::unique_ptr<ActiveAE::CActiveAE> m_pActiveAE;
++  std::shared_ptr<CAppInboundProtocol> m_pAppPort;
++  std::deque<XBMC_Event> m_portEvents;
++  CCriticalSection m_portSection;
+ 
+   bool m_confirmSkinChange;
+   bool m_ignoreSkinSettingChanges;
+@@ -492,7 +497,7 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+   bool InitDirectoriesOSX();
+   bool InitDirectoriesWin32();
+   void CreateUserDirs() const;
+-  void HandleWinEvents();
++  void HandlePortEvents();
+ 
+   /*! \brief Helper method to determine how to handle TMSG_SHUTDOWN
+   */
+@@ -503,7 +508,6 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+   ReplayGainSettings m_replayGainSettings;
+   std::vector<IActionListener *> m_actionListeners;
+   std::vector<std::string> m_incompatibleAddons;  /*!< Result of addon migration */
+-  std::deque<XBMC_Event> m_winEvents;
+ 
+ private:
+   CCriticalSection m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
+diff --git a/xbmc/CMakeLists.txt b/xbmc/CMakeLists.txt
+index f40663d2cd0c..50eadc1dc94e 100644
+--- a/xbmc/CMakeLists.txt
++++ b/xbmc/CMakeLists.txt
+@@ -1,4 +1,5 @@
+ set(SOURCES Application.cpp
++            AppInboundProtocol.cpp
+             ApplicationPlayer.cpp
+             ApplicationStackHelper.cpp
+             AppParamParser.cpp
+@@ -39,6 +40,7 @@ set(SOURCES Application.cpp
+ 
+ set(HEADERS AppParamParser.h
+             Application.h
++            AppInboundProtocol.h
+             ApplicationPlayer.h
+             ApplicationStackHelper.h
+             AutoSwitch.h
+@@ -97,4 +99,3 @@ endif()
+ if(CORE_SYSTEM_NAME STREQUAL windowsstore)
+   set_target_properties(${CORE_LIBRARY} PROPERTIES STATIC_LIBRARY_FLAGS "/ignore:4264")
+ endif()
+-
+diff --git a/xbmc/ServiceBroker.cpp b/xbmc/ServiceBroker.cpp
+index f9a2eef3fd69..5862b4d16eeb 100644
+--- a/xbmc/ServiceBroker.cpp
++++ b/xbmc/ServiceBroker.cpp
+@@ -227,3 +227,18 @@ void CServiceBroker::UnregisterAE()
+ {
+   m_pActiveAE = nullptr;
+ }
++
++// application
++std::shared_ptr<CAppInboundProtocol> CServiceBroker::m_pAppPort;
++std::shared_ptr<CAppInboundProtocol> CServiceBroker::GetAppPort()
++{
++  return m_pAppPort;
++}
++void CServiceBroker::RegisterAppPort(std::shared_ptr<CAppInboundProtocol> port)
++{
++  m_pAppPort = port;
++}
++void CServiceBroker::UnregisterAppPort()
++{
++  m_pAppPort.reset();
++}
+diff --git a/xbmc/ServiceBroker.h b/xbmc/ServiceBroker.h
+index 323d76ec0676..c4a881b9019c 100644
+--- a/xbmc/ServiceBroker.h
++++ b/xbmc/ServiceBroker.h
+@@ -20,6 +20,8 @@
+ 
+ #pragma once
+ 
++#include <memory>
++
+ namespace ADDON {
+ class CAddonMgr;
+ class CBinaryAddonManager;
+@@ -62,6 +64,7 @@ class CDatabaseManager;
+ class CProfilesManager;
+ class CEventLog;
+ class CGUIComponent;
++class CAppInboundProtocol;
+ 
+ namespace KODI
+ {
+@@ -128,8 +131,13 @@ class CServiceBroker
+   static void RegisterAE(IAE *ae);
+   static void UnregisterAE();
+ 
++  static std::shared_ptr<CAppInboundProtocol> GetAppPort();
++  static void RegisterAppPort(std::shared_ptr<CAppInboundProtocol> port);
++  static void UnregisterAppPort();
++
+ private:
+   static CGUIComponent* m_pGUI;
+   static CWinSystemBase* m_pWinSystem;
+   static IAE* m_pActiveAE;
++  static std::shared_ptr<CAppInboundProtocol> m_pAppPort;
+ };
+diff --git a/xbmc/XBApplicationEx.h b/xbmc/XBApplicationEx.h
+index b10100aa44e7..4507f7c48822 100644
+--- a/xbmc/XBApplicationEx.h
++++ b/xbmc/XBApplicationEx.h
+@@ -48,7 +48,6 @@ class CXBApplicationEx : public IWindowManagerCallback
+   // Overridable functions for the 3D scene created by the app
+   virtual bool Initialize() { return true; }
+   virtual bool Cleanup() { return true; }
+-  virtual void SetRenderGUI(bool renderGUI) {};
+ 
+ public:
+   int Run(const CAppParamParser &params);
+diff --git a/xbmc/input/InputManager.cpp b/xbmc/input/InputManager.cpp
+index bd9e613594e5..b1b88ff5173a 100644
+--- a/xbmc/input/InputManager.cpp
++++ b/xbmc/input/InputManager.cpp
+@@ -52,6 +52,7 @@
+ #include "Util.h"
+ #include "settings/Settings.h"
+ #include "AppParamParser.h"
++#include "AppInboundProtocol.h"
+ 
+ #include <algorithm>
+ 
+@@ -281,7 +282,7 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
+       newEvent.type = XBMC_MOUSEMOTION;
+       newEvent.motion.x = (uint16_t)pos.x;
+       newEvent.motion.y = (uint16_t)pos.y;
+-      g_application.OnEvent(newEvent);  // had to call this to update g_Mouse position
++      CServiceBroker::GetAppPort()->OnEvent(newEvent);  // had to call this to update g_Mouse position
+       return g_application.OnAction(CAction(ACTION_MOUSE_MOVE, pos.x, pos.y));
+     }
+   }
+diff --git a/xbmc/input/touch/generic/GenericTouchActionHandler.cpp b/xbmc/input/touch/generic/GenericTouchActionHandler.cpp
+index 792455658ccb..72cf785c85af 100644
+--- a/xbmc/input/touch/generic/GenericTouchActionHandler.cpp
++++ b/xbmc/input/touch/generic/GenericTouchActionHandler.cpp
+@@ -22,7 +22,7 @@
+ 
+ #include <cmath>
+ 
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "ServiceBroker.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "guilib/GUIComponent.h"
+@@ -171,7 +171,7 @@ int CGenericTouchActionHandler::QuerySupportedGestures(float x, float y)
+ void CGenericTouchActionHandler::sendEvent(int actionId, float x, float y, float x2 /* = 0.0f */, float y2 /* = 0.0f */, float x3, float y3, int pointers /* = 1 */)
+ {
+   XBMC_Event newEvent{XBMC_TOUCH};
+-  
++
+   newEvent.touch.action = actionId;
+   newEvent.touch.x = x;
+   newEvent.touch.y = y;
+@@ -181,7 +181,9 @@ void CGenericTouchActionHandler::sendEvent(int actionId, float x, float y, float
+   newEvent.touch.y3 = y3;
+   newEvent.touch.pointers = pointers;
+ 
+-  g_application.OnEvent(newEvent);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(newEvent);
+ }
+ 
+ void CGenericTouchActionHandler::focusControl(float x, float y)
+@@ -191,5 +193,7 @@ void CGenericTouchActionHandler::focusControl(float x, float y)
+   newEvent.focus.x = static_cast<int> (std::round(x));
+   newEvent.focus.y = static_cast<int> (std::round(y));
+ 
+-  g_application.OnEvent(newEvent);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(newEvent);
+ }
+diff --git a/xbmc/platform/android/activity/AndroidMouse.cpp b/xbmc/platform/android/activity/AndroidMouse.cpp
+index dd40a27f7971..f8fb0bc0fbd4 100644
+--- a/xbmc/platform/android/activity/AndroidMouse.cpp
++++ b/xbmc/platform/android/activity/AndroidMouse.cpp
+@@ -21,7 +21,7 @@
+ #include "AndroidMouse.h"
+ #include "AndroidExtra.h"
+ #include "XBMCApp.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "input/mouse/MouseStat.h"
+ #include "ServiceBroker.h"
+@@ -82,7 +82,9 @@ void CAndroidMouse::MouseMove(float x, float y)
+   newEvent.type = XBMC_MOUSEMOTION;
+   newEvent.motion.x = x;
+   newEvent.motion.y = y;
+-  g_application.OnEvent(newEvent);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(newEvent);
+ }
+ 
+ void CAndroidMouse::MouseButton(float x, float y, int32_t action, int32_t buttons)
+@@ -107,7 +109,10 @@ void CAndroidMouse::MouseButton(float x, float y, int32_t action, int32_t button
+     newEvent.button.button = XBMC_BUTTON_RIGHT;
+   else if (checkButtons & AMOTION_EVENT_BUTTON_TERTIARY)
+     newEvent.button.button = XBMC_BUTTON_MIDDLE;
+-  g_application.OnEvent(newEvent);
++
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(newEvent);
+ 
+   m_lastButtonState = buttons;
+ }
+@@ -137,7 +142,9 @@ void CAndroidMouse::MouseWheel(float x, float y, float value)
+   newEvent.button.x = x;
+   newEvent.button.y = y;
+ 
+-  g_application.OnEvent(newEvent);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(newEvent);
+ 
+   newEvent.type = XBMC_MOUSEBUTTONUP;
+ 
+diff --git a/xbmc/platform/darwin/ios/IOSEAGLView.mm b/xbmc/platform/darwin/ios/IOSEAGLView.mm
+index b252e5ed062b..1c7413d67f3c 100644
+--- a/xbmc/platform/darwin/ios/IOSEAGLView.mm
++++ b/xbmc/platform/darwin/ios/IOSEAGLView.mm
+@@ -24,6 +24,8 @@
+ 
+ #include "settings/AdvancedSettings.h"
+ #include "Application.h"
++#include "AppInboundProtocol.h"
++#include "ServiceBroker.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "utils/log.h"
+ #include "utils/TimeUtils.h"
+@@ -314,14 +316,18 @@ - (void) pauseAnimation
+ {
+   PRINT_SIGNATURE();
+   pause = TRUE;
+-  g_application.SetRenderGUI(false);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->SetRenderGUI(false);
+ }
+ //--------------------------------------------------------------
+ - (void) resumeAnimation
+ {
+   PRINT_SIGNATURE();
+   pause = FALSE;
+-  g_application.SetRenderGUI(true);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->SetRenderGUI(true);
+ }
+ //--------------------------------------------------------------
+ - (void) startAnimation
+diff --git a/xbmc/platform/darwin/ios/XBMCController.mm b/xbmc/platform/darwin/ios/XBMCController.mm
+index 63a848452592..f2265796f0ca 100644
+--- a/xbmc/platform/darwin/ios/XBMCController.mm
++++ b/xbmc/platform/darwin/ios/XBMCController.mm
+@@ -30,6 +30,7 @@
+ #include "playlists/PlayList.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "input/touch/generic/GenericTouchActionHandler.h"
+ #include "guilib/GUIControl.h"
+ #include "input/Key.h"
+@@ -96,11 +97,16 @@ @implementation XBMCController
+ //--------------------------------------------------------------
+ - (void) sendKeypressEvent: (XBMC_Event) event
+ {
+-  event.type = XBMC_KEYDOWN;
+-  g_application.OnEvent(event);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+ 
+-  event.type = XBMC_KEYUP;
+-  g_application.OnEvent(event);
++  if (appPort)
++  {
++    event.type = XBMC_KEYDOWN;
++    appPort->OnEvent(event);
++
++    event.type = XBMC_KEYUP;
++    appPort->OnEvent(event);
++  }
+ }
+ 
+ // START OF UIKeyInput protocol
+diff --git a/xbmc/platform/linux/input/LIRC.cpp b/xbmc/platform/linux/input/LIRC.cpp
+index cfc48f6ef723..86d6eb28f7a5 100644
+--- a/xbmc/platform/linux/input/LIRC.cpp
++++ b/xbmc/platform/linux/input/LIRC.cpp
+@@ -19,7 +19,7 @@
+  */
+ 
+ #include "LIRC.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "ServiceBroker.h"
+ #include "profiles/ProfilesManager.h"
+ #include "settings/AdvancedSettings.h"
+@@ -129,7 +129,9 @@ void CLirc::ProcessCode(char *buf)
+     newEvent.type = XBMC_BUTTON;
+     newEvent.keybutton.button = button;
+     newEvent.keybutton.holdtime = 0;
+-    g_application.OnEvent(newEvent);
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->OnEvent(newEvent);
+     return;
+   }
+   else if (repeat > g_advancedSettings.m_remoteDelay)
+@@ -138,6 +140,8 @@ void CLirc::ProcessCode(char *buf)
+     newEvent.type = XBMC_BUTTON;
+     newEvent.keybutton.button = button;
+     newEvent.keybutton.holdtime = XbmcThreads::SystemClockMillis() - m_firstClickTime;
+-    g_application.OnEvent(newEvent);
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->OnEvent(newEvent);
+   }
+ }
+diff --git a/xbmc/platform/win10/input/RemoteControlXbox.cpp b/xbmc/platform/win10/input/RemoteControlXbox.cpp
+index 681d9cdd021d..ed1fe3da0051 100644
+--- a/xbmc/platform/win10/input/RemoteControlXbox.cpp
++++ b/xbmc/platform/win10/input/RemoteControlXbox.cpp
+@@ -19,8 +19,9 @@
+  */
+ 
+ #include "RemoteControlXbox.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "input/remote/IRRemote.h"
++#include "ServiceBroker.h"
+ #include "threads/SystemClock.h"
+ #include "utils/log.h"
+ 
+@@ -67,7 +68,7 @@ void CRemoteControlXbox::Initialize()
+ {
+   auto dispatcher = CoreWindow::GetForCurrentThread()->Dispatcher;
+   m_token = dispatcher->AcceleratorKeyActivated += ref new TypedEventHandler<CoreDispatcher^, AcceleratorKeyEventArgs^>
+-    ([this](CoreDispatcher^ sender, AcceleratorKeyEventArgs^ args) 
++    ([this](CoreDispatcher^ sender, AcceleratorKeyEventArgs^ args)
+   {
+     if (IsRemoteDevice(args->DeviceId->Data()))
+       HandleAcceleratorKey(sender, args);
+@@ -91,7 +92,7 @@ void CRemoteControlXbox::HandleAcceleratorKey(CoreDispatcher^ sender, Accelerato
+   auto button = TranslateVirtualKey(args->VirtualKey);
+   if (!button)
+     return;
+-  
++
+   XBMC_Event newEvent;
+   newEvent.type = XBMC_BUTTON;
+   newEvent.keybutton.button = button;
+@@ -110,7 +111,11 @@ void CRemoteControlXbox::HandleAcceleratorKey(CoreDispatcher^ sender, Accelerato
+     else
+       newEvent.keybutton.holdtime = XbmcThreads::SystemClockMillis() - m_firstClickTime;
+ 
+-    g_application.OnEvent(newEvent);
++    std::shared_ptr<CAppInboundProtocol> appPort;
++    appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->OnEvent(newEvent);
++
+     break;
+   }
+   case CoreAcceleratorKeyEventType::KeyUp:
+@@ -120,7 +125,10 @@ void CRemoteControlXbox::HandleAcceleratorKey(CoreDispatcher^ sender, Accelerato
+       newEvent.keybutton.holdtime = XbmcThreads::SystemClockMillis() - m_firstClickTime;
+ 
+     m_lastKey = VirtualKey::None;
+-    g_application.OnEvent(newEvent);
++    std::shared_ptr<CAppInboundProtocol> appPort;
++    appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->OnEvent(newEvent);
+     break;
+   }
+   case CoreAcceleratorKeyEventType::Character:
+@@ -140,7 +148,9 @@ void CRemoteControlXbox::HandleMediaButton(Windows::Media::SystemMediaTransportC
+   newEvent.type = XBMC_BUTTON;
+   newEvent.keybutton.button = TranslateMediaKey(args->Button);;
+   newEvent.keybutton.holdtime = 0;
+-  g_application.OnEvent(newEvent);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(newEvent);
+ }
+ 
+ int32_t CRemoteControlXbox::TranslateVirtualKey(Windows::System::VirtualKey vk)
+diff --git a/xbmc/platform/win32/input/IRServerSuite.cpp b/xbmc/platform/win32/input/IRServerSuite.cpp
+index 5841b5ef3d7b..e61be95207ca 100644
+--- a/xbmc/platform/win32/input/IRServerSuite.cpp
++++ b/xbmc/platform/win32/input/IRServerSuite.cpp
+@@ -19,7 +19,7 @@
+  */
+ 
+ #include "IRServerSuite.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "IrssMessage.h"
+ #include "platform/win32/CharsetConverter.h"
+ #include "profiles/ProfilesManager.h"
+@@ -384,7 +384,9 @@ bool CIRServerSuite::HandleRemoteEvent(CIrssMessage& message)
+     newEvent.type = XBMC_BUTTON;
+     newEvent.keybutton.button = button;
+     newEvent.keybutton.holdtime = 0;
+-    g_application.OnEvent(newEvent);
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->OnEvent(newEvent);
+ 
+     delete[] deviceName;
+     delete[] keycode;
+@@ -472,7 +474,7 @@ int CIRServerSuite::ReadPacket(CIrssMessage &message)
+   {
+     char sizebuf[4];
+     int iRead = ReadN(&sizebuf[0], 4);
+-    if (iRead <= 0) 
++    if (iRead <= 0)
+       return iRead; // error or nothing to read
+ 
+     if (iRead != 4)
+diff --git a/xbmc/windowing/WinEventsLinux.cpp b/xbmc/windowing/WinEventsLinux.cpp
+index a76130308f78..915722c3f2fb 100644
+--- a/xbmc/windowing/WinEventsLinux.cpp
++++ b/xbmc/windowing/WinEventsLinux.cpp
+@@ -22,7 +22,7 @@
+ #include "WinEvents.h"
+ #include "XBMC_events.h"
+ #include "input/XBMC_keysym.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "input/mouse/MouseStat.h"
+ #include "utils/log.h"
+ #include "powermanagement/PowerManager.h"
+@@ -59,12 +59,14 @@ bool CWinEventsLinux::MessagePump()
+ 
+   bool ret = false;
+   XBMC_Event event = {0};
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+   while (1)
+   {
+     event = m_devices.ReadEvent();
+     if (event.type != XBMC_NOEVENT)
+     {
+-      ret |= g_application.OnEvent(event);
++      if (appPort)
++        ret |= appPort->OnEvent(event);
+     }
+     else
+     {
+@@ -77,5 +79,7 @@ bool CWinEventsLinux::MessagePump()
+ 
+ void CWinEventsLinux::MessagePush(XBMC_Event *ev)
+ {
+-  g_application.OnEvent(*ev);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(*ev);
+ }
+diff --git a/xbmc/windowing/X11/WinEventsX11.cpp b/xbmc/windowing/X11/WinEventsX11.cpp
+index f334aca47723..27ad50aae82b 100644
+--- a/xbmc/windowing/X11/WinEventsX11.cpp
++++ b/xbmc/windowing/X11/WinEventsX11.cpp
+@@ -22,6 +22,7 @@
+ #include "xbmc/windowing/WinEvents.h"
+ #include "WinEventsX11.h"
+ #include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include <X11/Xlib.h>
+ #include <X11/extensions/Xrandr.h>
+@@ -294,6 +295,7 @@ bool CWinEventsX11::MessagePump()
+   bool ret = false;
+   XEvent xevent;
+   unsigned long serial = 0;
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+ 
+   while (m_display && XPending(m_display))
+   {
+@@ -325,13 +327,15 @@ bool CWinEventsX11::MessagePump()
+     {
+       case MapNotify:
+       {
+-        g_application.SetRenderGUI(true);
++        if (appPort)
++          appPort->SetRenderGUI(true);
+         break;
+       }
+ 
+       case UnmapNotify:
+       {
+-        g_application.SetRenderGUI(false);
++        if (appPort)
++          appPort->SetRenderGUI(false);
+         break;
+       }
+ 
+@@ -374,7 +378,8 @@ bool CWinEventsX11::MessagePump()
+         newEvent.type = XBMC_VIDEORESIZE;
+         newEvent.resize.w = xevent.xconfigure.width;
+         newEvent.resize.h = xevent.xconfigure.height;
+-        ret |= g_application.OnEvent(newEvent);
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         CServiceBroker::GetGUI()->GetWindowManager().MarkDirty();
+         break;
+       }
+@@ -514,7 +519,8 @@ bool CWinEventsX11::MessagePump()
+         newEvent.type = XBMC_MOUSEMOTION;
+         newEvent.motion.x = (int16_t)xevent.xmotion.x;
+         newEvent.motion.y = (int16_t)xevent.xmotion.y;
+-        ret |= g_application.OnEvent(newEvent);
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -526,7 +532,8 @@ bool CWinEventsX11::MessagePump()
+         newEvent.button.button = (unsigned char)xevent.xbutton.button;
+         newEvent.button.x = (int16_t)xevent.xbutton.x;
+         newEvent.button.y = (int16_t)xevent.xbutton.y;
+-        ret |= g_application.OnEvent(newEvent);
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -538,7 +545,8 @@ bool CWinEventsX11::MessagePump()
+         newEvent.button.button = (unsigned char)xevent.xbutton.button;
+         newEvent.button.x = (int16_t)xevent.xbutton.x;
+         newEvent.button.y = (int16_t)xevent.xbutton.y;
+-        ret |= g_application.OnEvent(newEvent);
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -635,7 +643,10 @@ bool CWinEventsX11::ProcessKey(XBMC_Event &event)
+     event.key.keysym.mod = (XBMCMod)m_keymodState;
+   }
+ 
+-  return g_application.OnEvent(event);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->OnEvent(event);
++  return true;
+ }
+ 
+ XBMCKey CWinEventsX11::LookupXbmcKeySym(KeySym keysym)
+diff --git a/xbmc/windowing/android/WinEventsAndroid.cpp b/xbmc/windowing/android/WinEventsAndroid.cpp
+index 13f1ea47e9a0..1ae1646cf45e 100644
+--- a/xbmc/windowing/android/WinEventsAndroid.cpp
++++ b/xbmc/windowing/android/WinEventsAndroid.cpp
+@@ -20,7 +20,7 @@
+ 
+ #include "WinEventsAndroid.h"
+ 
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "input/InputManager.h"
+@@ -106,7 +106,9 @@ bool CWinEventsAndroid::MessagePump()
+       m_events.pop_front();
+     }
+ 
+-    ret |= g_application.OnEvent(pumpEvent);
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      ret |= appPort->OnEvent(pumpEvent);
+ 
+     if (pumpEvent.type == XBMC_MOUSEBUTTONUP)
+       CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_UNFOCUS_ALL, 0, 0, 0, 0);
+diff --git a/xbmc/windowing/mir/WinEventsMir.cpp b/xbmc/windowing/mir/WinEventsMir.cpp
+index 195f7bd2bd61..521980b0b357 100644
+--- a/xbmc/windowing/mir/WinEventsMir.cpp
++++ b/xbmc/windowing/mir/WinEventsMir.cpp
+@@ -25,7 +25,8 @@
+ #include <mir_toolkit/mir_client_library.h>
+ #include <xkbcommon/xkbcommon-keysyms.h>
+ 
+-#include "Application.h"
++#include "AppInboundProtocol.h"
++#include "ServiceBroker.h"
+ #include "input/mouse/MouseStat.h"
+ #include "input/Key.h"
+ 
+@@ -337,6 +338,7 @@ void MirHandleEvent(MirWindow* window, MirEvent const* ev, void* context)
+ bool CWinEventsMir::MessagePump()
+ {
+   auto ret = GetQueueSize();
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+ 
+   while (GetQueueSize())
+   {
+@@ -346,7 +348,9 @@ bool CWinEventsMir::MessagePump()
+       e = m_events.front();
+       m_events.pop();
+     }
+-    g_application.OnEvent(e);
++
++    if (appPort)
++      appPort->OnEvent(newEvent);
+   }
+ 
+   return ret;
+diff --git a/xbmc/windowing/osx/WinEventsIOS.mm b/xbmc/windowing/osx/WinEventsIOS.mm
+index 4d4b9dc3915d..b52a96151a36 100644
+--- a/xbmc/windowing/osx/WinEventsIOS.mm
++++ b/xbmc/windowing/osx/WinEventsIOS.mm
+@@ -22,7 +22,7 @@
+ #include "WinEventsIOS.h"
+ #include "input/InputManager.h"
+ #include "input/XBMC_vkeys.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "threads/CriticalSection.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "utils/log.h"
+@@ -34,6 +34,7 @@
+ bool CWinEventsIOS::MessagePump()
+ {
+   bool ret = false;
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+ 
+   // Do not always loop, only pump the initial queued count events. else if ui keep pushing
+   // events the loop won't finish then it will block xbmc main message loop.
+@@ -49,7 +50,9 @@
+       pumpEvent = events.front();
+       events.pop_front();
+     }
+-    ret = g_application.OnEvent(pumpEvent);
++
++    if (appPort)
++      ret = appPort->OnEvent(pumpEvent);
+   }
+   return ret;
+ }
+diff --git a/xbmc/windowing/osx/WinEventsSDL.cpp b/xbmc/windowing/osx/WinEventsSDL.cpp
+index d77f36bf7eae..3a4ec6ebf26a 100644
+--- a/xbmc/windowing/osx/WinEventsSDL.cpp
++++ b/xbmc/windowing/osx/WinEventsSDL.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "WinEventsSDL.h"
+ #include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "ServiceBroker.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "GUIUserMessages.h"
+@@ -53,7 +54,9 @@ bool CWinEventsSDL::MessagePump()
+         //If the window was inconified or restored
+         if( event.active.state & SDL_APPACTIVE )
+         {
+-          g_application.SetRenderGUI(event.active.gain != 0);
++          std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++          if (appPort)
++            appPort->SetRenderGUI(event.active.gain != 0);
+           CServiceBroker::GetWinSystem()->NotifyAppActiveChange(g_application.GetRenderGUI());
+         }
+         else if (event.active.state & SDL_APPINPUTFOCUS)
+@@ -87,7 +90,9 @@ bool CWinEventsSDL::MessagePump()
+ 
+         // don't handle any more messages in the queue until we've handled keydown,
+         // if a keyup is in the queue it will reset the keypress before it is handled.
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -100,7 +105,9 @@ bool CWinEventsSDL::MessagePump()
+         newEvent.key.keysym.mod =(XBMCMod) event.key.keysym.mod;
+         newEvent.key.keysym.unicode = event.key.keysym.unicode;
+ 
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -112,7 +119,9 @@ bool CWinEventsSDL::MessagePump()
+         newEvent.button.x = event.button.x;
+         newEvent.button.y = event.button.y;
+ 
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -124,7 +133,9 @@ bool CWinEventsSDL::MessagePump()
+         newEvent.button.x = event.button.x;
+         newEvent.button.y = event.button.y;
+ 
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+ 
+@@ -143,7 +154,9 @@ bool CWinEventsSDL::MessagePump()
+         newEvent.motion.x = event.motion.x;
+         newEvent.motion.y = event.motion.y;
+ 
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+       case SDL_VIDEORESIZE:
+@@ -161,7 +174,9 @@ bool CWinEventsSDL::MessagePump()
+         newEvent.type = XBMC_VIDEORESIZE;
+         newEvent.resize.w = event.resize.w;
+         newEvent.resize.h = event.resize.h;
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         CServiceBroker::GetGUI()->GetWindowManager().MarkDirty();
+         break;
+       }
+@@ -170,7 +185,9 @@ bool CWinEventsSDL::MessagePump()
+         XBMC_Event newEvent;
+         newEvent.type = XBMC_USEREVENT;
+         newEvent.user.code = event.user.code;
+-        ret |= g_application.OnEvent(newEvent);
++        std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++        if (appPort)
++          ret |= appPort->OnEvent(newEvent);
+         break;
+       }
+       case SDL_VIDEOEXPOSE:
+diff --git a/xbmc/windowing/osx/WinSystemOSX.mm b/xbmc/windowing/osx/WinSystemOSX.mm
+index 4bde0d901617..2677c13ce3d0 100644
+--- a/xbmc/windowing/osx/WinSystemOSX.mm
++++ b/xbmc/windowing/osx/WinSystemOSX.mm
+@@ -22,7 +22,7 @@
+ #include "WinEventsOSX.h"
+ #include "VideoSyncOsx.h"
+ #include "OSScreenSaverOSX.h"
+-#include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "ServiceBroker.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "CompileInfo.h"
+@@ -104,7 +104,9 @@ -  (void) windowDidMoveNotification:(NSNotification*) note
+       newEvent.type = XBMC_VIDEOMOVE;
+       newEvent.move.x = window_origin.x;
+       newEvent.move.y = window_origin.y;
+-      g_application.OnEvent(newEvent);
++      std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++      if (appPort)
++        appPort->OnEvent(newEvent);
+     }
+   }
+ }
+@@ -130,26 +132,7 @@ - (void) windowDidReSizeNotification:(NSNotification*) note
+   CWinSystemOSX *winsys = (CWinSystemOSX*)m_userdata;
+ 	if (!winsys)
+     return;
+-  /* placeholder, do not uncomment or you will SDL recurse into death
+-  NSOpenGLContext* context = [NSOpenGLContext currentContext];
+-  if (context)
+-  {
+-    if ([context view])
+-    {
+-      NSSize view_size = [[context view] frame].size;
+-      XBMC_Event newEvent;
+-      memset(&newEvent, 0, sizeof(newEvent));
+-      newEvent.type = XBMC_VIDEORESIZE;
+-      newEvent.resize.w = view_size.width;
+-      newEvent.resize.h = view_size.height;
+-      if (newEvent.resize.w * newEvent.resize.h)
+-      {
+-        g_application.OnEvent(newEvent);
+-        CServiceBroker::GetGUI()->GetWindowManager().MarkDirty();
+-      }
+-    }
+-  }
+-  */
++
+ }
+ @end
+ 
+diff --git a/xbmc/windowing/wayland/WinEventsWayland.cpp b/xbmc/windowing/wayland/WinEventsWayland.cpp
+index dfa39573caff..0dcd7a71c7be 100644
+--- a/xbmc/windowing/wayland/WinEventsWayland.cpp
++++ b/xbmc/windowing/wayland/WinEventsWayland.cpp
+@@ -29,7 +29,8 @@
+ 
+ #include <wayland-client.hpp>
+ 
+-#include "Application.h"
++#include "AppInboundProtocol.h"
++#include "ServiceBroker.h"
+ #include "threads/CriticalSection.h"
+ #include "threads/SingleLock.h"
+ #include "threads/Thread.h"
+@@ -192,7 +193,7 @@ class CWinEventsWaylandThread : CThread
+           // Read away the char so we don't get another notification
+           // Indepentent from m_roundtripQueue so there are no races
+           char c;
+-          read(m_pipeRead, &c, 1); 
++          read(m_pipeRead, &c, 1);
+         }
+       }
+ 
+@@ -252,6 +253,7 @@ void CWinEventsWayland::RoundtripQueue(const wayland::event_queue_t& queue)
+ 
+ bool CWinEventsWayland::MessagePump()
+ {
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+   // Forward any events that may have been pushed to our queue
+   while (true)
+   {
+@@ -271,7 +273,8 @@ bool CWinEventsWayland::MessagePump()
+       m_queue.pop();
+     }
+ 
+-    g_application.OnEvent(event);
++    if (appPort)
++      appPort->OnEvent(event);
+   }
+ 
+   return true;
+diff --git a/xbmc/windowing/win10/WinEventsWin10.cpp b/xbmc/windowing/win10/WinEventsWin10.cpp
+index 79a62943f08c..ebe5511f065c 100644
+--- a/xbmc/windowing/win10/WinEventsWin10.cpp
++++ b/xbmc/windowing/win10/WinEventsWin10.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "WinEventsWin10.h"
+ #include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "input/mouse/MouseStat.h"
+@@ -80,12 +81,17 @@ void CWinEventsWin10::MessagePush(XBMC_Event *newEvent)
+     m_events.push(*newEvent);
+   }
+   else
+-    g_application.OnEvent(*newEvent);
++  {
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->OnEvent(*newEvent);
++  }
+ }
+ 
+ bool CWinEventsWin10::MessagePump()
+ {
+   bool ret = false;
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+ 
+   // processes all pending events and exits immediately
+   CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+@@ -93,7 +99,8 @@ bool CWinEventsWin10::MessagePump()
+   XBMC_Event pumpEvent;
+   while (m_events.try_pop(pumpEvent))
+   {
+-    ret |= g_application.OnEvent(pumpEvent);
++    if (appPort)
++      ret |= appPort->OnEvent(pumpEvent);
+ 
+     if (pumpEvent.type == XBMC_MOUSEBUTTONUP)
+       CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_UNFOCUS_ALL, 0, 0, 0, 0);
+@@ -123,7 +130,7 @@ void CWinEventsWin10::InitEventHandlers(CoreWindow^ window)
+     window->ResizeCompleted += ref new TypedEventHandler<CoreWindow^, Platform::Object^>([&](CoreWindow^ wnd, Platform::Object^ args) {
+       OnWindowResizeCompleted(wnd, args);
+     });
+-  } 
++  }
+   catch (Platform::Exception^ ex)
+   {
+     // Win10 Creators Update is required
+@@ -267,7 +274,10 @@ void CWinEventsWin10::HandleWindowSizeChanged()
+ void CWinEventsWin10::OnVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)
+ {
+   bool active = g_application.GetRenderGUI();
+-  g_application.SetRenderGUI(args->Visible);
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++  if (appPort)
++    appPort->SetRenderGUI(args->Visible);
++
+   if (g_application.GetRenderGUI() != active)
+     DX::Windowing()->NotifyAppActiveChange(g_application.GetRenderGUI());
+   CLog::Log(LOGDEBUG, __FUNCTION__": window is %s", g_application.GetRenderGUI() ? "shown" : "hidden");
+@@ -278,12 +288,16 @@ void CWinEventsWin10::OnWindowActivationChanged(CoreWindow ^ sender, WindowActiv
+   bool active = g_application.GetRenderGUI();
+   if (args->WindowActivationState == CoreWindowActivationState::Deactivated)
+   {
+-    g_application.SetRenderGUI(DX::Windowing()->WindowedMode());
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->SetRenderGUI(DX::Windowing()->WindowedMode());
+   }
+   else if (args->WindowActivationState == CoreWindowActivationState::PointerActivated
+     || args->WindowActivationState == CoreWindowActivationState::CodeActivated)
+   {
+-    g_application.SetRenderGUI(true);
++    std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++    if (appPort)
++      appPort->SetRenderGUI(true);
+   }
+   if (g_application.GetRenderGUI() != active)
+     DX::Windowing()->NotifyAppActiveChange(g_application.GetRenderGUI());
+@@ -658,4 +672,4 @@ void CWinEventsWin10::Announce(AnnouncementFlag flag, const char * sender, const
+       }));
+     }
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/xbmc/windowing/windows/WinEventsWin32.cpp b/xbmc/windowing/windows/WinEventsWin32.cpp
+index a740f572edd6..49f7de0b0db6 100644
+--- a/xbmc/windowing/windows/WinEventsWin32.cpp
++++ b/xbmc/windowing/windows/WinEventsWin32.cpp
+@@ -27,6 +27,7 @@
+ #include <Windowsx.h>
+ 
+ #include "Application.h"
++#include "AppInboundProtocol.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIControl.h"       // for EVENT_RESULT
+ #include "guilib/GUIWindowManager.h"
+@@ -244,7 +245,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+ #if 0
+   if (uMsg == WM_NCCREATE)
+   {
+-    // if available, enable DPI scaling of non-client portion of window (title bar, etc.) 
++    // if available, enable DPI scaling of non-client portion of window (title bar, etc.)
+     if (g_Windowing.PtrEnableNonClientDpiScaling != NULL)
+     {
+       g_Windowing.PtrEnableNonClientDpiScaling(hWnd);
+@@ -276,6 +277,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+   if(g_uQueryCancelAutoPlay != 0 && uMsg == g_uQueryCancelAutoPlay)
+     return S_FALSE;
+ 
++  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
++
+   switch (uMsg)
+   {
+     case WM_CLOSE:
+@@ -289,12 +292,14 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+           CLog::LogF(LOGNOTICE, "UnregisterDeviceNotification failed (%d)", GetLastError());
+       }
+       newEvent.type = XBMC_QUIT;
+-      g_application.OnEvent(newEvent);
++      if (appPort)
++        appPort->OnEvent(newEvent);
+       break;
+     case WM_SHOWWINDOW:
+       {
+         bool active = g_application.GetRenderGUI();
+-        g_application.SetRenderGUI(wParam != 0);
++        if (appPort)
++          appPort->SetRenderGUI(wParam != 0);
+         if (g_application.GetRenderGUI() != active)
+           DX::Windowing()->NotifyAppActiveChange(g_application.GetRenderGUI());
+         CLog::LogF(LOGDEBUG, "WM_SHOWWINDOW -> window is %s", wParam != 0 ? "shown" : "hidden");
+@@ -306,7 +311,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+         bool active = g_application.GetRenderGUI();
+         if (HIWORD(wParam))
+         {
+-          g_application.SetRenderGUI(false);
++          if (appPort)
++            appPort->SetRenderGUI(false);
+         }
+         else
+         {
+@@ -315,11 +321,14 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+           if (LOWORD(wParam) != WA_INACTIVE)
+           {
+             if (GetWindowPlacement(hWnd, &lpwndpl))
+-              g_application.SetRenderGUI(lpwndpl.showCmd != SW_HIDE);
++            {
++              if (appPort)
++                appPort->SetRenderGUI(lpwndpl.showCmd != SW_HIDE);
++            }
+           }
+           else
+           {
+-            //g_application.SetRenderGUI(g_Windowing.WindowedMode());
++
+           }
+         }
+         if (g_application.GetRenderGUI() != active)
+@@ -397,7 +406,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+ 
+       newEvent.type = XBMC_KEYDOWN;
+       newEvent.key.keysym = keysym;
+-      g_application.OnEvent(newEvent);
++      if (appPort)
++        appPort->OnEvent(newEvent);
+     }
+     return(0);
+ 
+@@ -439,7 +449,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+       else
+         newEvent.type = XBMC_KEYUP;
+       newEvent.key.keysym = keysym;
+-      g_application.OnEvent(newEvent);
++      if (appPort)
++        appPort->OnEvent(newEvent);
+     }
+     return(0);
+     case WM_APPCOMMAND: // MULTIMEDIA keys are mapped to APPCOMMANDS
+@@ -493,7 +504,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+       newEvent.type = XBMC_MOUSEMOTION;
+       newEvent.motion.x = GET_X_LPARAM(lParam);
+       newEvent.motion.y = GET_Y_LPARAM(lParam);
+-      g_application.OnEvent(newEvent);
++      if (appPort)
++        appPort->OnEvent(newEvent);
+       return(0);
+     case WM_LBUTTONDOWN:
+     case WM_MBUTTONDOWN:
+@@ -505,7 +517,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+       if (uMsg == WM_LBUTTONDOWN) newEvent.button.button = XBMC_BUTTON_LEFT;
+       else if (uMsg == WM_MBUTTONDOWN) newEvent.button.button = XBMC_BUTTON_MIDDLE;
+       else if (uMsg == WM_RBUTTONDOWN) newEvent.button.button = XBMC_BUTTON_RIGHT;
+-      g_application.OnEvent(newEvent);
++      if (appPort)
++        appPort->OnEvent(newEvent);
+       return(0);
+     case WM_LBUTTONUP:
+     case WM_MBUTTONUP:
+@@ -517,7 +530,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+       if (uMsg == WM_LBUTTONUP) newEvent.button.button = XBMC_BUTTON_LEFT;
+       else if (uMsg == WM_MBUTTONUP) newEvent.button.button = XBMC_BUTTON_MIDDLE;
+       else if (uMsg == WM_RBUTTONUP) newEvent.button.button = XBMC_BUTTON_RIGHT;
+-      g_application.OnEvent(newEvent);
++      if (appPort)
++        appPort->OnEvent(newEvent);
+       return(0);
+     case WM_MOUSEWHEEL:
+       {
+@@ -533,16 +547,19 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+         newEvent.button.x = static_cast<uint16_t>(point.x);
+         newEvent.button.y = static_cast<uint16_t>(point.y);
+         newEvent.button.button = GET_Y_LPARAM(wParam) > 0 ? XBMC_BUTTON_WHEELUP : XBMC_BUTTON_WHEELDOWN;
+-        g_application.OnEvent(newEvent);
+-        newEvent.type = XBMC_MOUSEBUTTONUP;
+-        g_application.OnEvent(newEvent);
++        if (appPort)
++        {
++          appPort->OnEvent(newEvent);
++          newEvent.type = XBMC_MOUSEBUTTONUP;
++          appPort->OnEvent(newEvent);
++        }
+     }
+       return(0);
+     case WM_DPICHANGED:
+     // This message tells the program that most of its window is on a
+-    // monitor with a new DPI. The wParam contains the new DPI, and the 
+-    // lParam contains a rect which defines the window rectangle scaled 
+-    // the new DPI. 
++    // monitor with a new DPI. The wParam contains the new DPI, and the
++    // lParam contains a rect which defines the window rectangle scaled
++    // the new DPI.
+     {
+       // get the suggested size of the window on the new display with a different DPI
+       unsigned short  dpi = LOWORD(wParam);
+@@ -551,12 +568,12 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+       return(0);
+     }
+     case WM_DISPLAYCHANGE:
+-      CLog::LogF(LOGDEBUG, "display change event");  
+-      if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow() && GET_X_LPARAM(lParam) > 0 && GET_Y_LPARAM(lParam) > 0)  
++      CLog::LogF(LOGDEBUG, "display change event");
++      if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow() && GET_X_LPARAM(lParam) > 0 && GET_Y_LPARAM(lParam) > 0)
+       {
+         DX::Windowing()->UpdateResolutions();
+       }
+-      return(0);  
++      return(0);
+     case WM_ENTERSIZEMOVE:
+       {
+         DX::Windowing()->SetSizeMoveMode(true);
+@@ -576,7 +593,10 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+           DX::Windowing()->OnMove(newEvent.move.x, newEvent.move.y);
+           // tell the application about new position
+           if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow())
+-            g_application.OnEvent(newEvent);
++          {
++            if (appPort)
++              appPort->OnEvent(newEvent);
++          }
+         }
+         if (g_sizeMoveSizing)
+         {
+@@ -589,7 +609,10 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+           DX::Windowing()->OnResize(newEvent.resize.w, newEvent.resize.h);
+           // tell the application about new size
+           if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow() && newEvent.resize.w > 0 && newEvent.resize.h > 0)
+-            g_application.OnEvent(newEvent);
++          {
++            if (appPort)
++              appPort->OnEvent(newEvent);
++          }
+         }
+       }
+     return(0);
+@@ -600,27 +623,33 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+         {
+           DX::Windowing()->SetMinimized(true);
+           if (!g_application.GetRenderGUI())
+-            g_application.SetRenderGUI(false);
++          {
++            if (appPort)
++              appPort->SetRenderGUI(false);
++          }
+         }
+       }
+       else if (DX::Windowing()->IsMinimized())
+       {
+         DX::Windowing()->SetMinimized(false);
+         if (!g_application.GetRenderGUI())
+-          g_application.SetRenderGUI(true);
+-      } 
++        {
++          if (appPort)
++            appPort->SetRenderGUI(true);
++        }
++      }
+       else
+       {
+         g_sizeMoveWidth = GET_X_LPARAM(lParam);
+         g_sizeMoveHight = GET_Y_LPARAM(lParam);
+         if (DX::Windowing()->IsInSizeMoveMode())
+         {
+-          // If an user is dragging the resize bars, we don't resize 
+-          // the buffers and don't rise XBMC_VIDEORESIZE here because 
++          // If an user is dragging the resize bars, we don't resize
++          // the buffers and don't rise XBMC_VIDEORESIZE here because
+           // as the user continuously resize the window, a lot of WM_SIZE
+           // messages are sent to the proc, and it'd be pointless (and slow)
+           // to resize for each WM_SIZE message received from dragging.
+-          // So instead, we reset after the user is done resizing the 
++          // So instead, we reset after the user is done resizing the
+           // window and releases the resize bars, which ends with WM_EXITSIZEMOVE.
+           g_sizeMoveSizing = true;
+         }
+@@ -636,7 +665,10 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+           DX::Windowing()->OnResize(newEvent.resize.w, newEvent.resize.h);
+           // tell application about size changes
+           if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow() && newEvent.resize.w > 0 && newEvent.resize.h > 0)
+-            g_application.OnEvent(newEvent);
++          {
++            if (appPort)
++              appPort->OnEvent(newEvent);
++          }
+         }
+       }
+       return(0);
+@@ -660,7 +692,10 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+           // tell the device about new position
+           DX::Windowing()->OnMove(newEvent.move.x, newEvent.move.y);
+           if (g_application.GetRenderGUI() && !DX::Windowing()->IsAlteringWindow())
+-            g_application.OnEvent(newEvent);
++          {
++            if (appPort)
++              appPort->OnEvent(newEvent);
++          }
+         }
+       }
+       return(0);
+@@ -668,8 +703,8 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
+       {
+         // This event detects media changes of usb, sd card and optical media.
+         // It only works if the explorer.exe process is started. Because this
+-        // isn't the case for all setups we use WM_DEVICECHANGE for usb and 
+-        // optical media because this event is also triggered without the 
++        // isn't the case for all setups we use WM_DEVICECHANGE for usb and
++        // optical media because this event is also triggered without the
+         // explorer process. Since WM_DEVICECHANGE doesn't detect sd card changes
+         // we still use this event only for sd.
+         long lEvent;
