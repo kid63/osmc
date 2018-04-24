@@ -277,7 +277,6 @@ then
             -DENABLE_OPTICAL=1 \
             -DENABLE_DVDCSS=1 \
             -DCORE_SYSTEM_NAME=linux \
-	    -DENABLE_LircClient=ON \
 	    -DCORE_PLATFORM_NAME=rbpi \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
@@ -307,7 +306,6 @@ then
             -DENABLE_DVDCSS=1 \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
-            -DENABLE_LircClient=ON \
             -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
 	    -DENABLE_APP_AUTONAME=OFF \
@@ -334,7 +332,6 @@ then
             -DENABLE_OPENGL=OFF \
             -DENABLE_OPTICAL=1 \
             -DENABLE_DVDCSS=1 \
-            -DENABLE_LircClient=ON \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
 	    -DCORE_PLATFORM_NAME=aml \
