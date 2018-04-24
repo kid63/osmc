@@ -1,0 +1,157 @@
+From 8d84312ec2cd0bd73dd0dc116cf81b188be86c2f Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Mon, 23 Apr 2018 15:54:21 +0200
+Subject: [PATCH] [guiinfo] Fix Container.Listitem.* (default container + first
+ listitem).
+
+---
+ xbmc/GUIInfoManager.cpp               | 21 ++++++++++++---------
+ xbmc/GUIInfoManager.h                 |  2 +-
+ xbmc/guilib/guiinfo/GUIInfoHelper.cpp | 17 ++++++++---------
+ xbmc/guilib/guiinfo/GUIInfoHelper.h   |  2 +-
+ xbmc/guilib/guiinfo/GUIInfoLabels.h   |  1 +
+ 5 files changed, 23 insertions(+), 20 deletions(-)
+
+diff --git a/xbmc/GUIInfoManager.cpp b/xbmc/GUIInfoManager.cpp
+index 8ba334472b49..310e33ca4ca1 100644
+--- a/xbmc/GUIInfoManager.cpp
++++ b/xbmc/GUIInfoManager.cpp
+@@ -6022,7 +6022,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
+              cat.name == "listitemnowrap" ||
+              cat.name == "listitemabsolute")
+     {
+-      int ret = TranslateListItem(cat, prop);
++      int ret = TranslateListItem(cat, prop, 0, false);
+       if (ret)
+         listItemDependent = true;
+       return ret;
+@@ -6205,7 +6205,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
+           info[1].name == "listitemnowrap")
+       {
+         int id = atoi(info[0].param().c_str());
+-        int ret = TranslateListItem(info[1], info[2], id);
++        int ret = TranslateListItem(info[1], info[2], id, true);
+         if (ret)
+           listItemDependent = true;
+         return ret;
+@@ -6230,7 +6230,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
+   return 0;
+ }
+ 
+-int CGUIInfoManager::TranslateListItem(const Property& cat, const Property& prop, int id /* = 0 */)
++int CGUIInfoManager::TranslateListItem(const Property& cat, const Property& prop, int id, bool container)
+ {
+   int ret = 0;
+   std::string data3;
+@@ -6272,17 +6272,20 @@ int CGUIInfoManager::TranslateListItem(const Property& cat, const Property& prop
+   {
+     int offset = std::atoi(cat.param().c_str());
+ 
+-    int flag = 0;
++    int flags = 0;
+     if (cat.name == "listitem")
+-      flag = INFOFLAG_LISTITEM_WRAP;
++      flags = INFOFLAG_LISTITEM_WRAP;
+     else if (cat.name == "listitemposition")
+-      flag = INFOFLAG_LISTITEM_POSITION;
++      flags = INFOFLAG_LISTITEM_POSITION;
+     else if (cat.name == "listitemabsolute")
+-      flag = INFOFLAG_LISTITEM_ABSOLUTE;
++      flags = INFOFLAG_LISTITEM_ABSOLUTE;
+     else if (cat.name == "listitemnowrap")
+-      flag = INFOFLAG_LISTITEM_NOWRAP;
++      flags = INFOFLAG_LISTITEM_NOWRAP;
+ 
+-    return AddMultiInfo(CGUIInfo(ret, id, offset, flag, data3, data4));
++    if (container)
++      flags |= INFOFLAG_LISTITEM_CONTAINER;
++
++    return AddMultiInfo(CGUIInfo(ret, id, offset, flags, data3, data4));
+   }
+ 
+   return 0;
+diff --git a/xbmc/GUIInfoManager.h b/xbmc/GUIInfoManager.h
+index 42fee9b70af1..43b2c40157c4 100644
+--- a/xbmc/GUIInfoManager.h
++++ b/xbmc/GUIInfoManager.h
+@@ -183,7 +183,7 @@ class CGUIInfoManager : public Observable, public KODI::MESSAGING::IMessageTarge
+   void SplitInfoString(const std::string &infoString, std::vector<Property> &info);
+ 
+   int TranslateSingleString(const std::string &strCondition);
+-  int TranslateListItem(const Property& cat, const Property& prop, int id = 0);
++  int TranslateListItem(const Property& cat, const Property& prop, int id, bool container);
+   int TranslateMusicPlayerString(const std::string &info) const;
+   static TIME_FORMAT TranslateTimeFormat(const std::string &format);
+ 
+diff --git a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+index dcf082cd557d..c866cf7b6076 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
++++ b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+@@ -152,37 +152,36 @@ CGUIControl* GetActiveContainer(int containerId, int contextWindow)
+   if (!window)
+     return nullptr;
+ 
++  CGUIControl *control = nullptr;
+   if (!containerId) // No container specified, so we lookup the current view container
+   {
+     if (window->IsMediaWindow())
+       containerId = static_cast<CGUIMediaWindow*>(window)->GetViewContainerID();
+     else
+-    {
+-      auto control = window->GetFocusedControl();
+-      if (control && control->IsContainer())
+-        return control;
+-    }
++      control = window->GetFocusedControl();
+   }
+ 
+-  CGUIControl *control = window->GetControl(containerId);
++  if (!control)
++    control = window->GetControl(containerId);
++
+   if (control && control->IsContainer())
+     return control;
+ 
+   return nullptr;
+ }
+ 
+-CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId /* = 0 */, int itemOffset /* = 0 */, unsigned int itemFlag /* = 0 */)
++CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId /* = 0 */, int itemOffset /* = 0 */, unsigned int itemFlags /* = 0 */)
+ {
+   CGUIListItemPtr item;
+ 
+-  if (containerId == 0  && itemOffset == 0)
++  if (containerId == 0  && itemOffset == 0 && !(itemFlags & INFOFLAG_LISTITEM_CONTAINER))
+     item = GetCurrentListItemFromWindow(contextWindow);
+ 
+   if (!item)
+   {
+     CGUIControl* activeContainer = GetActiveContainer(containerId, contextWindow);
+     if (activeContainer)
+-      item = static_cast<IGUIContainer *>(activeContainer)->GetListItem(itemOffset, itemFlag);
++      item = static_cast<IGUIContainer *>(activeContainer)->GetListItem(itemOffset, itemFlags);
+   }
+ 
+   return item;
+diff --git a/xbmc/guilib/guiinfo/GUIInfoHelper.h b/xbmc/guilib/guiinfo/GUIInfoHelper.h
+index f31700c1222b..128d7f2bed21 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoHelper.h
++++ b/xbmc/guilib/guiinfo/GUIInfoHelper.h
+@@ -46,7 +46,7 @@ std::string GetPlaylistLabel(int item, int playlistid = PLAYLIST_NONE);
+ CGUIWindow* GetWindow(int contextWindow);
+ CGUIControl* GetActiveContainer(int containerId, int contextWindow);
+ CGUIMediaWindow* GetMediaWindow(int contextWindow);
+-CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId = 0, int itemOffset = 0, unsigned int itemFlag = 0);
++CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId = 0, int itemOffset = 0, unsigned int itemFlags = 0);
+ 
+ } // namespace GUIINFO
+ } // namespace GUILIB
+diff --git a/xbmc/guilib/guiinfo/GUIInfoLabels.h b/xbmc/guilib/guiinfo/GUIInfoLabels.h
+index 664a552bb4cf..f0c0007319f4 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoLabels.h
++++ b/xbmc/guilib/guiinfo/GUIInfoLabels.h
+@@ -879,3 +879,4 @@
+ #define INFOFLAG_LISTITEM_POSITION    (static_cast<uint32_t>(1 << 26))  // ListItem lookups based on cursor position
+ #define INFOFLAG_LISTITEM_ABSOLUTE    (static_cast<uint32_t>(1 << 27))  // Absolute ListItem lookups
+ #define INFOFLAG_LISTITEM_NOWRAP      (static_cast<uint32_t>(1 << 28))  // Do not wrap ListItem lookups
++#define INFOFLAG_LISTITEM_CONTAINER   (static_cast<uint32_t>(1 << 29))  // Lookup the item in given container
