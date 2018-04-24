@@ -1,0 +1,32 @@
+From af378ebaf47140621ce2c4a4d3c43617cc0d4b42 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Mon, 23 Apr 2018 07:59:28 +0200
+Subject: [PATCH] [guiinfo] Fix Listitem.PercentPlayed
+ (LISTITEM_PERCENT_PLAYED) string label zero value handling.
+
+---
+ xbmc/guilib/guiinfo/VideoGUIInfo.cpp | 11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
+
+diff --git a/xbmc/guilib/guiinfo/VideoGUIInfo.cpp b/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
+index 032d965e6d45..f9c5d0805e58 100644
+--- a/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
+@@ -387,15 +387,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+         }
+         break;
+       case LISTITEM_PERCENT_PLAYED:
+-      {
+-        int iPercentPlayed = GetPercentPlayed(tag);
+-        if (iPercentPlayed > 0)
+-        {
+-          value = StringUtils::Format("%d", iPercentPlayed);
+-          return true;
+-        }
+-        break;
+-      }
++        value = StringUtils::Format("%d", GetPercentPlayed(tag));
++        return true;
+       case LISTITEM_VIDEO_CODEC:
+         value = tag->m_streamDetails.GetVideoCodec();
+         return true;
