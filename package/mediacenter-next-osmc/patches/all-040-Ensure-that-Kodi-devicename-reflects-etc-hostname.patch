@@ -49,7 +49,7 @@ index 34ff2df2d2..b27fe31900 100644
 -      return true;
 +    {
 +       std::string hostname("osmc");
-+       CServiceBroker::GetNetwork().GetHostName(hostname);
++       gethostname(hostname, sizeof(hostname)); 
 +       strLabel = hostname.c_str();
 +       return true;
 +    }
@@ -84,18 +84,6 @@ index 393dabc..27c6074 100644
  }
  
  bool CNetworkServices::OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
-diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
-index f76c152..18083f9 100644
---- a/xbmc/settings/Settings.cpp
-+++ b/xbmc/settings/Settings.cpp
-@@ -1160,6 +1160,7 @@ void CSettings::InitializeISettingCallbacks()
-   settingSet.insert(CSettings::SETTING_SERVICES_ESCONTINUOUSDELAY);
-   settingSet.insert(CSettings::SETTING_SMB_WINSSERVER);
-   settingSet.insert(CSettings::SETTING_SMB_WORKGROUP);
-+  settingSet.insert(CSettings::SETTING_SERVICES_DEVICENAME);
-   settingSet.insert(CSettings::SETTING_SMB_MINPROTOCOL);
-   settingSet.insert(CSettings::SETTING_SMB_MAXPROTOCOL);
-   settingSet.insert(CSettings::SETTING_SMB_LEGACYSECURITY);
 -- 
 2.7.4
 
