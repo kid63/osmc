@@ -49,7 +49,7 @@ index 34ff2df2d2..b27fe31900 100644
 -      return true;
 +    {
 +       std::string hostname("osmc");
-+       gethostname(hostname, sizeof(hostname)); 
++       CServiceBroker::GetNetwork().GetHostName(hostname); 
 +       strLabel = hostname.c_str();
 +       return true;
 +    }
