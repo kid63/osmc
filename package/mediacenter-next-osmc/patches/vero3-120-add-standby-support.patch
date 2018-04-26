@@ -1,18 +1,18 @@
-From e0d62d55012ff2b13cf6b2a2d194a29229984493 Mon Sep 17 00:00:00 2001
+From 5f3f3a08b61d8bcb80611f0de160b558c943557b Mon Sep 17 00:00:00 2001
 From: Sam Nazarko <email@samnazarko.co.uk>
 Date: Tue, 27 Feb 2018 23:33:31 +0000
 Subject: [PATCH] Vero 4K: add standby support
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- xbmc/Application.cpp                  | 33 +++++++++++++++++++++++++++++++++
+ xbmc/Application.cpp                  | 38 +++++++++++++++++++++++++++++++++++
  xbmc/Application.h                    |  5 +++++
  xbmc/network/Network.cpp              |  5 +++++
  xbmc/powermanagement/PowerManager.cpp |  4 +++-
- 4 files changed, 46 insertions(+), 1 deletion(-)
+ 4 files changed, 51 insertions(+), 1 deletion(-)
 
 diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
-index 6925404..a7aa59c 100644
+index 6925404..0a902bb 100644
 --- a/xbmc/Application.cpp
 +++ b/xbmc/Application.cpp
 @@ -216,6 +216,7 @@
@@ -33,7 +33,7 @@ index 6925404..a7aa59c 100644
    if (m_iScreenSaveLock == 2)
      return false;
  
-@@ -4130,6 +4134,35 @@ void CApplication::CheckScreenSaverAndDPMS()
+@@ -4130,6 +4134,40 @@ void CApplication::CheckScreenSaverAndDPMS()
    }
  }
  
@@ -41,12 +41,13 @@ index 6925404..a7aa59c 100644
 +void CApplication::ActivateScreenSaverStandby()
 +{
 +  CLog::Log(LOGINFO, "Activating Vero standby mode");
-+    if (m_appPlayer.IsPlayingVideo())
++    if (g_application.m_pPlayer->IsPlayingVideo())
 +      g_application.StopPlaying();
 +  ToggleStandby();
-+  m_screensaverActive = true;
++  m_bScreenSave = true;
++  m_screenSaver.reset();
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
-+  CServiceBroker::GetGUI()->GetWindowManager().CloseDialogs(true); 
++  g_windowManager.CloseDialogs(true);
 +}
 +
 +void CApplication::ToggleStandby()
@@ -61,8 +62,12 @@ index 6925404..a7aa59c 100644
 +  if (m_bVeroStandby)
 +        cpu_governor = "ondemand";
 +  CLog::Log(LOGINFO, "CApplication::ToggleStandby -- governor will now be %s", cpu_governor.c_str());
++  for (int i = 0; i < 4; i++) {
++	std::stringstream ss_govpath;
++	ss_govpath << "/sys/devices/system/cpu/cpu" << i << "/cpufreq/scaling_governor";
++	SysfsUtils::SetString(ss_govpath.str(), cpu_governor);
++  }
 +  m_bVeroStandby = ! m_bVeroStandby; //invert state
-+  ResetScreenSaver();
 +  return;
 +}
 +
@@ -79,9 +84,9 @@ index 49f9bcb..374cdff 100644
    void ActivateScreenSaver(bool forceType = false);
 +  void ActivateScreenSaverStandby();
 +  void ToggleStandby();
+   bool SetupNetwork();
    void CloseNetworkShares();
-
-   void ShowAppMigrationMessage();
+ 
 @@ -427,6 +429,8 @@ public:
    */
    void UnlockFrameMoveGuard();
@@ -94,11 +99,11 @@ index 49f9bcb..374cdff 100644
 @@ -460,6 +464,7 @@ protected:
  #endif
    // screensaver
-   bool m_screensaverActive; 
+   bool m_bScreenSave;
 +  bool m_bVeroStandby;
-   std::string m_screensaverIdInUse;
-   ADDON::AddonPtr m_pythonScreenSaver; // @warning: Fallback for Python interface, for binaries not needed!
-   // OS screen saver inhibitor that is always active if user selected a Kodi screen saver   
+   ADDON::AddonPtr m_screenSaver;
+ 
+   // timer information
 diff --git a/xbmc/network/Network.cpp b/xbmc/network/Network.cpp
 index 25645f6..2d3f695 100644
 --- a/xbmc/network/Network.cpp
