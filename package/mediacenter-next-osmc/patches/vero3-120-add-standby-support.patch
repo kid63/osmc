@@ -99,11 +99,11 @@ index 49f9bcb..374cdff 100644
 @@ -460,6 +464,7 @@ protected:
  #endif
    // screensaver
-   bool m_bScreenSave;
+   bool m_screensaverActive; 
 +  bool m_bVeroStandby;
-   ADDON::AddonPtr m_screenSaver;
- 
-   // timer information
+   std::string m_screensaverIdInUse;
+   ADDON::AddonPtr m_pythonScreenSaver; // @warning: Fallback for Python interface, for binaries not needed!
+   // OS screen saver inhibitor that is always active if user selected a Kodi screen saver
 diff --git a/xbmc/network/Network.cpp b/xbmc/network/Network.cpp
 index 25645f6..2d3f695 100644
 --- a/xbmc/network/Network.cpp
