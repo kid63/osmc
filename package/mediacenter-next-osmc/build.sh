@@ -54,6 +54,7 @@ then
 	handle_dep "libfreetype6-dev"
 	handle_dep "libfribidi-dev"
 	handle_dep "libgif-dev"
+	handle_dep "libinput-dev"
 	handle_dep "libiso9660-dev"
 	#handle_dep "libjasper-dev"
 	handle_dep "libjpeg62-turbo-dev"
