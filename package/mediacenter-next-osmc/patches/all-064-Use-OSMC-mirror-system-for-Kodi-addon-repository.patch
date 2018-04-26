@@ -6,11 +6,11 @@ Subject: [PATCH] Use OSMC mirror system for Kodi add-on repository; bump repo
 
 Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
 ---
- addons/repository.xbmc.org/addon.xml | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ addons/repository.xbmc.org/addon.xml | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
 diff --git a/addons/repository.xbmc.org/addon.xml b/addons/repository.xbmc.org/addon.xml
-index 4d6552c757..ad559b6248 100644
+index ad1a62d197..fff08fcd57 100644
 --- a/addons/repository.xbmc.org/addon.xml
 +++ b/addons/repository.xbmc.org/addon.xml
 @@ -1,17 +1,17 @@
@@ -24,17 +24,17 @@ index 4d6552c757..ad559b6248 100644
      <import addon="xbmc.addon" version="12.0.0"/>
    </requires>
         <extension point="xbmc.addon.repository">
-                <info>http://mirrors.kodi.tv/addons/leia/addons.xml.gz</info>
+                <!-- Do not forget to bump add-on version when changing paths to force a repo refresh -->
+-               <info>http://mirrors.kodi.tv/addons/leia/addons.xml.gz</info>
 -               <checksum verify="sha256">http://mirrors.kodi.tv/addons/leia/addons.xml.gz?sha256</checksum>
 -               <datadir>https://mirrors.kodi.tv/addons/leia</datadir>
 -               <artdir>http://mirrors.kodi.tv/addons/leia</artdir>
--               <hashes>sha256</hashes>
++               <info>http://download.osmc.tv/kodi/addons/leia/addons.xml.gz</info>
 +               <checksum verify="sha256">http://download.osmc.tv/kodi/addons/leia/addons.xml.gz?sha256</checksum>
-+               <datadir>http://download.osmc.tv/kodi/addons/leia</datadir>
++               <datadir>http://download.osmc.tv/kodi/addons/leia</datadir>     
 +               <artdir>http://download.osmc.tv/kodi/addons/leia</artdir>
-+               <hashes>sha256</hashes>
+                <hashes>sha256</hashes>
         </extension>
         <extension point="xbmc.addon.metadata">
-                <summary lang="af_ZA">Installeer Byvoegsels vanaf Kodi.tv</summary>
 -- 
 2.12.3
