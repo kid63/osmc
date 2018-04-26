@@ -82,6 +82,7 @@ then
 	handle_dep "libxslt1-dev"
 	handle_dep "libxt-dev"
 	handle_dep "libyajl-dev"
+        handle_dep "libxkbcommon-dev"
 	handle_dep "nasm"
 	handle_dep "pmount"
 	handle_dep "python-dev"
