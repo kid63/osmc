@@ -67,7 +67,7 @@ index 56bcc6b..feaf5d2 100644
        am_private->gcodec.param  = (void*)EXTERNAL_PTS;
        if (m_hints.ptsinvalid)
          am_private->gcodec.param = (void*)(EXTERNAL_PTS | SYNC_OUTSIDE);
-+      if (m_hints.is2020 && CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_HDRAUTO))
++      if (m_hints.is2020 && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_HDRAUTO))
 +      {
 +	 CLog::Log(LOGDEBUG, "BT2020 auto switch is enabled");
 +	 SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/attr", "444,10bit");
