@@ -33,10 +33,11 @@ index e40a6e5..17203cc 100644
  #empty strings from id 13133 to 13139
  
  #: xbmc/network/NetworkServices.cpp
-@@ -19860,3 +19866,8 @@ msgctxt "#39013"
- msgid "Turns off HDMI audio. Useful if you're using SPDIF audio and don't want audio on HDMI."
+@@ -19860,3 +19866,9 @@ msgctxt "#39013"
+ msgctxt "#39109"
+ msgid "Select Program"
  msgstr ""
- 
++
 +#: Description of display setting with label # 13136
 +msgctxt "#39014"
 +msgid "Optimises video output for HDR capable displays"
@@ -88,16 +89,16 @@ index 3bb003b..8d38532 100644
 --- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h
 +++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h
 @@ -157,6 +157,7 @@ public:
-     type = STREAM_VIDEO;
      iOrientation = 0;
      iBitsPerPixel = 0;
+     iBitRate = 0;
 +    is2020 = false;
    }
  
-   virtual ~CDemuxStreamVideo() {}
+   ~CDemuxStreamVideo() override = default;
 @@ -171,6 +172,7 @@ public:
-   int iOrientation; // orientation of the video in degress counter clockwise
-   int iBitsPerPixel;
+   int iBitsPerPixel; 
+   int iBitRate; 
    std::string stereo_mode; // expected stereo mode
 +  bool is2020;
  };
@@ -148,9 +149,9 @@ index 72098b5..15af48a 100644
 --- a/xbmc/settings/Settings.cpp
 +++ b/xbmc/settings/Settings.cpp
 @@ -344,6 +344,7 @@ const std::string CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS = "videoscreen.bl
- const std::string CSettings::SETTING_VIDEOSCREEN_FORCERGB = "videoscreen.forcergb";
- const std::string CSettings::SETTING_VIDEOSCREEN_LOCKHPD = "videoscreen.lockhpd";
- const std::string CSettings::SETTING_VIDEOSCREEN_MUTEHDMI = "videoscreen.mutehdmi";
+ const std::string CSettings::SETTING_VIDEOSCREEN_SCREENMODE = "videoscreen.screenmode";
+ const std::string CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN = "videoscreen.fakefullscreen";
+ const std::string CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS = "videoscreen.blankdisplays";
 +const std::string CSettings::SETTING_VIDEOSCREEN_HDRAUTO = "videoscreen.hdrauto";
  const std::string CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE = "videoscreen.stereoscopicmode";
  const std::string CSettings::SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE = "videoscreen.preferedstereoscopicmode";
@@ -160,9 +161,9 @@ index 439b2b4..0b199e3 100644
 --- a/xbmc/settings/Settings.h
 +++ b/xbmc/settings/Settings.h
 @@ -300,6 +300,7 @@ public:
-   static const std::string SETTING_VIDEOSCREEN_FORCERGB;
-   static const std::string SETTING_VIDEOSCREEN_LOCKHPD;
-   static const std::string SETTING_VIDEOSCREEN_MUTEHDMI;
+   static const std::string SETTING_VIDEOSCREEN_SCREENMODE;
+   static const std::string SETTING_VIDEOSCREEN_FAKEFULLSCREEN;
+   static const std::string SETTING_VIDEOSCREEN_BLANKDISPLAYS;
 +  static const std::string SETTING_VIDEOSCREEN_HDRAUTO;
    static const std::string SETTING_VIDEOSCREEN_STEREOSCOPICMODE;
    static const std::string SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE;
