@@ -267,6 +267,7 @@ function dpkg_build()
 	size=$(du -s --apparent-size "$1" | awk '{print $1}')
 	echo "Installed-Size: $size" >> "$1/DEBIAN/control"
 	dpkg -b "$1" "$2"
+        if [ $? != 0 ]; then echo -e "Failed to build package $1" && exit 1; fi
 }
 
 export -f fix_arch_ctl
