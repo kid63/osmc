@@ -21,7 +21,7 @@ index e40a6e5..17203cc 100644
 --- a/addons/resource.language.en_gb/resources/strings.po
 +++ b/addons/resource.language.en_gb/resources/strings.po
 @@ -5860,6 +5860,12 @@ msgctxt "#13135"
- msgid "Mute HDMI audio output"
+ msgid "Blank displays"
  msgstr ""
  
 +#: unknown
