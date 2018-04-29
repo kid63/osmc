@@ -17,7 +17,7 @@ index 255427f..f034ff7 100644
          <setting id="lookandfeel.skin" type="addon" label="166" help="36103">
            <level>0</level>
 -          <default>skin.estuary</default>
-+          <default>skin.osmc</default>
++          <default>skin.osmc.v18alpha</default>
            <constraints>
              <addontype>xbmc.gui.skin</addontype>
            </constraints>
