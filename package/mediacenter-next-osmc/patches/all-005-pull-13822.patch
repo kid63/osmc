@@ -1,0 +1,34 @@
+From 23fd800004d4d074edb1b56ea0d7ca6f810dee41 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Sat, 28 Apr 2018 18:00:00 +0200
+Subject: [PATCH] [fix] save resume points on exit
+
+saving resume points is done with a job, so it has to happen before all jobs are cancelled
+---
+ xbmc/Application.cpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index f43eefecfa23..05e3a74a90c3 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -2801,6 +2801,9 @@ bool CApplication::Cleanup()
+ 
+ void CApplication::Stop(int exitCode)
+ {
++  CLog::Log(LOGNOTICE, "stop player");
++  m_appPlayer.ClosePlayer();
++
+   {
+     // close inbound port
+     CServiceBroker::UnregisterAppPort();
+@@ -2869,9 +2872,6 @@ void CApplication::Stop(int exitCode)
+ 
+     CApplicationMessenger::GetInstance().Cleanup();
+ 
+-    CLog::Log(LOGNOTICE, "stop player");
+-    m_appPlayer.ClosePlayer();
+-
+     StopServices();
+ 
+ #ifdef HAS_ZEROCONF
