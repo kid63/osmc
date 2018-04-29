@@ -1,0 +1,93 @@
+From 4ad8df65cd6e0987bbca84f0f1e477931532f186 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 28 Apr 2018 16:41:00 +0200
+Subject: [PATCH] lirc: work around buggy client lib
+
+---
+ xbmc/platform/linux/input/LIRC.cpp | 45 ++++++++++++++++++++++++++++++++++++++
+ xbmc/platform/linux/input/LIRC.h   |  1 +
+ 2 files changed, 46 insertions(+)
+
+diff --git a/xbmc/platform/linux/input/LIRC.cpp b/xbmc/platform/linux/input/LIRC.cpp
+index 86d6eb28f7a5..86b5e4c76887 100644
+--- a/xbmc/platform/linux/input/LIRC.cpp
++++ b/xbmc/platform/linux/input/LIRC.cpp
+@@ -27,6 +27,7 @@
+ #include <lirc/lirc_client.h>
+ #include <fcntl.h>
+ #include <sys/socket.h>
++#include <sys/un.h>
+ 
+ CLirc::CLirc() : CThread("Lirc")
+ {
+@@ -53,10 +54,25 @@ void CLirc::Process()
+   m_profileId = CServiceBroker::GetProfileManager().GetCurrentProfileId();
+   m_irTranslator.Load("Lircmap.xml");
+ 
++  // make sure work-around (CheckDaemon) uses the same socket path as lirc_init
++  const char* socket_path = getenv("LIRC_SOCKET_PATH");
++  socket_path = socket_path ? socket_path : "/var/run/lirc/lircd";
++  setenv("LIRC_SOCKET_PATH", socket_path, 0);
++
+   while (!m_bStop)
+   {
+     {
+       CSingleLock lock(m_critSection);
++
++      // lirc_client is buggy because it does not close socket, if connect fails
++      // work around by checking if daemon is running before calling lirc_init
++      if (!CheckDaemon())
++      {
++        CSingleExit lock(m_critSection);
++        Sleep(1000);
++        continue;
++      }
++
+       m_fd = lirc_init(const_cast<char*>("kodi"), 0);
+       if (m_fd <= 0)
+       {
+@@ -145,3 +161,32 @@ void CLirc::ProcessCode(char *buf)
+       appPort->OnEvent(newEvent);
+   }
+ }
++
++bool CLirc::CheckDaemon()
++{
++  const char* socket_path = getenv("LIRC_SOCKET_PATH");
++
++  struct sockaddr_un addr_un;
++  if (strlen(socket_path) + 1 > sizeof(addr_un.sun_path))
++  {
++    return false;
++  }
++
++  addr_un.sun_family = AF_UNIX;
++  strcpy(addr_un.sun_path, socket_path);
++
++  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
++  if (fd == -1)
++  {
++    return false;
++  }
++
++  if (connect(fd, reinterpret_cast<struct sockaddr*>(&addr_un), sizeof(addr_un)) == -1)
++  {
++    close(fd);
++    return false;
++  }
++
++  close(fd);
++  return true;
++}
+diff --git a/xbmc/platform/linux/input/LIRC.h b/xbmc/platform/linux/input/LIRC.h
+index d8c8ddbf51a3..9e6b985cbcd9 100644
+--- a/xbmc/platform/linux/input/LIRC.h
++++ b/xbmc/platform/linux/input/LIRC.h
+@@ -35,6 +35,7 @@ class CLirc : CThread
+ protected:
+   void Process() override;
+   void ProcessCode(char *buf);
++  bool CheckDaemon();
+ 
+   int m_fd = -1;
+   uint32_t m_firstClickTime = 0;
