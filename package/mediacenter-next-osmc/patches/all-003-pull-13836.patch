@@ -1,0 +1,60 @@
+From 6096fa11036ff10eeff2a78f91a957232a79c054 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Mon, 30 Apr 2018 23:49:29 -0700
+Subject: [PATCH] windowing: cleanup g_windowing globals
+
+---
+ xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.h | 3 ---
+ xbmc/windowing/android/WinSystemAndroidGLESContext.h | 3 ---
+ xbmc/windowing/mir/WinSystemMirGLContext.h           | 5 -----
+ xbmc/windowing/mir/WinSystemMirGLESContext.h         | 5 -----
+ 4 files changed, 16 deletions(-)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.h b/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.h
+index 200f8b49facf..c882ffbbfeeb 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.h
++++ b/xbmc/windowing/amlogic/WinSystemAmlogicGLESContext.h
+@@ -55,6 +55,3 @@ class CWinSystemAmlogicGLESContext : public CWinSystemAmlogic, public CRenderSys
+   CEGLContextUtils m_pGLContext;
+ 
+ };
+-
+-XBMC_GLOBAL_REF(CWinSystemAmlogicGLESContext, g_Windowing);
+-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemAmlogicGLESContext)
+diff --git a/xbmc/windowing/android/WinSystemAndroidGLESContext.h b/xbmc/windowing/android/WinSystemAndroidGLESContext.h
+index 0cdabc3eda1d..d38956feae65 100644
+--- a/xbmc/windowing/android/WinSystemAndroidGLESContext.h
++++ b/xbmc/windowing/android/WinSystemAndroidGLESContext.h
+@@ -55,6 +55,3 @@ class CWinSystemAndroidGLESContext : public CWinSystemAndroid, public CRenderSys
+   CEGLContextUtils m_pGLContext;
+ 
+ };
+-
+-XBMC_GLOBAL_REF(CWinSystemAndroidGLESContext, g_Windowing);
+-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemAndroidGLESContext)
+diff --git a/xbmc/windowing/mir/WinSystemMirGLContext.h b/xbmc/windowing/mir/WinSystemMirGLContext.h
+index a66f3a403344..58c6be51d485 100644
+--- a/xbmc/windowing/mir/WinSystemMirGLContext.h
++++ b/xbmc/windowing/mir/WinSystemMirGLContext.h
+@@ -53,8 +53,3 @@ class CWinSystemMirGLContext : public CWinSystemMir, public CRenderSystemGL
+   CGLContextEGL m_pGLContext;
+ 
+ };
+-
+-#if defined(HAS_GL)
+-XBMC_GLOBAL_REF(CWinSystemMirGLContext, g_Windowing);
+-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemMirGLContext)
+-#endif
+diff --git a/xbmc/windowing/mir/WinSystemMirGLESContext.h b/xbmc/windowing/mir/WinSystemMirGLESContext.h
+index d6e54935c9d1..54516329c7b9 100644
+--- a/xbmc/windowing/mir/WinSystemMirGLESContext.h
++++ b/xbmc/windowing/mir/WinSystemMirGLESContext.h
+@@ -53,8 +53,3 @@ class CWinSystemMirGLESContext : public CWinSystemMir, public CRenderSystemGLES
+   CGLContextEGL m_pGLContext;
+ 
+ };
+-
+-#if defined(HAS_GLES)
+-XBMC_GLOBAL_REF(CWinSystemMirGLESContext, g_Windowing);
+-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemMirGLESContext)
+-#endif
