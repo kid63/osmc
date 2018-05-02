@@ -1,0 +1,25 @@
+From f78a7597476cb738c494b116daa1bfb3ed369be5 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Mon, 30 Apr 2018 17:36:50 +0200
+Subject: [PATCH] there can only be one busy dialog
+
+---
+ xbmc/dialogs/GUIDialogBusy.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/xbmc/dialogs/GUIDialogBusy.cpp b/xbmc/dialogs/GUIDialogBusy.cpp
+index 855abd08ff07..e672f64707aa 100644
+--- a/xbmc/dialogs/GUIDialogBusy.cpp
++++ b/xbmc/dialogs/GUIDialogBusy.cpp
+@@ -69,6 +69,11 @@ bool CGUIDialogBusy::WaitOnEvent(CEvent &event, unsigned int displaytime /* = 10
+     CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
+     if (dialog)
+     {
++      if (dialog->IsDialogRunning())
++      {
++        throw std::logic_error("busy dialog already running");
++      }
++
+       dialog->Open();
+ 
+       while(!event.WaitMSec(1))
