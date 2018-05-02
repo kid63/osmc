@@ -8,7 +8,7 @@
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/bd944228ecbae423e7681d77ec1f57b34f80cd31.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/4c0bf39359fe671491a685b72eed09b16e7cfa34.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
