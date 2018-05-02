@@ -1,0 +1,30 @@
+From 12865ad7c60dc093df964e7ba845608fbb11dd22 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Mon, 30 Apr 2018 17:25:21 -0700
+Subject: [PATCH] libinput: sleep 10ms to reduce cpu usage
+
+---
+ xbmc/platform/linux/input/LibInputHandler.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/xbmc/platform/linux/input/LibInputHandler.cpp b/xbmc/platform/linux/input/LibInputHandler.cpp
+index 426aead6d444..d841b7a40db6 100644
+--- a/xbmc/platform/linux/input/LibInputHandler.cpp
++++ b/xbmc/platform/linux/input/LibInputHandler.cpp
+@@ -31,6 +31,7 @@
+ #include <string.h>
+ #include <sys/ioctl.h>
+ #include <unistd.h>
++#include <thread>
+ 
+ static int open_restricted(const char *path, int flags, void __attribute__((unused)) *user_data)
+ {
+@@ -134,6 +135,8 @@ void CLibInputHandler::Process()
+       ProcessEvent(ev);
+       libinput_event_destroy(ev);
+     }
++
++    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+   }
+ }
+ 
