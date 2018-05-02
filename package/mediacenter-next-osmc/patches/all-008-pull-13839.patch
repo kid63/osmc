@@ -1,0 +1,62 @@
+From f86a4355bf1bdfdf2ee4d4b3e4292fd5aa0757c5 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Tue, 1 May 2018 13:34:36 +0200
+Subject: [PATCH 1/2] drop catch block in mainloop that makes the app crash
+ with lost info
+
+---
+ xbmc/platform/xbmc.cpp | 18 +-----------------
+ 1 file changed, 1 insertion(+), 17 deletions(-)
+
+diff --git a/xbmc/platform/xbmc.cpp b/xbmc/platform/xbmc.cpp
+index d2404a058f71..08b1072cd576 100644
+--- a/xbmc/platform/xbmc.cpp
++++ b/xbmc/platform/xbmc.cpp
+@@ -85,23 +85,7 @@ extern "C" int XBMC_Run(bool renderGUI, const CAppParamParser &params)
+   }
+ #endif
+ 
+-  try
+-  {
+-    status = g_application.Run(params);
+-  }
+-#ifdef TARGET_WINDOWS
+-  catch (const XbmcCommons::UncheckedException &e)
+-  {
+-    e.LogThrowMessage("CApplication::Create()");
+-    CMessagePrinter::DisplayError("ERROR: Exception caught on main loop. Exiting");
+-    status = -1;
+-  }
+-#endif
+-  catch(...)
+-  {
+-    CMessagePrinter::DisplayError("ERROR: Exception caught on main loop. Exiting");
+-    status = -1;
+-  }
++  status = g_application.Run(params);
+ 
+ #ifdef TARGET_WINDOWS_DESKTOP
+   // the end
+
+From 63121abb0e0fbac34d7b6c3ae955542018dfd6aa Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Tue, 1 May 2018 13:37:08 +0200
+Subject: [PATCH 2/2] force closing busy dialog, there can only be one
+
+---
+ xbmc/dialogs/GUIDialogBusy.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/dialogs/GUIDialogBusy.cpp b/xbmc/dialogs/GUIDialogBusy.cpp
+index e672f64707aa..878c5424f0e4 100644
+--- a/xbmc/dialogs/GUIDialogBusy.cpp
++++ b/xbmc/dialogs/GUIDialogBusy.cpp
+@@ -86,7 +86,7 @@ bool CGUIDialogBusy::WaitOnEvent(CEvent &event, unsigned int displaytime /* = 10
+         }
+       }
+       
+-      dialog->Close();
++      dialog->Close(true);
+     }
+   }
+   return !cancelled;
