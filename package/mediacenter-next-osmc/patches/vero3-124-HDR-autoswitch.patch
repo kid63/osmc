@@ -34,9 +34,9 @@ index e40a6e5..17203cc 100644
  
  #: xbmc/network/NetworkServices.cpp
 @@ -19860,3 +19866,9 @@ msgctxt "#39013"
- msgctxt "#39109"
- msgid "Select Program"
+ msgid "Turns off HDMI audio. Useful if you're using SPDIF audio and don't want audio on HDMI. Requires reboot."
  msgstr ""
+
 +
 +#: Description of display setting with label # 13136
 +msgctxt "#39014"
@@ -153,9 +153,9 @@ index 72098b5..15af48a 100644
  const std::string CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN = "videoscreen.fakefullscreen";
  const std::string CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS = "videoscreen.blankdisplays";
 +const std::string CSettings::SETTING_VIDEOSCREEN_HDRAUTO = "videoscreen.hdrauto";
+ const std::string CSettings::SETTING_VIDEOSCREEN_FORCERGB = "videoscreen.forcergb";
+ const std::string CSettings::SETTING_VIDEOSCREEN_MUTEHDMI = "videoscreen.mutehdmi"
  const std::string CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE = "videoscreen.stereoscopicmode";
- const std::string CSettings::SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE = "videoscreen.preferedstereoscopicmode";
- const std::string CSettings::SETTING_VIDEOSCREEN_NOOFBUFFERS = "videoscreen.noofbuffers";
 diff --git a/xbmc/settings/Settings.h b/xbmc/settings/Settings.h
 index 439b2b4..0b199e3 100644
 --- a/xbmc/settings/Settings.h
@@ -165,9 +165,9 @@ index 439b2b4..0b199e3 100644
    static const std::string SETTING_VIDEOSCREEN_FAKEFULLSCREEN;
    static const std::string SETTING_VIDEOSCREEN_BLANKDISPLAYS;
 +  static const std::string SETTING_VIDEOSCREEN_HDRAUTO;
-   static const std::string SETTING_VIDEOSCREEN_STEREOSCOPICMODE;
-   static const std::string SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE;
-   static const std::string SETTING_VIDEOSCREEN_NOOFBUFFERS;
+   static const std::string SETTING_VIDEOSCREEN_FORCERGB;
+   static const std::string SETTING_VIDEOSCREEN_LOCKHPD;
+   static const std::string SETTING_VIDEOSCREEN_MUTEHDMI;
 -- 
 2.7.4
 
