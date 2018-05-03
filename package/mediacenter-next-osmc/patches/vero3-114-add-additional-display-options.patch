@@ -118,9 +118,9 @@ index 42b6ff551e..8968074496 100644
 --- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 +++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 @@ -43,6 +43,7 @@
+ #include "utils/log.h"
  #include "utils/SysfsUtils.h"
  #include "threads/SingleLock.h"
- #include "../WinEventsLinux.h"
 +#include "ServiceBroker.h"
 
  #include <linux/fb.h>
@@ -141,9 +141,9 @@ index 42b6ff551e..8968074496 100644
 + }
 +
 +
-   m_winEvents.reset(new CWinEventsLinux());
    // Register sink
    AE::CAESinkFactory::ClearSinks();
+   CAESinkALSA::Register();
 -- 
 2.12.3
 
