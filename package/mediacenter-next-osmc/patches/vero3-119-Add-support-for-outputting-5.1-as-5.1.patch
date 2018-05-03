@@ -19,7 +19,7 @@ index 2b5d059..69b89bd 100644
  #include "utils/SystemInfo.h"
  #include "threads/SingleLock.h"
 +#include "settings/Settings.h"
-+#include "Broker.h"
++#include "ServiceBroker.h"
  #include "settings/AdvancedSettings.h"
  #if defined(HAS_LIBAMCODEC)
  #include "utils/AMLUtils.h"
