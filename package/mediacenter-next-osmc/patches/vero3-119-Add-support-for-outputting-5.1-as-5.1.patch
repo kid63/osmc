@@ -95,7 +95,7 @@ index 2b5d059..69b89bd 100644
    std::string AESParams;
    /* digital interfaces should have AESx set, though in practice most
 @@ -652,10 +660,45 @@ bool CAESinkALSA::Initialize(AEAudioFormat &format, std::string &device)
- #ifdef SND_CHMAP_API_VERSION
+
    if (selectedChmap)
    {
 +	  /* Channel layout should match one of those offered by the sink
@@ -137,9 +137,9 @@ index 2b5d059..69b89bd 100644
 +
 +  }
 +
- #endif
  
    // we want it blocking
+   snd_pcm_nonblock(m_pcm, 0);
 @@ -809,7 +852,7 @@ bool CAESinkALSA::InitializeHW(const ALSAConfig &inconfig, ALSAConfig &outconfig
    bufferSize  = std::min(bufferSize, (snd_pcm_uframes_t) sampleRate / 5);
  #if defined(HAS_LIBAMCODEC)
