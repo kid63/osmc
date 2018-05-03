@@ -40,9 +40,9 @@ index dd051b7..e04ee65 100644
  
  #: xbmc/network/NetworkServices.cpp
 @@ -19817,3 +19832,19 @@ msgstr ""
- msgctxt "#39010"
- msgid "Select sort method"
- msgstr ""
+ msgid "Turns off HDMI audio. Useful if you're using SPDIF audio and don't want audio on HDMI. Requires reboot."
+ msgstr ""   
+  
 +
 +#: Description of display setting with label # 13133
 +msgctxt "#39011"
