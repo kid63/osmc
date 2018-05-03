@@ -14,11 +14,12 @@ diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngin
 index 2b5d059..69b89bd 100644
 --- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 +++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
-@@ -35,6 +35,7 @@
+@@ -35,6 +35,8 @@
  #include "utils/MathUtils.h"
  #include "utils/SystemInfo.h"
  #include "threads/SingleLock.h"
 +#include "settings/Settings.h"
++#include "Broker.h"
  #include "settings/AdvancedSettings.h"
  #if defined(HAS_LIBAMCODEC)
  #include "utils/AMLUtils.h"
