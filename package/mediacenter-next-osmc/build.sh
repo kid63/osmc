@@ -20,7 +20,7 @@ if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
 # Build in native environment
 BUILD_OPTS=$BUILD_OPTION_DEFAULTS
 BUILD_OPTS=$(($BUILD_OPTS - $BUILD_OPTION_USE_CCACHE))
-if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ] || [ "$1" == "vero3noaddons" ]
+if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ] 
 then
     BUILD_OPTS=$(($BUILD_OPTS + $BUILD_OPTION_NEEDS_SWAP))
 fi
@@ -142,7 +142,7 @@ then
                 handle_dep "armv7-libsqlite-dev-osmc"
 		handle_dep "armv7-libass-dev-osmc"
         fi
-	if [ "$1" == "vero3" ] || [ "$1" == "vero3noaddons" ]
+	if [ "$1" == "vero3" ]
  	then
  		handle_dep "vero3-libcec-dev-osmc"
  		handle_dep "vero3-userland-dev-osmc"
@@ -207,11 +207,10 @@ then
 		install_patch "../../patches" "rbp"
 	fi
 	install_patch "../../patches" "all"
-	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ] || [ "$1" == "vero3noaddons" ]; then install_patch "../../patches" "arm"; fi
+	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ]; then install_patch "../../patches" "arm"; fi
 
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
-	test "$1" == vero3noaddons && install_patch "../../patches" "vero3"
 	# Apple TV configuration
 	test "$1" == atv && \
 	COMPFLAGS="-O3 -fomit-frame-pointer -I/usr/include/libcrystalhd  -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
@@ -314,7 +313,7 @@ then
 	    -DENABLE_APP_AUTONAME=OFF \
 	. 
 	fi
-         if [ "$1" == "vero3" ] || [ "$1" == "vero3noaddons" ]; then
+         if [ "$1" == "vero3" ]; then
          LIBRARY_PATH+="/opt/vero3/lib" && \
          COMPFLAGS="-I/opt/vero3/include -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
          export CFLAGS+=${COMPFLAGS} && \
@@ -395,11 +394,6 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
  	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}" 
  	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero3/include -DCMAKE_LIBRARY_PATH=/opt/vero3/lib"
  	fi
-	if [ "$1" == "vero3noaddons" ]
-        then
-           ADDONS_TO_BUILD="" #${ADDONS_PERIPHERAL}"
-           PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero3/include -DCMAKE_LIBRARY_PATH=/opt/vero3/lib"
-        fi	
         if [ "$1" == "atv" ]
  	then
  	   ADDONS_TO_BUILD="${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_SCREENSAVERS}"
