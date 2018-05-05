@@ -1,0 +1,602 @@
+From fb6072b3fce15c2a3226b1ae5c6b8d4893915f3f Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 2 May 2018 11:47:53 -0700
+Subject: [PATCH 1/2] DisplaySettings: whitelisted mode selection
+
+---
+ .../resource.language.en_gb/resources/strings.po   |  11 +-
+ system/settings/settings.xml                       |  12 +
+ xbmc/settings/DisplaySettings.cpp                  |  41 +++-
+ xbmc/settings/DisplaySettings.h                    |   4 +-
+ xbmc/settings/Settings.cpp                         |   2 +
+ xbmc/settings/Settings.h                           |   1 +
+ xbmc/windowing/Resolution.cpp                      | 271 ++++++++-------------
+ xbmc/windowing/Resolution.h                        |   3 +-
+ 8 files changed, 159 insertions(+), 186 deletions(-)
+
+diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
+index 237dbe8e5665..ff4bea59c19e 100644
+--- a/addons/resource.language.en_gb/resources/strings.po
++++ b/addons/resource.language.en_gb/resources/strings.po
+@@ -7689,7 +7689,10 @@ msgctxt "#14084"
+ msgid "Queue songs on selection"
+ msgstr ""
+ 
+-#empty string with id 14085
++#: system/settings/settings.xml
++msgctxt "#14085"
++msgid "Whitelist"
++msgstr ""
+ 
+ #: system/settings/settings.xml
+ msgctxt "#14086"
+@@ -18998,7 +19001,11 @@ msgctxt "#36355"
+ msgid "In a multi-screen configuration, the screens not displaying this application are blacked out."
+ msgstr ""
+ 
+-#empty string with id 36356
++#. Description of setting with label #14085 "Whitelist"
++#: system/settings/settings.xml
++msgctxt "#36356"
++msgid "Whitelisted modes are allowed to be switched to when changing resolution and refresh rate"
++msgstr ""
+ 
+ #. Description of setting with label #214 "Video calibration..."
+ #: system/settings/settings.xml
+diff --git a/system/settings/settings.xml b/system/settings/settings.xml
+index 20a862cd93a2..ca8a28caf676 100755
+--- a/system/settings/settings.xml
++++ b/system/settings/settings.xml
+@@ -2013,6 +2013,18 @@
+           </dependencies>
+           <control type="spinner" format="string" delayed="true" />
+         </setting>
++        <setting id="videoscreen.whitelist" type="list[string]" parent="videoscreen.screen" label="14085" help="36356">
++          <level>1</level>
++          <constraints>
++            <options>modes</options>
++            <default></default>
++            <delimiter>,</delimiter>
++            <minimumitems>0</minimumitems>
++          </constraints>
++          <control type="list" format="string">
++            <multiselect>true</multiselect>
++          </control>
++        </setting>
+         <setting id="videoscreen.resolution" type="integer" parent="videoscreen.screen" label="169" help="36352">
+           <level>0</level>
+           <default>16</default> <!-- RES_DESKTOP -->
+diff --git a/xbmc/settings/DisplaySettings.cpp b/xbmc/settings/DisplaySettings.cpp
+index aa925967a5d4..8ce737fb709c 100644
+--- a/xbmc/settings/DisplaySettings.cpp
++++ b/xbmc/settings/DisplaySettings.cpp
+@@ -596,10 +596,10 @@ RESOLUTION CDisplaySettings::GetResolutionFromString(const std::string &strResol
+   else if (strResolution.size() >= 21)
+   {
+     // format: SWWWWWHHHHHRRR.RRRRRP333, where S = screen, W = width, H = height, R = refresh, P = interlace, 3 = stereo mode
+-    int screen = std::strtol(StringUtils::Mid(strResolution, 0,1).c_str(), NULL, 10);
+-    int width = std::strtol(StringUtils::Mid(strResolution, 1,5).c_str(), NULL, 10);
+-    int height = std::strtol(StringUtils::Mid(strResolution, 6,5).c_str(), NULL, 10);
+-    float refresh = (float)std::strtod(StringUtils::Mid(strResolution, 11,9).c_str(), NULL);
++    int screen = CDisplaySettings::GetInstance().GetCurrentDisplayMode();
++    int width = std::strtol(StringUtils::Mid(strResolution, 0,5).c_str(), NULL, 10);
++    int height = std::strtol(StringUtils::Mid(strResolution, 5,5).c_str(), NULL, 10);
++    float refresh = (float)std::strtod(StringUtils::Mid(strResolution, 10,9).c_str(), NULL);
+     unsigned flags = 0;
+ 
+     // look for 'i' and treat everything else as progressive,
+@@ -632,7 +632,7 @@ std::string CDisplaySettings::GetStringFromResolution(RESOLUTION resolution, flo
+     // also handle RES_DESKTOP resolutions with non-default refresh rates
+     if (resolution != RES_DESKTOP || (refreshrate > 0.0f && refreshrate != info.fRefreshRate))
+     {
+-      return StringUtils::Format("%1i%05i%05i%09.5f%s", info.iScreen,
++      return StringUtils::Format("%05i%05i%09.5f%s",
+                                  info.iScreenWidth, info.iScreenHeight,
+                                  refreshrate > 0.0f ? refreshrate : info.fRefreshRate, ModeFlagsToString(info.dwFlags, true).c_str());
+     }
+@@ -656,10 +656,39 @@ RESOLUTION CDisplaySettings::GetResolutionForScreen()
+   return RES_DESKTOP;
+ }
+ 
++static inline bool ModeSort(std::pair<std::string, std::string> i,std::pair<std::string, std::string> j)
++{
++  return (i.second > j.second);
++}
++
++void CDisplaySettings::SettingOptionsModesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
++{
++  RESOLUTION res = CDisplaySettings::GetInstance().GetDisplayResolution();
++  RESOLUTION_INFO info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
++
++  for (auto index = (unsigned int)RES_DESKTOP; index < CDisplaySettings::GetInstance().ResolutionInfoSize(); ++index)
++  {
++    const auto mode = CDisplaySettings::GetInstance().GetResolutionInfo(index);
++
++    if (mode.dwFlags ^ D3DPRESENTFLAG_INTERLACED)
++    {
++      auto setting = GetStringFromResolution((RESOLUTION)index, mode.fRefreshRate);
++
++      list.push_back(std::make_pair(
++        StringUtils::Format("%dx%d%s %0.2fHz", mode.iScreenWidth, mode.iScreenHeight,
++                            ModeFlagsToString(mode.dwFlags, false).c_str(),
++                            mode.fRefreshRate),
++                            setting));
++    }
++  }
++
++  std::sort(list.begin(), list.end(), ModeSort);
++}
++
+ void CDisplaySettings::SettingOptionsRefreshChangeDelaysFiller(SettingConstPtr setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+ {
+   list.push_back(std::make_pair(g_localizeStrings.Get(13551), 0));
+-          
++
+   for (int i = 1; i <= MAX_REFRESH_CHANGE_DELAY; i++)
+     list.push_back(std::make_pair(StringUtils::Format(g_localizeStrings.Get(13553).c_str(), (double)i / 10.0), i));
+ }
+diff --git a/xbmc/settings/DisplaySettings.h b/xbmc/settings/DisplaySettings.h
+index 2c10bcee399e..f03d9f60612d 100644
+--- a/xbmc/settings/DisplaySettings.h
++++ b/xbmc/settings/DisplaySettings.h
+@@ -77,6 +77,7 @@ class CDisplaySettings : public ISettingCallback, public ISubSettings,
+ 
+   const RESOLUTION_INFO& GetCurrentResolutionInfo() const { return GetResolutionInfo(m_currentResolution); }
+   RESOLUTION_INFO& GetCurrentResolutionInfo() { return GetResolutionInfo(m_currentResolution); }
++  const RESOLUTION GetResFromString(const std::string &strResolution) { return GetResolutionFromString(strResolution); }
+ 
+   void ApplyCalibrations();
+   void UpdateCalibrations();
+@@ -91,6 +92,7 @@ class CDisplaySettings : public ISettingCallback, public ISubSettings,
+   bool IsNonLinearStretched() const { return m_nonLinearStretched; }
+   void SetNonLinearStretched(bool nonLinearStretch) { m_nonLinearStretched = nonLinearStretch; }
+ 
++  static void SettingOptionsModesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+   static void SettingOptionsRefreshChangeDelaysFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+   static void SettingOptionsRefreshRatesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+   static void SettingOptionsResolutionsFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+@@ -102,7 +104,7 @@ class CDisplaySettings : public ISettingCallback, public ISubSettings,
+   static void SettingOptionsCmsWhitepointsFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+   static void SettingOptionsCmsPrimariesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+   static void SettingOptionsCmsGammaModesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+-  
++
+ 
+ protected:
+   CDisplaySettings();
+diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
+index bfbf1db2e6f4..c746bf0fa8d9 100644
+--- a/xbmc/settings/Settings.cpp
++++ b/xbmc/settings/Settings.cpp
+@@ -342,6 +342,7 @@ const std::string CSettings::SETTING_SMB_MAXPROTOCOL = "smb.maxprotocol";
+ const std::string CSettings::SETTING_SMB_LEGACYSECURITY = "smb.legacysecurity";
+ const std::string CSettings::SETTING_VIDEOSCREEN_MONITOR = "videoscreen.monitor";
+ const std::string CSettings::SETTING_VIDEOSCREEN_SCREEN = "videoscreen.screen";
++const std::string CSettings::SETTING_VIDEOSCREEN_WHITELIST = "videoscreen.whitelist";
+ const std::string CSettings::SETTING_VIDEOSCREEN_RESOLUTION = "videoscreen.resolution";
+ const std::string CSettings::SETTING_VIDEOSCREEN_SCREENMODE = "videoscreen.screenmode";
+ const std::string CSettings::SETTING_VIDEOSCREEN_FAKEFULLSCREEN = "videoscreen.fakefullscreen";
+@@ -683,6 +684,7 @@ void CSettings::InitializeOptionFillers()
+   GetSettingsManager()->RegisterSettingOptionsFiller("speedunits", CLangInfo::SettingOptionsSpeedUnitsFiller);
+   GetSettingsManager()->RegisterSettingOptionsFiller("temperatureunits", CLangInfo::SettingOptionsTemperatureUnitsFiller);
+   GetSettingsManager()->RegisterSettingOptionsFiller("rendermethods", CBaseRenderer::SettingOptionsRenderMethodsFiller);
++  GetSettingsManager()->RegisterSettingOptionsFiller("modes", CDisplaySettings::SettingOptionsModesFiller);
+   GetSettingsManager()->RegisterSettingOptionsFiller("resolutions", CDisplaySettings::SettingOptionsResolutionsFiller);
+   GetSettingsManager()->RegisterSettingOptionsFiller("screens", CDisplaySettings::SettingOptionsScreensFiller);
+   GetSettingsManager()->RegisterSettingOptionsFiller("stereoscopicmodes", CDisplaySettings::SettingOptionsStereoscopicModesFiller);
+diff --git a/xbmc/settings/Settings.h b/xbmc/settings/Settings.h
+index ea46f283a5b6..9825e9aca811 100644
+--- a/xbmc/settings/Settings.h
++++ b/xbmc/settings/Settings.h
+@@ -296,6 +296,7 @@ class CSettings : public CSettingsBase, public CSettingCreator, public CSettingC
+   static const std::string SETTING_SMB_LEGACYSECURITY;
+   static const std::string SETTING_VIDEOSCREEN_MONITOR;
+   static const std::string SETTING_VIDEOSCREEN_SCREEN;
++  static const std::string SETTING_VIDEOSCREEN_WHITELIST;
+   static const std::string SETTING_VIDEOSCREEN_RESOLUTION;
+   static const std::string SETTING_VIDEOSCREEN_SCREENMODE;
+   static const std::string SETTING_VIDEOSCREEN_FAKEFULLSCREEN;
+diff --git a/xbmc/windowing/Resolution.cpp b/xbmc/windowing/Resolution.cpp
+index 9161b08a9540..0a2dbe5f5223 100644
+--- a/xbmc/windowing/Resolution.cpp
++++ b/xbmc/windowing/Resolution.cpp
+@@ -20,11 +20,15 @@
+ 
+ #include "Resolution.h"
+ #include "guilib/gui3d.h"
+-#include "windowing/GraphicContext.h"
++#include "GraphicContext.h"
++#include "utils/Variant.h"
+ #include "utils/log.h"
+ #include "utils/MathUtils.h"
+ #include "settings/AdvancedSettings.h"
+ #include "settings/DisplaySettings.h"
++#include "settings/Settings.h"
++#include "ServiceBroker.h"
++
+ #include <cstdlib>
+ 
+ RESOLUTION_INFO::RESOLUTION_INFO(int width, int height, float aspect, const std::string &mode) :
+@@ -64,16 +68,105 @@ RESOLUTION CResolutionUtils::ChooseBestResolution(float fps, int width, bool is3
+ {
+   RESOLUTION res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
+   float weight;
++
+   if (!FindResolutionFromOverride(fps, width, is3D, res, weight, false)) //find a refreshrate from overrides
+   {
+-    if (!FindResolutionFromOverride(fps, width, is3D, res, weight, true))//if that fails find it from a fallback
+-      FindResolutionFromFpsMatch(fps, width, is3D, res, weight);//if that fails use automatic refreshrate selection
++    if (!FindResolutionFromOverride(fps, width, is3D, res, weight, true)) //if that fails find it from a fallback
++    {
++      FindResolutionFromWhitelist(fps, width, is3D, res); //find a refreshrate from whitelist
++    }
+   }
++
+   CLog::Log(LOGNOTICE, "Display resolution ADJUST : %s (%d) (weight: %.3f)",
+             CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(res).strMode.c_str(), res, weight);
+   return res;
+ }
+ 
++void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, bool is3D, RESOLUTION &resolution)
++{
++  RESOLUTION_INFO curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
++
++  std::vector<CVariant> indexList = CServiceBroker::GetSettings().GetList(CSettings::SETTING_VIDEOSCREEN_WHITELIST);
++
++  CLog::Log(LOGDEBUG, "Trying to find exact refresh rate");
++
++  for (const auto &mode : indexList)
++  {
++    auto i = CDisplaySettings::GetInstance().GetResFromString(mode.asString());
++    const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(i);
++
++    // allow resolutions that are exact and have the correct refresh rate
++    if (info.iScreenWidth == width &&
++        info.iScreen == curr.iScreen &&
++        (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++        MathUtils::FloatEquals(info.fRefreshRate, fps, 0.005f))
++    {
++      CLog::Log(LOGDEBUG, "Matched exact whitelisted Resolution %s (%d)", info.strMode.c_str(), i);
++      resolution = i;
++      return;
++    }
++  }
++
++  CLog::Log(LOGDEBUG, "No exact whitelisted resolution matched, trying double refresh rate");
++
++  for (const auto &mode : indexList)
++  {
++    auto i = CDisplaySettings::GetInstance().GetResFromString(mode.asString());
++    const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(i);
++
++    // allow resolutions that are exact and have double the refresh rate
++    if (info.iScreenWidth == width &&
++        info.iScreen == curr.iScreen &&
++        (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++        MathUtils::FloatEquals(info.fRefreshRate, fps * 2, 0.005f))
++    {
++      CLog::Log(LOGDEBUG, "Matched fuzzy whitelisted Resolution %s (%d)", info.strMode.c_str(), i);
++      resolution = i;
++      return;
++    }
++  }
++
++  CLog::Log(LOGDEBUG, "No double refresh rate whitelisted resolution matched, trying larger resolutions");
++
++  for (const auto &mode : indexList)
++  {
++    auto i = CDisplaySettings::GetInstance().GetResFromString(mode.asString());
++    const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(i);
++
++    // allow resolutions that are larger than required but have the correct refresh rate
++    if (info.iScreenWidth > width &&
++        info.iScreen == curr.iScreen &&
++        (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++        MathUtils::FloatEquals(info.fRefreshRate, fps, 0.005f))
++    {
++      CLog::Log(LOGDEBUG, "Matched fuzzy whitelisted Resolution %s (%d)", info.strMode.c_str(), i);
++      resolution = i;
++      return;
++    }
++  }
++
++  CLog::Log(LOGDEBUG, "No larger whitelisted resolution matched, trying larger resolutions with double refreshrate");
++
++  for (const auto &mode : indexList)
++  {
++    auto i = CDisplaySettings::GetInstance().GetResFromString(mode.asString());
++    const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(i);
++
++    // allow resolutions that are larger than required but have double the refresh rate
++    if (info.iScreenWidth > width &&
++        info.iScreen == curr.iScreen &&
++        (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
++        MathUtils::FloatEquals(info.fRefreshRate, fps * 2, 0.005f))
++    {
++      CLog::Log(LOGDEBUG, "Matched fuzzy whitelisted Resolution %s (%d)", info.strMode.c_str(), i);
++      resolution = i;
++      return;
++    }
++  }
++
++  CLog::Log(LOGDEBUG, "No whitelisted resolution matched");
++}
++
+ bool CResolutionUtils::FindResolutionFromOverride(float fps, int width, bool is3D, RESOLUTION &resolution, float& weight, bool fallback)
+ {
+   RESOLUTION_INFO curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
+@@ -128,178 +221,6 @@ bool CResolutionUtils::FindResolutionFromOverride(float fps, int width, bool is3
+   return false; //no override found
+ }
+ 
+-void CResolutionUtils::FindResolutionFromFpsMatch(float fps, int width, bool is3D, RESOLUTION &resolution, float& weight)
+-{
+-  const float maxWeight = 0.0021f;
+-  RESOLUTION_INFO curr;
+-
+-  resolution = FindClosestResolution(fps, width, is3D, 1.0, resolution, weight);
+-  curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
+-
+-  if (weight >= maxWeight) //not a very good match, try a 2:3 cadence instead
+-  {
+-    CLog::Log(LOGDEBUG, "Resolution %s (%d) not a very good match for fps %.3f (weight: %.3f), trying 2:3 cadence",
+-        curr.strMode.c_str(), resolution, fps, weight);
+-
+-    resolution = FindClosestResolution(fps, width, is3D, 2.5, resolution, weight);
+-    curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
+-
+-    if (weight >= maxWeight) //2:3 cadence not a good match
+-    {
+-      CLog::Log(LOGDEBUG, "Resolution %s (%d) not a very good match for fps %.3f with 2:3 cadence (weight: %.3f), choosing 60 hertz",
+-          curr.strMode.c_str(), resolution, fps, weight);
+-
+-      //get the resolution with the refreshrate closest to 60 hertz
+-      for (size_t i = (int)RES_DESKTOP; i < CDisplaySettings::GetInstance().ResolutionInfoSize(); i++)
+-      {
+-        RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo((RESOLUTION)i);
+-
+-        if (MathUtils::round_int(info.fRefreshRate) == 60
+-         && info.iScreenWidth  == curr.iScreenWidth
+-         && info.iScreenHeight == curr.iScreenHeight
+-         && (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK)
+-         && info.iScreen       == curr.iScreen)
+-        {
+-          if (fabs(info.fRefreshRate - 60.0) < fabs(curr.fRefreshRate - 60.0)) {
+-            resolution = (RESOLUTION)i;
+-            curr = info;
+-          }
+-        }
+-      }
+-
+-      //60 hertz not available, get the highest refreshrate
+-      if (MathUtils::round_int(curr.fRefreshRate) != 60)
+-      {
+-        CLog::Log(LOGDEBUG, "60 hertz refreshrate not available, choosing highest");
+-        for (size_t i = (int)RES_DESKTOP; i < CDisplaySettings::GetInstance().ResolutionInfoSize(); i++)
+-        {
+-          RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo((RESOLUTION)i);
+-
+-          if (info.fRefreshRate  >  curr.fRefreshRate
+-           && info.iScreenWidth  == curr.iScreenWidth
+-           && info.iScreenHeight == curr.iScreenHeight
+-           && (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK)
+-           && info.iScreen       == curr.iScreen)
+-          {
+-            resolution = (RESOLUTION)i;
+-            curr = info;
+-          }
+-        }
+-      }
+-
+-      weight = RefreshWeight(curr.fRefreshRate, fps);
+-    }
+-  }
+-}
+-
+-RESOLUTION CResolutionUtils::FindClosestResolution(float fps, int width, bool is3D, float multiplier, RESOLUTION current, float& weight)
+-{
+-  RESOLUTION_INFO curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(current);
+-  RESOLUTION orig_res  = CDisplaySettings::GetInstance().GetCurrentResolution();
+-
+-  if (orig_res <= RES_DESKTOP)
+-    orig_res = RES_DESKTOP;
+-
+-  RESOLUTION_INFO orig = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(orig_res);
+-
+-  float fRefreshRate = fps;
+-
+-  float last_diff = fRefreshRate;
+-
+-  int curr_diff = std::abs(width - curr.iScreenWidth);
+-  int loop_diff = 0;
+-
+-  // Find closest refresh rate
+-  for (size_t i = (int)RES_DESKTOP; i < CDisplaySettings::GetInstance().ResolutionInfoSize(); i++)
+-  {
+-    const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo((RESOLUTION)i);
+-
+-    //discard resolutions that are not the same width and height (and interlaced/3D flags)
+-    //or have a too low refreshrate
+-    if (info.iScreenWidth != curr.iScreenWidth ||
+-        info.iScreenHeight != curr.iScreenHeight ||
+-        info.iScreen != curr.iScreen ||
+-        (info.dwFlags & D3DPRESENTFLAG_MODEMASK) != (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) ||
+-        info.fRefreshRate < (fRefreshRate * multiplier / 1.001) - 0.001)
+-    {
+-      // evaluate all higher modes and evaluate them
+-      // concerning dimension and refreshrate weight
+-      // skip lower resolutions
+-      // don't change resolutions when 3D is wanted
+-      if ((width < orig.iScreenWidth) || // orig res large enough
+-         (info.iScreenWidth < orig.iScreenWidth) || // new res is smaller
+-         (info.iScreenHeight < orig.iScreenHeight) || // new height would be smaller
+-         (info.dwFlags & D3DPRESENTFLAG_MODEMASK) != (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) || // don't switch to interlaced modes
+-         (info.iScreen != curr.iScreen) || // skip not current displays
+-         is3D) // skip res changing when doing 3D
+-      {
+-        continue;
+-      }
+-    }
+-
+-    // Allow switching to larger resolution:
+-    // e.g. if m_sourceWidth == 3840 and we have a 3840 mode - use this one
+-    // if it has a matching fps mode, which is evaluated below
+-
+-    loop_diff = std::abs(width - info.iScreenWidth);
+-    curr_diff = std::abs(width - curr.iScreenWidth);
+-
+-    // For 3D choose the closest refresh rate
+-    if (is3D)
+-    {
+-      float diff = (info.fRefreshRate - fRefreshRate);
+-      if(diff < 0)
+-        diff *= -1.0f;
+-
+-      if(diff < last_diff)
+-      {
+-        last_diff = diff;
+-        current = (RESOLUTION)i;
+-        curr = info;
+-      }
+-    }
+-    else
+-    {
+-      int c_weight = MathUtils::round_int(RefreshWeight(curr.fRefreshRate, fRefreshRate * multiplier) * 10000.0);
+-      int i_weight = MathUtils::round_int(RefreshWeight(info.fRefreshRate, fRefreshRate * multiplier) * 10000.0);
+-
+-      RESOLUTION current_bak = current;
+-      RESOLUTION_INFO curr_bak = curr;
+-
+-      // Closer the better, prefer higher refresh rate if the same
+-      if ((i_weight < c_weight) ||
+-          (i_weight == c_weight && info.fRefreshRate > curr.fRefreshRate))
+-      {
+-        current = (RESOLUTION)i;
+-        curr = info;
+-      }
+-      // use case 1080p50 vs 3840x2160@25 for 3840@25 content
+-      // prefer the higher resolution of 3840
+-      if (i_weight == c_weight && (loop_diff < curr_diff))
+-      {
+-        current = (RESOLUTION)i;
+-        curr = info;
+-      }
+-      // same as above but iterating with 3840@25 set and overwritten
+-      // by e.g. 1080@50 - restore backup in that case
+-      // to give priority to the better matching width
+-      if (i_weight == c_weight && (loop_diff > curr_diff))
+-      {
+-        current = current_bak;
+-        curr = curr_bak;
+-      }
+-    }
+-  }
+-
+-  // For 3D overwrite weight
+-  if (is3D)
+-    weight = 0;
+-  else
+-    weight = RefreshWeight(curr.fRefreshRate, fRefreshRate * multiplier);
+-
+-  return current;
+-}
+-
+ //distance of refresh to the closest multiple of fps (multiple is 1 or higher), as a multiplier of fps
+ float CResolutionUtils::RefreshWeight(float refresh, float fps)
+ {
+diff --git a/xbmc/windowing/Resolution.h b/xbmc/windowing/Resolution.h
+index 69137c2b2bab..ed08e1f59356 100644
+--- a/xbmc/windowing/Resolution.h
++++ b/xbmc/windowing/Resolution.h
+@@ -102,8 +102,7 @@ class CResolutionUtils
+ public:
+   static RESOLUTION ChooseBestResolution(float fps, int width, bool is3D);
+ protected:
++  static void FindResolutionFromWhitelist(float fps, int width, bool is3D, RESOLUTION &resolution);
+   static bool FindResolutionFromOverride(float fps, int width, bool is3D, RESOLUTION &resolution, float& weight, bool fallback);
+-  static void FindResolutionFromFpsMatch(float fps, int width, bool is3D, RESOLUTION &resolution, float& weight);
+-  static RESOLUTION FindClosestResolution(float fps, int width, bool is3D, float multiplier, RESOLUTION current, float& weight);
+   static float RefreshWeight(float refresh, float fps);
+ };
+
+From d487155650f04fb37c9ed447d0e4e067d8ffebac Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 2 May 2018 11:47:59 -0700
+Subject: [PATCH 2/2] windowing/gbm: rework UpdateResolutions to overwrite
+ RES_DEKSTOP
+
+---
+ xbmc/windowing/gbm/WinSystemGbm.cpp | 53 +++++++++++++++++++++++++------------
+ 1 file changed, 36 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/windowing/gbm/WinSystemGbm.cpp b/xbmc/windowing/gbm/WinSystemGbm.cpp
+index 3cd93fbb1d78..3ff9498cc9d1 100644
+--- a/xbmc/windowing/gbm/WinSystemGbm.cpp
++++ b/xbmc/windowing/gbm/WinSystemGbm.cpp
+@@ -147,12 +147,6 @@ void CWinSystemGbm::UpdateResolutions()
+ {
+   CWinSystemBase::UpdateResolutions();
+ 
+-  UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP),
+-                          0,
+-                          m_DRM->m_mode->hdisplay,
+-                          m_DRM->m_mode->vdisplay,
+-                          m_DRM->m_mode->vrefresh);
+-
+   std::vector<RESOLUTION_INFO> resolutions;
+ 
+   if (!m_DRM->GetModes(resolutions) || resolutions.empty())
+@@ -165,17 +159,42 @@ void CWinSystemGbm::UpdateResolutions()
+ 
+     for (unsigned int i = 0; i < resolutions.size(); i++)
+     {
+-      CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(resolutions[i]);
+-      CDisplaySettings::GetInstance().AddResolutionInfo(resolutions[i]);
+-
+-      CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz",
+-                resolutions[i].iWidth,
+-                resolutions[i].iHeight,
+-                resolutions[i].iScreen,
+-                resolutions[i].iScreenWidth,
+-                resolutions[i].iScreenHeight,
+-                resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
+-                resolutions[i].fRefreshRate);
++      if(m_DRM->m_mode->hdisplay == resolutions[i].iWidth &&
++         m_DRM->m_mode->vdisplay == resolutions[i].iHeight &&
++         m_DRM->m_mode->vrefresh == resolutions[i].fRefreshRate &&
++         ((m_DRM->m_mode->flags ^ DRM_MODE_FLAG_INTERLACE) &&
++          (resolutions[i].dwFlags ^ D3DPRESENTFLAG_INTERLACED)))
++      {
++        CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz setting to RES_DESKTOP at %d",
++                  resolutions[i].iWidth,
++                  resolutions[i].iHeight,
++                  resolutions[i].iScreen,
++                  resolutions[i].iScreenWidth,
++                  resolutions[i].iScreenHeight,
++                  resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
++                  resolutions[i].fRefreshRate,
++                  (int)RES_DESKTOP);
++
++        UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP),
++                                0,
++                                m_DRM->m_mode->hdisplay,
++                                m_DRM->m_mode->vdisplay,
++                                m_DRM->m_mode->vrefresh);
++      }
++      else
++      {
++        CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz",
++                  resolutions[i].iWidth,
++                  resolutions[i].iHeight,
++                  resolutions[i].iScreen,
++                  resolutions[i].iScreenWidth,
++                  resolutions[i].iScreenHeight,
++                  resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
++                  resolutions[i].fRefreshRate);
++
++        CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(resolutions[i]);
++        CDisplaySettings::GetInstance().AddResolutionInfo(resolutions[i]);
++      }
+     }
+   }
+ 
