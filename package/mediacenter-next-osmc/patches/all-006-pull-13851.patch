@@ -1,0 +1,22 @@
+From 2f8e277a3304648f874d5daae7b91ebbbdc1ef29 Mon Sep 17 00:00:00 2001
+From: Arne Morten Kvarving <arne.morten.kvarving@sintef.no>
+Date: Fri, 4 May 2018 12:42:58 +0200
+Subject: [PATCH] fixed: use the dyn url for protocol check if available
+
+---
+ xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.cpp b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.cpp
+index d24e2aaed883..6fa0d47fae8d 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.cpp
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.cpp
+@@ -82,7 +82,7 @@ bool CInputStreamAddon::Supports(BinaryAddonBasePtr& addonBase, const CFileItem
+     return (addon.asString() == addonBase->ID());
+ 
+   // check protocols
+-  std::string protocol = fileitem.GetURL().GetProtocol();
++  std::string protocol = CURL(fileitem.GetDynPath()).GetProtocol();
+   if (!protocol.empty())
+   {
+     std::string protocols = addonBase->Type(ADDON_INPUTSTREAM)->GetValue("@protocols").asString();
