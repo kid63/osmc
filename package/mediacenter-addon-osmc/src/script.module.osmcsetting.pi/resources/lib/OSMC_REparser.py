@@ -286,7 +286,17 @@ def soundcard_dac_validation(config_value):
 		'iqaudio-dac-overlay' 		: '4',
 		'iqaudio-dac' 				: '4',
 		'iqaudio-dacplus-overlay' 	: '5',
-		'iqaudio-dacplus' 			: '5',		
+		'iqaudio-dacplus' 			: '5',
+		'justboom-dac'                  : '6',
+		'justboom-dac-overlay'		: '6',
+                'justboom-digi'                 : '7',
+		'justboom-digi-overlay'		: '7',
+		'allo-piano-dac-pcm512x-audio-overlay'	: '8',
+		'allo-piano-dac-pcm512x-audio'		: '8',
+		'allo-boss-dac-pcm512x-audio-overlay'	: '9',
+		'allo-boss-dac-pcm512x-audio'		: '9',
+		'allo-digione-overlay'                  : '10',
+		'allo-digione'                          : '10',
 		}
 
 	try:
@@ -308,7 +318,7 @@ def lirc_rpi_validation(config_value):
 
 def gpio_pin_validation(config_value):
 
-	return generic_range_validation(config_value, range(1,26))
+	return generic_range_validation(config_value, range(1,28))
 
 
 def gpio_updown_validation(config_value):
@@ -640,8 +650,13 @@ def soundcard_dac_config_set(kodi_setting, all_settings):
 		'hifiberry-dac-overlay',
 		'hifiberry-dacplus-overlay',
 		'hifiberry-digi-overlay',
-		'iqaudio-dac-overlay',
-		'iqaudio-dacplus-overlay'
+		'iqaudio-dac-overlay,unmute_amp',
+		'iqaudio-dacplus-overlay,unmute_amp',
+		'justboom-dac-overlay',
+		'justboom-digi-overlay',
+		'allo-piano-dac-pcm512x-audio-overlay',
+		'allo-boss-dac-pcm512x-audio-overlay',
+		'allo-digione-overlay'
 		]
 
 	try:
@@ -1094,25 +1109,6 @@ MASTER_SETTINGS =    {
 			"setting_stub"      : "hdmi_safe=%s",
 		},
 
-		"max_usb_current": { 
-			"default"   : { 
-				"function"      : None, 
-				"value"         : "false"
-				},
-			"config_get_patterns": [
-				{
-				"identify"      : r"\s*max_usb_current\s*=",
-				"extract"       : r"\s*max_usb_current\s*=\s*(\d+)"
-				},
-
-				],
-			"config_set"        : generic_bool_config_set,
-			"config_validation" : generic_bool_validation,
-			"kodi_set"          : generic_passthrough_kodi_set,
-			"already_set"       : False,
-			"setting_stub"      : "max_usb_current=%s",
-		},
-
 		"sdtv_aspect": { 
 			"default"   : { 
 				"function"      : None, 
@@ -1196,8 +1192,8 @@ MASTER_SETTINGS =    {
 				},
 			"config_get_patterns": [
 				{
-				"identify"      : r"\s*(?:dtoverlay|device_tree_overlay)\s*=\s*[-\w\d]*(?:hifiberry-d|iqaudio-d)",
-				"extract"       : r"\s*(?:dtoverlay|device_tree_overlay)\s*=\s*([-\w\d]*(?:hifiberry-d|iqaudio-d)[-\w\d]*)"
+				"identify"      : r"\s*(?:dtoverlay|device_tree_overlay)\s*=\s*[-\w\d]*(?:hifiberry-d|iqaudio-d|justboom-d|allo-piano-d|allo-boss-d|allo-digione-d)",
+				"extract"       : r"\s*(?:dtoverlay|device_tree_overlay)\s*=\s*([-\w\d]*(?:hifiberry-d|iqaudio-d|justboom-d|allo-piano-d|allo-boss-d|allo-digione-d)[-\w\d]*)"
 				},
 
 				],
@@ -1406,7 +1402,6 @@ if __name__ == "__main__":
 				'hdmi_pixel_encoding' : '0',
 				'hdmi_safe' : 'false',
 				'lirc-rpi-overlay' : '0',
-				'max_usb_current' : 'true',
 				'sdtv_aspect' : '0',
 				'sdtv_mode' : '0',
 				'soundcard_dac' : "0",
@@ -1435,7 +1430,6 @@ if __name__ == "__main__":
 			'hdmi_pixel_encoding' : '0',
 			'hdmi_safe' : 'false',
 			'lirc-rpi-overlay' : 'false',
-			'max_usb_current' : 'false',
 			'sdtv_aspect' : '0',
 			'sdtv_mode' : '0',
 			'soundcard_dac' : "0",
@@ -1478,7 +1472,6 @@ if __name__ == "__main__":
 		'hdmi_pixel_encoding' 	: [str(x) for x in range(0,5)],
 		'hdmi_safe' 			: ['false','true'],
 		'lirc-rpi-overlay' 		: ['false','true'],
-		'max_usb_current' 		: ['false','true'],
 		'sdtv_aspect' 			: [str(x) for x in range(0,4)],
 		'sdtv_mode' 			: [str(x) for x in range(0,4)],
 		'soundcard_dac' 		: [str(x) for x in range(0,7)],

@@ -375,42 +375,47 @@ class networking_gui(xbmcgui.WindowXMLDialog):
 
     def onClick(self, controlID):
 
-        if controlID in ip_controls:
-            self.edit_ip_address(controlID)
+        try:
+            if controlID in ip_controls:
+                self.edit_ip_address(controlID)
 
-        elif controlID in BLUETOOTH_CONTROLS + [BLUETOOTH_ENABLE_TOGGLE]:
-            self.handle_bluetooth_selection(controlID)
-            self.populate_bluetooth_panel()
+            elif controlID in BLUETOOTH_CONTROLS + [BLUETOOTH_ENABLE_TOGGLE]:
+                self.handle_bluetooth_selection(controlID)
+                self.populate_bluetooth_panel()
 
-        elif controlID in ALL_WIRED_CONTROLS + [WIRED_ADAPTER_TOGGLE]:
-            self.handle_wired_selection(controlID)
+            elif controlID in ALL_WIRED_CONTROLS + [WIRED_ADAPTER_TOGGLE]:
+                self.handle_wired_selection(controlID)
 
-        elif controlID in ALL_WIRELESS_CONTROLS + [WIRELESS_ADAPTER_TOGGLE]:
-            self.handle_wireless_selection(controlID)
+            elif controlID in ALL_WIRELESS_CONTROLS + [WIRELESS_ADAPTER_TOGGLE]:
+                self.handle_wireless_selection(controlID)
 
-        elif controlID == WIRED_WAIT_FOR_NETWORK:
+            elif controlID == WIRED_WAIT_FOR_NETWORK:
 
-            osmc_network.toggle_wait_for_network(not osmc_network.is_connman_wait_for_network_enabled())
+                osmc_network.toggle_wait_for_network(not osmc_network.is_connman_wait_for_network_enabled())
 
-            waitForNetworkRadioButton = self.getControl(WIRED_WAIT_FOR_NETWORK)
-            waitForNetworkRadioButton.setSelected(osmc_network.is_connman_wait_for_network_enabled())
+                waitForNetworkRadioButton = self.getControl(WIRED_WAIT_FOR_NETWORK)
+                waitForNetworkRadioButton.setSelected(osmc_network.is_connman_wait_for_network_enabled())
 
-        elif controlID == WIRELESS_WAIT_FOR_NETWORK:
+            elif controlID == WIRELESS_WAIT_FOR_NETWORK:
+                
+                osmc_network.toggle_wait_for_network(not osmc_network.is_connman_wait_for_network_enabled())
 
-            osmc_network.toggle_wait_for_network(not osmc_network.is_connman_wait_for_network_enabled())
+                waitForNetworkRadioButton = self.getControl(WIRELESS_WAIT_FOR_NETWORK)
+                waitForNetworkRadioButton.setSelected(osmc_network.is_connman_wait_for_network_enabled())
 
-            waitForNetworkRadioButton = self.getControl(WIRELESS_WAIT_FOR_NETWORK)
-            waitForNetworkRadioButton.setSelected(osmc_network.is_connman_wait_for_network_enabled())
+            elif controlID in ALL_TETHERING_CONTROLS:
+                self.handle_tethering_selection(controlID)
 
-        elif controlID in ALL_TETHERING_CONTROLS:
-            self.handle_tethering_selection(controlID)
+            elif controlID in ALL_MYSQL_CONTROLS:
+                self.user_entry_mysql(controlID)
 
-        elif controlID in ALL_MYSQL_CONTROLS:
-            self.user_entry_mysql(controlID)
-
-        elif controlID == EXIT_CONTROL:
-            self.shutdown_process()
-
+            elif controlID == EXIT_CONTROL:
+                self.shutdown_process()
+        except:
+            self.clear_busy_dialogue()
+            log("Unhandled Exception thrown in Networking GUI\n%s" % traceback.format_exc());
+            message = "Unhandled Exeption caught - See log for details"
+            xbmc.executebuiltin("XBMC.Notification(%s,%s,%s)" % ("Networking Add-on", message, "2500"))
 
     def shutdown_process(self):
         ''' Actions that are done when the user chooses to Go Back, Escape, or clicks Exit '''
@@ -537,7 +542,10 @@ class networking_gui(xbmcgui.WindowXMLDialog):
         # also make sure we have turned discocery off
         if self.bluetooth_discovering:
             self.bluetooth_discovering = not self.bluetooth_discovering
-            osmc_bluetooth.stop_discovery()
+            try:
+                osmc_bluetooth.stop_discovery()
+            except:
+                pass
 
     def show_busy_dialogue(self):
 
@@ -678,7 +686,7 @@ class networking_gui(xbmcgui.WindowXMLDialog):
 
             name.setLabel(video.get('name', 'MyVideos'))
             host.setLabel(video.get('host', '___ : ___ : ___ : ___'))
-            port.setLabel(video.get('port', ''))
+            port.setLabel(video.get('port', '3306'))
             user.setLabel(video.get('user', 'kodi'))
             try:
                 pswd.setLabel('*' * len(video.get('pass', 'kodi')))
@@ -686,8 +694,14 @@ class networking_gui(xbmcgui.WindowXMLDialog):
             except:
                 pswd.setLabel('kodi')
                 hpwd.setLabel('kodi')
-            impw.setSelected(vidlb.get('importwatchedstate', 'true') == 'true')
-            impr.setSelected(vidlb.get('importresumepoint', 'true') == 'true')
+            try:
+                impw.setSelected(vidlb.get('importwatchedstate', 'true') == 'true')
+            except:
+                impw.setSelected(False)
+            try:
+                impr.setSelected(vidlb.get('importresumepoint', 'true') == 'true')
+            except:
+                impr.setSelected(False)
 
         else:
             self.getControl(MYSQL_VIDEO_TOGGLE).setSelected(False)
@@ -700,7 +714,7 @@ class networking_gui(xbmcgui.WindowXMLDialog):
 
             name.setLabel(music.get('name', 'MyMusic'))
             host.setLabel(music.get('host', '___ : ___ : ___ : ___'))
-            port.setLabel(music.get('port', ''))
+            port.setLabel(music.get('port', '3306'))
             user.setLabel(music.get('user', 'kodi'))
             try:
                 pswd.setLabel('*' * len(music.get('pass', 'kodi')))
@@ -727,10 +741,14 @@ class networking_gui(xbmcgui.WindowXMLDialog):
 
         if self.getControl(MYSQL_VIDEO_TOGGLE).isSelected():
 
+            defaults = {'name': 'MyVideos',
+                        'port': '3306'}
             for sql_item, ctl in zip(sql_subitems, MYSQL_VIDEO_VALUES):
                 if ctl in MYSQL_PASS:
                     ctl -= 100000
                 video[sql_item] = self.getControl(ctl).getLabel()
+                if sql_item in defaults and not video[sql_item]:
+                    video[sql_item] = defaults[sql_item]
 
                 log('ctl %s : sql item %s : %s' %(ctl, sql_item, self.getControl(ctl).getLabel()))
     
@@ -761,10 +779,14 @@ class networking_gui(xbmcgui.WindowXMLDialog):
 
         if self.getControl(MYSQL_MUSIC_TOGGLE).isSelected():
 
+            defaults = {'name': 'MyMusic',
+                        'port': '3306'}
             for sql_item, ctl in zip(sql_subitems, MYSQL_MUSIC_VALUES):
                 if ctl in MYSQL_PASS:
                     ctl = ctl - 100000
                 music[sql_item] = self.getControl(ctl).getLabel()
+                if sql_item in defaults and not music[sql_item]:
+                    music[sql_item] = defaults[sql_item]
 
             sub_dict['musicdatabase'] = music
 
@@ -781,7 +803,7 @@ class networking_gui(xbmcgui.WindowXMLDialog):
         ''' Takes a dictionary and writes it to the advancedsettings.xml file '''
 
         # check the dictionary to see if it is valid
-        dictionary_valid, invalidity_type = self.ASE.validate_advset_dict(dictionary)
+        dictionary_valid, invalidity_type = self.ASE.validate_advset_dict(dictionary, no_pw_ok=True)
 
         if not dictionary_valid:
             if invalidity_type == 'missing mysql':
@@ -1454,32 +1476,31 @@ class networking_gui(xbmcgui.WindowXMLDialog):
         if control_id == BLUETOOTH_ENABLE_TOGGLE:  # Enable Bluetooth
 
             self.show_busy_dialogue()
-
-            if osmc_bluetooth.is_bluetooth_enabled():
-
-                osmc_bluetooth.toggle_bluetooth_state(False)
-                self.stop_bluetooth_population_thread()
-
-            else:
-
-                osmc_bluetooth.toggle_bluetooth_state(True)
-
+            try:
+                if osmc_bluetooth.is_bluetooth_enabled():
+                    self.stop_bluetooth_population_thread()
+                    osmc_bluetooth.toggle_bluetooth_state(False)
+                else:
+                    osmc_bluetooth.toggle_bluetooth_state(True)
+            except:
+                pass
+                    
             self.clear_busy_dialogue()
 
         elif control_id == BLUETOOTH_DISCOVERY:  # Discovery
 
             self.show_busy_dialogue()
             
-            self.bluetooth_discovering = not self.bluetooth_discovering;
-
-            if self.bluetooth_discovering:
-
-                osmc_bluetooth.start_discovery()
-
-            else:
-
-                osmc_bluetooth.stop_discovery()
-
+            try:
+                if osmc_bluetooth.is_bluetooth_active():
+                    self.bluetooth_discovering = not self.bluetooth_discovering
+                    if self.bluetooth_discovering:
+                        osmc_bluetooth.start_discovery()
+                    else:
+                        osmc_bluetooth.stop_discovery()
+            except:
+                pass
+            
             self.clear_busy_dialogue()
 
         elif control_id == 6000:  # paired devices
@@ -1502,9 +1523,11 @@ class networking_gui(xbmcgui.WindowXMLDialog):
                     if not connected:
                         self.show_busy_dialogue()
 
-                        if self.connect_bluetooth(address, alias):
-                            self.bluetooth_population_thread.update_bluetooth_lists()
-
+                        try:
+                            if self.connect_bluetooth(address, alias):
+                                self.bluetooth_population_thread.update_bluetooth_lists()
+                        except:
+                            pass
                         self.clear_busy_dialogue()
 
                 elif selection == 2:
@@ -1556,7 +1579,11 @@ class networking_gui(xbmcgui.WindowXMLDialog):
 
     def connect_bluetooth(self, address, alias):
 
-        connected = osmc_bluetooth.connect_device(address)
+        connected = False;
+        try:
+            connected = osmc_bluetooth.connect_device(address)
+        except:
+            pass
 
         if not connected:
              #         'Connection to'                       'failed'
@@ -1864,9 +1891,11 @@ class bluetooth_population_thread(threading.Thread):
 
         devices         = {}
         bluetooth_dict  = {}
-
-        devices         = osmc_bluetooth.list_trusted_devices() if paired else osmc_bluetooth.list_discovered_devices()
-            
+        try:
+            devices         = osmc_bluetooth.list_trusted_devices() if paired else osmc_bluetooth.list_discovered_devices()
+        except:
+            pass
+        
         for address in devices.keys():
 
             bluetooth_dict[address] = {
