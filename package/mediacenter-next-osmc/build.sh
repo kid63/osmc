@@ -8,12 +8,12 @@
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/9d919b65c35a1b0d29db0cc25385ef66da838bfb.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/6cf912025e84c43335a83f95c695e8b3269dc971.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/331e5fd844888ef528897f93062e4bfc52fc2bb1.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/ce5ceccc5af6b01d6d7f35ea0d31609f49505aa4.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
@@ -155,20 +155,6 @@ then
                 handle_dep "armv7-libsqlite-dev-osmc"
                 handle_dep "armv7-libass-dev-osmc"
 	fi
-	if [ "$1" == "atv" ] # later we change this to if_x11..
-	then
-		handle_dep "i386-libcec-dev-osmc"
-		handle_dep "i386-libshairplay-dev-osmc"
-		handle_dep "i386-librtmp-dev-osmc"
-		handle_dep "i386-libnfs-dev-osmc"
-		handle_dep "i386-libplatform-dev-osmc"
-		handle_dep "i386-libbluray-dev-osmc"
-		handle_dep "i386-libsqlite-dev-osmc"
-		handle_dep "i386-libcrystalhd-dev-osmc"
-		handle_dep "xserver-xorg-dev"
-		handle_dep "libxrandr-dev"
-		handle_dep "i386-libass-dev-osmc"
-	fi
 	if [ "$1" == "pc" ]
 	then
 		handle_dep "amd64-libshairplay-dev-osmc"
@@ -200,7 +186,6 @@ then
 	echo $VERSION_DBG >> files-debug/DEBIAN/control
 	echo "Depends: ${1}-mediacenter-osmc (=${VERSION_NUM})" >> files-debug/DEBIAN/control
 	pushd src/xbmc-*
-	test "$1" == atv && install_patch "../../patches" "atv"
 	test "$1" == pc && install_patch "../../patches" "pc"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
@@ -211,26 +196,6 @@ then
 
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
-	# Apple TV configuration
-	test "$1" == atv && \
-	COMPFLAGS="-O3 -fomit-frame-pointer -I/usr/include/libcrystalhd  -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
-	export CFLAGS+=${COMPFLAGS} && \
-	export CXXFLAGS+=${COMPFLAGS} && \
-	export CPPFLAGS+=${COMPFLAGS} && \
-	export LDFLAGS="" && \
-	./configure \
-		--prefix=/usr \
-		--disable-vaapi \
-		--disable-vdpau \
-		--disable-pulse \
-		--enable-x11 \
-		--disable-openmax \
-		--enable-optical-drive \
-		--enable-libbluray \
-                --disable-debug \
-                --enable-libcec \
-		--disable-optimizations \
-		--enable-crystalhd
 	# PC configuration
 	test "$1" == pc && \
 	COMPFLAGS="-O3 -fomit-frame-pointer -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
@@ -394,11 +359,6 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
  	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}" 
  	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero3/include -DCMAKE_LIBRARY_PATH=/opt/vero3/lib"
  	fi
-        if [ "$1" == "atv" ]
- 	then
- 	   ADDONS_TO_BUILD="${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_SCREENSAVERS}"
- 	   PLATFORM=""
-        fi
 	if [ "$1" == "pc" ]
 	then
            ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR}"
@@ -438,7 +398,6 @@ game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.
 	cp -ar ${out}/usr/lib/kodi/kodi.bin files-debug/usr/lib/kodi/kodi.bin
 	strip -s ${out}/usr/lib/kodi/kodi.bin
 	COMMON_DEPENDS="libxkbcommon0, libinput10, xz-utils, libiso9660-8, niceprioritypolicy-osmc, mediacenter-send-osmc, libssh-4, libavahi-client3, python, python-imaging, python-unidecode, libsmbclient, libjpeg62-turbo, libsqlite3-0, libtinyxml2.6.2v5, libmad0, libmicrohttpd12, libyajl2, libmariadbclient18, libasound2, libxml2, liblzo2-2, libxslt1.1, libpng16-16, libsamplerate0, libtag1v5-vanilla, libfribidi0, libgif7, libcdio13, libpcrecpp0v5, libfreetype6, libvorbis0a, libvorbisenc2, libcurl3, libssl1.0.2, libplist3, avahi-daemon, policykit-1, mediacenter-addon-osmc (>= 3.0.39), mediacenter-skin-osmc, libcrossguid0, libcap2-bin"
-	test "$1" == atv && echo "Depends: ${COMMON_DEPENDS}, i386-libcec-osmc, i386-libnfs-osmc, i386-librtmp-osmc, i386-libshairplay-osmc, i386-libbluray-osmc, i386-libsqlite-osmc, libxrandr2, i386-libcrystalhd-osmc, xserver-xorg-core, xserver-xorg, xinit, xfonts-base, x11-xserver-utils, xauth, alsa-utils, xserver-xorg-video-nvidia-legacy-304xx, nvidia-xconfig, i386-libass-osmc" >> files/DEBIAN/control
 	test "$1" == pc && echo "Depends: ${COMMON_DEPENDS}, amd64-libnfs-osmc, amd64-librtmp-osmc, amd64-libshairplay-osmc, amd64-libbluray-osmc, amd64-libsqlite-osmc, libxrandr2, xserver-xorg-core, xserver-xorg, xinit, xfonts-base, x11-xserver-utils, xauth, alsa-utils, xserver-xorg-video-intel, amd64-libass-osmc" >> files/DEBIAN/control
   	test "$1" == rbp1 && echo "Depends: ${COMMON_DEPENDS}, rbp1-libcec-osmc (>=3.1.0-2), armv6l-libnfs-osmc, armv6l-librtmp-osmc, armv6l-libshairplay-osmc, armv6l-libbluray-osmc, armv6l-libsqlite-osmc, rbp-userland-osmc, armv6l-splash-osmc, armv6l-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
 	test "$1" == rbp2 && echo "Depends: ${COMMON_DEPENDS}, rbp2-libcec-osmc (>=3.1.0-2), armv7-libnfs-osmc, armv7-librtmp-osmc, armv7-libshairplay-osmc, armv7-libbluray-osmc, armv7-libsqlite-osmc, rbp-userland-osmc, armv7-splash-osmc, armv7-libass-osmc, libnspr4, libnss3" >> files/DEBIAN/control
