@@ -186,12 +186,12 @@ then
 	echo $VERSION_DBG >> files-debug/DEBIAN/control
 	echo "Depends: ${1}-mediacenter-osmc (=${VERSION_NUM})" >> files-debug/DEBIAN/control
 	pushd src/xbmc-*
+	install_patch "../../patches" "all"
 	test "$1" == pc && install_patch "../../patches" "pc"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
 		install_patch "../../patches" "rbp"
 	fi
-	install_patch "../../patches" "all"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ] || [ "$1" == "vero2" ] || [ "$1" == "vero3" ]; then install_patch "../../patches" "arm"; fi
 
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
