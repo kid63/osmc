@@ -1,0 +1,10 @@
+Origin: OSMC
+Version: 1.0.0
+Section: libs
+Essential: No
+Priority: optional
+Maintainer: Sam G Nazarko <email@samnazarko.co.uk>
+Description: libass library
+Package: armv6l-libfmt-osmc
+Architecture: armhf
+Installed-Size: 381
