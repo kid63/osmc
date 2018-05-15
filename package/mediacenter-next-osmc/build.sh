@@ -196,6 +196,7 @@ then
 
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
+	make -C tools/depends/target/libfmt PREFIX=/usr/local
 	# PC configuration
 	test "$1" == pc && \
 	COMPFLAGS="-O3 -fomit-frame-pointer -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
