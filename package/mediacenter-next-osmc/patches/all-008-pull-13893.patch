@@ -1,0 +1,108 @@
+From 89b630ee5c7c36ce78bf5352caa6ceddde7eea2a Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Tue, 15 May 2018 09:41:47 +0200
+Subject: [PATCH] CVirtualDirectory: only keep implementation dir if requested
+
+---
+ xbmc/dialogs/GUIDialogFileBrowser.cpp | 2 +-
+ xbmc/filesystem/VirtualDirectory.cpp  | 7 +++++--
+ xbmc/filesystem/VirtualDirectory.h    | 2 +-
+ xbmc/windows/GUIMediaWindow.cpp       | 4 ++--
+ xbmc/windows/GUIWindowFileManager.cpp | 4 ++--
+ 5 files changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/xbmc/dialogs/GUIDialogFileBrowser.cpp b/xbmc/dialogs/GUIDialogFileBrowser.cpp
+index f98ed1762f01..725ec4bbc1f0 100644
+--- a/xbmc/dialogs/GUIDialogFileBrowser.cpp
++++ b/xbmc/dialogs/GUIDialogFileBrowser.cpp
+@@ -365,7 +365,7 @@ void CGUIDialogFileBrowser::Update(const std::string &strDirectory)
+     CFileItemList items;
+     std::string strParentPath;
+ 
+-    if (!m_rootDir.GetDirectory(pathToUrl, items, m_useFileDirectories))
++    if (!m_rootDir.GetDirectory(pathToUrl, items, m_useFileDirectories, false))
+     {
+       CLog::Log(LOGERROR,"CGUIDialogFileBrowser::GetDirectory(%s) failed", pathToUrl.GetRedacted().c_str());
+ 
+diff --git a/xbmc/filesystem/VirtualDirectory.cpp b/xbmc/filesystem/VirtualDirectory.cpp
+index 98ce2f997ae9..e045eea6327d 100644
+--- a/xbmc/filesystem/VirtualDirectory.cpp
++++ b/xbmc/filesystem/VirtualDirectory.cpp
+@@ -63,9 +63,10 @@ void CVirtualDirectory::SetSources(const VECSOURCES& vecSources)
+ 
+ bool CVirtualDirectory::GetDirectory(const CURL& url, CFileItemList &items)
+ {
+-  return GetDirectory(url,items,true);
++  return GetDirectory(url, items, true, false);
+ }
+-bool CVirtualDirectory::GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories)
++
++bool CVirtualDirectory::GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories, bool keepImpl)
+ {
+   std::string strPath = url.Get();
+   int flags = m_flags;
+@@ -77,6 +78,8 @@ bool CVirtualDirectory::GetDirectory(const CURL& url, CFileItemList &items, bool
+     if (!m_pDir)
+       m_pDir.reset(CDirectoryFactory::Create(realURL));
+     bool ret = CDirectory::GetDirectory(strPath, m_pDir, items, m_strFileMask, flags);
++    if (!keepImpl)
++      m_pDir.reset();
+     return ret;
+   }
+ 
+diff --git a/xbmc/filesystem/VirtualDirectory.h b/xbmc/filesystem/VirtualDirectory.h
+index a91f058b0328..214c2981555d 100644
+--- a/xbmc/filesystem/VirtualDirectory.h
++++ b/xbmc/filesystem/VirtualDirectory.h
+@@ -36,7 +36,7 @@ namespace XFILE
+     ~CVirtualDirectory(void) override;
+     bool GetDirectory(const CURL& url, CFileItemList &items) override;
+     void CancelDirectory() override;
+-    bool GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories);
++    bool GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories, bool keepImpl);
+     void SetSources(const VECSOURCES& vecSources);
+     inline unsigned int GetNumberOfSources() 
+     {
+diff --git a/xbmc/windows/GUIMediaWindow.cpp b/xbmc/windows/GUIMediaWindow.cpp
+index ab230adc1e7a..c18fdc29ecde 100644
+--- a/xbmc/windows/GUIMediaWindow.cpp
++++ b/xbmc/windows/GUIMediaWindow.cpp
+@@ -99,7 +99,7 @@ class CGetDirectoryItems : public IRunnable
+   }
+   void Run() override
+   {
+-    m_result = m_dir.GetDirectory(m_url, m_items, m_useDir);
++    m_result = m_dir.GetDirectory(m_url, m_items, m_useDir, true);
+   }
+   void Cancel() override
+   {
+@@ -2203,6 +2203,6 @@ bool CGUIMediaWindow::GetDirectoryItems(CURL &url, CFileItemList &items, bool us
+   }
+   else
+   {
+-    return m_rootDir.GetDirectory(url, items, useDir);
++    return m_rootDir.GetDirectory(url, items, useDir, false);
+   }
+ }
+diff --git a/xbmc/windows/GUIWindowFileManager.cpp b/xbmc/windows/GUIWindowFileManager.cpp
+index db327f50798d..fc1c766b9ca8 100644
+--- a/xbmc/windows/GUIWindowFileManager.cpp
++++ b/xbmc/windows/GUIWindowFileManager.cpp
+@@ -105,7 +105,7 @@ class CGetDirectoryItems : public IRunnable
+   }
+   void Run() override
+   {
+-    m_result = m_dir.GetDirectory(m_url, m_items, false);
++    m_result = m_dir.GetDirectory(m_url, m_items, false, false);
+   }
+   void Cancel() override
+   {
+@@ -1188,7 +1188,7 @@ int64_t CGUIWindowFileManager::CalculateFolderSize(const std::string &strDirecto
+   CFileItemList items;
+   CVirtualDirectory rootDir;
+   rootDir.SetSources(*CMediaSourceSettings::GetInstance().GetSources("files"));
+-  rootDir.GetDirectory(pathToUrl, items, false);
++  rootDir.GetDirectory(pathToUrl, items, false, false);
+   for (int i=0; i < items.Size(); i++)
+   {
+     if (items[i]->m_bIsFolder && !items[i]->IsParentFolder()) // folder
