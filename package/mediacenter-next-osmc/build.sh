@@ -196,7 +196,16 @@ then
 
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
+	#Build libfmt
 	make -C tools/depends/target/libfmt PREFIX=/usr/local
+	
+	#Copy libjli.so  otherwise build fails
+	cp /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/jli/libjli.so /usr/lib/libjli.so
+
+	#Setup git otherwise addons build fails
+	git config --global user.name "John Doe"
+	git config --global user.email "johndoe@example.com"
+
 	# PC configuration
 	test "$1" == pc && \
 	COMPFLAGS="-O3 -fomit-frame-pointer -Wl,-rpath=/usr/osmc/lib -L/usr/osmc/lib " && \
