@@ -1,0 +1,73 @@
+From 52193b1454ce474d288bef231efc882ab203f2e3 Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 14 May 2018 10:57:11 +0200
+Subject: [PATCH] VideoPlayer/RendererVAAPIGL*: initialize output parameters
+
+If vaInitialize() fails, then the "general" and "deepColor" parameters
+are never initialized, which looks like this in valgrind:
+
+```
+ Conditional jump or move depends on uninitialised value(s)
+    at 0x15C3221: CWinSystemX11GLContext::RefreshGLContext(bool) (WinSystemX11GLContext.cpp:289)
+    by 0x15C2AA7: CWinSystemX11GLContext::SetWindow(int, int, bool, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int*) (WinSystemX11GLContext.cpp:153)
+    by 0x15B997B: CWinSystemX11::SetFullScreen(bool, RESOLUTION_INFO&, bool) (WinSystemX11.cpp:289)
+    by 0x15C2D8E: CWinSystemX11GLContext::SetFullScreen(bool, RESOLUTION_INFO&, bool) (WinSystemX11GLContext.cpp:207)
+    by 0x15B8EE1: CWinSystemX11::CreateNewWindow(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool, RESOLUTION_INFO&) (WinSystemX11.cpp:105)
+    by 0x15C2C24: CWinSystemX11GLContext::CreateNewWindow(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool, RESOLUTION_INFO&) (WinSystemX11GLContext.cpp:175)
+    by 0x1DCF226: CApplication::InitWindow(RESOLUTION) (Application.cpp:723)
+    by 0x1DCEDF1: CApplication::CreateGUI() (Application.cpp:674)
+    by 0x1A1B189: XBMC_Run (xbmc.cpp:65)
+    by 0x13DE3D1: main (main.cpp:108)
+  Uninitialised value was created by a stack allocation
+    at 0x15C2EF2: CWinSystemX11GLContext::RefreshGLContext(bool) (WinSystemX11GLContext.cpp:252)
+```
+
+To fix this, move the output parameter initialization to the top of
+the Register() method.
+---
+ xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.cpp  | 3 ++-
+ .../cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.cpp | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.cpp
+index 6442bb636458..b21b76a8d3c8 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.cpp
+@@ -42,6 +42,8 @@ CBaseRenderer* CRendererVAAPI::Create(CVideoBuffer *buffer)
+ 
+ void CRendererVAAPI::Register(IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &deepColor)
+ {
++  general = deepColor = false;
++
+   int major_version, minor_version;
+   if (vaInitialize(vaDpy, &major_version, &minor_version) != VA_STATUS_SUCCESS)
+   {
+@@ -49,7 +51,6 @@ void CRendererVAAPI::Register(IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDi
+     return;
+   }
+ 
+-  general = deepColor = false;
+   CVaapi2Texture::TestInterop(vaDpy, eglDisplay, general, deepColor);
+   CLog::Log(LOGDEBUG, "Vaapi2 EGL interop test results: general %s, deepColor %s", general ? "yes" : "no", deepColor ? "yes" : "no");
+   if (!general)
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.cpp
+index 6f52b1a96768..3ccd53a3bab0 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.cpp
+@@ -42,6 +42,8 @@ CBaseRenderer* CRendererVAAPI::Create(CVideoBuffer *buffer)
+ 
+ void CRendererVAAPI::Register(IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &deepColor)
+ {
++  general = deepColor = false;
++
+   int major_version, minor_version;
+   if (vaInitialize(vaDpy, &major_version, &minor_version) != VA_STATUS_SUCCESS)
+   {
+@@ -49,7 +51,6 @@ void CRendererVAAPI::Register(IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDi
+     return;
+   }
+ 
+-  general = deepColor = false;
+   CVaapi2Texture::TestInterop(vaDpy, eglDisplay, general, deepColor);
+   CLog::Log(LOGDEBUG, "Vaapi2 EGL interop test results: general %s, deepColor %s", general ? "yes" : "no", deepColor ? "yes" : "no");
+   if (!general)
