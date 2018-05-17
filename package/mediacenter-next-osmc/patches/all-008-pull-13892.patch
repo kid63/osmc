@@ -1,0 +1,60 @@
+From 3c4f85ed0fcd2cd347a2e8e99e3f666028579b68 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Tue, 15 May 2018 22:00:00 +0200
+Subject: [PATCH] [fix] redact filename in omximage
+
+---
+ xbmc/cores/omxplayer/OMXImage.cpp | 6 +++---
+ xbmc/cores/omxplayer/OMXImage.h   | 1 -
+ 2 files changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/cores/omxplayer/OMXImage.cpp b/xbmc/cores/omxplayer/OMXImage.cpp
+index a46b62910ac7..d6fd3b6e4cda 100644
+--- a/xbmc/cores/omxplayer/OMXImage.cpp
++++ b/xbmc/cores/omxplayer/OMXImage.cpp
+@@ -21,6 +21,7 @@
+ #include "OMXImage.h"
+ 
+ #include "ServiceBroker.h"
++#include "URL.h"
+ #include "utils/log.h"
+ #include "platform/linux/XMemUtils.h"
+ 
+@@ -119,7 +120,7 @@ COMXImageFile *COMXImage::LoadJpeg(const std::string& texturePath)
+   COMXImageFile *file = new COMXImageFile();
+   if (!file->ReadFile(texturePath))
+   {
+-    CLog::Log(LOGNOTICE, "%s: unable to load %s", __func__, texturePath.c_str());
++    CLog::Log(LOGNOTICE, "%s: unable to load %s", __func__, CURL::GetRedacted(texturePath).c_str());
+     delete file;
+     file = NULL;
+   }
+@@ -316,7 +317,6 @@ bool COMXImage::DecodeJpegToTexture(COMXImageFile *file, unsigned int width, uns
+   tex->height = height;
+   tex->texture = 0;
+   tex->egl_image = NULL;
+-  tex->filename = file->GetFilename();
+ 
+   SendMessage(AllocTextureCallback, tex);
+ 
+@@ -879,7 +879,7 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned
+ bool COMXImageFile::ReadFile(const std::string& inputFile, int orientation)
+ {
+   XFILE::CFile      m_pFile;
+-  m_filename = inputFile.c_str();
++  m_filename = CURL::GetRedacted(inputFile).c_str();
+   if(!m_pFile.Open(inputFile, 0))
+   {
+     CLog::Log(LOGERROR, "%s::%s %s not found\n", CLASSNAME, __func__, m_filename);
+diff --git a/xbmc/cores/omxplayer/OMXImage.h b/xbmc/cores/omxplayer/OMXImage.h
+index d11b1517368c..c60ec975a877 100644
+--- a/xbmc/cores/omxplayer/OMXImage.h
++++ b/xbmc/cores/omxplayer/OMXImage.h
+@@ -57,7 +57,6 @@ class COMXImage : public CThread
+     GLuint texture;
+     EGLImageKHR egl_image;
+     void *parent;
+-    const char *filename;
+   };
+   COMXImage();
+   virtual ~COMXImage();
