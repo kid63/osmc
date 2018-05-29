@@ -1,0 +1,54 @@
+From 62f3145f00c60dfa764bf41a24d239687f014201 Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Tue, 29 May 2018 20:40:20 +0100
+Subject: [PATCH] [PATCH] kodi: remove annoying, excessively repetitive addon
+ logging
+
+---
+ xbmc/addons/AddonVersion.cpp | 4 ++--
+ xbmc/addons/Repository.cpp   | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/addons/AddonVersion.cpp b/xbmc/addons/AddonVersion.cpp
+index 38408f6213..36950a3771 100644
+--- a/xbmc/addons/AddonVersion.cpp
++++ b/xbmc/addons/AddonVersion.cpp
+@@ -53,7 +53,7 @@ namespace ADDON
+       mRevision = mUpstream.substr(pos+1);
+       if (mRevision.find_first_not_of(VALID_ADDON_VERSION_CHARACTERS) != std::string::npos)
+       {
+-        CLog::Log(LOGERROR, "AddonVersion: {} is not a valid revision number", mRevision);
++        CLog::Log(LOGDEBUG, "AddonVersion: {} is not a valid revision number", mRevision);
+         mRevision = "";
+       }
+       mUpstream.erase(pos);
+@@ -61,7 +61,7 @@ namespace ADDON
+ 
+     if (mUpstream.find_first_not_of(VALID_ADDON_VERSION_CHARACTERS) != std::string::npos)
+     {
+-      CLog::Log(LOGERROR, "AddonVersion: {} is not a valid version", mUpstream);
++      CLog::Log(LOGDEBUG, "AddonVersion: {} is not a valid version", mUpstream);
+       mUpstream = "0.0.0";
+     }
+   }
+diff --git a/xbmc/addons/Repository.cpp b/xbmc/addons/Repository.cpp
+index ff3ea3dc9b..fe6c8df547 100644
+--- a/xbmc/addons/Repository.cpp
++++ b/xbmc/addons/Repository.cpp
+@@ -190,11 +190,11 @@ CRepository::CRepository(CAddonInfo addonInfo, DirList dirs)
+     CURL datadir(dir.datadir);
+     if (datadir.IsProtocol("http"))
+     {
+-      CLog::Log(LOGWARNING, "Repository {} uses plain HTTP for add-on downloads - this is insecure and will make your Kodi installation vulnerable to attacks if enabled!", Name());
++      CLog::Log(LOGDEBUG, "Repository {} uses plain HTTP for add-on downloads - this is insecure and will make your Kodi installation vulnerable to attacks if enabled!", Name());
+     }
+     else if (datadir.IsProtocol("https") && datadir.HasProtocolOption("verifypeer") && datadir.GetProtocolOption("verifypeer") == "false")
+     {
+-      CLog::Log(LOGWARNING, "Repository {} disabled peer verification for add-on downloads - this is insecure and will make your Kodi installation vulnerable to attacks if enabled!", Name());
++      CLog::Log(LOGDEBUG, "Repository {} disabled peer verification for add-on downloads - this is insecure and will make your Kodi installation vulnerable to attacks if enabled!", Name());
+     }
+   }
+ }
+-- 
+2.12.3
+
