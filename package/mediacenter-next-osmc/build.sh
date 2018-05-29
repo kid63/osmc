@@ -338,7 +338,7 @@ game.libretro.dosbox game.libretro.bluemsx game.libretro.bsnes-mercury-accuracy 
 game.libretro.gambatte game.libretro.mame game.libretro.pcsx-rearmed \
 game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
 game.libretro.quicknes game.libretro.scummvm \
-game.libretro.snes9x game.libretro.snes9x-next \
+game.libretro.snes9x \
 game.libretro.stella game.libretro \
 game.libretro.vbam game.libretro.yabause game.libretro.genplus"
 	ADDONS_PVR="pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.iptvsimple pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar
