@@ -328,29 +328,20 @@ then
  	#ADDONS_AUDIO_DECODERS="audiodecoder.modplug audiodecoder.sidplay" #audiodecoder.nosefart audiodecoder.snesapu
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
-	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick"
-	ADDONS_GAME="game.libretro game.libretro.2048 game.libretro.4do game.libretro.beetle-bsnes \
-game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw game.libretro.beetle-ps \
-game.libretro.beetle-lynx game.libretro.beetle-pce-fast game.libretro.fmsx \
-game.libretro.beetle-pcfx game.libretro.beetle-supergrafx game.libretro.beetle-vb \
-game.libretro.beetle-wswan game.libretro.bnes game.libretro.nestopia \
-game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance game.libretro.cap32 \
-game.libretro.dosbox game.libretro.fbalpha2012 game.libretro.beetle-psx \
-game.libretro.fuse game.libretro.picodrive game.libretro.beetle-ngp game.libretro.pokemini \
-game.libretro.gambatte game.libretro.prboom game.libretro.handy game.libretro.hatari \
-game.libretro.lutro game.libretro.meteor game.libretro.nx game.libretro.mgba \
-game.libretro.o2em game.libretro.prosystem game.libretro.quicknes game.libretro.scummvm \
-game.libretro.snes9x game.libretro.snes9x2002 game.libretro.snes9x2010 \
-game.libretro.stella game.libretro.tgbdual game.libretro.tyrquake game.libretro \
-game.libretro.vbam game.libretro.vecx game.libretro.virtualjaguar game.libretro.yabause game.libretro.dinothaw game.libretro.genplus"
-	#game.moonlight game.libretro.nestopia  
-	#Broken game.libretro.reicast game.libretro.pcem game.libretro.vba-next 	
-	#game.libretro.mupen64plus 
-	#game.libretro.scummvm  game.libretro.bsnes-mercury-accuracy
-	# game.libretro.bluemsx 
-        # game.libretro.mgba
-	# pvr.argustv  
-	ADDONS_PVR="pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.iptvsimple pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar
+	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick peripheral.steamcontroller imagedecoder.raw"
+	ADDONS_GAME="game.libretro game.libretro.2048 game.libretro.beetle-bsnes \
+game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw \
+game.libretro.beetle-pce-fast game.libretro.mupen64plus \
+game.libretro.bnes game.libretro.nestopia \
+game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance \
+game.libretro.dosbox game.libretro.bluemsx game.libretro.bsnes-mercury-accuracy \
+game.libretro.gambatte game.libretro.mame game.libretro.pcsx-rearmed \
+game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
+game.libretro.quicknes game.libretro.scummvm \
+game.libretro.snes9x game.libretro.snes9x-next \
+game.libretro.stella game.libretro \
+game.libretro.vbam game.libretro.yabause game.libretro.genplus"
+	ADDONS_PVR="pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.iptvsimple pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
 	#ADDONS_GLES_EXCL="screensaver.shadertoy visualization.shadertoy"
