@@ -331,7 +331,7 @@ then
 	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick peripheral.steamcontroller imagedecoder.raw"
 	ADDONS_GAME="game.libretro game.libretro.2048 game.libretro.beetle-bsnes \
 game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw \
-game.libretro.beetle-pce-fast game.libretro.mupen64plus \
+game.libretro.beetle-pce-fast \
 game.libretro.bnes game.libretro.nestopia \
 game.libretro.bsnes-mercury-balanced game.libretro.bsnes-mercury-performance \
 game.libretro.dosbox game.libretro.bluemsx game.libretro.bsnes-mercury-accuracy \
@@ -341,6 +341,7 @@ game.libretro.quicknes game.libretro.scummvm \
 game.libretro.snes9x \
 game.libretro.stella game.libretro \
 game.libretro.vbam game.libretro.yabause game.libretro.genplus"
+# Remove game.libretro.mupen64plus
 	ADDONS_PVR="pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.iptvsimple pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
