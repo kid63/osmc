@@ -21,12 +21,12 @@ index 3729d39729..896337dfca 100644
  #include "WIN32Util.h"
  #endif
 @@ -46,6 +47,22 @@ void CAppParamParser::Parse(const char* const* argv, int nArgs)
+   {
      for (int i = 1; i < nArgs; i++)
-     {
        ParseArg(argv[i]);
 +      if (strnicmp(argv[i], "-l", 2) == 0 || strnicmp(argv[i], "--lircdev", 9) == 0)
 +      {
-+       // check the next arg with the proper value.
++        // check the next arg with the proper value.
 +        int next = i + 1;
 +        if (next < nArgs)
 +        {
@@ -40,9 +40,9 @@ index 3729d39729..896337dfca 100644
 +      else if (strnicmp(argv[i], "-n", 2) == 0 || strnicmp(argv[i], "--nolirc", 8) == 0)
 +        m_remoteControlEnabled = false;
 +
-      if (stricmp(argv[i], "-d") == 0)                                                                                                                             
-      {                                                                                                                                                            
-        if (i + 1 < nArgs)                                                                                                                                         
+   }
+  } 
+
  
 diff --git a/xbmc/AppParamParser.h b/xbmc/AppParamParser.h
 index df06e45d9b..45150eb3de 100644
