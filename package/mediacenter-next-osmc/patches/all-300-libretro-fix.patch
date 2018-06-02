@@ -1,15 +1,15 @@
-From 1c220a19cdfa821decc604d2885c48430b8e8f58 Mon Sep 17 00:00:00 2001
+From 9ef42e94987b9d5dc6c6f2af5d11a29fb61cfc59 Mon Sep 17 00:00:00 2001
 From: Greg McCarthy <greg@gjmccarthy.co.uk>
-Date: Fri, 1 Jun 2018 18:00:53 +0100
-Subject: [PATCH] Test
+Date: Sat, 2 Jun 2018 07:23:50 +0100
+Subject: [PATCH] test
 
 ---
- xbmc/AppParamParser.cpp | 17 +++++++++++++++++
- xbmc/AppParamParser.h   |  4 ++++
- 2 files changed, 21 insertions(+)
+ xbmc/AppParamParser.cpp | 20 +++++++++++++++++++-
+ xbmc/AppParamParser.h   |  2 ++
+ 2 files changed, 21 insertions(+), 1 deletion(-)
 
 diff --git a/xbmc/AppParamParser.cpp b/xbmc/AppParamParser.cpp
-index 3729d39729..896337dfca 100644
+index 3729d39729..78d64b2ca7 100644
 --- a/xbmc/AppParamParser.cpp
 +++ b/xbmc/AppParamParser.cpp
 @@ -25,6 +25,7 @@
@@ -20,32 +20,34 @@ index 3729d39729..896337dfca 100644
  #ifdef TARGET_WINDOWS
  #include "WIN32Util.h"
  #endif
-@@ -46,6 +47,22 @@ void CAppParamParser::Parse(const char* const* argv, int nArgs)
+@@ -45,7 +46,24 @@ void CAppParamParser::Parse(const char* const* argv, int nArgs)
+   if (nArgs > 1)
    {
      for (int i = 1; i < nArgs; i++)
-       ParseArg(argv[i]);
-+      if (strnicmp(argv[i], "-l", 2) == 0 || strnicmp(argv[i], "--lircdev", 9) == 0)
+-      ParseArg(argv[i]);
 +      {
-+        // check the next arg with the proper value.
-+        int next = i + 1;
-+        if (next < nArgs)
++	ParseArg(argv[i]);
++	if (strnicmp(argv[i], "-l", 2) == 0 || strnicmp(argv[i], "--lircdev", 9) == 0)
 +        {
-+          if ((argv[next][0] != '-') && (argv[next][0] == '/'))
-+          {
-+            m_remoteControlName = argv[next];
-+            i++;
-+          }
-+        }
++         // check the next arg with the proper value.
++         int next = i + 1;
++         if (next < nArgs)
++         {
++           if ((argv[next][0] != '-') && (argv[next][0] == '/'))
++           {
++             //m_remoteControlName = argv[next];
++             i++;
++           }
++         }
++       }
++      // else if (strnicmp(argv[i], "-n", 2) == 0 || strnicmp(argv[i], "--nolirc", 8) == 0)
++      //   m_remoteControlEnabled = false;
 +      }
-+      else if (strnicmp(argv[i], "-n", 2) == 0 || strnicmp(argv[i], "--nolirc", 8) == 0)
-+        m_remoteControlEnabled = false;
-+
    }
-  } 
-
+ }
  
 diff --git a/xbmc/AppParamParser.h b/xbmc/AppParamParser.h
-index df06e45d9b..45150eb3de 100644
+index df06e45d9b..1a6db3352b 100644
 --- a/xbmc/AppParamParser.h
 +++ b/xbmc/AppParamParser.h
 @@ -27,6 +27,8 @@ class CAppParamParser
@@ -57,12 +59,13 @@ index df06e45d9b..45150eb3de 100644
  
    private:
      bool m_testmode;
-@@ -36,4 +38,6 @@ class CAppParamParser
+@@ -38,4 +38,7 @@ class CAppParamParser
      void EnableDebugMode();
- 
+
      CFileItemList m_playlist;
 +    bool m_remoteControlEnabled = true;
 +    std::string m_remoteControlName;
++
  };
 -- 
 2.12.3
