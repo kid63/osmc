@@ -1,0 +1,181 @@
+From 0ea5e53449c7445876d268083df44758faa9a4ae Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 16 May 2018 22:29:45 -0700
+Subject: [PATCH 1/4] Revert "windowing/gbm: rework UpdateResolutions to
+ overwrite RES_DEKSTOP"
+
+This reverts commit d487155650f04fb37c9ed447d0e4e067d8ffebac.
+---
+ xbmc/windowing/gbm/WinSystemGbm.cpp | 53 ++++++++++++-------------------------
+ 1 file changed, 17 insertions(+), 36 deletions(-)
+
+diff --git a/xbmc/windowing/gbm/WinSystemGbm.cpp b/xbmc/windowing/gbm/WinSystemGbm.cpp
+index e99a323aaa88..b8a655315180 100644
+--- a/xbmc/windowing/gbm/WinSystemGbm.cpp
++++ b/xbmc/windowing/gbm/WinSystemGbm.cpp
+@@ -147,6 +147,12 @@ void CWinSystemGbm::UpdateResolutions()
+ {
+   CWinSystemBase::UpdateResolutions();
+ 
++  UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP),
++                          0,
++                          m_DRM->m_mode->hdisplay,
++                          m_DRM->m_mode->vdisplay,
++                          m_DRM->m_mode->vrefresh);
++
+   std::vector<RESOLUTION_INFO> resolutions;
+ 
+   if (!m_DRM->GetModes(resolutions) || resolutions.empty())
+@@ -159,42 +165,17 @@ void CWinSystemGbm::UpdateResolutions()
+ 
+     for (unsigned int i = 0; i < resolutions.size(); i++)
+     {
+-      if(m_DRM->m_mode->hdisplay == resolutions[i].iWidth &&
+-         m_DRM->m_mode->vdisplay == resolutions[i].iHeight &&
+-         m_DRM->m_mode->vrefresh == resolutions[i].fRefreshRate &&
+-         ((m_DRM->m_mode->flags ^ DRM_MODE_FLAG_INTERLACE) &&
+-          (resolutions[i].dwFlags ^ D3DPRESENTFLAG_INTERLACED)))
+-      {
+-        CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz setting to RES_DESKTOP at %d",
+-                  resolutions[i].iWidth,
+-                  resolutions[i].iHeight,
+-                  resolutions[i].iScreen,
+-                  resolutions[i].iScreenWidth,
+-                  resolutions[i].iScreenHeight,
+-                  resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
+-                  resolutions[i].fRefreshRate,
+-                  (int)RES_DESKTOP);
+-
+-        UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP),
+-                                0,
+-                                m_DRM->m_mode->hdisplay,
+-                                m_DRM->m_mode->vdisplay,
+-                                m_DRM->m_mode->vrefresh);
+-      }
+-      else
+-      {
+-        CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz",
+-                  resolutions[i].iWidth,
+-                  resolutions[i].iHeight,
+-                  resolutions[i].iScreen,
+-                  resolutions[i].iScreenWidth,
+-                  resolutions[i].iScreenHeight,
+-                  resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
+-                  resolutions[i].fRefreshRate);
+-
+-        CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(resolutions[i]);
+-        CDisplaySettings::GetInstance().AddResolutionInfo(resolutions[i]);
+-      }
++      CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(resolutions[i]);
++      CDisplaySettings::GetInstance().AddResolutionInfo(resolutions[i]);
++
++      CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz",
++                resolutions[i].iWidth,
++                resolutions[i].iHeight,
++                resolutions[i].iScreen,
++                resolutions[i].iScreenWidth,
++                resolutions[i].iScreenHeight,
++                resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
++                resolutions[i].fRefreshRate);
+     }
+   }
+ 
+
+From 419a314878a6bd2fff10ff6bc199bc065d4e7aa8 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Thu, 17 May 2018 10:58:47 -0700
+Subject: [PATCH 2/4] windowing/rpi: set RES_DESKTOP but do not swap it
+
+---
+ xbmc/windowing/rpi/WinSystemRpi.cpp | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/xbmc/windowing/rpi/WinSystemRpi.cpp b/xbmc/windowing/rpi/WinSystemRpi.cpp
+index fac5cc49efa5..5132f7623675 100644
+--- a/xbmc/windowing/rpi/WinSystemRpi.cpp
++++ b/xbmc/windowing/rpi/WinSystemRpi.cpp
+@@ -209,7 +209,7 @@ void CWinSystemRpi::UpdateResolutions()
+     res_index = (RESOLUTION)((int)res_index + 1);
+   }
+ 
+-  // swap desktop index for desktop res if available
++  // set RES_DESKTOP
+   if (ResDesktop != RES_INVALID)
+   {
+     CLog::Log(LOGNOTICE, "Found (%dx%d%s@%f) at %d, setting to RES_DESKTOP at %d",
+@@ -218,9 +218,7 @@ void CWinSystemRpi::UpdateResolutions()
+       resDesktop.fRefreshRate,
+       (int)ResDesktop, (int)RES_DESKTOP);
+ 
+-    RESOLUTION_INFO desktop = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
+     CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP) = CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop);
+-    CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop) = desktop;
+   }
+ }
+ 
+
+From 9d62f5918bd89a846a26aefbec2b45ebfee83f9f Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Thu, 17 May 2018 14:21:26 -0700
+Subject: [PATCH 3/4] windowing/amlogic: set RES_DESKTOP but do not swap it
+
+---
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index 324d47ffd7a1..58cd27053696 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -241,7 +241,7 @@ void CWinSystemAmlogic::UpdateResolutions()
+     res_index = (RESOLUTION)((int)res_index + 1);
+   }
+ 
+-  // swap desktop index for desktop res if available
++  // set RES_DESKTOP
+   if (ResDesktop != RES_INVALID)
+   {
+     CLog::Log(LOGNOTICE, "Found (%dx%d%s@%f) at %d, setting to RES_DESKTOP at %d",
+@@ -250,9 +250,7 @@ void CWinSystemAmlogic::UpdateResolutions()
+       resDesktop.fRefreshRate,
+       (int)ResDesktop, (int)RES_DESKTOP);
+ 
+-    RESOLUTION_INFO desktop = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
+     CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP) = CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop);
+-    CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop) = desktop;
+   }
+ }
+ 
+
+From 4d5b0655f174483a084fcd41c9fb1aa8436dd970 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Thu, 17 May 2018 14:21:38 -0700
+Subject: [PATCH 4/4] windowing/android: set RES_DESKTOP but do not swap it
+
+---
+ xbmc/windowing/android/WinSystemAndroid.cpp | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/xbmc/windowing/android/WinSystemAndroid.cpp b/xbmc/windowing/android/WinSystemAndroid.cpp
+index 02399cef9efb..3347679c18bf 100644
+--- a/xbmc/windowing/android/WinSystemAndroid.cpp
++++ b/xbmc/windowing/android/WinSystemAndroid.cpp
+@@ -226,7 +226,7 @@ void CWinSystemAndroid::UpdateResolutions()
+     res_index = (RESOLUTION)((int)res_index + 1);
+   }
+ 
+-  // swap desktop index for desktop res if available
++  // set RES_DESKTOP
+   if (ResDesktop != RES_INVALID)
+   {
+     CLog::Log(LOGNOTICE, "Found (%dx%d%s@%f) at %d, setting to RES_DESKTOP at %d",
+@@ -235,9 +235,7 @@ void CWinSystemAndroid::UpdateResolutions()
+       resDesktop.fRefreshRate,
+       (int)ResDesktop, (int)RES_DESKTOP);
+ 
+-    RESOLUTION_INFO desktop = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
+     CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP) = CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop);
+-    CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop) = desktop;
+   }
+ 
+   unsigned int num_codecs = CJNIMediaCodecList::getCodecCount();
