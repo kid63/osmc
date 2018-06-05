@@ -1,0 +1,998 @@
+From 96e9f15d9a074f954eb854b34c63e901277c8bed Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Sun, 11 Mar 2018 11:25:16 -0700
+Subject: [PATCH 1/6] Remove CContextMenuManager::GetInstance()
+
+First step in unglobalizing CContextMenuManager
+---
+ xbmc/ContextMenuManager.cpp               | 11 ++++-------
+ xbmc/ContextMenuManager.h                 |  1 -
+ xbmc/favourites/GUIDialogFavourites.cpp   |  4 +++-
+ xbmc/video/dialogs/GUIDialogVideoInfo.cpp |  3 ++-
+ xbmc/windows/GUIMediaWindow.cpp           |  4 ++--
+ 5 files changed, 11 insertions(+), 12 deletions(-)
+
+diff --git a/xbmc/ContextMenuManager.cpp b/xbmc/ContextMenuManager.cpp
+index 29e02cb9030b..c808190fabf2 100644
+--- a/xbmc/ContextMenuManager.cpp
++++ b/xbmc/ContextMenuManager.cpp
+@@ -55,11 +55,6 @@ void CContextMenuManager::Deinit()
+   m_items.clear();
+ }
+ 
+-CContextMenuManager& CContextMenuManager::GetInstance()
+-{
+-  return CServiceBroker::GetContextMenuManager();
+-}
+-
+ void CContextMenuManager::Init()
+ {
+   m_addonMgr.Events().Subscribe(this, &CContextMenuManager::OnEvent);
+@@ -208,8 +203,10 @@ bool CONTEXTMENU::ShowFor(const CFileItemPtr& fileItem, const CContextMenuItem&
+   if (!fileItem)
+     return false;
+ 
+-  auto menuItems = CContextMenuManager::GetInstance().GetItems(*fileItem, root);
+-  for (auto&& item : CContextMenuManager::GetInstance().GetAddonItems(*fileItem, root))
++  const CContextMenuManager &contextMenuManager = CServiceBroker::GetContextMenuManager();
++
++  auto menuItems = contextMenuManager.GetItems(*fileItem, root);
++  for (auto&& item : contextMenuManager.GetAddonItems(*fileItem, root))
+     menuItems.emplace_back(std::move(item));
+ 
+   if (menuItems.empty())
+diff --git a/xbmc/ContextMenuManager.h b/xbmc/ContextMenuManager.h
+index 69855678e6c3..92410c016944 100644
+--- a/xbmc/ContextMenuManager.h
++++ b/xbmc/ContextMenuManager.h
+@@ -37,7 +37,6 @@ class CContextMenuManager
+ 
+   explicit CContextMenuManager(ADDON::CAddonMgr& addonMgr);
+   ~CContextMenuManager();
+-  static CContextMenuManager& GetInstance();
+ 
+   void Init();
+   void Deinit();
+diff --git a/xbmc/favourites/GUIDialogFavourites.cpp b/xbmc/favourites/GUIDialogFavourites.cpp
+index 50b5c04b536e..b500b2bfbd92 100644
+--- a/xbmc/favourites/GUIDialogFavourites.cpp
++++ b/xbmc/favourites/GUIDialogFavourites.cpp
+@@ -135,7 +135,9 @@ void CGUIDialogFavourites::OnPopupMenu(int item)
+ 
+   //temporary workaround until the context menu ids are removed
+   const int addonItemOffset = 10000;
+-  auto addonItems = CContextMenuManager::GetInstance().GetAddonItems(*itemPtr);
++
++  auto addonItems = CServiceBroker::GetContextMenuManager().GetAddonItems(*itemPtr);
++
+   for (size_t i = 0; i < addonItems.size(); ++i)
+     choices.Add(addonItemOffset + i, addonItems[i]->GetLabel(*itemPtr));
+ 
+diff --git a/xbmc/video/dialogs/GUIDialogVideoInfo.cpp b/xbmc/video/dialogs/GUIDialogVideoInfo.cpp
+index 94a95df983db..e9508df57a0c 100644
+--- a/xbmc/video/dialogs/GUIDialogVideoInfo.cpp
++++ b/xbmc/video/dialogs/GUIDialogVideoInfo.cpp
+@@ -1138,7 +1138,8 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
+ 
+   //temporary workaround until the context menu ids are removed
+   const int addonItemOffset = 10000;
+-  auto addonItems = CContextMenuManager::GetInstance().GetAddonItems(*item, CContextMenuManager::MANAGE);
++
++  auto addonItems = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MANAGE);
+   for (size_t i = 0; i < addonItems.size(); ++i)
+     buttons.Add(addonItemOffset + i, addonItems[i]->GetLabel(*item));
+ 
+diff --git a/xbmc/windows/GUIMediaWindow.cpp b/xbmc/windows/GUIMediaWindow.cpp
+index afa4cbeafd96..c68c42a5e9b6 100644
+--- a/xbmc/windows/GUIMediaWindow.cpp
++++ b/xbmc/windows/GUIMediaWindow.cpp
+@@ -1734,7 +1734,7 @@ bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
+   auto pluginMenuRange = std::make_pair(static_cast<size_t>(0), buttons.size());
+ 
+   //Add the global menu
+-  auto globalMenu = CContextMenuManager::GetInstance().GetItems(*item, CContextMenuManager::MAIN);
++  auto globalMenu = CServiceBroker::GetContextMenuManager().GetItems(*item, CContextMenuManager::MAIN);
+   auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
+   for (const auto& menu : globalMenu)
+     buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
+@@ -1745,7 +1745,7 @@ bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
+   auto windowMenuRange = std::make_pair(buttonsSize, buttons.size());
+ 
+   //Add addon menus
+-  auto addonMenu = CContextMenuManager::GetInstance().GetAddonItems(*item, CContextMenuManager::MAIN);
++  auto addonMenu = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MAIN);
+   auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
+   for (const auto& menu : addonMenu)
+     buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
+
+From acca5e8dbb151eaf2087dbc2bfc96049bc10e113 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Sun, 11 Mar 2018 12:01:52 -0700
+Subject: [PATCH 2/6] Remove services from static
+ CGUIWindowLoginScreen::LoadProfile()
+
+---
+ xbmc/profiles/ProfilesManager.cpp     | 83 ++++++++++++++++++++++++++++++++++-
+ xbmc/profiles/ProfilesManager.h       |  2 +
+ xbmc/windows/GUIWindowLoginScreen.cpp | 57 ++----------------------
+ 3 files changed, 87 insertions(+), 55 deletions(-)
+
+diff --git a/xbmc/profiles/ProfilesManager.cpp b/xbmc/profiles/ProfilesManager.cpp
+index c17f6798ebba..714decaa6647 100644
+--- a/xbmc/profiles/ProfilesManager.cpp
++++ b/xbmc/profiles/ProfilesManager.cpp
+@@ -23,7 +23,6 @@
+ #include <vector>
+ 
+ #include "ProfilesManager.h"
+-#include "Application.h"
+ #include "DatabaseManager.h"
+ #include "FileItem.h"
+ #include "GUIInfoManager.h"
+@@ -55,6 +54,18 @@
+ #include "utils/Variant.h"
+ #include "utils/XMLUtils.h"
+ 
++#include "addons/AddonManager.h" //! @todo Remove me
++#include "addons/Service.h" //! @todo Remove me
++#include "favourites/FavouritesService.h" //! @todo Remove me
++#include "guilib/StereoscopicsManager.h" //! @todo Remove me
++#include "interfaces/json-rpc/JSONRPC.h" //! @todo Remove me
++#include "network/Network.h" //! @todo Remove me
++#include "pvr/PVRManager.h" //! @todo Remove me
++#include "weather/WeatherManager.h" //! @todo Remove me
++#include "Application.h" //! @todo Remove me
++#include "ContextMenuManager.h" //! @todo Remove me
++#include "PlayListPlayer.h" //! @todo Remove me
++
+ //! @todo
+ //! eventually the profile should dictate where special://masterprofile/ is
+ //! but for now it makes sense to leave all the profile settings in a user
+@@ -244,6 +255,24 @@ void CProfilesManager::Clear()
+   m_profiles.clear();
+ }
+ 
++void CProfilesManager::PrepareLoadProfile(size_t profileIndex)
++{
++  CContextMenuManager &contextMenuManager = CServiceBroker::GetContextMenuManager();
++  ADDON::CServiceAddonManager &serviceAddons = CServiceBroker::GetServiceAddons();
++  PVR::CPVRManager &pvrManager = CServiceBroker::GetPVRManager();
++  CNetworkBase &networkManager = CServiceBroker::GetNetwork();
++
++  contextMenuManager.Deinit();
++
++  serviceAddons.Stop();
++
++  // stop PVR related services
++  pvrManager.Stop();
++
++  if (profileIndex != 0 || !IsMasterProfile())
++    networkManager.NetworkMessage(CNetwork::SERVICES_DOWN, 1);
++}
++
+ bool CProfilesManager::LoadProfile(size_t index)
+ {
+   CSingleLock lock(m_critical);
+@@ -317,6 +346,58 @@ bool CProfilesManager::LoadProfile(size_t index)
+   return true;
+ }
+ 
++void CProfilesManager::FinalizeLoadProfile()
++{
++  CContextMenuManager &contextMenuManager = CServiceBroker::GetContextMenuManager();
++  ADDON::CServiceAddonManager &serviceAddons = CServiceBroker::GetServiceAddons();
++  PVR::CPVRManager &pvrManager = CServiceBroker::GetPVRManager();
++  CNetworkBase &networkManager = CServiceBroker::GetNetwork();
++  ADDON::CAddonMgr &addonManager = CServiceBroker::GetAddonMgr();
++  CWeatherManager &weatherManager = CServiceBroker::GetWeatherManager();
++  CFavouritesService &favouritesManager = CServiceBroker::GetFavouritesService();
++  PLAYLIST::CPlayListPlayer &playlistManager = CServiceBroker::GetPlaylistPlayer();
++  CStereoscopicsManager &stereoscopicsManager = CServiceBroker::GetGUI()->GetStereoscopicsManager();
++
++  if (m_lastUsedProfile != m_currentProfile)
++  {
++    playlistManager.ClearPlaylist(PLAYLIST_VIDEO);
++    playlistManager.ClearPlaylist(PLAYLIST_MUSIC);
++    playlistManager.SetCurrentPlaylist(PLAYLIST_NONE);
++  }
++
++  networkManager.NetworkMessage(CNetworkBase::SERVICES_UP, 1);
++
++  // reload the add-ons, or we will first load all add-ons from the master account without checking disabled status
++  addonManager.ReInit();
++
++  // let CApplication know that we are logging into a new profile
++  g_application.SetLoggingIn(true);
++
++  if (!g_application.LoadLanguage(true))
++  {
++    CLog::Log(LOGFATAL, "CGUIWindowLoginScreen: unable to load language for profile \"%s\"", GetCurrentProfile().getName().c_str());
++    return;
++  }
++
++  weatherManager.Refresh();
++
++  JSONRPC::CJSONRPC::Initialize();
++
++  // Restart context menu manager
++  contextMenuManager.Init();
++
++  // restart PVR services
++  pvrManager.Init();
++
++  favouritesManager.ReInit(GetProfileUserDataFolder());
++
++  serviceAddons.Start();
++
++  g_application.UpdateLibraries();
++
++  stereoscopicsManager.Initialize();
++}
++
+ bool CProfilesManager::DeleteProfile(size_t index)
+ {
+   CSingleLock lock(m_critical);
+diff --git a/xbmc/profiles/ProfilesManager.h b/xbmc/profiles/ProfilesManager.h
+index 1fc9b5e10ecd..b081af091a33 100644
+--- a/xbmc/profiles/ProfilesManager.h
++++ b/xbmc/profiles/ProfilesManager.h
+@@ -65,7 +65,9 @@ class CProfilesManager : protected ISettingsHandler,
+ 
+   void Clear();
+ 
++  void PrepareLoadProfile(size_t profileIndex);
+   bool LoadProfile(size_t index);
++  void FinalizeLoadProfile();
+   bool DeleteProfile(size_t index);
+ 
+   void CreateProfileFolders();
+diff --git a/xbmc/windows/GUIWindowLoginScreen.cpp b/xbmc/windows/GUIWindowLoginScreen.cpp
+index a602ad07dfbe..ecb00b9bcc73 100644
+--- a/xbmc/windows/GUIWindowLoginScreen.cpp
++++ b/xbmc/windows/GUIWindowLoginScreen.cpp
+@@ -19,28 +19,19 @@
+  */
+ 
+ #include "GUIWindowLoginScreen.h"
+-
+-#include "Application.h"
+-#include "ContextMenuManager.h"
+ #include "FileItem.h"
+ #include "GUIPassword.h"
+ #include "ServiceBroker.h"
+-#include "addons/AddonManager.h"
+ #include "addons/Skin.h"
+ #include "dialogs/GUIDialogContextMenu.h"
+-#include "favourites/FavouritesService.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIMessage.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/LocalizeStrings.h"
+-#include "guilib/StereoscopicsManager.h"
+ #include "input/Key.h"
+ #include "interfaces/builtins/Builtins.h"
+-#include "interfaces/json-rpc/JSONRPC.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "messaging/helpers/DialogOKHelper.h"
+-#include "network/Network.h"
+-#include "PlayListPlayer.h"
+ #include "profiles/Profile.h"
+ #include "profiles/ProfilesManager.h"
+ #include "profiles/dialogs/GUIDialogProfileSettings.h"
+@@ -51,7 +42,6 @@
+ #include "utils/StringUtils.h"
+ #include "utils/Variant.h"
+ #include "view/ViewState.h"
+-#include "weather/WeatherManager.h"
+ 
+ using namespace KODI::MESSAGING;
+ 
+@@ -290,18 +280,12 @@ CFileItemPtr CGUIWindowLoginScreen::GetCurrentListItem(int offset)
+ 
+ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
+ {
+-  CServiceBroker::GetContextMenuManager().Deinit();
+-
+-  CServiceBroker::GetServiceAddons().Stop();
+-
+-  // stop PVR related services
+-  CServiceBroker::GetPVRManager().Stop();
+-
+   CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+ 
++  profileManager.PrepareLoadProfile(profile);
++
+   if (profile != 0 || !profileManager.IsMasterProfile())
+   {
+-    CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_DOWN, 1);
+     profileManager.LoadProfile(profile);
+   }
+   else
+@@ -310,42 +294,10 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
+     if (pWindow)
+       pWindow->ResetControlStates();
+   }
+-  CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_UP, 1);
+ 
+   profileManager.UpdateCurrentProfileDate();
+   profileManager.Save();
+-
+-  if (profileManager.GetLastUsedProfileIndex() != profile)
+-  {
+-    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(PLAYLIST_VIDEO);
+-    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(PLAYLIST_MUSIC);
+-    CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(PLAYLIST_NONE);
+-  }
+-
+-  // reload the add-ons, or we will first load all add-ons from the master account without checking disabled status
+-  CServiceBroker::GetAddonMgr().ReInit();
+-
+-  // let CApplication know that we are logging into a new profile
+-  g_application.SetLoggingIn(true);
+-
+-  if (!g_application.LoadLanguage(true))
+-  {
+-    CLog::Log(LOGFATAL, "CGUIWindowLoginScreen: unable to load language for profile \"%s\"", profileManager.GetCurrentProfile().getName().c_str());
+-    return;
+-  }
+-
+-  CServiceBroker::GetWeatherManager().Refresh();
+-
+-  JSONRPC::CJSONRPC::Initialize();
+-
+-  if (!g_application.m_ServiceManager->InitStageThree())
+-  {
+-    CLog::Log(LOGERROR, "CGUIWindowLoginScreen - Init3 failed");
+-  }
+-
+-  CServiceBroker::GetFavouritesService().ReInit(profileManager.GetProfileUserDataFolder());
+-
+-  CServiceBroker::GetServiceAddons().Start();
++  profileManager.FinalizeLoadProfile();
+ 
+   int firstWindow = g_SkinInfo->GetFirstWindow();
+   // the startup window is considered part of the initialization as it most likely switches to the final window
+@@ -353,9 +305,6 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
+ 
+   CServiceBroker::GetGUI()->GetWindowManager().ChangeActiveWindow(firstWindow);
+ 
+-  g_application.UpdateLibraries();
+-  CServiceBroker::GetGUI()->GetStereoscopicsManager().Initialize();
+-
+   // if the user interfaces has been fully initialized let everyone know
+   if (uiInitializationFinished)
+   {
+
+From 7087a7745dcd368622b693da4bcb99de90c36580 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Thu, 15 Mar 2018 14:45:46 -0700
+Subject: [PATCH 3/6] Fix crash on startup if startup lock is enabled
+
+---
+ xbmc/Application.cpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 3e5e1b32b2d4..3bb2f1957762 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -1054,6 +1054,9 @@ bool CApplication::Initialize()
+ 
+   StartServices();
+ 
++  // GUI depends on seek handler
++  m_appPlayer.GetSeekHandler().Configure();
++
+   // Init DPMS, before creating the corresponding setting control.
+   m_dpms.reset(new DPMSSupport());
+   bool uiInitializationFinished = true;
+@@ -1159,9 +1162,6 @@ bool CApplication::Initialize()
+ 
+   m_slowTimer.StartZero();
+ 
+-  // configure seek handler
+-  m_appPlayer.GetSeekHandler().Configure();
+-
+   // register action listeners
+   RegisterActionListener(&m_appPlayer.GetSeekHandler());
+   RegisterActionListener(&CPlayerController::GetInstance());
+
+From ea32bc1cb35098ac554522d64291ef3fe318e286 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Thu, 15 Mar 2018 19:18:29 -0700
+Subject: [PATCH 4/6] Consolidate access to globals into ProfileManager
+
+---
+ xbmc/interfaces/builtins/ProfileBuiltins.cpp | 31 +---------------------------
+ xbmc/profiles/ProfilesManager.cpp            | 28 +++++++++++++++++++++++++
+ xbmc/profiles/ProfilesManager.h              |  2 ++
+ 3 files changed, 31 insertions(+), 30 deletions(-)
+
+diff --git a/xbmc/interfaces/builtins/ProfileBuiltins.cpp b/xbmc/interfaces/builtins/ProfileBuiltins.cpp
+index 74ce8e826772..3af946613a9e 100644
+--- a/xbmc/interfaces/builtins/ProfileBuiltins.cpp
++++ b/xbmc/interfaces/builtins/ProfileBuiltins.cpp
+@@ -21,7 +21,6 @@
+ #include "ProfileBuiltins.h"
+ 
+ #include "addons/AddonManager.h"
+-#include "Application.h"
+ #include "messaging/ApplicationMessenger.h"
+ #include "dialogs/GUIDialogKaiToast.h"
+ #include "guilib/GUIComponent.h"
+@@ -29,13 +28,10 @@
+ #include "guilib/GUIWindowManager.h"
+ #include "GUIPassword.h"
+ #include "GUIUserMessages.h"
+-#include "network/Network.h"
+-#include "network/NetworkServices.h"
+ #include "profiles/ProfilesManager.h"
+ #include "ServiceBroker.h"
+ #include "Util.h"
+ #include "utils/StringUtils.h"
+-#include "video/VideoLibraryQueue.h"
+ 
+ using namespace KODI::MESSAGING;
+ 
+@@ -66,33 +62,8 @@ static int LoadProfile(const std::vector<std::string>& params)
+  */
+ static int LogOff(const std::vector<std::string>& params)
+ {
+-  // there was a commit from cptspiff here which was reverted
+-  // for keeping the behaviour from Eden in Frodo - see
+-  // git rev 9ee5f0047b
+-  if (CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_LOGIN_SCREEN)
+-    return -1;
+-
+-  g_application.StopPlaying();
+-  if (g_application.IsMusicScanning())
+-    g_application.StopMusicScan();
+-
+-  if (CVideoLibraryQueue::GetInstance().IsRunning())
+-    CVideoLibraryQueue::GetInstance().CancelAllJobs();
+-
+-  CServiceBroker::GetServiceAddons().Stop();
+-  CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_DOWN,1);
+-
+-
+   CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+-  profileManager.LoadMasterProfileForLogin();
+-
+-  g_passwordManager.bMasterUser = false;
+-
+-  g_application.WakeUpScreenSaverAndDPMS();
+-  CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_LOGIN_SCREEN, {}, false);
+-
+-  if (!CServiceBroker::GetNetwork().GetServices().StartEventServer()) // event server could be needed in some situations
+-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
++  profileManager.LogOff();
+ 
+   return 0;
+ }
+diff --git a/xbmc/profiles/ProfilesManager.cpp b/xbmc/profiles/ProfilesManager.cpp
+index 714decaa6647..1af8b3650d28 100644
+--- a/xbmc/profiles/ProfilesManager.cpp
++++ b/xbmc/profiles/ProfilesManager.cpp
+@@ -30,6 +30,7 @@
+ #include "ServiceBroker.h"
+ #include "Util.h"
+ #include "addons/Skin.h"
++#include "dialogs/GUIDialogKaiToast.h"
+ #include "dialogs/GUIDialogYesNo.h"
+ #include "events/EventLog.h"
+ #include "events/EventLogManager.h"
+@@ -60,7 +61,9 @@
+ #include "guilib/StereoscopicsManager.h" //! @todo Remove me
+ #include "interfaces/json-rpc/JSONRPC.h" //! @todo Remove me
+ #include "network/Network.h" //! @todo Remove me
++#include "network/NetworkServices.h" //! @todo Remove me
+ #include "pvr/PVRManager.h" //! @todo Remove me
++#include "video/VideoLibraryQueue.h"//! @todo Remove me
+ #include "weather/WeatherManager.h" //! @todo Remove me
+ #include "Application.h" //! @todo Remove me
+ #include "ContextMenuManager.h" //! @todo Remove me
+@@ -398,6 +401,31 @@ void CProfilesManager::FinalizeLoadProfile()
+   stereoscopicsManager.Initialize();
+ }
+ 
++void CProfilesManager::LogOff()
++{
++  CNetworkBase &networkManager = CServiceBroker::GetNetwork();
++
++  g_application.StopPlaying();
++
++  if (g_application.IsMusicScanning())
++    g_application.StopMusicScan();
++
++  if (CVideoLibraryQueue::GetInstance().IsRunning())
++    CVideoLibraryQueue::GetInstance().CancelAllJobs();
++
++  networkManager.NetworkMessage(CNetwork::SERVICES_DOWN, 1);
++
++  LoadMasterProfileForLogin();
++
++  g_passwordManager.bMasterUser = false;
++
++  g_application.WakeUpScreenSaverAndDPMS();
++  CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_LOGIN_SCREEN, {}, false);
++
++  if (!CServiceBroker::GetNetwork().GetServices().StartEventServer()) // event server could be needed in some situations
++    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
++}
++
+ bool CProfilesManager::DeleteProfile(size_t index)
+ {
+   CSingleLock lock(m_critical);
+diff --git a/xbmc/profiles/ProfilesManager.h b/xbmc/profiles/ProfilesManager.h
+index b081af091a33..1d1d44f608bd 100644
+--- a/xbmc/profiles/ProfilesManager.h
++++ b/xbmc/profiles/ProfilesManager.h
+@@ -68,6 +68,8 @@ class CProfilesManager : protected ISettingsHandler,
+   void PrepareLoadProfile(size_t profileIndex);
+   bool LoadProfile(size_t index);
+   void FinalizeLoadProfile();
++  void LogOff();
++
+   bool DeleteProfile(size_t index);
+ 
+   void CreateProfileFolders();
+
+From 7e980be3395b59e4b391ed2641217dac067de5cd Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Thu, 15 Mar 2018 20:28:14 -0700
+Subject: [PATCH 5/6] Remove CGUIWindowLoginScreen::LoadProfile()
+
+---
+ xbmc/Application.cpp                               | 36 ++++++++++----------
+ xbmc/profiles/ProfilesManager.cpp                  | 38 +++++++++++++++++++++-
+ xbmc/profiles/ProfilesManager.h                    |  5 +--
+ xbmc/profiles/windows/GUIWindowSettingsProfile.cpp | 15 +++------
+ xbmc/windows/GUIWindowLoginScreen.cpp              | 37 +--------------------
+ xbmc/windows/GUIWindowLoginScreen.h                |  1 -
+ 6 files changed, 64 insertions(+), 68 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 3bb2f1957762..38a72ecf1a62 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -214,7 +214,6 @@
+ #include "cores/FFmpeg.h"
+ #include "utils/CharsetConverter.h"
+ #include "pictures/GUIWindowSlideShow.h"
+-#include "windows/GUIWindowLoginScreen.h"
+ 
+ using namespace ADDON;
+ using namespace XFILE;
+@@ -1059,7 +1058,7 @@ bool CApplication::Initialize()
+ 
+   // Init DPMS, before creating the corresponding setting control.
+   m_dpms.reset(new DPMSSupport());
+-  bool uiInitializationFinished = true;
++  bool uiInitializationFinished = false;
+   if (CServiceBroker::GetGUI()->GetWindowManager().Initialized())
+   {
+     m_ServiceManager->GetSettings().GetSetting(CSettings::SETTING_POWERMANAGEMENT_DISPLAYSOFF)->SetRequirementsMet(m_dpms->IsSupported());
+@@ -1110,23 +1109,18 @@ bool CApplication::Initialize()
+ 
+     if (m_ServiceManager->GetSettings().GetBool(CSettings::SETTING_MASTERLOCK_STARTUPLOCK) &&
+         m_ServiceManager->GetProfileManager().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE &&
+-       !m_ServiceManager->GetProfileManager().GetMasterProfile().getLockCode().empty())
++        !m_ServiceManager->GetProfileManager().GetMasterProfile().getLockCode().empty())
+     {
+-       g_passwordManager.CheckStartUpLock();
++      g_passwordManager.CheckStartUpLock();
+     }
+ 
+     // check if we should use the login screen
+     if (m_ServiceManager->GetProfileManager().UsingLoginScreen())
+     {
+-      // the login screen still needs to perform additional initialization
+-      uiInitializationFinished = false;
+-
+       CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_LOGIN_SCREEN);
+     }
+     else
+     {
+-      CJSONRPC::Initialize();
+-
+       // activate the configured start window
+       int firstWindow = g_SkinInfo->GetFirstWindow();
+       CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(firstWindow);
+@@ -1138,16 +1132,19 @@ bool CApplication::Initialize()
+ 
+       // the startup window is considered part of the initialization as it most likely switches to the final window
+       uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
+-
+-      if (!m_ServiceManager->InitStageThree())
+-      {
+-        CLog::Log(LOGERROR, "Application - Init3 failed");
+-      }
+     }
+-
+   }
+   else //No GUI Created
+-    CJSONRPC::Initialize();
++  {
++    uiInitializationFinished = true;
++  }
++
++  CJSONRPC::Initialize();
++
++  if (!m_ServiceManager->InitStageThree())
++  {
++    CLog::Log(LOGERROR, "Application - Init3 failed");
++  }
+ 
+   g_sysinfo.Refresh();
+ 
+@@ -2566,7 +2563,12 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
+   break;
+ 
+   case TMSG_LOADPROFILE:
+-    CGUIWindowLoginScreen::LoadProfile(pMsg->param1);
++    {
++      const int profile = pMsg->param1;
++      if (profile >= 0)
++        m_ServiceManager->GetProfileManager().LoadProfile(static_cast<unsigned int>(profile));
++    }
++
+     break;
+ 
+   default:
+diff --git a/xbmc/profiles/ProfilesManager.cpp b/xbmc/profiles/ProfilesManager.cpp
+index 1af8b3650d28..dfc05d3157a8 100644
+--- a/xbmc/profiles/ProfilesManager.cpp
++++ b/xbmc/profiles/ProfilesManager.cpp
+@@ -278,6 +278,21 @@ void CProfilesManager::PrepareLoadProfile(size_t profileIndex)
+ 
+ bool CProfilesManager::LoadProfile(size_t index)
+ {
++  PrepareLoadProfile(index);
++
++  if (index == 0 && IsMasterProfile())
++  {
++    CGUIWindow* pWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_HOME);
++    if (pWindow)
++      pWindow->ResetControlStates();
++
++    UpdateCurrentProfileDate();
++    Save();
++    FinalizeLoadProfile();
++
++    return true;
++  }
++
+   CSingleLock lock(m_critical);
+   // check if the index is valid or not
+   if (index >= m_profiles.size())
+@@ -346,6 +361,12 @@ bool CProfilesManager::LoadProfile(size_t index)
+   CUtil::DeleteDirectoryCache();
+   g_directoryCache.Clear();
+ 
++  lock.Leave();
++
++  UpdateCurrentProfileDate();
++  Save();
++  FinalizeLoadProfile();
++
+   return true;
+ }
+ 
+@@ -378,7 +399,7 @@ void CProfilesManager::FinalizeLoadProfile()
+ 
+   if (!g_application.LoadLanguage(true))
+   {
+-    CLog::Log(LOGFATAL, "CGUIWindowLoginScreen: unable to load language for profile \"%s\"", GetCurrentProfile().getName().c_str());
++    CLog::Log(LOGFATAL, "Unable to load language for profile \"%s\"", GetCurrentProfile().getName().c_str());
+     return;
+   }
+ 
+@@ -399,6 +420,21 @@ void CProfilesManager::FinalizeLoadProfile()
+   g_application.UpdateLibraries();
+ 
+   stereoscopicsManager.Initialize();
++
++  // Load initial window
++  int firstWindow = g_SkinInfo->GetFirstWindow();
++
++  // the startup window is considered part of the initialization as it most likely switches to the final window
++  bool uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
++
++  CServiceBroker::GetGUI()->GetWindowManager().ChangeActiveWindow(firstWindow);
++
++  // if the user interfaces has been fully initialized let everyone know
++  if (uiInitializationFinished)
++  {
++    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UI_READY);
++    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
++  }
+ }
+ 
+ void CProfilesManager::LogOff()
+diff --git a/xbmc/profiles/ProfilesManager.h b/xbmc/profiles/ProfilesManager.h
+index 1d1d44f608bd..d01518342193 100644
+--- a/xbmc/profiles/ProfilesManager.h
++++ b/xbmc/profiles/ProfilesManager.h
+@@ -65,9 +65,7 @@ class CProfilesManager : protected ISettingsHandler,
+ 
+   void Clear();
+ 
+-  void PrepareLoadProfile(size_t profileIndex);
+   bool LoadProfile(size_t index);
+-  void FinalizeLoadProfile();
+   void LogOff();
+ 
+   bool DeleteProfile(size_t index);
+@@ -203,6 +201,9 @@ class CProfilesManager : protected ISettingsHandler,
+     */
+   void SetCurrentProfileId(size_t profileId);
+ 
++  void PrepareLoadProfile(size_t profileIndex);
++  void FinalizeLoadProfile();
++
+   // Construction parameters
+   CSettings &m_settings;
+ 
+diff --git a/xbmc/profiles/windows/GUIWindowSettingsProfile.cpp b/xbmc/profiles/windows/GUIWindowSettingsProfile.cpp
+index b6ecf1f78e57..59be1288658e 100644
+--- a/xbmc/profiles/windows/GUIWindowSettingsProfile.cpp
++++ b/xbmc/profiles/windows/GUIWindowSettingsProfile.cpp
+@@ -22,16 +22,14 @@
+ #include "windows/GUIWindowFileManager.h"
+ #include "profiles/Profile.h"
+ #include "profiles/ProfilesManager.h"
+-#include "Application.h"
+ #include "dialogs/GUIDialogContextMenu.h"
+ #include "dialogs/GUIDialogSelect.h"
+ #include "profiles/dialogs/GUIDialogProfileSettings.h"
+-#include "network/Network.h"
++#include "messaging/ApplicationMessenger.h"
+ #include "utils/URIUtils.h"
+ #include "GUIPassword.h"
+-#include "windows/GUIWindowLoginScreen.h"
+-#include "guilib/GUIMessage.h"
+ #include "guilib/GUIComponent.h"
++#include "guilib/GUIMessage.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "filesystem/Directory.h"
+ #include "FileItem.h"
+@@ -40,6 +38,7 @@
+ #include "guilib/LocalizeStrings.h"
+ #include "utils/Variant.h"
+ 
++using namespace KODI;
+ using namespace XFILE;
+ 
+ #define CONTROL_PROFILES 2
+@@ -82,13 +81,7 @@ void CGUIWindowSettingsProfile::OnPopupMenu(int iItem)
+   int choice = CGUIDialogContextMenu::ShowAndGetChoice(choices);
+   if (choice == 1)
+   {
+-    unsigned iCtrlID = GetFocusedControlID();
+-    g_application.StopPlaying();
+-    CGUIMessage msg2(GUI_MSG_ITEM_SELECTED, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(), iCtrlID);
+-    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg2);
+-    CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_DOWN,1);
+-    profileManager.LoadMasterProfileForLogin();
+-    CGUIWindowLoginScreen::LoadProfile(iItem);
++    MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_LOADPROFILE, iItem);
+     return;
+   }
+ 
+diff --git a/xbmc/windows/GUIWindowLoginScreen.cpp b/xbmc/windows/GUIWindowLoginScreen.cpp
+index ecb00b9bcc73..4eaf69e22437 100644
+--- a/xbmc/windows/GUIWindowLoginScreen.cpp
++++ b/xbmc/windows/GUIWindowLoginScreen.cpp
+@@ -103,7 +103,7 @@ bool CGUIWindowLoginScreen::OnMessage(CGUIMessage& message)
+           if (bOkay)
+           {
+             if (iItem >= 0)
+-              LoadProfile((unsigned int)iItem);
++              CApplicationMessenger::GetInstance().PostMsg(TMSG_LOADPROFILE, iItem);
+           }
+           else
+           {
+@@ -277,38 +277,3 @@ CFileItemPtr CGUIWindowLoginScreen::GetCurrentListItem(int offset)
+   if (item < 0) item += m_vecItems->Size();
+   return m_vecItems->Get(item);
+ }
+-
+-void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
+-{
+-  CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+-
+-  profileManager.PrepareLoadProfile(profile);
+-
+-  if (profile != 0 || !profileManager.IsMasterProfile())
+-  {
+-    profileManager.LoadProfile(profile);
+-  }
+-  else
+-  {
+-    CGUIWindow* pWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_HOME);
+-    if (pWindow)
+-      pWindow->ResetControlStates();
+-  }
+-
+-  profileManager.UpdateCurrentProfileDate();
+-  profileManager.Save();
+-  profileManager.FinalizeLoadProfile();
+-
+-  int firstWindow = g_SkinInfo->GetFirstWindow();
+-  // the startup window is considered part of the initialization as it most likely switches to the final window
+-  bool uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
+-
+-  CServiceBroker::GetGUI()->GetWindowManager().ChangeActiveWindow(firstWindow);
+-
+-  // if the user interfaces has been fully initialized let everyone know
+-  if (uiInitializationFinished)
+-  {
+-    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UI_READY);
+-    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
+-  }
+-}
+diff --git a/xbmc/windows/GUIWindowLoginScreen.h b/xbmc/windows/GUIWindowLoginScreen.h
+index 7e50e1b161da..4d6f95f61ca8 100644
+--- a/xbmc/windows/GUIWindowLoginScreen.h
++++ b/xbmc/windows/GUIWindowLoginScreen.h
+@@ -38,7 +38,6 @@ class CGUIWindowLoginScreen : public CGUIWindow
+   bool HasListItems() const override { return true; };
+   CFileItemPtr GetCurrentListItem(int offset = 0) override;
+   int GetViewContainerID() const override { return m_viewControl.GetCurrentControl(); };
+-  static void LoadProfile(unsigned int profile);
+ 
+ protected:
+   void OnInitWindow() override;
+
+From 7d8e81b7e8ba2c57f1a3d1624160b684d7bd8369 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Sat, 2 Jun 2018 13:35:23 -0700
+Subject: [PATCH 6/6] CProfilesManager: Fix compiler warnings by using
+ consistent type
+
+---
+ xbmc/profiles/ProfilesManager.cpp | 16 ++++++++--------
+ xbmc/profiles/ProfilesManager.h   | 18 +++++++++---------
+ 2 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/profiles/ProfilesManager.cpp b/xbmc/profiles/ProfilesManager.cpp
+index dfc05d3157a8..7f29796a124c 100644
+--- a/xbmc/profiles/ProfilesManager.cpp
++++ b/xbmc/profiles/ProfilesManager.cpp
+@@ -258,7 +258,7 @@ void CProfilesManager::Clear()
+   m_profiles.clear();
+ }
+ 
+-void CProfilesManager::PrepareLoadProfile(size_t profileIndex)
++void CProfilesManager::PrepareLoadProfile(unsigned int profileIndex)
+ {
+   CContextMenuManager &contextMenuManager = CServiceBroker::GetContextMenuManager();
+   ADDON::CServiceAddonManager &serviceAddons = CServiceBroker::GetServiceAddons();
+@@ -276,7 +276,7 @@ void CProfilesManager::PrepareLoadProfile(size_t profileIndex)
+     networkManager.NetworkMessage(CNetwork::SERVICES_DOWN, 1);
+ }
+ 
+-bool CProfilesManager::LoadProfile(size_t index)
++bool CProfilesManager::LoadProfile(unsigned int index)
+ {
+   PrepareLoadProfile(index);
+ 
+@@ -462,7 +462,7 @@ void CProfilesManager::LogOff()
+     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
+ }
+ 
+-bool CProfilesManager::DeleteProfile(size_t index)
++bool CProfilesManager::DeleteProfile(unsigned int index)
+ {
+   CSingleLock lock(m_critical);
+   const CProfile *profile = GetProfile(index);
+@@ -548,7 +548,7 @@ const CProfile& CProfilesManager::GetCurrentProfile() const
+   return EmptyProfile;
+ }
+ 
+-const CProfile* CProfilesManager::GetProfile(size_t index) const
++const CProfile* CProfilesManager::GetProfile(unsigned int index) const
+ {
+   CSingleLock lock(m_critical);
+   if (index < m_profiles.size())
+@@ -557,7 +557,7 @@ const CProfile* CProfilesManager::GetProfile(size_t index) const
+   return NULL;
+ }
+ 
+-CProfile* CProfilesManager::GetProfile(size_t index)
++CProfile* CProfilesManager::GetProfile(unsigned int index)
+ {
+   CSingleLock lock(m_critical);
+   if (index < m_profiles.size())
+@@ -569,7 +569,7 @@ CProfile* CProfilesManager::GetProfile(size_t index)
+ int CProfilesManager::GetProfileIndex(const std::string &name) const
+ {
+   CSingleLock lock(m_critical);
+-  for (size_t i = 0; i < m_profiles.size(); i++)
++  for (int i = 0; i < static_cast<int>(m_profiles.size()); i++)
+   {
+     if (StringUtils::EqualsNoCase(m_profiles[i].getName(), name))
+       return i;
+@@ -609,7 +609,7 @@ void CProfilesManager::LoadMasterProfileForLogin()
+   }
+ }
+ 
+-bool CProfilesManager::GetProfileName(const size_t profileId, std::string& name) const
++bool CProfilesManager::GetProfileName(const unsigned int profileId, std::string& name) const
+ {
+   CSingleLock lock(m_critical);
+   const CProfile *profile = GetProfile(profileId);
+@@ -718,7 +718,7 @@ void CProfilesManager::OnSettingAction(std::shared_ptr<const CSetting> setting)
+     GetEventLog().ShowFullEventLog();
+ }
+ 
+-void CProfilesManager::SetCurrentProfileId(size_t profileId)
++void CProfilesManager::SetCurrentProfileId(unsigned int profileId)
+ {
+   CSingleLock lock(m_critical);
+   m_currentProfile = profileId;
+diff --git a/xbmc/profiles/ProfilesManager.h b/xbmc/profiles/ProfilesManager.h
+index d01518342193..c87c0e4d7183 100644
+--- a/xbmc/profiles/ProfilesManager.h
++++ b/xbmc/profiles/ProfilesManager.h
+@@ -65,10 +65,10 @@ class CProfilesManager : protected ISettingsHandler,
+ 
+   void Clear();
+ 
+-  bool LoadProfile(size_t index);
++  bool LoadProfile(unsigned int index);
+   void LogOff();
+ 
+-  bool DeleteProfile(size_t index);
++  bool DeleteProfile(unsigned int index);
+ 
+   void CreateProfileFolders();
+ 
+@@ -86,13 +86,13 @@ class CProfilesManager : protected ISettingsHandler,
+     \param unsigned index of the profile to retrieve
+     \return const pointer to the profile, NULL if the index is invalid
+     */
+-  const CProfile* GetProfile(size_t index) const;
++  const CProfile* GetProfile(unsigned int index) const;
+ 
+   /*! \brief Retrieve the profile from an index
+     \param unsigned index of the profile to retrieve
+     \return pointer to the profile, NULL if the index is invalid
+     */
+-  CProfile* GetProfile(size_t index);
++  CProfile* GetProfile(unsigned int index);
+ 
+   /*! \brief Retrieve index of a particular profile by name
+     \param name name of the profile index to retrieve
+@@ -172,7 +172,7 @@ class CProfilesManager : protected ISettingsHandler,
+     \param name will hold the name of the profile when a valid profile index has been provided
+     \return false if profileId is an invalid index, true if the name parameter is set
+     */
+-  bool GetProfileName(const size_t profileId, std::string& name) const;
++  bool GetProfileName(const unsigned int profileId, std::string& name) const;
+ 
+   std::string GetUserDataFolder() const;
+   std::string GetProfileUserDataFolder() const;
+@@ -199,9 +199,9 @@ class CProfilesManager : protected ISettingsHandler,
+   /*! \brief Set the current profile id and update the special://profile path
+     \param profileId profile index
+     */
+-  void SetCurrentProfileId(size_t profileId);
++  void SetCurrentProfileId(unsigned int profileId);
+ 
+-  void PrepareLoadProfile(size_t profileIndex);
++  void PrepareLoadProfile(unsigned int profileIndex);
+   void FinalizeLoadProfile();
+ 
+   // Construction parameters
+@@ -211,8 +211,8 @@ class CProfilesManager : protected ISettingsHandler,
+   bool m_usingLoginScreen;
+   bool m_profileLoadedForLogin;
+   int m_autoLoginProfile;
+-  uint32_t m_lastUsedProfile;
+-  uint32_t m_currentProfile; // do not modify directly, use SetCurrentProfileId() function instead
++  unsigned int m_lastUsedProfile;
++  unsigned int m_currentProfile; // do not modify directly, use SetCurrentProfileId() function instead
+   int m_nextProfileId; // for tracking the next available id to give to a new profile to ensure id's are not re-used
+   CCriticalSection m_critical;
+ 
