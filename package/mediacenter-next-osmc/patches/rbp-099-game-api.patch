@@ -1,0 +1,151 @@
+From b711c410f460d303388deb4ac9f24063a24d6abc Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Fri, 1 Jun 2018 18:12:56 -0700
+Subject: [PATCH] Game API v1.0.37: Remove geometry info from game clients
+
+In the future, these properties will be passed when the stream is open.
+---
+ .../include/kodi/kodi_game_dll.h                   |  6 ++---
+ .../include/kodi/kodi_game_types.h                 | 19 +---------------
+ .../kodi-addon-dev-kit/include/kodi/versions.h     |  4 ++--
+ xbmc/games/addons/GameClient.cpp                   | 26 ++++++++++------------
+ 4 files changed, 18 insertions(+), 37 deletions(-)
+
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
+index b0639e377165..298456ad8544 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
+@@ -69,13 +69,13 @@ GAME_ERROR LoadStandalone(void);
+ GAME_ERROR UnloadGame(void);
+ 
+ /*!
+- * \brief Get information about the loaded game
++ * \brief Get timing information about the loaded game
+  *
+  * \param info The info structure to fill
+  *
+  * \return the error, or GAME_ERROR_NO_ERROR if info was filled
+  */
+-GAME_ERROR GetGameInfo(game_system_av_info* info);
++GAME_ERROR GetGameTiming(game_system_timing* timing_info);
+ 
+ /*!
+  * \brief Get region of the loaded game
+@@ -311,7 +311,7 @@ void __declspec(dllexport) get_addon(void* ptr)
+   pClient->toAddon.LoadGameSpecial          = LoadGameSpecial;
+   pClient->toAddon.LoadStandalone           = LoadStandalone;
+   pClient->toAddon.UnloadGame               = UnloadGame;
+-  pClient->toAddon.GetGameInfo              = GetGameInfo;
++  pClient->toAddon.GetGameTiming            = GetGameTiming;
+   pClient->toAddon.GetRegion                = GetRegion;
+   pClient->toAddon.RequiresGameLoop         = RequiresGameLoop;
+   pClient->toAddon.RunFrame                 = RunFrame;
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+index 758b0fae3108..e0f9ecf6d723 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+@@ -419,29 +419,12 @@ typedef struct game_input_event
+   };
+ } ATTRIBUTE_PACKED game_input_event;
+ 
+-struct game_geometry
+-{
+-  unsigned base_width;          // Nominal video width of game
+-  unsigned base_height;         // Nominal video height of game
+-  unsigned max_width;           // Maximum possible width of game
+-  unsigned max_height;          // Maximum possible height of game
+-  float    aspect_ratio;        // Nominal aspect ratio of game. If aspect_ratio is <= 0.0,
+-                                // an aspect ratio of base_width / base_height is assumed.
+-                                // A frontend could override this setting if desired.
+-};
+-
+ struct game_system_timing
+ {
+   double fps;                   // FPS of video content.
+   double sample_rate;           // Sampling rate of audio.
+ };
+ 
+-struct game_system_av_info
+-{
+-  struct game_geometry geometry;
+-  struct game_system_timing timing;
+-};
+-
+ typedef void (*game_proc_address_t)(void);
+ 
+ struct game_hw_info
+@@ -540,7 +523,7 @@ typedef struct KodiToAddonFuncTable_Game
+   GAME_ERROR  (__cdecl* LoadGameSpecial)(SPECIAL_GAME_TYPE, const char**, size_t);
+   GAME_ERROR  (__cdecl* LoadStandalone)(void);
+   GAME_ERROR  (__cdecl* UnloadGame)(void);
+-  GAME_ERROR  (__cdecl* GetGameInfo)(game_system_av_info*);
++  GAME_ERROR  (__cdecl* GetGameTiming)(game_system_timing*);
+   GAME_REGION (__cdecl* GetRegion)(void);
+   bool        (__cdecl* RequiresGameLoop)(void);
+   GAME_ERROR  (__cdecl* RunFrame)(void);
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+index 3c42dbaf0a88..8e7f4a27ae1e 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+@@ -86,8 +86,8 @@
+ #define ADDON_INSTANCE_VERSION_AUDIOENCODER_XML_ID    "kodi.binary.instance.audioencoder"
+ #define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "addon-instance/AudioEncoder.h"
+ 
+-#define ADDON_INSTANCE_VERSION_GAME                   "1.0.36"
+-#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.36"
++#define ADDON_INSTANCE_VERSION_GAME                   "1.0.37"
++#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.37"
+ #define ADDON_INSTANCE_VERSION_GAME_XML_ID            "kodi.binary.instance.game"
+ #define ADDON_INSTANCE_VERSION_GAME_DEPENDS           "kodi_game_dll.h" \
+                                                       "kodi_game_types.h" \
+diff --git a/xbmc/games/addons/GameClient.cpp b/xbmc/games/addons/GameClient.cpp
+index 88cd818c6ad0..8c270a390af4 100644
+--- a/xbmc/games/addons/GameClient.cpp
++++ b/xbmc/games/addons/GameClient.cpp
+@@ -346,34 +346,32 @@ bool CGameClient::InitializeGameplay(const std::string& gamePath, IGameAudioCall
+ 
+ bool CGameClient::LoadGameInfo()
+ {
+-  // Get information about system audio/video timings and geometry
++  // Get information about system timings
+   // Can be called only after retro_load_game()
+-  game_system_av_info av_info = { };
++  game_system_timing timingInfo = { };
+ 
+   bool bSuccess = false;
+-  try { bSuccess = LogError(m_struct.toAddon.GetGameInfo(&av_info), "GetGameInfo()"); }
+-  catch (...) { LogException("GetGameInfo()"); }
++  try { bSuccess = LogError(m_struct.toAddon.GetGameTiming(&timingInfo), "GetGameTiming()"); }
++  catch (...) { LogException("GetGameTiming()"); }
+ 
+   if (!bSuccess)
++  {
++    CLog::Log(LOGERROR, "GameClient: Failed to get timing info");
+     return false;
++  }
+ 
+   GAME_REGION region;
+   try { region = m_struct.toAddon.GetRegion(); }
+   catch (...) { LogException("GetRegion()"); return false; }
+ 
+   CLog::Log(LOGINFO, "GAME: ---------------------------------------");
+-  CLog::Log(LOGINFO, "GAME: Base Width:   %u", av_info.geometry.base_width);
+-  CLog::Log(LOGINFO, "GAME: Base Height:  %u", av_info.geometry.base_height);
+-  CLog::Log(LOGINFO, "GAME: Max Width:    %u", av_info.geometry.max_width);
+-  CLog::Log(LOGINFO, "GAME: Max Height:   %u", av_info.geometry.max_height);
+-  CLog::Log(LOGINFO, "GAME: Aspect Ratio: %f", av_info.geometry.aspect_ratio);
+-  CLog::Log(LOGINFO, "GAME: FPS:          %f", av_info.timing.fps);
+-  CLog::Log(LOGINFO, "GAME: Sample Rate:  %f", av_info.timing.sample_rate);
+-  CLog::Log(LOGINFO, "GAME: Region:       %s", CGameClientTranslator::TranslateRegion(region));
++  CLog::Log(LOGINFO, "GAME: FPS:         %f", timingInfo.fps);
++  CLog::Log(LOGINFO, "GAME: Sample Rate: %f", timingInfo.sample_rate);
++  CLog::Log(LOGINFO, "GAME: Region:      %s", CGameClientTranslator::TranslateRegion(region));
+   CLog::Log(LOGINFO, "GAME: ---------------------------------------");
+ 
+-  m_framerate = av_info.timing.fps;
+-  m_samplerate = av_info.timing.sample_rate;
++  m_framerate = timingInfo.fps;
++  m_samplerate = timingInfo.sample_rate;
+   m_region = region;
+ 
+   return true;
