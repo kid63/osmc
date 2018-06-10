@@ -1,0 +1,3392 @@
+From 329133534d67564b437ad8997b18e52c39dd8b24 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Wed, 28 Feb 2018 15:20:13 -0800
+Subject: [PATCH] Game API v1.0.38: Stream abstraction
+
+This changes the Game API to use a common abstraction for audio and video
+streams, in preparation for framebuffer streams.
+
+The primary benefit is that video metadata is passed to the frontend
+in-band along with the data. Previously, metadata was only specified on
+stream open, requiring a new stream if metadata changes. Now, the common
+stream struct puts the data alongside its metadata.
+
+RetroPlayer has been extended so that it can scale to hardware and software
+streams in the future.
+---
+ cmake/treedata/common/games.txt                    |   1 +
+ cmake/treedata/common/retroplayer.txt              |   2 +
+ .../include/kodi/kodi_game_types.h                 | 145 ++++++++---
+ .../kodi-addon-dev-kit/include/kodi/libKODI_game.h |  96 +++-----
+ .../kodi-addon-dev-kit/include/kodi/versions.h     |   4 +-
+ xbmc/cores/RetroPlayer/CMakeLists.txt              |   4 -
+ xbmc/cores/RetroPlayer/RetroPlayer.cpp             |  23 +-
+ xbmc/cores/RetroPlayer/RetroPlayer.h               |   6 +-
+ xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp        |  78 ------
+ xbmc/cores/RetroPlayer/audio/AudioTranslator.cpp   |  65 +++++
+ xbmc/cores/RetroPlayer/audio/AudioTranslator.h     |  47 ++++
+ xbmc/cores/RetroPlayer/audio/CMakeLists.txt        |   7 +
+ .../RetroPlayer/rendering/RPRenderManager.cpp      |  48 ++--
+ xbmc/cores/RetroPlayer/rendering/RPRenderManager.h |  13 +-
+ .../rendering/VideoRenderers/RPBaseRenderer.cpp    |   4 +-
+ .../rendering/VideoRenderers/RPBaseRenderer.h      |   2 +-
+ xbmc/cores/RetroPlayer/streams/CMakeLists.txt      |  15 ++
+ .../cores/RetroPlayer/streams/IRetroPlayerStream.h |  78 ++++++
+ xbmc/cores/RetroPlayer/streams/IStreamManager.h    |  52 ++++
+ xbmc/cores/RetroPlayer/streams/RPStreamManager.cpp |  82 +++++++
+ xbmc/cores/RetroPlayer/streams/RPStreamManager.h   |  53 +++++
+ .../RetroPlayer/{ => streams}/RetroPlayerAudio.cpp |  65 +++--
+ .../RetroPlayer/{ => streams}/RetroPlayerAudio.h   |  31 ++-
+ .../RetroPlayer/streams/RetroPlayerStreamTypes.cpp |  30 +++
+ .../RetroPlayer/streams/RetroPlayerStreamTypes.h   |  97 ++++++++
+ .../cores/RetroPlayer/streams/RetroPlayerVideo.cpp | 119 +++++++++
+ .../RetroPlayer/{ => streams}/RetroPlayerVideo.h   |  41 +++-
+ xbmc/games/addons/GameClient.cpp                   | 265 ++++-----------------
+ xbmc/games/addons/GameClient.h                     |  41 ++--
+ xbmc/games/addons/GameClientCallbacks.h            |  31 ---
+ xbmc/games/addons/GameClientSubsystem.cpp          |   8 +
+ xbmc/games/addons/GameClientSubsystem.h            |   3 +
+ xbmc/games/addons/GameClientTranslator.cpp         |  95 ++++----
+ xbmc/games/addons/GameClientTranslator.h           |  38 +--
+ xbmc/games/addons/streams/CMakeLists.txt           |  12 +
+ .../games/addons/streams/GameClientStreamAudio.cpp | 119 +++++++++
+ xbmc/games/addons/streams/GameClientStreamAudio.h  |  62 +++++
+ .../games/addons/streams/GameClientStreamVideo.cpp | 122 ++++++++++
+ xbmc/games/addons/streams/GameClientStreamVideo.h  |  58 +++++
+ xbmc/games/addons/streams/GameClientStreams.cpp    | 119 +++++++++
+ xbmc/games/addons/streams/GameClientStreams.h      |  66 +++++
+ xbmc/games/addons/streams/IGameClientStream.h      |  85 +++++++
+ 42 files changed, 1737 insertions(+), 595 deletions(-)
+ delete mode 100644 xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp
+ create mode 100644 xbmc/cores/RetroPlayer/audio/AudioTranslator.cpp
+ create mode 100644 xbmc/cores/RetroPlayer/audio/AudioTranslator.h
+ create mode 100644 xbmc/cores/RetroPlayer/audio/CMakeLists.txt
+ create mode 100644 xbmc/cores/RetroPlayer/streams/CMakeLists.txt
+ create mode 100644 xbmc/cores/RetroPlayer/streams/IRetroPlayerStream.h
+ create mode 100644 xbmc/cores/RetroPlayer/streams/IStreamManager.h
+ create mode 100644 xbmc/cores/RetroPlayer/streams/RPStreamManager.cpp
+ create mode 100644 xbmc/cores/RetroPlayer/streams/RPStreamManager.h
+ rename xbmc/cores/RetroPlayer/{ => streams}/RetroPlayerAudio.cpp (58%)
+ rename xbmc/cores/RetroPlayer/{ => streams}/RetroPlayerAudio.h (65%)
+ create mode 100644 xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.cpp
+ create mode 100644 xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.h
+ create mode 100644 xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.cpp
+ rename xbmc/cores/RetroPlayer/{ => streams}/RetroPlayerVideo.h (58%)
+ create mode 100644 xbmc/games/addons/streams/CMakeLists.txt
+ create mode 100644 xbmc/games/addons/streams/GameClientStreamAudio.cpp
+ create mode 100644 xbmc/games/addons/streams/GameClientStreamAudio.h
+ create mode 100644 xbmc/games/addons/streams/GameClientStreamVideo.cpp
+ create mode 100644 xbmc/games/addons/streams/GameClientStreamVideo.h
+ create mode 100644 xbmc/games/addons/streams/GameClientStreams.cpp
+ create mode 100644 xbmc/games/addons/streams/GameClientStreams.h
+ create mode 100644 xbmc/games/addons/streams/IGameClientStream.h
+
+diff --git a/cmake/treedata/common/games.txt b/cmake/treedata/common/games.txt
+index 7b63f6a538a2..4e7466c4a92e 100644
+--- a/cmake/treedata/common/games.txt
++++ b/cmake/treedata/common/games.txt
+@@ -3,6 +3,7 @@ xbmc/games/addons                  games/addons
+ xbmc/games/addons/input            games/addons/input
+ xbmc/games/addons/playback         games/addons/playback
+ xbmc/games/addons/savestates       games/addons/savestates
++xbmc/games/addons/streams          games/addons/streams
+ xbmc/games/controllers             games/controllers
+ xbmc/games/controllers/dialogs     games/controllers/dialogs
+ xbmc/games/controllers/guicontrols games/controllers/guicontrols
+diff --git a/cmake/treedata/common/retroplayer.txt b/cmake/treedata/common/retroplayer.txt
+index 64db57fcf7cc..50ecebcda5ed 100644
+--- a/cmake/treedata/common/retroplayer.txt
++++ b/cmake/treedata/common/retroplayer.txt
+@@ -1,4 +1,5 @@
+ xbmc/cores/RetroPlayer                                          cores/RetroPlayer
++xbmc/cores/RetroPlayer/audio                                    cores/RetroPlayer/audio
+ xbmc/cores/RetroPlayer/buffers                                  cores/RetroPlayer/buffers
+ xbmc/cores/RetroPlayer/buffers/video                            cores/RetroPlayer/buffers/video
+ xbmc/cores/RetroPlayer/guibridge                                cores/RetroPlayer/guibridge
+@@ -8,3 +9,4 @@ xbmc/cores/RetroPlayer/process                                  cores/RetroPlaye
+ xbmc/cores/RetroPlayer/rendering                                cores/RetroPlayer/rendering
+ xbmc/cores/RetroPlayer/rendering/VideoRenderers                 cores/RetroPlayer/rendering/VideoRenderers
+ xbmc/cores/RetroPlayer/rendering/VideoShaders                   cores/RetroPlayer/rendering/VideoShaders
++xbmc/cores/RetroPlayer/streams                                  cores/RetroPlayer/streams
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+index 759f56860028..6c3a312a9f49 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+@@ -86,12 +86,6 @@ typedef enum GAME_PCM_FORMAT
+   GAME_PCM_FORMAT_S16NE,
+ } GAME_PCM_FORMAT;
+ 
+-typedef enum GAME_AUDIO_CODEC
+-{
+-  GAME_AUDIO_CODEC_UNKNOWN,
+-  GAME_AUDIO_CODEC_OPUS,
+-} GAME_AUDIO_CODEC;
+-
+ typedef enum GAME_AUDIO_CHANNEL
+ {
+   GAME_CH_NULL, // Channel list terminator
+@@ -116,6 +110,18 @@ typedef enum GAME_AUDIO_CHANNEL
+   GAME_CH_BLOC,
+   GAME_CH_BROC,
+ } GAME_AUDIO_CHANNEL;
++
++typedef struct game_stream_audio_properties
++{
++  GAME_PCM_FORMAT format;
++  const GAME_AUDIO_CHANNEL* channel_map;
++} ATTRIBUTE_PACKED game_stream_audio_properties;
++
++typedef struct game_stream_audio_packet
++{
++  const uint8_t *data;
++  size_t size;
++} ATTRIBUTE_PACKED game_stream_audio_packet;
+ ///}
+ 
+ /// @name Video stream
+@@ -123,26 +129,37 @@ typedef enum GAME_AUDIO_CHANNEL
+ typedef enum GAME_PIXEL_FORMAT
+ {
+   GAME_PIXEL_FORMAT_UNKNOWN,
+-  GAME_PIXEL_FORMAT_YUV420P,
+   GAME_PIXEL_FORMAT_0RGB8888,
+   GAME_PIXEL_FORMAT_RGB565,
+   GAME_PIXEL_FORMAT_0RGB1555,
+ } GAME_PIXEL_FORMAT;
+ 
+-typedef enum GAME_VIDEO_CODEC
+-{
+-  GAME_VIDEO_CODEC_UNKNOWN,
+-  GAME_VIDEO_CODEC_H264,
+-  GAME_VIDEO_CODEC_THEORA,
+-} GAME_VIDEO_CODEC;
+-
+-typedef enum GAME_VIDEO_ROTATION // Counter-clockwise
++typedef enum GAME_VIDEO_ROTATION
+ {
+   GAME_VIDEO_ROTATION_0,
+-  GAME_VIDEO_ROTATION_90,
+-  GAME_VIDEO_ROTATION_180,
+-  GAME_VIDEO_ROTATION_270,
++  GAME_VIDEO_ROTATION_90_CCW,
++  GAME_VIDEO_ROTATION_180_CCW,
++  GAME_VIDEO_ROTATION_270_CCW,
+ } GAME_VIDEO_ROTATION;
++
++typedef struct game_stream_video_properties
++{
++  GAME_PIXEL_FORMAT format;
++  unsigned int nominal_width;
++  unsigned int nominal_height;
++  unsigned int max_width;
++  unsigned int max_height;
++  float aspect_ratio; // If aspect_ratio is <= 0.0, an aspect ratio of nominal_width / nominal_height is assumed
++} ATTRIBUTE_PACKED game_stream_video_properties;
++
++typedef struct game_stream_video_packet
++{
++  unsigned int width;
++  unsigned int height;
++  GAME_VIDEO_ROTATION rotation;
++  const uint8_t *data;
++  size_t size;
++} ATTRIBUTE_PACKED game_stream_video_packet;
+ ///}
+ 
+ /// @name Hardware framebuffer stream
+@@ -170,7 +187,7 @@ typedef enum GAME_HW_CONTEXT_TYPE
+   GAME_HW_CONTEXT_VULKAN
+ } GAME_HW_CONTEXT_TYPE;
+ 
+-typedef struct game_hw_info
++typedef struct game_stream_hw_framebuffer_properties
+ {
+   /*!
+    * The API to use.
+@@ -229,11 +246,35 @@ typedef struct game_hw_info
+    * Creates a debug context.
+    */
+   bool debug_context;
+-} ATTRIBUTE_PACKED game_hw_info;
++} ATTRIBUTE_PACKED game_stream_hw_framebuffer_properties;
++
++typedef struct game_stream_hw_framebuffer_buffer
++{
++  uintptr_t framebuffer;
++} ATTRIBUTE_PACKED game_stream_hw_framebuffer_buffer;
++
++typedef struct game_stream_hw_framebuffer_packet
++{
++  uintptr_t framebuffer;
++} ATTRIBUTE_PACKED game_stream_hw_framebuffer_packet;
+ 
+ typedef void (*game_proc_address_t)(void);
+ ///}
+ 
++/// @name Software framebuffer stream
++///{
++typedef game_stream_video_properties game_stream_sw_framebuffer_properties;
++
++typedef struct game_stream_sw_framebuffer_buffer
++{
++  GAME_PIXEL_FORMAT format;
++  uint8_t *data;
++  size_t size;
++} ATTRIBUTE_PACKED game_stream_sw_framebuffer_buffer;
++
++typedef game_stream_video_packet game_stream_sw_framebuffer_packet;
++///}
++
+ /// @name Stream types
+ ///{
+ typedef enum GAME_STREAM_TYPE
+@@ -244,6 +285,56 @@ typedef enum GAME_STREAM_TYPE
+   GAME_STREAM_HW_FRAMEBUFFER,
+   GAME_STREAM_SW_FRAMEBUFFER,
+ } GAME_STREAM_TYPE;
++
++/*!
++ * \brief Immutable stream metadata
++ *
++ * This metadata is provided when the stream is opened. If any stream
++ * properties change, a new stream must be opened.
++ */
++typedef struct game_stream_properties
++{
++  GAME_STREAM_TYPE type;
++  union
++  {
++    game_stream_audio_properties audio;
++    game_stream_video_properties video;
++    game_stream_hw_framebuffer_properties hw_framebuffer;
++    game_stream_sw_framebuffer_properties sw_framebuffer;
++  };
++} ATTRIBUTE_PACKED game_stream_properties;
++
++/*!
++ * \brief Stream buffers for hardware rendering and zero-copy support
++ */
++typedef struct game_stream_buffer
++{
++  GAME_STREAM_TYPE type;
++  union
++  {
++    game_stream_hw_framebuffer_buffer hw_framebuffer;
++    game_stream_sw_framebuffer_buffer sw_framebuffer;
++  };
++} ATTRIBUTE_PACKED game_stream_buffer;
++
++/*!
++ * \brief Stream packet and ephemeral metadata
++ *
++ * This packet contains stream data and accompanying metadata. The metadata
++ * is ephemeral, meaning it only applies to the current packet and can change
++ * from packet to packet in the same stream.
++ */
++typedef struct game_stream_packet
++{
++  GAME_STREAM_TYPE type;
++  union
++  {
++    game_stream_audio_packet audio;
++    game_stream_video_packet video;
++    game_stream_hw_framebuffer_packet hw_framebuffer;
++    game_stream_sw_framebuffer_packet sw_framebuffer;
++  };
++} ATTRIBUTE_PACKED game_stream_packet;
+ ///}
+ 
+ /// @name Game types
+@@ -575,16 +666,12 @@ typedef struct AddonToKodiFuncTable_Game
+   KODI_HANDLE kodiInstance;
+ 
+   void (*CloseGame)(void* kodiInstance);
+-  int (*OpenPixelStream)(void* kodiInstance, GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation);
+-  int (*OpenVideoStream)(void* kodiInstance, GAME_VIDEO_CODEC codec);
+-  int (*OpenPCMStream)(void* kodiInstance, GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channel_map);
+-  int(*OpenAudioStream)(void* kodiInstance, GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channel_map);
+-  void (*AddStreamData)(void* kodiInstance, GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size);
+-  void (*CloseStream)(void* kodiInstance, GAME_STREAM_TYPE stream);
+-  void (*EnableHardwareRendering)(void* kodiInstance, const game_hw_info* hw_info);
+-  uintptr_t (*HwGetCurrentFramebuffer)(void* kodiInstance);
++  void* (*OpenStream)(void*, const game_stream_properties*);
++  bool (*GetStreamBuffer)(void*, void*, unsigned int, unsigned int, game_stream_buffer*);
++  void (*AddStreamData)(void*, void*, const game_stream_packet*);
++  void (*ReleaseStreamBuffer)(void*, void*, game_stream_buffer*);
++  void (*CloseStream)(void*, void*);
+   game_proc_address_t (*HwGetProcAddress)(void* kodiInstance, const char* symbol);
+-  void (*RenderFrame)(void* kodiInstance);
+   bool (*InputEvent)(void* kodiInstance, const game_input_event* event);
+ 
+ } AddonToKodiFuncTable_Game;
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
+index 2774afd56774..b6224f39a3a0 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
+@@ -65,72 +65,58 @@ class CHelper_libKODI_game
+    */
+   void CloseGame(void)
+   {
+-    return m_callbacks->toKodi.CloseGame(m_callbacks->toKodi.kodiInstance);
++    m_callbacks->toKodi.CloseGame(m_callbacks->toKodi.kodiInstance);
+   }
+ 
+   /*!
+-   * \brief Create a video stream for pixel data
++   * \brief Create a stream for gameplay data
+    *
+-   * \param format The type of pixel data accepted by this stream
+-   * \param width The frame width
+-   * \param height The frame height
+-   * \param rotation The rotation (counter-clockwise) of the video frames
++   * \param properties The stream properties
+    *
+-   * \return 0 on success or -1 if a video stream is already created
++   * \return A stream handle, or NULL on failure
+    */
+-  bool OpenPixelStream(GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation)
++  void* OpenStream(const game_stream_properties &properties)
+   {
+-    return m_callbacks->toKodi.OpenPixelStream(m_callbacks->toKodi.kodiInstance, format, width, height, rotation) == 0;
++    return m_callbacks->toKodi.OpenStream(m_callbacks->toKodi.kodiInstance, &properties);
+   }
+ 
+   /*!
+-   * \brief Create a video stream for encoded video data
++   * \brief Get a buffer for zero-copy stream data
+    *
+-   * \param codec The video format accepted by this stream
++   * \param stream The stream handle
++   * \param width The framebuffer width, or 0 for no width specified
++   * \param height The framebuffer height, or 0 for no height specified
++   * \param[out] buffer The buffer, or unmodified if false is returned
+    *
+-   * \return 0 on success or -1 if a video stream is already created
++   * If this returns true, buffer must be freed using ReleaseStreamBuffer().
++   *
++   * \return True if buffer was set, false otherwise
+    */
+-  bool OpenVideoStream(GAME_VIDEO_CODEC codec)
++  bool GetStreamBuffer(void *stream, unsigned int width, unsigned int height, game_stream_buffer &buffer)
+   {
+-    return m_callbacks->toKodi.OpenVideoStream(m_callbacks->toKodi.kodiInstance, codec) == 0;
++    return m_callbacks->toKodi.GetStreamBuffer(m_callbacks->toKodi.kodiInstance, stream, width, height, &buffer);
+   }
+ 
+   /*!
+-   * \brief Create an audio stream for PCM audio data
+-   *
+-   * \param format The type of audio data accepted by this stream
+-   * \param channel_map The channel layout terminated by GAME_CH_NULL
++   * \brief Add a data packet to a stream
+    *
+-   * \return 0 on success or -1 if an audio stream is already created
++   * \param stream The target stream
++   * \param packet The data packet
+    */
+-  bool OpenPCMStream(GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channel_map)
+-  {
+-    return m_callbacks->toKodi.OpenPCMStream(m_callbacks->toKodi.kodiInstance, format, channel_map) == 0;
+-  }
+-
+-  /*!
+-  * \brief Create an audio stream for encoded audio data
+-  *
+-  * \param codec The audio format accepted by this stream
+-  * \param channel_map The channel layout terminated by GAME_CH_NULL
+-  *
+-  * \return 0 on success or -1 if an audio stream is already created
+-  */
+-  bool OpenAudioStream(GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channel_map)
++  void AddStreamData(void *stream, const game_stream_packet &packet)
+   {
+-    return m_callbacks->toKodi.OpenAudioStream(m_callbacks->toKodi.kodiInstance, codec, channel_map) == 0;
++    m_callbacks->toKodi.AddStreamData(m_callbacks->toKodi.kodiInstance, stream, &packet);
+   }
+ 
+   /*!
+-   * \brief Add a data packet to an audio or video stream
++   * \brief Free an allocated buffer
+    *
+-   * \param stream The target stream
+-   * \param data The data packet
+-   * \param size The size of the data
++   * \param stream The stream handle
++   * \param buffer The buffer returned from GetStreamBuffer()
+    */
+-  void AddStreamData(GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size)
++  void ReleaseStreamBuffer(void *stream, game_stream_buffer &buffer)
+   {
+-    m_callbacks->toKodi.AddStreamData(m_callbacks->toKodi.kodiInstance, stream, data, size);
++    m_callbacks->toKodi.ReleaseStreamBuffer(m_callbacks->toKodi.kodiInstance, stream, &buffer);
+   }
+ 
+   /*!
+@@ -138,33 +124,13 @@ class CHelper_libKODI_game
+    *
+    * \param stream The stream to close
+    */
+-  void CloseStream(GAME_STREAM_TYPE stream)
++  void CloseStream(void *stream)
+   {
+     m_callbacks->toKodi.CloseStream(m_callbacks->toKodi.kodiInstance, stream);
+   }
+ 
+   // -- Hardware rendering callbacks -------------------------------------------
+ 
+-  /*!
+-   * \brief Enable hardware rendering
+-   *
+-   * \param hw_info A struct of properties for the hardware rendering system
+-   */
+-  void EnableHardwareRendering(const struct game_hw_info* hw_info)
+-  {
+-    return m_callbacks->toKodi.EnableHardwareRendering(m_callbacks->toKodi.kodiInstance, hw_info);
+-  }
+-
+-  /*!
+-   * \brief Get the framebuffer for rendering
+-   *
+-   * \return The framebuffer
+-   */
+-  uintptr_t HwGetCurrentFramebuffer(void)
+-  {
+-    return m_callbacks->toKodi.HwGetCurrentFramebuffer(m_callbacks->toKodi.kodiInstance);
+-  }
+-
+   /*!
+    * \brief Get a symbol from the hardware context
+    *
+@@ -177,14 +143,6 @@ class CHelper_libKODI_game
+     return m_callbacks->toKodi.HwGetProcAddress(m_callbacks->toKodi.kodiInstance, sym);
+   }
+ 
+-  /*!
+-   * \brief Called when a frame is being rendered
+-   */
+-  void RenderFrame()
+-  {
+-    return m_callbacks->toKodi.RenderFrame(m_callbacks->toKodi.kodiInstance);
+-  }
+-
+   // --- Input callbacks -------------------------------------------------------
+ 
+   /*!
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+index 8e7f4a27ae1e..042b1932affa 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/versions.h
+@@ -86,8 +86,8 @@
+ #define ADDON_INSTANCE_VERSION_AUDIOENCODER_XML_ID    "kodi.binary.instance.audioencoder"
+ #define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "addon-instance/AudioEncoder.h"
+ 
+-#define ADDON_INSTANCE_VERSION_GAME                   "1.0.37"
+-#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.37"
++#define ADDON_INSTANCE_VERSION_GAME                   "1.0.38"
++#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.38"
+ #define ADDON_INSTANCE_VERSION_GAME_XML_ID            "kodi.binary.instance.game"
+ #define ADDON_INSTANCE_VERSION_GAME_DEPENDS           "kodi_game_dll.h" \
+                                                       "kodi_game_types.h" \
+diff --git a/xbmc/cores/RetroPlayer/CMakeLists.txt b/xbmc/cores/RetroPlayer/CMakeLists.txt
+index 96feb17dabd7..3e78c544dcf1 100644
+--- a/xbmc/cores/RetroPlayer/CMakeLists.txt
++++ b/xbmc/cores/RetroPlayer/CMakeLists.txt
+@@ -1,18 +1,14 @@
+ set(SOURCES RetroPlayer.cpp
+-            RetroPlayerAudio.cpp
+             RetroPlayerAutoSave.cpp
+             RetroPlayerInput.cpp
+             RetroPlayerUtils.cpp
+-            RetroPlayerVideo.cpp
+ )
+ 
+ set(HEADERS RetroPlayer.h
+-            RetroPlayerAudio.h
+             RetroPlayerAutoSave.h
+             RetroPlayerInput.h
+             RetroPlayerTypes.h
+             RetroPlayerUtils.h
+-            RetroPlayerVideo.h
+ )
+ 
+ core_add_library(retroplayer)
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.cpp b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+index 31dc97fafafe..ad2626363624 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+@@ -19,15 +19,14 @@
+  */
+ 
+ #include "RetroPlayer.h"
+-#include "RetroPlayerAudio.h"
+ #include "RetroPlayerAutoSave.h"
+ #include "RetroPlayerInput.h"
+-#include "RetroPlayerVideo.h"
+ #include "addons/AddonManager.h"
+ #include "cores/DataCacheCore.h"
+ #include "cores/RetroPlayer/guibridge/GUIGameRenderManager.h"
+ #include "cores/RetroPlayer/process/RPProcessInfo.h"
+ #include "cores/RetroPlayer/rendering/RPRenderManager.h"
++#include "cores/RetroPlayer/streams/RPStreamManager.h"
+ #include "dialogs/GUIDialogYesNo.h"
+ #include "filesystem/File.h"
+ #include "games/addons/input/GameClientInput.h"
+@@ -125,20 +124,20 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+     m_gameClient = std::static_pointer_cast<CGameClient>(addon);
+     if (m_gameClient->Initialize())
+     {
+-      m_audio.reset(new CRetroPlayerAudio(*m_processInfo));
+-      m_video.reset(new CRetroPlayerVideo(*m_renderManager, *m_processInfo));
++      m_streamManager.reset(new CRPStreamManager(*m_renderManager, *m_processInfo));
++
+       m_input.reset(new CRetroPlayerInput(CServiceBroker::GetPeripherals()));
+ 
+       if (!bStandalone)
+       {
+         std::string redactedPath = CURL::GetRedacted(fileCopy.GetPath());
+         CLog::Log(LOGINFO, "RetroPlayer[PLAYER]: Opening: %s", redactedPath.c_str());
+-        bSuccess = m_gameClient->OpenFile(fileCopy, m_audio.get(), m_video.get(), m_input.get());
++        bSuccess = m_gameClient->OpenFile(fileCopy, *m_streamManager, m_input.get());
+       }
+       else
+       {
+         CLog::Log(LOGINFO, "RetroPlayer[PLAYER]: Opening standalone");
+-        bSuccess = m_gameClient->OpenStandalone(m_audio.get(), m_video.get(), m_input.get());
++        bSuccess = m_gameClient->OpenStandalone(*m_streamManager, m_input.get());
+       }
+ 
+       if (bSuccess)
+@@ -196,8 +195,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+   {
+     m_gameClient.reset();
+     m_input.reset();
+-    m_audio.reset();
+-    m_video.reset();
++    m_streamManager.reset();
+   }
+ 
+   return bSuccess;
+@@ -227,8 +225,7 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+   }
+ 
+   m_input.reset();
+-  m_audio.reset();
+-  m_video.reset();
++  m_streamManager.reset();
+ 
+   m_renderManager.reset();
+   m_processInfo.reset();
+@@ -336,8 +333,8 @@ float CRetroPlayer::GetCachePercentage()
+ 
+ void CRetroPlayer::SetMute(bool bOnOff)
+ {
+-  if (m_audio)
+-    m_audio->Enable(!bOnOff);
++  if (m_streamManager)
++    m_streamManager->EnableAudio(!bOnOff);
+ }
+ 
+ void CRetroPlayer::SeekTime(int64_t iTime /* = 0 */)
+@@ -552,7 +549,7 @@ void CRetroPlayer::SetSpeedInternal(double speed)
+ 
+ void CRetroPlayer::OnSpeedChange(double newSpeed)
+ {
+-  m_audio->Enable(newSpeed == 1.0);
++  m_streamManager->EnableAudio(newSpeed == 1.0);
+   m_input->SetSpeed(newSpeed);
+   m_renderManager->SetSpeed(newSpeed);
+   m_processInfo->SetSpeed(static_cast<float>(newSpeed));
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.h b/xbmc/cores/RetroPlayer/RetroPlayer.h
+index 73d3352bff43..1f3c6c1389ce 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.h
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.h
+@@ -35,12 +35,11 @@ namespace GAME
+ 
+ namespace RETRO
+ {
+-  class CRetroPlayerAudio;
+   class CRetroPlayerAutoSave;
+   class CRetroPlayerInput;
+-  class CRetroPlayerVideo;
+   class CRPProcessInfo;
+   class CRPRenderManager;
++  class CRPStreamManager;
+ 
+   class CRetroPlayer : public IPlayer, public IRenderLoop
+   {
+@@ -169,8 +168,7 @@ namespace RETRO
+     double                             m_priorSpeed = 0.0f; // Speed of gameplay before entering OSD
+     std::unique_ptr<CRPProcessInfo>    m_processInfo;
+     std::unique_ptr<CRPRenderManager>  m_renderManager;
+-    std::unique_ptr<CRetroPlayerAudio> m_audio;
+-    std::unique_ptr<CRetroPlayerVideo> m_video;
++    std::unique_ptr<CRPStreamManager>  m_streamManager;
+     std::unique_ptr<CRetroPlayerInput> m_input;
+     std::unique_ptr<CRetroPlayerAutoSave> m_autoSave;
+     GAME::GameClientPtr                m_gameClient;
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp b/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp
+deleted file mode 100644
+index 34a13e50faa2..000000000000
+--- a/xbmc/cores/RetroPlayer/RetroPlayerVideo.cpp
++++ /dev/null
+@@ -1,78 +0,0 @@
+-/*
+- *      Copyright (C) 2012-2017 Team Kodi
+- *      http://kodi.tv
+- *
+- *  This Program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License as published by
+- *  the Free Software Foundation; either version 2, or (at your option)
+- *  any later version.
+- *
+- *  This Program is distributed in the hope that it will be useful,
+- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+- *  GNU General Public License for more details.
+- *
+- *  You should have received a copy of the GNU General Public License
+- *  along with this Program; see the file COPYING.  If not, see
+- *  <http://www.gnu.org/licenses/>.
+- *
+- */
+-
+-#include "RetroPlayerVideo.h"
+-#include "cores/RetroPlayer/process/RPProcessInfo.h"
+-#include "cores/RetroPlayer/rendering/RenderTranslator.h"
+-#include "cores/RetroPlayer/rendering/RPRenderManager.h"
+-#include "utils/log.h"
+-
+-using namespace KODI;
+-using namespace RETRO;
+-
+-CRetroPlayerVideo::CRetroPlayerVideo(CRPRenderManager& renderManager, CRPProcessInfo& processInfo) :
+-  m_renderManager(renderManager),
+-  m_processInfo(processInfo)
+-{
+-  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Initializing video");
+-
+-  m_renderManager.Initialize();
+-}
+-
+-CRetroPlayerVideo::~CRetroPlayerVideo()
+-{
+-  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Deinitializing video");
+-
+-  CloseStream();
+-  m_renderManager.Deinitialize();
+-}
+-
+-bool CRetroPlayerVideo::OpenPixelStream(AVPixelFormat pixfmt, unsigned int width, unsigned int height, unsigned int orientationDeg)
+-{
+-  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Creating video stream - format %s, %ux%u, %u deg",
+-      CRenderTranslator::TranslatePixelFormat(pixfmt),
+-      width,
+-      height,
+-      orientationDeg);
+-
+-  m_processInfo.SetVideoPixelFormat(pixfmt);
+-  m_processInfo.SetVideoDimensions(width, height);
+-
+-  return m_renderManager.Configure(pixfmt, width, height, orientationDeg);
+-}
+-
+-bool CRetroPlayerVideo::OpenEncodedStream(AVCodecID codec)
+-{
+-  CLog::Log(LOGERROR, "RetroPlayer[VIDEO]: Encoded video stream not supported");
+-
+-  return false; //! @todo
+-}
+-
+-void CRetroPlayerVideo::AddData(const uint8_t* data, size_t size)
+-{
+-  m_renderManager.AddFrame(data, size);
+-}
+-
+-void CRetroPlayerVideo::CloseStream()
+-{
+-  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Closing video stream");
+-
+-  m_renderManager.Flush();
+-}
+diff --git a/xbmc/cores/RetroPlayer/audio/AudioTranslator.cpp b/xbmc/cores/RetroPlayer/audio/AudioTranslator.cpp
+new file mode 100644
+index 000000000000..e5fcf6207dc6
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/audio/AudioTranslator.cpp
+@@ -0,0 +1,65 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "AudioTranslator.h"
++
++using namespace KODI;
++using namespace RETRO;
++
++AEDataFormat CAudioTranslator::TranslatePCMFormat(PCMFormat format)
++{
++  switch (format)
++  {
++  case PCMFormat::FMT_S16NE: return AE_FMT_S16NE;
++  default:
++    break;
++  }
++  return AE_FMT_INVALID;
++}
++
++AEChannel CAudioTranslator::TranslateAudioChannel(AudioChannel channel)
++{
++  switch (channel)
++  {
++  case AudioChannel::CH_FL:   return AE_CH_FL;
++  case AudioChannel::CH_FR:   return AE_CH_FR;
++  case AudioChannel::CH_FC:   return AE_CH_FC;
++  case AudioChannel::CH_LFE:  return AE_CH_LFE;
++  case AudioChannel::CH_BL:   return AE_CH_BL;
++  case AudioChannel::CH_BR:   return AE_CH_BR;
++  case AudioChannel::CH_FLOC: return AE_CH_FLOC;
++  case AudioChannel::CH_FROC: return AE_CH_FROC;
++  case AudioChannel::CH_BC:   return AE_CH_BC;
++  case AudioChannel::CH_SL:   return AE_CH_SL;
++  case AudioChannel::CH_SR:   return AE_CH_SR;
++  case AudioChannel::CH_TFL:  return AE_CH_TFL;
++  case AudioChannel::CH_TFR:  return AE_CH_TFR;
++  case AudioChannel::CH_TFC:  return AE_CH_TFC;
++  case AudioChannel::CH_TC:   return AE_CH_TC;
++  case AudioChannel::CH_TBL:  return AE_CH_TBL;
++  case AudioChannel::CH_TBR:  return AE_CH_TBR;
++  case AudioChannel::CH_TBC:  return AE_CH_TBC;
++  case AudioChannel::CH_BLOC: return AE_CH_BLOC;
++  case AudioChannel::CH_BROC: return AE_CH_BROC;
++  default:
++    break;
++  }
++  return AE_CH_NULL;
++}
+diff --git a/xbmc/cores/RetroPlayer/audio/AudioTranslator.h b/xbmc/cores/RetroPlayer/audio/AudioTranslator.h
+new file mode 100644
+index 000000000000..86f5f1e21240
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/audio/AudioTranslator.h
+@@ -0,0 +1,47 @@
++/*
++ *      Copyright (C) 2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "cores/RetroPlayer/streams/RetroPlayerStreamTypes.h"
++#include "cores/AudioEngine/Utils/AEChannelData.h"
++
++namespace KODI
++{
++namespace RETRO
++{
++  class CAudioTranslator
++  {
++  public:
++    /*!
++     * \brief Translate audio PCM format (Game API to AudioEngine).
++     * \param format The audio PCM format to translate.
++     * \return Translated audio PCM format.
++     */
++    static AEDataFormat TranslatePCMFormat(PCMFormat format);
++
++    /*!
++     * \brief Translate audio channels (Game API to AudioEngine).
++     * \param format The audio channels to translate.
++     * \return Translated audio channels.
++     */
++    static AEChannel TranslateAudioChannel(AudioChannel channel);
++  };
++}
++}
+diff --git a/xbmc/cores/RetroPlayer/audio/CMakeLists.txt b/xbmc/cores/RetroPlayer/audio/CMakeLists.txt
+new file mode 100644
+index 000000000000..1cbb113c4283
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/audio/CMakeLists.txt
+@@ -0,0 +1,7 @@
++set(SOURCES AudioTranslator.cpp
++)
++
++set(HEADERS AudioTranslator.h
++)
++
++core_add_library(rp_audio)
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+index 163dece61712..88c6188d47dd 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+@@ -80,18 +80,20 @@ void CRPRenderManager::Deinitialize()
+   m_state = RENDER_STATE::UNCONFIGURED;
+ }
+ 
+-bool CRPRenderManager::Configure(AVPixelFormat format, unsigned int width, unsigned int height, unsigned int orientation)
++bool CRPRenderManager::Configure(AVPixelFormat format, unsigned int nominalWidth, unsigned int nominalHeight, unsigned int maxWidth, unsigned int maxHeight)
+ {
+-  m_format = format;
+-  m_width = width;
+-  m_height = height;
+-  m_orientation = orientation;
+-
+-  CLog::Log(LOGINFO, "RetroPlayer[RENDER]: Configuring format %s, %ux%u, %u deg",
++  CLog::Log(LOGINFO, "RetroPlayer[RENDER]: Configuring format %s, nominal %ux%u, max %ux%u",
+             CRenderTranslator::TranslatePixelFormat(format),
+-            width,
+-            height,
+-            orientation);
++            nominalWidth,
++            nominalHeight,
++            maxWidth,
++            maxHeight);
++
++  m_format = format;
++  m_maxWidth = maxWidth;
++  m_maxHeight = maxHeight;
++  m_width = nominalWidth; //! @todo Allow dimension changes
++  m_height = nominalHeight; //! @todo Allow dimension changes
+ 
+   CSingleLock lock(m_stateMutex);
+ 
+@@ -100,10 +102,14 @@ bool CRPRenderManager::Configure(AVPixelFormat format, unsigned int width, unsig
+   return true;
+ }
+ 
+-void CRPRenderManager::AddFrame(const uint8_t* data, size_t size)
++void CRPRenderManager::AddFrame(const uint8_t* data, size_t size, unsigned int width, unsigned int height, unsigned int orientationDegCCW)
+ {
+   // Validate parameters
+-  if (data == nullptr || size == 0)
++  if (data == nullptr || size == 0 || width == 0 || height == 0)
++    return;
++
++  //! @todo Allow dimension changes
++  if (width != m_width || height != m_height)
+     return;
+ 
+   // Copy frame to buffers with visible renderers
+@@ -116,7 +122,7 @@ void CRPRenderManager::AddFrame(const uint8_t* data, size_t size)
+     IRenderBuffer *renderBuffer = bufferPool->GetBuffer(size);
+     if (renderBuffer != nullptr)
+     {
+-      CopyFrame(renderBuffer, data, size, m_format);
++      CopyFrame(renderBuffer, m_format, data, size, width, height);
+       renderBuffers.emplace_back(renderBuffer);
+     }
+   }
+@@ -373,7 +379,7 @@ std::shared_ptr<CRPBaseRenderer> CRPRenderManager::GetRenderer(IRenderBufferPool
+               m_processInfo.GetRenderSystemName(bufferPool).c_str());
+ 
+     renderer.reset(m_processInfo.CreateRenderer(bufferPool, renderSettings));
+-    if (renderer && renderer->Configure(m_format, m_width, m_height, m_orientation))
++    if (renderer && renderer->Configure(m_format, m_width, m_height))
+     {
+       // Ensure we have a render buffer for this renderer
+       CreateRenderBuffer(renderer->GetBufferPool());
+@@ -442,7 +448,7 @@ void CRPRenderManager::CreateRenderBuffer(IRenderBufferPool *bufferPool)
+       {
+         {
+           CSingleExit exit(m_bufferMutex);
+-          CopyFrame(renderBuffer, cachedFrame.data(), cachedFrame.size(), m_format);
++          CopyFrame(renderBuffer, m_format, cachedFrame.data(), cachedFrame.size(), m_width, m_height);
+         }
+         m_renderBuffers.emplace_back(renderBuffer);
+       }
+@@ -474,14 +480,14 @@ void CRPRenderManager::UpdateResolution()
+   */
+ }
+ 
+-void CRPRenderManager::CopyFrame(IRenderBuffer *renderBuffer, const uint8_t *data, size_t size, AVPixelFormat format)
++void CRPRenderManager::CopyFrame(IRenderBuffer *renderBuffer, AVPixelFormat format, const uint8_t *data, size_t size, unsigned int width, unsigned int height)
+ {
+   const uint8_t *source = data;
+   uint8_t *target = renderBuffer->GetMemory();
+ 
+   if (target != nullptr)
+   {
+-    const unsigned int sourceStride = static_cast<unsigned int>(size / m_height);
++    const unsigned int sourceStride = static_cast<unsigned int>(size / height);
+     const unsigned int targetStride = static_cast<unsigned int>(renderBuffer->GetFrameSize() / renderBuffer->GetHeight());
+ 
+     if (m_format == renderBuffer->GetFormat())
+@@ -490,10 +496,10 @@ void CRPRenderManager::CopyFrame(IRenderBuffer *renderBuffer, const uint8_t *dat
+         std::memcpy(target, source, size);
+       else
+       {
+-        const unsigned int widthBytes = CRenderTranslator::TranslateWidthToBytes(m_width, m_format);
++        const unsigned int widthBytes = CRenderTranslator::TranslateWidthToBytes(width, m_format);
+         if (widthBytes > 0)
+         {
+-          for (unsigned int i = 0; i < m_height; i++)
++          for (unsigned int i = 0; i < height; i++)
+             std::memcpy(target + targetStride * i, source + sourceStride * i, widthBytes);
+         }
+       }
+@@ -502,7 +508,7 @@ void CRPRenderManager::CopyFrame(IRenderBuffer *renderBuffer, const uint8_t *dat
+     {
+       SwsContext *&scalerContext = m_scalers[renderBuffer->GetFormat()];
+       scalerContext = sws_getCachedContext(scalerContext,
+-                                           m_width, m_height, format,
++                                           width, height, format,
+                                            renderBuffer->GetWidth(), renderBuffer->GetHeight(), renderBuffer->GetFormat(),
+                                            SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+ 
+@@ -513,7 +519,7 @@ void CRPRenderManager::CopyFrame(IRenderBuffer *renderBuffer, const uint8_t *dat
+         uint8_t *dst[] =       { target,                          nullptr,   nullptr,   nullptr };
+         int      dstStride[] = { static_cast<int>(targetStride),  0,         0,         0       };
+ 
+-        sws_scale(scalerContext, src, srcStride, 0, m_height, dst, dstStride);
++        sws_scale(scalerContext, src, srcStride, 0, height, dst, dstStride);
+       }
+     }
+   }
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
+index 0dffc2736522..71769699e5ea 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
+@@ -86,8 +86,8 @@ namespace RETRO
+     CGUIRenderTargetFactory *GetGUIRenderTargetFactory() { return m_renderControlFactory.get(); }
+ 
+     // Functions called from game loop
+-    bool Configure(AVPixelFormat format, unsigned int width, unsigned int height, unsigned int orientation);
+-    void AddFrame(const uint8_t* data, size_t size);
++    bool Configure(AVPixelFormat format, unsigned int nominalWidth, unsigned int nominalHeight, unsigned int maxWidth, unsigned int maxHeight);
++    void AddFrame(const uint8_t* data, size_t size, unsigned int width, unsigned int height, unsigned int orientationDegCW);
+ 
+     // Functions called from the player
+     void SetSpeed(double speed);
+@@ -142,7 +142,7 @@ namespace RETRO
+     /*!
+      * \brief Utility function to copy a frame and rescale pixels if necessary
+      */
+-    void CopyFrame(IRenderBuffer *renderBuffer, const uint8_t *data, size_t size, AVPixelFormat format);
++    void CopyFrame(IRenderBuffer *renderBuffer, AVPixelFormat format, const uint8_t *data, size_t size, unsigned int width, unsigned int height);
+ 
+     CRenderVideoSettings GetEffectiveSettings(const IGUIRenderSettings *settings) const;
+ 
+@@ -152,9 +152,10 @@ namespace RETRO
+ 
+     // Stream properties
+     AVPixelFormat m_format = AV_PIX_FMT_NONE;
+-    unsigned int m_width = 0;
+-    unsigned int m_height = 0;
+-    unsigned int m_orientation = 0; // Degrees counter-clockwise
++    unsigned int m_maxWidth = 0;
++    unsigned int m_maxHeight = 0;
++    unsigned int m_width = 0; //! @todo Remove me when dimension changing is implemented
++    unsigned int m_height = 0; //! @todo Remove me when dimension changing is implemented
+ 
+     // Render properties
+     enum class RENDER_STATE
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp
+index bb5fa5f94bb3..2bf2130d641c 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.cpp
+@@ -68,13 +68,13 @@ bool CRPBaseRenderer::IsCompatible(const CRenderVideoSettings &settings) const
+   return true;
+ }
+ 
+-bool CRPBaseRenderer::Configure(AVPixelFormat format, unsigned int width, unsigned int height, unsigned int orientation)
++bool CRPBaseRenderer::Configure(AVPixelFormat format, unsigned int width, unsigned int height)
+ {
+   m_format = format;
+   m_sourceWidth = width;
+   m_sourceHeight = height;
+   m_sourceFrameRatio = static_cast<float>(width) / static_cast<float>(height);
+-  m_renderOrientation = orientation;
++  m_renderOrientation = 0; //! @todo
+ 
+   if (!m_bufferPool->IsConfigured())
+   {
+diff --git a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.h b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.h
+index b7ae3baef0c2..7392fd779a1d 100644
+--- a/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.h
++++ b/xbmc/cores/RetroPlayer/rendering/VideoRenderers/RPBaseRenderer.h
+@@ -49,7 +49,7 @@ namespace RETRO
+     IRenderBufferPool *GetBufferPool() { return m_bufferPool.get(); }
+ 
+     // Player functions
+-    bool Configure(AVPixelFormat format, unsigned int width, unsigned int height, unsigned int orientation);
++    bool Configure(AVPixelFormat format, unsigned int width, unsigned int height);
+     void FrameMove();
+     /*!
+      * \brief Performs whatever necessary before rendering the frame
+diff --git a/xbmc/cores/RetroPlayer/streams/CMakeLists.txt b/xbmc/cores/RetroPlayer/streams/CMakeLists.txt
+new file mode 100644
+index 000000000000..b5acbc917208
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/CMakeLists.txt
+@@ -0,0 +1,15 @@
++set(SOURCES RetroPlayerAudio.cpp
++            RetroPlayerStreamTypes.cpp
++            RetroPlayerVideo.cpp
++            RPStreamManager.cpp
++)
++
++set(HEADERS IRetroPlayerStream.h
++            IStreamManager.h
++            RetroPlayerAudio.h
++            RetroPlayerStreamTypes.h
++            RetroPlayerVideo.h
++            RPStreamManager.h
++)
++
++core_add_library(retroplayer_streams)
+diff --git a/xbmc/cores/RetroPlayer/streams/IRetroPlayerStream.h b/xbmc/cores/RetroPlayer/streams/IRetroPlayerStream.h
+new file mode 100644
+index 000000000000..1f1ef6cdb82d
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/IRetroPlayerStream.h
+@@ -0,0 +1,78 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "RetroPlayerStreamTypes.h"
++
++namespace KODI
++{
++namespace RETRO
++{
++
++struct StreamProperties
++{
++};
++
++struct StreamBuffer
++{
++};
++
++struct StreamPacket
++{
++};
++
++class IRetroPlayerStream
++{
++public:
++  virtual ~IRetroPlayerStream() = default;
++
++  /*!
++   * \brief Open a stream
++   *
++   * \return True if the stream was opened, false otherwise
++   */
++  virtual bool OpenStream(const StreamProperties& properties) = 0;
++
++  /*!
++   * \brief Get a buffer for zero-copy stream data
++   *
++   * \param width The framebuffer width, or 0 for no width specified
++   * \param height The framebuffer height, or 0 for no height specified
++   * \param[out] buffer The buffer, or unmodified if false is returned
++   *
++   * \return True if a buffer was returned, false otherwise
++   */
++  virtual bool GetStreamBuffer(unsigned int width, unsigned int height, StreamBuffer& buffer) = 0;
++
++  /*!
++   * \brief Add a data packet to a stream
++   *
++   * \param packet The data packet
++   */
++  virtual void AddStreamData(const StreamPacket& packet) = 0;
++
++  /*!
++   * \brief Close the stream
++   */
++  virtual void CloseStream() = 0;
++};
++
++}
++}
+diff --git a/xbmc/cores/RetroPlayer/streams/IStreamManager.h b/xbmc/cores/RetroPlayer/streams/IStreamManager.h
+new file mode 100644
+index 000000000000..c4302e806ba3
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/IStreamManager.h
+@@ -0,0 +1,52 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "RetroPlayerStreamTypes.h"
++
++namespace KODI
++{
++namespace RETRO
++{
++
++class IStreamManager
++{
++public:
++  virtual ~IStreamManager() = default;
++
++  /*!
++   * \brief Create a stream for gameplay data
++   *
++   * \param streamType The stream type
++   *
++   * \return A stream handle, or empty on failure
++   */
++  virtual StreamPtr CreateStream(StreamType streamType) = 0;
++
++  /*!
++   * \brief Free the specified stream
++   *
++   * \param stream The stream to close
++   */
++  virtual void CloseStream(StreamPtr stream) = 0;
++};
++
++}
++}
+diff --git a/xbmc/cores/RetroPlayer/streams/RPStreamManager.cpp b/xbmc/cores/RetroPlayer/streams/RPStreamManager.cpp
+new file mode 100644
+index 000000000000..41df4f92ad88
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/RPStreamManager.cpp
+@@ -0,0 +1,82 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "RPStreamManager.h"
++#include "IRetroPlayerStream.h"
++#include "RetroPlayerAudio.h"
++//#include "RetroPlayerHardwareBuffer.h" //! @todo
++//#include "RetroPlayerSoftwareBuffer.h" //! @todo
++#include "RetroPlayerVideo.h"
++
++using namespace KODI;
++using namespace RETRO;
++
++CRPStreamManager::CRPStreamManager(CRPRenderManager& renderManager, CRPProcessInfo& processInfo) :
++  m_renderManager(renderManager),
++  m_processInfo(processInfo)
++{
++}
++
++void CRPStreamManager::EnableAudio(bool bEnable)
++{
++  if (m_audioStream != nullptr)
++    m_audioStream->Enable(bEnable);
++}
++
++StreamPtr CRPStreamManager::CreateStream(StreamType streamType)
++{
++  switch (streamType)
++  {
++  case StreamType::AUDIO:
++  {
++    // Save pointer to audio stream
++    m_audioStream = new CRetroPlayerAudio(m_processInfo);
++
++    return StreamPtr(m_audioStream);
++  }
++  case StreamType::VIDEO:
++  {
++    return StreamPtr(new CRetroPlayerVideo(m_renderManager, m_processInfo));
++  }
++  case StreamType::SW_BUFFER:
++  {
++    //return StreamPtr(new CRetroPlayerSoftware(m_renderManager, m_processInfo)); //! @todo
++  }
++  case StreamType::HW_BUFFER:
++  {
++    //return StreamPtr(new CRetroPlayerHardware(m_renderManager, m_processInfo)); //! @todo
++  }
++  default:
++    break;
++  }
++
++  return StreamPtr();
++}
++
++void CRPStreamManager::CloseStream(StreamPtr stream)
++{
++  if (stream)
++  {
++    if (stream.get() == m_audioStream)
++      m_audioStream = nullptr;
++
++    stream->CloseStream();
++  }
++}
+diff --git a/xbmc/cores/RetroPlayer/streams/RPStreamManager.h b/xbmc/cores/RetroPlayer/streams/RPStreamManager.h
+new file mode 100644
+index 000000000000..9e75aab8404f
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/RPStreamManager.h
+@@ -0,0 +1,53 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "IStreamManager.h"
++
++namespace KODI
++{
++namespace RETRO
++{
++  class CRetroPlayerAudio;
++  class CRPProcessInfo;
++  class CRPRenderManager;
++
++  class CRPStreamManager : public IStreamManager
++  {
++  public:
++    CRPStreamManager(CRPRenderManager& renderManager, CRPProcessInfo& processInfo);
++    ~CRPStreamManager() override = default;
++
++    void EnableAudio(bool bEnable);
++
++    // Implementation of IStreamManager
++    StreamPtr CreateStream(StreamType streamType) override;
++    void CloseStream(StreamPtr stream) override;
++
++  private:
++    // Construction parameters
++    CRPRenderManager& m_renderManager;
++    CRPProcessInfo& m_processInfo;
++
++    // Stream parameters
++    CRetroPlayerAudio* m_audioStream = nullptr;
++  };
++}
++}
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+similarity index 58%
+rename from xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp
+rename to xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+index 80649fde15b8..8d616e4b42e1 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerAudio.cpp
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+@@ -18,15 +18,17 @@
+  *
+  */
+ 
+-#include "ServiceBroker.h"
+ #include "RetroPlayerAudio.h"
+ #include "cores/AudioEngine/Interfaces/AE.h"
+ #include "cores/AudioEngine/Interfaces/AEStream.h"
+ #include "cores/AudioEngine/Utils/AEChannelInfo.h"
+ #include "cores/AudioEngine/Utils/AEUtil.h"
++#include "cores/RetroPlayer/audio/AudioTranslator.h"
+ #include "cores/RetroPlayer/process/RPProcessInfo.h"
+-#include "threads/Thread.h"
+ #include "utils/log.h"
++#include "ServiceBroker.h"
++
++#include <cmath>
+ 
+ using namespace KODI;
+ using namespace RETRO;
+@@ -46,20 +48,56 @@ CRetroPlayerAudio::~CRetroPlayerAudio()
+   CloseStream();
+ }
+ 
+-bool CRetroPlayerAudio::OpenPCMStream(AEDataFormat format, unsigned int samplerate, const CAEChannelInfo& channelLayout)
++bool CRetroPlayerAudio::OpenStream(const StreamProperties& properties)
+ {
++  const AudioStreamProperties& audioProperties = reinterpret_cast<const AudioStreamProperties&>(properties);
++
++  const AEDataFormat pcmFormat = CAudioTranslator::TranslatePCMFormat(audioProperties.format);
++  if (pcmFormat == AE_FMT_INVALID)
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Unknown PCM format: %d", static_cast<int>(audioProperties.format));
++    return false;
++  }
++
++  unsigned int iSampleRate = static_cast<unsigned int>(std::round(audioProperties.sampleRate));
++  if (iSampleRate == 0)
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Invalid samplerate: %f", audioProperties.sampleRate);
++    return false;
++  }
++
++  CAEChannelInfo channelLayout;
++  for (auto it = audioProperties.channelMap.begin(); it != audioProperties.channelMap.end(); ++it)
++  {
++    AEChannel channel = CAudioTranslator::TranslateAudioChannel(*it);
++    if (channel == AE_CH_NULL)
++      break;
++
++    channelLayout += channel;
++  }
++
++  if (!channelLayout.IsLayoutValid())
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Empty channel layout");
++    return false;
++  }
++
+   if (m_pAudioStream != nullptr)
+     CloseStream();
+ 
+-  CLog::Log(LOGINFO, "RetroPlayer[AUDIO]: Creating audio stream, sample rate = %d", samplerate);
++  CLog::Log(LOGINFO, "RetroPlayer[AUDIO]: Creating audio stream, sample rate = %d", iSampleRate);
++
++  IAE* audioEngine = CServiceBroker::GetActiveAE();
++  if (audioEngine == nullptr)
++    return false;
+ 
+   AEAudioFormat audioFormat;
+-  audioFormat.m_dataFormat = format;
+-  audioFormat.m_sampleRate = samplerate;
++  audioFormat.m_dataFormat = pcmFormat;
++  audioFormat.m_sampleRate = iSampleRate;
+   audioFormat.m_channelLayout = channelLayout;
+-  m_pAudioStream = CServiceBroker::GetActiveAE()->MakeStream(audioFormat);
++  m_pAudioStream = audioEngine->MakeStream(audioFormat);
+ 
+-  if (!m_pAudioStream)
++  if (m_pAudioStream == nullptr)
+   {
+     CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Failed to create audio stream");
+     return false;
+@@ -72,21 +110,16 @@ bool CRetroPlayerAudio::OpenPCMStream(AEDataFormat format, unsigned int samplera
+   return true;
+ }
+ 
+-bool CRetroPlayerAudio::OpenEncodedStream(AVCodecID codec, unsigned int samplerate, const CAEChannelInfo& channelLayout)
++void CRetroPlayerAudio::AddStreamData(const StreamPacket &packet)
+ {
+-  CLog::Log(LOGERROR, "RetroPlayer[AUDIO]: Encoded audio stream not supported");
++  const AudioStreamPacket& audioPacket = reinterpret_cast<const AudioStreamPacket&>(packet);
+ 
+-  return true; //! @todo
+-}
+-
+-void CRetroPlayerAudio::AddData(const uint8_t* data, size_t size)
+-{
+   if (m_bAudioEnabled)
+   {
+     if (m_pAudioStream)
+     {
+       const size_t frameSize = m_pAudioStream->GetChannelCount() * (CAEUtil::DataFormatToBits(m_pAudioStream->GetDataFormat()) >> 3);
+-      m_pAudioStream->AddData(&data, 0, static_cast<unsigned int>(size / frameSize));
++      m_pAudioStream->AddData(&audioPacket.data, 0, static_cast<unsigned int>(audioPacket.size / frameSize));
+     }
+   }
+ }
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerAudio.h b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.h
+similarity index 65%
+rename from xbmc/cores/RetroPlayer/RetroPlayerAudio.h
+rename to xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.h
+index 3d6d4a911bc0..3183a54439e7 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerAudio.h
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.h
+@@ -19,7 +19,7 @@
+  */
+ #pragma once
+ 
+-#include "games/addons/GameClientCallbacks.h"
++#include "IRetroPlayerStream.h"
+ 
+ #include <memory>
+ 
+@@ -31,24 +31,37 @@ namespace RETRO
+ {
+   class CRPProcessInfo;
+ 
+-  class CRetroPlayerAudio : public GAME::IGameAudioCallback
++  struct AudioStreamProperties
++  {
++    PCMFormat format;
++    double sampleRate;
++    AudioChannelMap channelMap;
++  };
++
++  struct AudioStreamPacket
++  {
++    const uint8_t* data;
++    size_t size;
++  };
++
++  class CRetroPlayerAudio : public IRetroPlayerStream
+   {
+   public:
+     explicit CRetroPlayerAudio(CRPProcessInfo& processInfo);
+     ~CRetroPlayerAudio() override;
+ 
+-    // implementation of IGameAudioCallback
+-    bool OpenPCMStream(AEDataFormat format, unsigned int samplerate, const CAEChannelInfo& channelLayout) override;
+-    bool OpenEncodedStream(AVCodecID codec, unsigned int samplerate, const CAEChannelInfo& channelLayout) override;
+-    void AddData(const uint8_t* data, size_t size) override;
+-    void CloseStream() override;
+-
+     void Enable(bool bEnabled) { m_bAudioEnabled = bEnabled; }
+ 
++    // implementation of IRetroPlayerStream
++    bool OpenStream(const StreamProperties& properties) override;
++    bool GetStreamBuffer(unsigned int width, unsigned int height, StreamBuffer& buffer) override { return false; }
++    void AddStreamData(const StreamPacket& packet) override;
++    void CloseStream() override;
++
+   private:
+     CRPProcessInfo& m_processInfo;
+     IAEStream* m_pAudioStream;
+-    bool       m_bAudioEnabled;
++    bool m_bAudioEnabled;
+   };
+ }
+ }
+diff --git a/xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.cpp b/xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.cpp
+new file mode 100644
+index 000000000000..5967c3767676
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.cpp
+@@ -0,0 +1,30 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "RetroPlayerStreamTypes.h"
++#include "IRetroPlayerStream.h"
++
++using namespace KODI;
++using namespace RETRO;
++
++void DeleteStream::operator()(IRetroPlayerStream* stream)
++{
++  delete stream;
++}
+diff --git a/xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.h b/xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.h
+new file mode 100644
+index 000000000000..ea3c8e82fa6a
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerStreamTypes.h
+@@ -0,0 +1,97 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include <array>
++#include <memory>
++
++namespace KODI
++{
++namespace RETRO
++{
++class IRetroPlayerStream;
++
++struct DeleteStream
++{
++  void operator()(IRetroPlayerStream* stream);
++};
++
++using StreamPtr = std::unique_ptr<IRetroPlayerStream, DeleteStream>;
++
++enum class StreamType
++{
++  AUDIO,
++  VIDEO,
++  SW_BUFFER,
++  HW_BUFFER,
++};
++
++enum class PCMFormat
++{
++ FMT_UNKNOWN,
++ FMT_S16NE,
++};
++
++enum class AudioChannel
++{
++  CH_NULL, // Channel list terminator
++  CH_FL,
++  CH_FR,
++  CH_FC,
++  CH_LFE,
++  CH_BL,
++  CH_BR,
++  CH_FLOC,
++  CH_FROC,
++  CH_BC,
++  CH_SL,
++  CH_SR,
++  CH_TFL,
++  CH_TFR,
++  CH_TFC,
++  CH_TC,
++  CH_TBL,
++  CH_TBR,
++  CH_TBC,
++  CH_BLOC,
++  CH_BROC,
++  CH_COUNT
++};
++
++using AudioChannelMap = std::array<AudioChannel, static_cast<unsigned int>(AudioChannel::CH_COUNT)>;
++
++enum class PixelFormat
++{
++  FMT_UNKNOWN,
++  FMT_0RGB8888,
++  FMT_RGB565,
++  FMT_0RGB1555,
++};
++
++enum class VideoRotation
++{
++  ROTATION_0,
++  ROTATION_90_CCW,
++  ROTATION_180_CCW,
++  ROTATION_270_CCW,
++};
++
++}
++}
+diff --git a/xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.cpp b/xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.cpp
+new file mode 100644
+index 000000000000..85b384a49622
+--- /dev/null
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.cpp
+@@ -0,0 +1,119 @@
++/*
++ *      Copyright (C) 2012-2017 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "RetroPlayerVideo.h"
++#include "cores/RetroPlayer/process/RPProcessInfo.h"
++#include "cores/RetroPlayer/rendering/RenderTranslator.h"
++#include "cores/RetroPlayer/rendering/RPRenderManager.h"
++#include "utils/log.h"
++
++using namespace KODI;
++using namespace RETRO;
++
++CRetroPlayerVideo::CRetroPlayerVideo(CRPRenderManager& renderManager, CRPProcessInfo& processInfo) :
++  m_renderManager(renderManager),
++  m_processInfo(processInfo)
++{
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Initializing video");
++
++  m_renderManager.Initialize();
++}
++
++CRetroPlayerVideo::~CRetroPlayerVideo()
++{
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Deinitializing video");
++
++  CloseStream();
++  m_renderManager.Deinitialize();
++}
++
++bool CRetroPlayerVideo::OpenStream(const StreamProperties& properties)
++{
++  const VideoStreamProperties& videoProperties = reinterpret_cast<const VideoStreamProperties&>(properties);
++
++  if (m_bOpen)
++  {
++    CloseStream();
++    m_bOpen = false;
++  }
++
++  const AVPixelFormat pixfmt = videoProperties.pixfmt;
++  const unsigned int nominalWidth = videoProperties.nominalWidth;
++  const unsigned int nominalHeight = videoProperties.nominalHeight;
++  const unsigned int maxWidth = videoProperties.maxWidth;
++  const unsigned int maxHeight = videoProperties.maxHeight;
++  //const float pixelAspectRatio = videoProperties.pixelAspectRatio; //! @todo
++
++  CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Creating video stream - format %s, nominal %ux%u, max %ux%u",
++      CRenderTranslator::TranslatePixelFormat(pixfmt),
++      nominalWidth,
++      nominalHeight,
++      maxWidth,
++      maxHeight);
++
++  m_processInfo.SetVideoPixelFormat(pixfmt);
++  m_processInfo.SetVideoDimensions(nominalWidth, nominalHeight); // Report nominal height for now
++
++  if (m_renderManager.Configure(pixfmt, nominalWidth, nominalHeight, maxWidth, maxHeight))
++    m_bOpen = true;
++
++  return m_bOpen;
++}
++
++void CRetroPlayerVideo::AddStreamData(const StreamPacket &packet)
++{
++  const VideoStreamPacket& videoPacket = reinterpret_cast<const VideoStreamPacket&>(packet);
++
++  if (m_bOpen)
++  {
++    unsigned int orientationDegCCW = 0;
++    switch (videoPacket.rotation)
++    {
++    case VideoRotation::ROTATION_90_CCW:
++      orientationDegCCW = 90;
++      break;
++    case VideoRotation::ROTATION_180_CCW:
++      orientationDegCCW = 180;
++      break;
++    case VideoRotation::ROTATION_270_CCW:
++      orientationDegCCW = 270;
++      break;
++    default:
++      break;
++    }
++
++    m_renderManager.AddFrame(videoPacket.data,
++                             videoPacket.size,
++                             videoPacket.width,
++                             videoPacket.height,
++                             orientationDegCCW);
++  }
++}
++
++void CRetroPlayerVideo::CloseStream()
++{
++  if (m_bOpen)
++  {
++    CLog::Log(LOGDEBUG, "RetroPlayer[VIDEO]: Closing video stream");
++
++    m_renderManager.Flush();
++    m_bOpen = false;
++  }
++}
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerVideo.h b/xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.h
+similarity index 58%
+rename from xbmc/cores/RetroPlayer/RetroPlayerVideo.h
+rename to xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.h
+index 2472291c91cf..6cad4f3024a2 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerVideo.h
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerVideo.h
+@@ -19,9 +19,11 @@
+  */
+ #pragma once
+ 
+-#include "games/addons/GameClientCallbacks.h"
++#include "IRetroPlayerStream.h"
+ 
+-class CPixelConverter;
++extern "C" {
++#include "libavutil/pixfmt.h"
++}
+ 
+ namespace KODI
+ {
+@@ -30,28 +32,49 @@ namespace RETRO
+   class CRPProcessInfo;
+   class CRPRenderManager;
+ 
++  struct VideoStreamProperties
++  {
++    AVPixelFormat pixfmt;
++    unsigned int nominalWidth;
++    unsigned int nominalHeight;
++    unsigned int maxWidth;
++    unsigned int maxHeight;
++    float pixelAspectRatio;
++  };
++
++  struct VideoStreamPacket
++  {
++    unsigned int width;
++    unsigned int height;
++    VideoRotation rotation;
++    const uint8_t *data;
++    size_t size;
++  };
++
+   /*!
+    * \brief Renders video frames provided by the game loop
+    *
+    * \sa CRPRenderManager
+    */
+-  class CRetroPlayerVideo : public GAME::IGameVideoCallback
++  class CRetroPlayerVideo : public IRetroPlayerStream
+   {
+   public:
+     CRetroPlayerVideo(CRPRenderManager& m_renderManager, CRPProcessInfo& m_processInfo);
+-
+     ~CRetroPlayerVideo() override;
+ 
+-    // implementation of IGameVideoCallback
+-    bool OpenPixelStream(AVPixelFormat pixfmt, unsigned int width, unsigned int height, unsigned int orientationDeg) override;
+-    bool OpenEncodedStream(AVCodecID codec) override;
+-    void AddData(const uint8_t* data, size_t size) override;
++    // implementation of IRetroPlayerStream
++    bool OpenStream(const StreamProperties& properties) override;
++    bool GetStreamBuffer(unsigned int width, unsigned int height, StreamBuffer& buffer) override { return false; }
++    void AddStreamData(const StreamPacket &packet) override;
+     void CloseStream() override;
+ 
+   private:
+     // Construction parameters
+     CRPRenderManager& m_renderManager;
+-    CRPProcessInfo&   m_processInfo;
++    CRPProcessInfo& m_processInfo;
++
++    // Stream properties
++    bool m_bOpen = false;
+   };
+ }
+ }
+diff --git a/xbmc/games/addons/GameClient.cpp b/xbmc/games/addons/GameClient.cpp
+index 8c270a390af4..b090fc59958e 100644
+--- a/xbmc/games/addons/GameClient.cpp
++++ b/xbmc/games/addons/GameClient.cpp
+@@ -32,6 +32,8 @@
+ #include "games/addons/input/GameClientInput.h"
+ #include "games/addons/playback/GameClientRealtimePlayback.h"
+ #include "games/addons/playback/GameClientReversiblePlayback.h"
++#include "games/addons/streams/GameClientStreams.h"
++#include "games/addons/streams/IGameClientStream.h"
+ #include "games/GameServices.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/LocalizeStrings.h"
+@@ -118,8 +120,6 @@ CGameClient::CGameClient(ADDON::CAddonInfo addonInfo) :
+   m_bSupportsAllExtensions(false),
+   m_bIsPlaying(false),
+   m_serializeSize(0),
+-  m_audio(nullptr),
+-  m_video(nullptr),
+   m_region(GAME_REGION_UNKNOWN)
+ {
+   const ADDON::InfoMap& extraInfo = m_addonInfo.ExtraInfo();
+@@ -208,16 +208,12 @@ bool CGameClient::Initialize(void)
+ 
+   m_struct.toKodi.kodiInstance = this;
+   m_struct.toKodi.CloseGame = cb_close_game;
+-  m_struct.toKodi.OpenPixelStream = cb_open_pixel_stream;
+-  m_struct.toKodi.OpenVideoStream = cb_open_video_stream;
+-  m_struct.toKodi.OpenPCMStream = cb_open_pcm_stream;
+-  m_struct.toKodi.OpenAudioStream = cb_open_audio_stream;
++  m_struct.toKodi.OpenStream = cb_open_stream;
++  m_struct.toKodi.GetStreamBuffer = cb_get_stream_buffer;
+   m_struct.toKodi.AddStreamData = cb_add_stream_data;
++  m_struct.toKodi.ReleaseStreamBuffer = cb_release_stream_buffer;
+   m_struct.toKodi.CloseStream = cb_close_stream;
+-  m_struct.toKodi.EnableHardwareRendering = cb_enable_hardware_rendering;
+-  m_struct.toKodi.HwGetCurrentFramebuffer = cb_hw_get_current_framebuffer;
+   m_struct.toKodi.HwGetProcAddress = cb_hw_get_proc_address;
+-  m_struct.toKodi.RenderFrame = cb_render_frame;
+   m_struct.toKodi.InputEvent = cb_input_event;
+ 
+   if (Create(ADDON_INSTANCE_GAME, &m_struct, &m_struct.props) == ADDON_STATUS_OK)
+@@ -237,11 +233,8 @@ void CGameClient::Unload()
+   Destroy();
+ }
+ 
+-bool CGameClient::OpenFile(const CFileItem& file, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input)
++bool CGameClient::OpenFile(const CFileItem& file, RETRO::IStreamManager& streamManager, IGameInputCallback *input)
+ {
+-  if (audio == nullptr || video == nullptr)
+-    return false;
+-
+   // Check if we should open in standalone mode
+   if (file.GetPath().empty())
+     return false;
+@@ -287,13 +280,13 @@ bool CGameClient::OpenFile(const CFileItem& file, IGameAudioCallback* audio, IGa
+     return false;
+   }
+ 
+-  if (!InitializeGameplay(file.GetPath(), audio, video, input))
++  if (!InitializeGameplay(file.GetPath(), streamManager, input))
+     return false;
+ 
+   return true;
+ }
+ 
+-bool CGameClient::OpenStandalone(IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input)
++bool CGameClient::OpenStandalone(RETRO::IStreamManager& streamManager, IGameInputCallback *input)
+ {
+   CLog::Log(LOGDEBUG, "GameClient: Loading %s in standalone mode", ID().c_str());
+ 
+@@ -315,21 +308,21 @@ bool CGameClient::OpenStandalone(IGameAudioCallback* audio, IGameVideoCallback*
+     return false;
+   }
+ 
+-  if (!InitializeGameplay(ID(), audio, video, input))
++  if (!InitializeGameplay(ID(), streamManager, input))
+     return false;
+ 
+   return true;
+ }
+ 
+-bool CGameClient::InitializeGameplay(const std::string& gamePath, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input)
++bool CGameClient::InitializeGameplay(const std::string& gamePath, RETRO::IStreamManager& streamManager, IGameInputCallback *input)
+ {
+   if (LoadGameInfo())
+   {
++    Streams().Initialize(streamManager);
++
+     m_bIsPlaying      = true;
+     m_gamePath        = gamePath;
+     m_serializeSize   = GetSerializeSize();
+-    m_audio           = audio;
+-    m_video           = video;
+     m_input           = input;
+ 
+     m_inGameSaves.reset(new CGameClientInGameSaves(this, &m_struct.toAddon));
+@@ -478,10 +471,9 @@ void CGameClient::CloseFile()
+   m_bIsPlaying = false;
+   m_gamePath.clear();
+   m_serializeSize = 0;
+-
+-  m_audio = nullptr;
+-  m_video = nullptr;
+   m_input = nullptr;
++
++  Streams().Deinitialize();
+ }
+ 
+ void CGameClient::RunFrame()
+@@ -505,148 +497,6 @@ void CGameClient::RunFrame()
+   }
+ }
+ 
+-bool CGameClient::OpenPixelStream(GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation)
+-{
+-  if (!m_video)
+-    return false;
+-
+-  AVPixelFormat pixelFormat = CGameClientTranslator::TranslatePixelFormat(format);
+-  if (pixelFormat == AV_PIX_FMT_NONE)
+-  {
+-    CLog::Log(LOGERROR, "GAME: Unknown pixel format: %d", format);
+-    return false;
+-  }
+-
+-  unsigned int orientation = 0;
+-  switch (rotation)
+-  {
+-  case GAME_VIDEO_ROTATION_90:
+-    orientation = 360 - 90;
+-    break;
+-  case GAME_VIDEO_ROTATION_180:
+-    orientation = 360 - 180;
+-    break;
+-  case GAME_VIDEO_ROTATION_270:
+-    orientation = 360 - 270;
+-    break;
+-  default:
+-    break;
+-  }
+-
+-  return m_video->OpenPixelStream(pixelFormat, width, height, orientation);
+-}
+-
+-bool CGameClient::OpenVideoStream(GAME_VIDEO_CODEC codec)
+-{
+-  if (!m_video)
+-    return false;
+-
+-  AVCodecID videoCodec = CGameClientTranslator::TranslateVideoCodec(codec);
+-  if (videoCodec == AV_CODEC_ID_NONE)
+-  {
+-    CLog::Log(LOGERROR, "GAME: Unknown video format: %d", codec);
+-    return false;
+-  }
+-
+-  return m_video->OpenEncodedStream(videoCodec);
+-}
+-
+-bool CGameClient::OpenPCMStream(GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channelMap)
+-{
+-  if (!m_audio || channelMap == nullptr)
+-    return false;
+-
+-  AEDataFormat pcmFormat = CGameClientTranslator::TranslatePCMFormat(format);
+-  if (pcmFormat == AE_FMT_INVALID)
+-  {
+-    CLog::Log(LOGERROR, "GAME: Unknown PCM format: %d", format);
+-    return false;
+-  }
+-
+-  CAEChannelInfo channelLayout;
+-  for (const GAME_AUDIO_CHANNEL* channelPtr = channelMap; *channelPtr != GAME_CH_NULL; channelPtr++)
+-  {
+-    AEChannel channel = CGameClientTranslator::TranslateAudioChannel(*channelPtr);
+-    if (channel == AE_CH_NULL)
+-    {
+-      CLog::Log(LOGERROR, "GAME: Unknown channel ID: %d", *channelPtr);
+-      return false;
+-    }
+-    channelLayout += channel;
+-  }
+-
+-  return m_audio->OpenPCMStream(pcmFormat, static_cast<unsigned int>(m_samplerate), channelLayout);
+-}
+-
+-bool CGameClient::OpenAudioStream(GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channelMap)
+-{
+-  if (!m_audio)
+-    return false;
+-
+-  AVCodecID audioCodec = CGameClientTranslator::TranslateAudioCodec(codec);
+-  if (audioCodec == AV_CODEC_ID_NONE)
+-  {
+-    CLog::Log(LOGERROR, "GAME: Unknown audio codec: %d", codec);
+-    return false;
+-  }
+-
+-  CAEChannelInfo channelLayout;
+-  for (const GAME_AUDIO_CHANNEL* channelPtr = channelMap; *channelPtr != GAME_CH_NULL; channelPtr++)
+-  {
+-    AEChannel channel = CGameClientTranslator::TranslateAudioChannel(*channelPtr);
+-    if (channel == AE_CH_NULL)
+-    {
+-      CLog::Log(LOGERROR, "GAME: Unknown channel ID: %d", *channelPtr);
+-      return false;
+-    }
+-    channelLayout += channel;
+-  }
+-
+-  return m_audio->OpenEncodedStream(audioCodec, static_cast<unsigned int>(m_samplerate), channelLayout);
+-}
+-
+-void CGameClient::AddStreamData(GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size)
+-{
+-  switch (stream)
+-  {
+-  case GAME_STREAM_AUDIO:
+-  {
+-    if (m_audio)
+-      m_audio->AddData(data, size);
+-    break;
+-  }
+-  case GAME_STREAM_VIDEO:
+-  {
+-    if (m_video)
+-      m_video->AddData(data, size);
+-    break;
+-  }
+-  default:
+-    break;
+-  }
+-}
+-
+-void CGameClient::CloseStream(GAME_STREAM_TYPE stream)
+-{
+-  switch (stream)
+-  {
+-  case GAME_STREAM_AUDIO:
+-  {
+-    if (m_audio)
+-      m_audio->CloseStream();
+-    break;
+-  }
+-  case GAME_STREAM_VIDEO:
+-  {
+-    if (m_video)
+-      m_video->CloseStream();
+-    break;
+-  }
+-  default:
+-    break;
+-  }
+-}
+-
+ size_t CGameClient::GetSerializeSize()
+ {
+   CSingleLock lock(m_critSection);
+@@ -732,77 +582,65 @@ void CGameClient::cb_close_game(void* kodiInstance)
+   CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+ }
+ 
+-int CGameClient::cb_open_pixel_stream(void* kodiInstance, GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation)
++void* CGameClient::cb_open_stream(void* kodiInstance, const game_stream_properties *properties)
+ {
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return -1;
+-
+-  return gameClient->OpenPixelStream(format, width, height, rotation) ? 0 : -1;
+-}
++  if (properties == nullptr)
++    return nullptr;
+ 
+-int CGameClient::cb_open_video_stream(void* kodiInstance, GAME_VIDEO_CODEC codec)
+-{
+   CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return -1;
++  if (gameClient == nullptr)
++    return nullptr;
+ 
+-  return gameClient->OpenVideoStream(codec) ? 0 : -1;
++  return gameClient->Streams().OpenStream(*properties);
+ }
+ 
+-int CGameClient::cb_open_pcm_stream(void* kodiInstance, GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channel_map)
++bool CGameClient::cb_get_stream_buffer(void* kodiInstance, void *stream, unsigned int width, unsigned int height, game_stream_buffer *buffer)
+ {
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return -1;
+-
+-  return gameClient->OpenPCMStream(format, channel_map) ? 0 : -1;
+-}
++  if (buffer == nullptr)
++    return false;
+ 
+-int CGameClient::cb_open_audio_stream(void* kodiInstance, GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channel_map)
+-{
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return -1;
++  IGameClientStream *gameClientStream = static_cast<IGameClientStream*>(stream);
++  if (gameClientStream == nullptr)
++    return false;
+ 
+-  return gameClient->OpenAudioStream(codec, channel_map) ? 0 : -1;
++  return gameClientStream->GetBuffer(width, height, *buffer);
+ }
+ 
+-void CGameClient::cb_add_stream_data(void* kodiInstance, GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size)
++void CGameClient::cb_add_stream_data(void* kodiInstance, void *stream, const game_stream_packet *packet)
+ {
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
++  if (packet == nullptr)
+     return;
+ 
+-  gameClient->AddStreamData(stream, data, size);
+-}
+-
+-void CGameClient::cb_close_stream(void* kodiInstance, GAME_STREAM_TYPE stream)
+-{
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
++  IGameClientStream *gameClientStream = static_cast<IGameClientStream*>(stream);
++  if (gameClientStream == nullptr)
+     return;
+ 
+-  gameClient->CloseStream(stream);
++  gameClientStream->AddData(*packet);
+ }
+ 
+-void CGameClient::cb_enable_hardware_rendering(void* kodiInstance, const game_hw_info *hw_info)
++void CGameClient::cb_release_stream_buffer(void* kodiInstance, void *stream, game_stream_buffer *buffer)
+ {
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
++  if (buffer == nullptr)
+     return;
+ 
+-  //! @todo
++  IGameClientStream *gameClientStream = static_cast<IGameClientStream*>(stream);
++  if (gameClientStream == nullptr)
++    return;
++
++  gameClientStream->ReleaseBuffer(*buffer);
+ }
+ 
+-uintptr_t CGameClient::cb_hw_get_current_framebuffer(void* kodiInstance)
++void CGameClient::cb_close_stream(void* kodiInstance, void *stream)
+ {
+   CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return 0;
++  if (gameClient == nullptr)
++    return;
+ 
+-  //! @todo
+-  return 0;
++  IGameClientStream *gameClientStream = static_cast<IGameClientStream*>(stream);
++  if (gameClientStream == nullptr)
++    return;
++
++  gameClient->Streams().CloseStream(gameClientStream);
+ }
+ 
+ game_proc_address_t CGameClient::cb_hw_get_proc_address(void* kodiInstance, const char *sym)
+@@ -815,15 +653,6 @@ game_proc_address_t CGameClient::cb_hw_get_proc_address(void* kodiInstance, cons
+   return nullptr;
+ }
+ 
+-void CGameClient::cb_render_frame(void* kodiInstance)
+-{
+-  CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+-  if (!gameClient)
+-    return;
+-
+-  //! @todo
+-}
+-
+ bool CGameClient::cb_input_event(void* kodiInstance, const game_input_event* event)
+ {
+   CGameClient *gameClient = static_cast<CGameClient*>(kodiInstance);
+diff --git a/xbmc/games/addons/GameClient.h b/xbmc/games/addons/GameClient.h
+index ab4ec26fc6d8..fc70397d99af 100644
+--- a/xbmc/games/addons/GameClient.h
++++ b/xbmc/games/addons/GameClient.h
+@@ -30,22 +30,24 @@
+ #include <set>
+ #include <stdint.h>
+ #include <string>
+-#include <vector>
+ 
+ class CFileItem;
+ 
+ namespace KODI
+ {
++namespace RETRO
++{
++  class IStreamManager;
++}
++
+ namespace GAME
+ {
+ 
+ class CGameClientInGameSaves;
+ class CGameClientInput;
+ class CGameClientProperties;
+-class IGameAudioCallback;
+ class IGameClientPlayback;
+ class IGameInputCallback;
+-class IGameVideoCallback;
+ 
+ /*!
+  * \ingroup games
+@@ -63,10 +65,12 @@ class CGameClient : public ADDON::CAddonDll
+   // Game subsystems (const)
+   const CGameClientInput &Input() const { return *m_subsystems.Input; }
+   const CGameClientProperties &AddonProperties() const { return *m_subsystems.AddonProperties; }
++  const CGameClientStreams &Streams() const { return *m_subsystems.Streams; }
+ 
+   // Game subsystems (mutable)
+   CGameClientInput &Input() { return *m_subsystems.Input; }
+   CGameClientProperties &AddonProperties() { return *m_subsystems.AddonProperties; }
++  CGameClientStreams &Streams() { return *m_subsystems.Streams; }
+ 
+   // Implementation of IAddon via CAddonDll
+   virtual std::string     LibPath() const override;
+@@ -83,8 +87,8 @@ class CGameClient : public ADDON::CAddonDll
+   // Start/stop gameplay
+   bool Initialize(void);
+   void Unload();
+-  bool OpenFile(const CFileItem& file, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
+-  bool OpenStandalone(IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
++  bool OpenFile(const CFileItem& file, RETRO::IStreamManager& streamManager, IGameInputCallback *input);
++  bool OpenStandalone(RETRO::IStreamManager& streamManager, IGameInputCallback *input);
+   void Reset();
+   void CloseFile();
+   const std::string& GetGamePath() const { return m_gamePath; }
+@@ -93,16 +97,9 @@ class CGameClient : public ADDON::CAddonDll
+   bool IsPlaying() const { return m_bIsPlaying; }
+   IGameClientPlayback* GetPlayback() { return m_playback.get(); }
+   double GetFrameRate() const { return m_framerate; }
++  double GetSampleRate() const { return m_samplerate; }
+   void RunFrame();
+ 
+-  // Audio/video callbacks
+-  bool OpenPixelStream(GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation);
+-  bool OpenVideoStream(GAME_VIDEO_CODEC codec);
+-  bool OpenPCMStream(GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channelMap);
+-  bool OpenAudioStream(GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channelMap);
+-  void AddStreamData(GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size);
+-  void CloseStream(GAME_STREAM_TYPE stream);
+-
+   // Access memory
+   size_t SerializeSize() const { return m_serializeSize; }
+   bool Serialize(uint8_t* data, size_t size);
+@@ -121,7 +118,7 @@ class CGameClient : public ADDON::CAddonDll
+ 
+ private:
+   // Private gameplay functions
+-  bool InitializeGameplay(const std::string& gamePath, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
++  bool InitializeGameplay(const std::string& gamePath, RETRO::IStreamManager& streamManager, IGameInputCallback *input);
+   bool LoadGameInfo();
+   void NotifyError(GAME_ERROR error);
+   std::string GetMissingResource();
+@@ -139,16 +136,12 @@ class CGameClient : public ADDON::CAddonDll
+    */
+   //@{
+   static void cb_close_game(void* kodiInstance);
+-  static int cb_open_pixel_stream(void* kodiInstance, GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation);
+-  static int cb_open_video_stream(void* kodiInstance, GAME_VIDEO_CODEC codec);
+-  static int cb_open_pcm_stream(void* kodiInstance, GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channel_map);
+-  static int cb_open_audio_stream(void* kodiInstance, GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channel_map);
+-  static void cb_add_stream_data(void* kodiInstance, GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size);
+-  static void cb_close_stream(void* kodiInstance, GAME_STREAM_TYPE stream);
+-  static void cb_enable_hardware_rendering(void* kodiInstance, const game_hw_info* hw_info);
+-  static uintptr_t cb_hw_get_current_framebuffer(void* kodiInstance);
++  static void* cb_open_stream(void* kodiInstance, const game_stream_properties *properties);
++  static bool cb_get_stream_buffer(void* kodiInstance, void *stream, unsigned int width, unsigned int height, game_stream_buffer *buffer);
++  static void cb_add_stream_data(void* kodiInstance, void *stream, const game_stream_packet *packet);
++  static void cb_release_stream_buffer(void* kodiInstance, void *stream, game_stream_buffer *buffer);
++  static void cb_close_stream(void* kodiInstance, void *stream);
+   static game_proc_address_t cb_hw_get_proc_address(void* kodiInstance, const char* sym);
+-  static void cb_render_frame(void* kodiInstance);
+   static bool cb_input_event(void* kodiInstance, const game_input_event* event);
+   //@}
+ 
+@@ -166,8 +159,6 @@ class CGameClient : public ADDON::CAddonDll
+   std::atomic_bool      m_bIsPlaying;          // True between OpenFile() and CloseFile()
+   std::string           m_gamePath;
+   size_t                m_serializeSize;
+-  IGameAudioCallback*   m_audio;               // The audio callback passed to OpenFile()
+-  IGameVideoCallback*   m_video;               // The video callback passed to OpenFile()
+   IGameInputCallback*   m_input = nullptr;     // The input callback passed to OpenFile()
+   double                m_framerate = 0.0;     // Video frame rate (fps)
+   double                m_samplerate = 0.0;    // Audio sample rate (Hz)
+diff --git a/xbmc/games/addons/GameClientCallbacks.h b/xbmc/games/addons/GameClientCallbacks.h
+index c2fb9e94d6cc..4287e169230f 100644
+--- a/xbmc/games/addons/GameClientCallbacks.h
++++ b/xbmc/games/addons/GameClientCallbacks.h
+@@ -19,41 +19,10 @@
+  */
+ #pragma once
+ 
+-#include "cores/AudioEngine/Utils/AEChannelData.h"
+-
+-#include "libavcodec/avcodec.h"
+-#include "libavutil/pixfmt.h"
+-
+-#include <stdint.h>
+-
+-class CAEChannelInfo;
+-
+ namespace KODI
+ {
+ namespace GAME
+ {
+-  class IGameAudioCallback
+-  {
+-  public:
+-    virtual ~IGameAudioCallback() = default;
+-
+-    virtual bool OpenPCMStream(AEDataFormat format, unsigned int samplerate, const CAEChannelInfo& channelLayout) = 0;
+-    virtual bool OpenEncodedStream(AVCodecID codec, unsigned int samplerate, const CAEChannelInfo& channelLayout) = 0;
+-    virtual void AddData(const uint8_t* data, size_t size) = 0;
+-    virtual void CloseStream() = 0;
+-  };
+-
+-  class IGameVideoCallback
+-  {
+-  public:
+-    virtual ~IGameVideoCallback() = default;
+-
+-    virtual bool OpenPixelStream(AVPixelFormat pixfmt, unsigned int width, unsigned int height, unsigned int orientationDeg) = 0;
+-    virtual bool OpenEncodedStream(AVCodecID codec) = 0;
+-    virtual void AddData(const uint8_t* data, size_t size) = 0;
+-    virtual void CloseStream() = 0;
+-  };
+-
+   class IGameInputCallback
+   {
+   public:
+diff --git a/xbmc/games/addons/GameClientSubsystem.cpp b/xbmc/games/addons/GameClientSubsystem.cpp
+index a063566bc67f..5a6240c2dec2 100644
+--- a/xbmc/games/addons/GameClientSubsystem.cpp
++++ b/xbmc/games/addons/GameClientSubsystem.cpp
+@@ -23,6 +23,7 @@
+ #include "GameClientProperties.h"
+ #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
+ #include "games/addons/input/GameClientInput.h"
++#include "games/addons/streams/GameClientStreams.h"
+ 
+ using namespace KODI;
+ using namespace GAME;
+@@ -44,6 +45,7 @@ GameClientSubsystems CGameClientSubsystem::CreateSubsystems(CGameClient &gameCli
+ 
+   subsystems.Input.reset(new CGameClientInput(gameClient, gameStruct, clientAccess));
+   subsystems.AddonProperties.reset(new CGameClientProperties(gameClient, gameStruct.props));
++  subsystems.Streams.reset(new CGameClientStreams(gameClient));
+ 
+   return subsystems;
+ }
+@@ -52,6 +54,7 @@ void CGameClientSubsystem::DestroySubsystems(GameClientSubsystems &subsystems)
+ {
+   subsystems.Input.reset();
+   subsystems.AddonProperties.reset();
++  subsystems.Streams.reset();
+ }
+ 
+ CGameClientInput &CGameClientSubsystem::Input() const
+@@ -63,3 +66,8 @@ CGameClientProperties &CGameClientSubsystem::AddonProperties() const
+ {
+   return m_gameClient.AddonProperties();
+ }
++
++CGameClientStreams &CGameClientSubsystem::Streams() const
++{
++  return m_gameClient.Streams();
++}
+diff --git a/xbmc/games/addons/GameClientSubsystem.h b/xbmc/games/addons/GameClientSubsystem.h
+index dc11f0dd0aec..28978bad5501 100644
+--- a/xbmc/games/addons/GameClientSubsystem.h
++++ b/xbmc/games/addons/GameClientSubsystem.h
+@@ -31,11 +31,13 @@ namespace GAME
+   class CGameClient;
+   class CGameClientInput;
+   class CGameClientProperties;
++  class CGameClientStreams;
+ 
+   struct GameClientSubsystems
+   {
+     std::unique_ptr<CGameClientInput> Input;
+     std::unique_ptr<CGameClientProperties> AddonProperties;
++    std::unique_ptr<CGameClientStreams> Streams;
+   };
+ 
+   /*!
+@@ -73,6 +75,7 @@ namespace GAME
+     // Subsystems
+     CGameClientInput &Input() const;
+     CGameClientProperties &AddonProperties() const;
++    CGameClientStreams &Streams() const;
+ 
+     // Construction parameters
+     CGameClient &m_gameClient;
+diff --git a/xbmc/games/addons/GameClientTranslator.cpp b/xbmc/games/addons/GameClientTranslator.cpp
+index 51afd5e65ec2..b0ab3e3ef18d 100644
+--- a/xbmc/games/addons/GameClientTranslator.cpp
++++ b/xbmc/games/addons/GameClientTranslator.cpp
+@@ -59,81 +59,96 @@ const char* CGameClientTranslator::ToString(GAME_MEMORY memory)
+   return "unknown memory";
+ }
+ 
+-AVPixelFormat CGameClientTranslator::TranslatePixelFormat(GAME_PIXEL_FORMAT format)
++bool CGameClientTranslator::TranslateStreamType(GAME_STREAM_TYPE gameType, RETRO::StreamType &retroType)
+ {
+-  switch (format)
++  switch (gameType)
+   {
+-  case GAME_PIXEL_FORMAT_YUV420P:  return AV_PIX_FMT_YUV420P;
+-  case GAME_PIXEL_FORMAT_0RGB8888: return AV_PIX_FMT_0RGB32;
+-  case GAME_PIXEL_FORMAT_RGB565:   return AV_PIX_FMT_RGB565;
+-  case GAME_PIXEL_FORMAT_0RGB1555: return AV_PIX_FMT_RGB555;
++  case GAME_STREAM_AUDIO:
++    retroType = RETRO::StreamType::AUDIO;
++    return true;
++  case GAME_STREAM_VIDEO:
++    retroType = RETRO::StreamType::VIDEO;
++    return true;
++  case GAME_STREAM_SW_FRAMEBUFFER:
++    retroType = RETRO::StreamType::SW_BUFFER;
++    return true;
++  case GAME_STREAM_HW_FRAMEBUFFER:
++    retroType = RETRO::StreamType::HW_BUFFER;
++    return true;
+   default:
+     break;
+   }
+-  return AV_PIX_FMT_NONE;
++  return false;
+ }
+ 
+-AVCodecID CGameClientTranslator::TranslateVideoCodec(GAME_VIDEO_CODEC codec)
++AVPixelFormat CGameClientTranslator::TranslatePixelFormat(GAME_PIXEL_FORMAT format)
+ {
+-  switch (codec)
++  switch (format)
+   {
+-  case GAME_VIDEO_CODEC_H264: return AV_CODEC_ID_H264;
++  case GAME_PIXEL_FORMAT_0RGB8888: return AV_PIX_FMT_0RGB32;
++  case GAME_PIXEL_FORMAT_RGB565:   return AV_PIX_FMT_RGB565;
++  case GAME_PIXEL_FORMAT_0RGB1555: return AV_PIX_FMT_RGB555;
+   default:
+     break;
+   }
+-  return AV_CODEC_ID_NONE;
++  return AV_PIX_FMT_NONE;
+ }
+ 
+-AEDataFormat CGameClientTranslator::TranslatePCMFormat(GAME_PCM_FORMAT format)
++RETRO::PCMFormat CGameClientTranslator::TranslatePCMFormat(GAME_PCM_FORMAT format)
+ {
+   switch (format)
+   {
+-  case GAME_PCM_FORMAT_S16NE: return AE_FMT_S16NE;
++  case GAME_PCM_FORMAT_S16NE: return RETRO::PCMFormat::FMT_S16NE;
+   default:
+     break;
+   }
+-  return AE_FMT_INVALID;
++  return RETRO::PCMFormat::FMT_UNKNOWN;
+ }
+ 
+-AEChannel CGameClientTranslator::TranslateAudioChannel(GAME_AUDIO_CHANNEL channel)
++RETRO::AudioChannel CGameClientTranslator::TranslateAudioChannel(GAME_AUDIO_CHANNEL channel)
+ {
+   switch (channel)
+   {
+-  case GAME_CH_FL:   return AE_CH_FL;
+-  case GAME_CH_FR:   return AE_CH_FR;
+-  case GAME_CH_FC:   return AE_CH_FC;
+-  case GAME_CH_LFE:  return AE_CH_LFE;
+-  case GAME_CH_BL:   return AE_CH_BL;
+-  case GAME_CH_BR:   return AE_CH_BR;
+-  case GAME_CH_FLOC: return AE_CH_FLOC;
+-  case GAME_CH_FROC: return AE_CH_FROC;
+-  case GAME_CH_BC:   return AE_CH_BC;
+-  case GAME_CH_SL:   return AE_CH_SL;
+-  case GAME_CH_SR:   return AE_CH_SR;
+-  case GAME_CH_TFL:  return AE_CH_TFL;
+-  case GAME_CH_TFR:  return AE_CH_TFR;
+-  case GAME_CH_TFC:  return AE_CH_TFC;
+-  case GAME_CH_TC:   return AE_CH_TC;
+-  case GAME_CH_TBL:  return AE_CH_TBL;
+-  case GAME_CH_TBR:  return AE_CH_TBR;
+-  case GAME_CH_TBC:  return AE_CH_TBC;
+-  case GAME_CH_BLOC: return AE_CH_BLOC;
+-  case GAME_CH_BROC: return AE_CH_BROC;
++  case GAME_CH_FL:   return RETRO::AudioChannel::CH_FL;
++  case GAME_CH_FR:   return RETRO::AudioChannel::CH_FR;
++  case GAME_CH_FC:   return RETRO::AudioChannel::CH_FC;
++  case GAME_CH_LFE:  return RETRO::AudioChannel::CH_LFE;
++  case GAME_CH_BL:   return RETRO::AudioChannel::CH_BL;
++  case GAME_CH_BR:   return RETRO::AudioChannel::CH_BR;
++  case GAME_CH_FLOC: return RETRO::AudioChannel::CH_FLOC;
++  case GAME_CH_FROC: return RETRO::AudioChannel::CH_FROC;
++  case GAME_CH_BC:   return RETRO::AudioChannel::CH_BC;
++  case GAME_CH_SL:   return RETRO::AudioChannel::CH_SL;
++  case GAME_CH_SR:   return RETRO::AudioChannel::CH_SR;
++  case GAME_CH_TFL:  return RETRO::AudioChannel::CH_TFL;
++  case GAME_CH_TFR:  return RETRO::AudioChannel::CH_TFR;
++  case GAME_CH_TFC:  return RETRO::AudioChannel::CH_TFC;
++  case GAME_CH_TC:   return RETRO::AudioChannel::CH_TC;
++  case GAME_CH_TBL:  return RETRO::AudioChannel::CH_TBL;
++  case GAME_CH_TBR:  return RETRO::AudioChannel::CH_TBR;
++  case GAME_CH_TBC:  return RETRO::AudioChannel::CH_TBC;
++  case GAME_CH_BLOC: return RETRO::AudioChannel::CH_BLOC;
++  case GAME_CH_BROC: return RETRO::AudioChannel::CH_BROC;
+   default:
+     break;
+   }
+-  return AE_CH_NULL;
++  return RETRO::AudioChannel::CH_NULL;
+ }
+ 
+-AVCodecID CGameClientTranslator::TranslateAudioCodec(GAME_AUDIO_CODEC codec)
++RETRO::VideoRotation CGameClientTranslator::TranslateRotation(GAME_VIDEO_ROTATION rotation)
+ {
+-  switch (codec)
++  switch (rotation)
+   {
+-  case GAME_AUDIO_CODEC_OPUS: return AV_CODEC_ID_OPUS;
++  case GAME_VIDEO_ROTATION_90_CCW:
++    return RETRO::VideoRotation::ROTATION_90_CCW;
++  case GAME_VIDEO_ROTATION_180_CCW:
++    return RETRO::VideoRotation::ROTATION_180_CCW;
++  case GAME_VIDEO_ROTATION_270_CCW:
++    return RETRO::VideoRotation::ROTATION_270_CCW;
+   default:
+     break;
+   }
+-  return AV_CODEC_ID_NONE;
++  return RETRO::VideoRotation::ROTATION_0;
+ }
+ 
+ GAME_KEY_MOD CGameClientTranslator::GetModifiers(KEYBOARD::Modifier modifier)
+diff --git a/xbmc/games/addons/GameClientTranslator.h b/xbmc/games/addons/GameClientTranslator.h
+index 154089f9cd5f..f47eaaa213f1 100644
+--- a/xbmc/games/addons/GameClientTranslator.h
++++ b/xbmc/games/addons/GameClientTranslator.h
+@@ -20,12 +20,13 @@
+ #pragma once
+ 
+ #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
+-#include "cores/AudioEngine/Utils/AEChannelData.h"
++#include "cores/RetroPlayer/streams/RetroPlayerStreamTypes.h"
+ #include "games/controllers/ControllerTypes.h"
+ #include "input/keyboard/KeyboardTypes.h"
+ 
+-#include "libavcodec/avcodec.h"
++extern "C" {
+ #include "libavutil/pixfmt.h"
++}
+ 
+ namespace KODI
+ {
+@@ -57,39 +58,40 @@ namespace GAME
+     static const char* ToString(GAME_MEMORY error);
+ 
+     /*!
+-     * \brief Translate pixel format (Game API to FFMPEG).
+-     * \param format The pixel format to translate.
+-     * \return Translated pixel format.
++     * \brief Translate stream type (Game API to RetroPlayer).
++     * \param gameType The stream type to translate.
++     * \param[out] retroType The translated stream type.
++     * \return True if the Game API type was translated to a valid RetroPlayer type
+      */
+-    static AVPixelFormat TranslatePixelFormat(GAME_PIXEL_FORMAT format);
++    static bool TranslateStreamType(GAME_STREAM_TYPE gameType, RETRO::StreamType &retroType);
+ 
+     /*!
+-     * \brief Translate video codec (Game API to FFMPEG).
+-     * \param format The video codec to translate.
+-     * \return Translated video codec format.
++     * \brief Translate pixel format (Game API to RetroPlayer/FFMPEG).
++     * \param format The pixel format to translate.
++     * \return Translated pixel format.
+      */
+-    static AVCodecID TranslateVideoCodec(GAME_VIDEO_CODEC codec);
++    static AVPixelFormat TranslatePixelFormat(GAME_PIXEL_FORMAT format);
+ 
+     /*!
+-     * \brief Translate audio PCM format (Game API to AudioEngine).
++     * \brief Translate audio PCM format (Game API to RetroPlayer).
+      * \param format The audio PCM format to translate.
+      * \return Translated audio PCM format.
+      */
+-    static AEDataFormat TranslatePCMFormat(GAME_PCM_FORMAT format);
++    static RETRO::PCMFormat TranslatePCMFormat(GAME_PCM_FORMAT format);
+ 
+     /*!
+-     * \brief Translate audio channels (Game API to AudioEngine).
++     * \brief Translate audio channels (Game API to RetroPlayer).
+      * \param format The audio channels to translate.
+      * \return Translated audio channels.
+      */
+-    static AEChannel TranslateAudioChannel(GAME_AUDIO_CHANNEL channel);
++    static RETRO::AudioChannel TranslateAudioChannel(GAME_AUDIO_CHANNEL channel);
+ 
+     /*!
+-     * \brief Translate audio codec (Game API to FFMPEG).
+-     * \param format The audio codec to translate.
+-     * \return Translated audio codec format.
++     * \brief Translate video rotation (Game API to RetroPlayer).
++     * \param rotation The video rotation to translate.
++     * \return Translated video rotation.
+      */
+-    static AVCodecID TranslateAudioCodec(GAME_AUDIO_CODEC codec);
++    static RETRO::VideoRotation TranslateRotation(GAME_VIDEO_ROTATION rotation);
+ 
+     /*!
+      * \brief Translate key modifiers (Kodi to Game API).
+diff --git a/xbmc/games/addons/streams/CMakeLists.txt b/xbmc/games/addons/streams/CMakeLists.txt
+new file mode 100644
+index 000000000000..bd821a14b7c0
+--- /dev/null
++++ b/xbmc/games/addons/streams/CMakeLists.txt
+@@ -0,0 +1,12 @@
++set(SOURCES GameClientStreamAudio.cpp
++            GameClientStreams.cpp
++            GameClientStreamVideo.cpp
++)
++
++set(HEADERS GameClientStreamAudio.h
++            GameClientStreams.h
++            GameClientStreamVideo.h
++            IGameClientStream.h
++)
++
++core_add_library(game_addon_streams)
+diff --git a/xbmc/games/addons/streams/GameClientStreamAudio.cpp b/xbmc/games/addons/streams/GameClientStreamAudio.cpp
+new file mode 100644
+index 000000000000..d227508ff397
+--- /dev/null
++++ b/xbmc/games/addons/streams/GameClientStreamAudio.cpp
+@@ -0,0 +1,119 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "GameClientStreamAudio.h"
++#include "cores/RetroPlayer/streams/RetroPlayerAudio.h"
++#include "games/addons/GameClientTranslator.h"
++#include "utils/log.h"
++
++using namespace KODI;
++using namespace GAME;
++
++CGameClientStreamAudio::CGameClientStreamAudio(double sampleRate) :
++  m_sampleRate(sampleRate)
++{
++}
++
++bool CGameClientStreamAudio::OpenStream(RETRO::IRetroPlayerStream* stream, const game_stream_properties& properties)
++{
++  RETRO::CRetroPlayerAudio* audioStream = dynamic_cast<RETRO::CRetroPlayerAudio*>(stream);
++  if (audioStream == nullptr)
++  {
++    CLog::Log(LOGERROR, "GAME: RetroPlayer stream is not an audio stream");
++    return false;
++  }
++
++  std::unique_ptr<RETRO::AudioStreamProperties> audioProperties(TranslateProperties(properties.audio, m_sampleRate));
++  if (audioProperties)
++  {
++    if (audioStream->OpenStream(reinterpret_cast<const RETRO::StreamProperties&>(*audioProperties)))
++      m_stream = stream;
++  }
++
++  return m_stream != nullptr;
++}
++
++void CGameClientStreamAudio::CloseStream()
++{
++  m_stream->CloseStream();
++  m_stream = nullptr;
++}
++
++void CGameClientStreamAudio::AddData(const game_stream_packet &packet)
++{
++  if (packet.type != GAME_STREAM_AUDIO)
++    return;
++
++  if (m_stream != nullptr)
++  {
++    const game_stream_audio_packet &audio = packet.audio;
++
++    RETRO::AudioStreamPacket audioPacket{
++      audio.data,
++      audio.size
++    };
++
++    m_stream->AddStreamData(reinterpret_cast<RETRO::StreamPacket&>(audioPacket));
++  }
++}
++
++RETRO::AudioStreamProperties* CGameClientStreamAudio::TranslateProperties(const game_stream_audio_properties &properties, double sampleRate)
++{
++  const RETRO::PCMFormat pcmFormat = CGameClientTranslator::TranslatePCMFormat(properties.format);
++  if (pcmFormat == RETRO::PCMFormat::FMT_UNKNOWN)
++  {
++    CLog::Log(LOGERROR, "GAME: Unknown PCM format: %d", static_cast<int>(properties.format));
++    return nullptr;
++  }
++
++  RETRO::AudioChannelMap channelMap = { { RETRO::AudioChannel::CH_NULL } };
++  unsigned int i = 0;
++  if (properties.channel_map != nullptr)
++  {
++    for (const GAME_AUDIO_CHANNEL* channelPtr = properties.channel_map;
++      *channelPtr != GAME_CH_NULL;
++      channelPtr++)
++    {
++      RETRO::AudioChannel channel = CGameClientTranslator::TranslateAudioChannel(*channelPtr);
++      if (channel == RETRO::AudioChannel::CH_NULL)
++      {
++        CLog::Log(LOGERROR, "GAME: Unknown channel ID: %d", static_cast<int>(*channelPtr));
++        return nullptr;
++      }
++
++      channelMap[i++] = channel;
++      if (i + 1 >= channelMap.size())
++        break;
++    }
++  }
++  channelMap[i] = RETRO::AudioChannel::CH_NULL;
++
++  if (channelMap[0] == RETRO::AudioChannel::CH_NULL)
++  {
++    CLog::Log(LOGERROR, "GAME: Empty channel layout");
++    return nullptr;
++  }
++
++  return new RETRO::AudioStreamProperties{
++    pcmFormat,
++    sampleRate,
++    channelMap
++  };
++}
+diff --git a/xbmc/games/addons/streams/GameClientStreamAudio.h b/xbmc/games/addons/streams/GameClientStreamAudio.h
+new file mode 100644
+index 000000000000..0b4725319c87
+--- /dev/null
++++ b/xbmc/games/addons/streams/GameClientStreamAudio.h
+@@ -0,0 +1,62 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "IGameClientStream.h"
++#include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
++
++#include <vector>
++
++namespace KODI
++{
++namespace RETRO
++{
++  class IRetroPlayerStream;
++  struct AudioStreamProperties;
++}
++
++namespace GAME
++{
++
++class CGameClientStreamAudio : public IGameClientStream
++{
++public:
++  CGameClientStreamAudio(double sampleRate);
++  ~CGameClientStreamAudio() override = default;
++
++  // Implementation of IGameClientStream
++  bool OpenStream(RETRO::IRetroPlayerStream* stream,
++                  const game_stream_properties& properties) override;
++  void CloseStream() override;
++  void AddData(const game_stream_packet &packet) override;
++
++private:
++  // Utility functions
++  static RETRO::AudioStreamProperties* TranslateProperties(const game_stream_audio_properties &properties, double sampleRate);
++
++  // Construction parameters
++  double m_sampleRate;
++
++  // Stream parameters
++  RETRO::IRetroPlayerStream* m_stream;
++};
++
++} // namespace GAME
++} // namespace KODI
+diff --git a/xbmc/games/addons/streams/GameClientStreamVideo.cpp b/xbmc/games/addons/streams/GameClientStreamVideo.cpp
+new file mode 100644
+index 000000000000..7b829c378f1b
+--- /dev/null
++++ b/xbmc/games/addons/streams/GameClientStreamVideo.cpp
+@@ -0,0 +1,122 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "GameClientStreamVideo.h"
++#include "cores/RetroPlayer/streams/RetroPlayerVideo.h"
++#include "games/addons/GameClientTranslator.h"
++#include "utils/log.h"
++
++using namespace KODI;
++using namespace GAME;
++
++bool CGameClientStreamVideo::OpenStream(RETRO::IRetroPlayerStream* stream, const game_stream_properties& properties)
++{
++  RETRO::CRetroPlayerVideo* videoStream = dynamic_cast<RETRO::CRetroPlayerVideo*>(stream);
++  if (videoStream == nullptr)
++  {
++    CLog::Log(LOGERROR, "GAME: RetroPlayer stream is not a video stream");
++    return false;
++  }
++
++  std::unique_ptr<RETRO::VideoStreamProperties> videoProperties(TranslateProperties(properties.video));
++  if (videoProperties)
++  {
++    if (videoStream->OpenStream(reinterpret_cast<const RETRO::StreamProperties&>(*videoProperties)))
++      m_stream = stream;
++  }
++
++  return m_stream != nullptr;
++}
++
++void CGameClientStreamVideo::CloseStream()
++{
++  m_stream->CloseStream();
++  m_stream = nullptr;
++}
++
++void CGameClientStreamVideo::AddData(const game_stream_packet& packet)
++{
++  if (packet.type != GAME_STREAM_VIDEO)
++    return;
++
++  if (m_stream != nullptr)
++  {
++    const game_stream_video_packet& video = packet.video;
++
++    RETRO::VideoRotation rotation = CGameClientTranslator::TranslateRotation(video.rotation);
++
++    RETRO::VideoStreamPacket videoPacket{
++      video.width,
++      video.height,
++      rotation,
++      video.data,
++      video.size,
++    };
++
++    m_stream->AddStreamData(reinterpret_cast<const RETRO::StreamPacket&>(videoPacket));
++  }
++}
++
++RETRO::VideoStreamProperties* CGameClientStreamVideo::TranslateProperties(const game_stream_video_properties &properties)
++{
++  const AVPixelFormat pixelFormat = CGameClientTranslator::TranslatePixelFormat(properties.format);
++  if (pixelFormat == AV_PIX_FMT_NONE)
++  {
++    CLog::Log(LOGERROR, "GAME: Unknown pixel format: %d", properties.format);
++    return nullptr;
++  }
++
++  const unsigned int nominalWidth = properties.nominal_width;
++  const unsigned int nominalHeight = properties.nominal_height;
++  if (nominalWidth == 0 || nominalHeight == 0)
++  {
++    CLog::Log(LOGERROR, "GAME: Invalid nominal dimensions: %ux%u", nominalWidth, nominalHeight);
++    return nullptr;
++  }
++
++  const unsigned int maxWidth = properties.max_width;
++  const unsigned int maxHeight = properties.max_height;
++  if (maxWidth == 0 || maxHeight == 0)
++  {
++    CLog::Log(LOGERROR, "GAME: Invalid max dimensions: %ux%u", maxWidth, maxHeight);
++    return nullptr;
++  }
++
++  if (nominalWidth > maxWidth || nominalHeight > maxHeight)
++    CLog::Log(LOGERROR, "GAME: Nominal dimensions (%ux%u) bigger than max dimensions (%ux%u)", nominalWidth, nominalHeight, maxWidth, maxHeight);
++
++  float pixelAspectRatio;
++
++  // Game API: If aspect_ratio is <= 0.0, an aspect ratio of
++  // (nominal_width / nominal_height) is assumed
++  if (properties.aspect_ratio <= 0.0)
++    pixelAspectRatio = 1.0f;
++  else
++    pixelAspectRatio = properties.aspect_ratio * nominalHeight / nominalWidth;
++
++  return new RETRO::VideoStreamProperties{
++    pixelFormat,
++    nominalWidth,
++    nominalHeight,
++    maxWidth,
++    maxHeight,
++    pixelAspectRatio
++  };
++}
+diff --git a/xbmc/games/addons/streams/GameClientStreamVideo.h b/xbmc/games/addons/streams/GameClientStreamVideo.h
+new file mode 100644
+index 000000000000..a5aa4b7e1ac8
+--- /dev/null
++++ b/xbmc/games/addons/streams/GameClientStreamVideo.h
+@@ -0,0 +1,58 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "IGameClientStream.h"
++
++struct game_stream_video_properties;
++
++namespace KODI
++{
++namespace RETRO
++{
++  class IRetroPlayerStream;
++  struct VideoStreamProperties;
++}
++
++namespace GAME
++{
++
++class CGameClientStreamVideo : public IGameClientStream
++{
++public:
++  CGameClientStreamVideo() = default;
++  ~CGameClientStreamVideo() override = default;
++
++  // Implementation of IGameClientStream
++  bool OpenStream(RETRO::IRetroPlayerStream* stream,
++                  const game_stream_properties& properties) override;
++  void CloseStream() override;
++  void AddData(const game_stream_packet& packet) override;
++
++private:
++  // Utility functions
++  static RETRO::VideoStreamProperties* TranslateProperties(const game_stream_video_properties &properties);
++
++  // Stream parameters
++  RETRO::IRetroPlayerStream* m_stream;
++};
++
++} // namespace GAME
++} // namespace KODI
+diff --git a/xbmc/games/addons/streams/GameClientStreams.cpp b/xbmc/games/addons/streams/GameClientStreams.cpp
+new file mode 100644
+index 000000000000..915e579b8b1c
+--- /dev/null
++++ b/xbmc/games/addons/streams/GameClientStreams.cpp
+@@ -0,0 +1,119 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include "GameClientStreams.h"
++#include "GameClientStreamAudio.h"
++#include "GameClientStreamVideo.h"
++#include "cores/RetroPlayer/streams/IRetroPlayerStream.h"
++#include "cores/RetroPlayer/streams/IStreamManager.h"
++#include "cores/RetroPlayer/streams/RetroPlayerStreamTypes.h"
++#include "games/addons/GameClient.h"
++#include "games/addons/GameClientTranslator.h"
++#include "utils/log.h"
++
++#include <memory>
++
++using namespace KODI;
++using namespace GAME;
++
++CGameClientStreams::CGameClientStreams(CGameClient &gameClient) :
++  m_gameClient(gameClient)
++{
++}
++
++void CGameClientStreams::Initialize(RETRO::IStreamManager& streamManager)
++{
++  m_streamManager = &streamManager;
++}
++
++void CGameClientStreams::Deinitialize()
++{
++  m_streamManager = nullptr;
++}
++
++IGameClientStream *CGameClientStreams::OpenStream(const game_stream_properties &properties)
++{
++  if (m_streamManager == nullptr)
++    return nullptr;
++
++  RETRO::StreamType retroStreamType;
++  if (!CGameClientTranslator::TranslateStreamType(properties.type, retroStreamType))
++  {
++    CLog::Log(LOGERROR, "GAME: Invalid stream type: %d", static_cast<int>(properties.type));
++    return nullptr;
++  }
++
++  std::unique_ptr<IGameClientStream> gameStream = CreateStream(properties.type);
++  if (!gameStream)
++  {
++    CLog::Log(LOGERROR, "GAME: No stream implementation for type: %d", static_cast<int>(properties.type));
++    return nullptr;
++  }
++
++  RETRO::StreamPtr retroStream = m_streamManager->CreateStream(retroStreamType);
++  if (!retroStream)
++  {
++    CLog::Log(LOGERROR, "GAME:  Invalid RetroPlayer stream type: %$d", static_cast<int>(retroStreamType));
++    return nullptr;
++  }
++
++  if (!gameStream->OpenStream(retroStream.get(), properties))
++  {
++    CLog::Log(LOGERROR, "GAME: Failed to open audio stream");
++    return nullptr;
++  }
++
++  m_streams[gameStream.get()] = std::move(retroStream);
++
++  return gameStream.release();
++}
++
++void CGameClientStreams::CloseStream(IGameClientStream *stream)
++{
++  if (stream != nullptr)
++  {
++    std::unique_ptr<IGameClientStream> streamHolder(stream);
++    m_streamManager->CloseStream(std::move(m_streams[stream]));
++    m_streams.erase(stream);
++  }
++}
++
++std::unique_ptr<IGameClientStream> CGameClientStreams::CreateStream(GAME_STREAM_TYPE streamType) const
++{
++  std::unique_ptr<IGameClientStream> gameStream;
++
++  switch (streamType)
++  {
++  case GAME_STREAM_AUDIO:
++  {
++    gameStream.reset(new CGameClientStreamAudio(m_gameClient.GetSampleRate()));
++    break;
++  }
++  case GAME_STREAM_VIDEO:
++  {
++    gameStream.reset(new CGameClientStreamVideo);
++    break;
++  }
++  default:
++    break;
++  }
++
++  return gameStream;
++}
+diff --git a/xbmc/games/addons/streams/GameClientStreams.h b/xbmc/games/addons/streams/GameClientStreams.h
+new file mode 100644
+index 000000000000..b0a8f819f184
+--- /dev/null
++++ b/xbmc/games/addons/streams/GameClientStreams.h
+@@ -0,0 +1,66 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++#include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
++#include "cores/RetroPlayer/streams/RetroPlayerStreamTypes.h"
++
++#include <map>
++
++namespace KODI
++{
++namespace RETRO
++{
++  class IStreamManager;
++}
++
++namespace GAME
++{
++
++class CGameClient;
++class IGameClientStream;
++
++class CGameClientStreams
++{
++public:
++  CGameClientStreams(CGameClient &gameClient);
++
++  void Initialize(RETRO::IStreamManager& streamManager);
++  void Deinitialize();
++
++  IGameClientStream* OpenStream(const game_stream_properties &properties);
++  void CloseStream(IGameClientStream* stream);
++
++private:
++  // Utility functions
++  std::unique_ptr<IGameClientStream> CreateStream(GAME_STREAM_TYPE streamType) const;
++
++  // Construction parameters
++  CGameClient& m_gameClient;
++
++  // Initialization parameters
++  RETRO::IStreamManager* m_streamManager = nullptr;
++
++  // Stream parameters
++  std::map<IGameClientStream*, RETRO::StreamPtr> m_streams;
++};
++
++} // namespace GAME
++} // namespace KODI
+diff --git a/xbmc/games/addons/streams/IGameClientStream.h b/xbmc/games/addons/streams/IGameClientStream.h
+new file mode 100644
+index 000000000000..1f5bc6771c78
+--- /dev/null
++++ b/xbmc/games/addons/streams/IGameClientStream.h
+@@ -0,0 +1,85 @@
++/*
++ *      Copyright (C) 2018 Team Kodi
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this Program; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++#pragma once
++
++struct game_stream_buffer;
++struct game_stream_packet;
++struct game_stream_properties;
++
++namespace KODI
++{
++namespace RETRO
++{
++  class IRetroPlayerStream;
++}
++
++namespace GAME
++{
++
++class IGameClientStream
++{
++public:
++  virtual ~IGameClientStream() = default;
++
++  /*!
++   * \brief Open the stream
++   *
++   * \param stream The RetroPlayer resource to take ownership of
++   *
++   * \return True if the stream was opened, false otherwise
++   */
++  virtual bool OpenStream(RETRO::IRetroPlayerStream* stream,
++                          const game_stream_properties& properties) = 0;
++
++  /*!
++   * \brief Release the RetroPlayer stream resource
++   */
++  virtual void CloseStream() = 0;
++
++  /*!
++   * \brief Get a buffer for zero-copy stream data
++   *
++   * \param width The framebuffer width, or 0 for no width specified
++   * \param height The framebuffer height, or 0 for no height specified
++   * \param[out] buffer The buffer, or unmodified if false is returned
++   *
++   * If this returns true, buffer must be freed using ReleaseBuffer().
++   *
++   * \return True if buffer was set, false otherwise
++   */
++  virtual bool GetBuffer(unsigned int width, unsigned int height, game_stream_buffer& buffer) { return false; }
++
++  /*!
++   * \brief Free an allocated buffer
++   *
++   * \param buffer The buffer returned from GetStreamBuffer()
++   */
++  virtual void ReleaseBuffer(game_stream_buffer& buffer) { }
++
++  /*!
++   * \brief Add a data packet to a stream
++   *
++   * \param packet The data packet
++   */
++  virtual void AddData(const game_stream_packet& packet) = 0;
++};
++
++} // namespace GAME
++} // namespace KODI
