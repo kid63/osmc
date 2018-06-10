@@ -13,7 +13,7 @@ API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/87ca87c369d58d59fedec7bcb7c3e4f645bbabef.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/04ff640850dcc7b0291e8fa56392daf61308d3fd.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
