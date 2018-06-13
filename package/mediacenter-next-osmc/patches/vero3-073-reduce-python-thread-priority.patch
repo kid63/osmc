@@ -12,9 +12,9 @@ index fcdd063..16f0c89 100644
 --- a/xbmc/interfaces/generic/LanguageInvokerThread.cpp
 +++ b/xbmc/interfaces/generic/LanguageInvokerThread.cpp
 @@ -50,6 +50,9 @@ bool CLanguageInvokerThread::execute(const std::string &script, const std::vecto
-   m_args = arguments;
+
+ //Todo wait until running
  
-   Create();
 +  /* low prio */
 +  SetPriority(GetPriority()-1);
 +
