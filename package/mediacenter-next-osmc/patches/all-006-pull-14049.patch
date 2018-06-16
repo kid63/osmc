@@ -1,0 +1,173 @@
+From 9321025613acba426f6c580e4d59d0525f60c845 Mon Sep 17 00:00:00 2001
+From: Wolfgang Haupt <haupt.wolfgang@gmail.com>
+Date: Thu, 14 Jun 2018 23:00:56 +0200
+Subject: [PATCH] Revert "utils/IXmlDeserializable: drop useless interface"
+
+This reverts commit f8217890e24de9db7a95825681de0efc66aa7872.
+---
+ xbmc/settings/lib/SettingConditions.h |  2 +-
+ xbmc/settings/lib/SettingDependency.h |  6 +++---
+ xbmc/utils/BooleanLogic.h             | 14 +++++++-------
+ xbmc/utils/CMakeLists.txt             |  1 +
+ xbmc/utils/IXmlDeserializable.h       | 31 +++++++++++++++++++++++++++++++
+ 5 files changed, 43 insertions(+), 11 deletions(-)
+ create mode 100644 xbmc/utils/IXmlDeserializable.h
+
+diff --git a/xbmc/settings/lib/SettingConditions.h b/xbmc/settings/lib/SettingConditions.h
+index 35f5491861ed..2b9a14b7429a 100644
+--- a/xbmc/settings/lib/SettingConditions.h
++++ b/xbmc/settings/lib/SettingConditions.h
+@@ -55,7 +55,7 @@ class CSettingConditionItem : public CBooleanLogicValue, public ISettingConditio
+   { }
+   ~CSettingConditionItem() override = default;
+ 
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+   const char* GetTag() const override { return SETTING_XML_ELM_CONDITION; }
+   bool Check() const override;
+ 
+diff --git a/xbmc/settings/lib/SettingDependency.h b/xbmc/settings/lib/SettingDependency.h
+index 9b5dc27601f8..6969708606b6 100644
+--- a/xbmc/settings/lib/SettingDependency.h
++++ b/xbmc/settings/lib/SettingDependency.h
+@@ -60,7 +60,7 @@ class CSettingDependencyCondition : public CSettingConditionItem
+                               CSettingsManager *settingsManager = nullptr);
+   ~CSettingDependencyCondition() override = default;
+ 
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+   bool Check() const override;
+ 
+   const std::string& GetName() const { return m_name; }
+@@ -94,7 +94,7 @@ class CSettingDependencyConditionCombination : public CSettingConditionCombinati
+   }
+   ~CSettingDependencyConditionCombination() override = default;
+ 
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+ 
+   const std::set<std::string>& GetSettings() const { return m_settings; }
+ 
+@@ -115,7 +115,7 @@ class CSettingDependency : public CSettingCondition
+   CSettingDependency(SettingDependencyType type, CSettingsManager *settingsManager = nullptr);
+   ~CSettingDependency() override = default;
+ 
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+ 
+   SettingDependencyType GetType() const { return m_type; }
+   std::set<std::string> GetSettings() const;
+diff --git a/xbmc/utils/BooleanLogic.h b/xbmc/utils/BooleanLogic.h
+index 5f348638d2ad..6b7be480cc66 100644
+--- a/xbmc/utils/BooleanLogic.h
++++ b/xbmc/utils/BooleanLogic.h
+@@ -25,14 +25,14 @@
+ 
+ #include <memory>
+ 
+-class TiXmlNode;
++#include "utils/IXmlDeserializable.h"
+ 
+ typedef enum {
+   BooleanLogicOperationOr = 0,
+   BooleanLogicOperationAnd
+ } BooleanLogicOperation;
+ 
+-class CBooleanLogicValue
++class CBooleanLogicValue : public IXmlDeserializable
+ {
+ public:
+   CBooleanLogicValue(const std::string &value = "", bool negated = false)
+@@ -40,7 +40,7 @@ class CBooleanLogicValue
+   { }
+   virtual ~CBooleanLogicValue() = default;
+ 
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+ 
+   virtual const std::string& GetValue() const { return m_value; }
+   virtual bool IsNegated() const { return m_negated; }
+@@ -61,7 +61,7 @@ class CBooleanLogicOperation;
+ typedef std::shared_ptr<CBooleanLogicOperation> CBooleanLogicOperationPtr;
+ typedef std::vector<CBooleanLogicOperationPtr> CBooleanLogicOperations;
+ 
+-class CBooleanLogicOperation
++class CBooleanLogicOperation : public IXmlDeserializable
+ {
+ public:
+   explicit CBooleanLogicOperation(BooleanLogicOperation op = BooleanLogicOperationAnd)
+@@ -69,7 +69,7 @@ class CBooleanLogicOperation
+   { }
+   virtual ~CBooleanLogicOperation() = default;
+ 
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+ 
+   virtual BooleanLogicOperation GetOperation() const { return m_operation; }
+   virtual const CBooleanLogicOperations& GetOperations() const { return m_operations; }
+@@ -86,14 +86,14 @@ class CBooleanLogicOperation
+   CBooleanLogicValues m_values;
+ };
+ 
+-class CBooleanLogic
++class CBooleanLogic : public IXmlDeserializable
+ {
+ protected:
+   /* make sure nobody deletes a pointer to this class */
+   ~CBooleanLogic() = default;
+ 
+ public:
+-  bool Deserialize(const TiXmlNode *node);
++  bool Deserialize(const TiXmlNode *node) override;
+ 
+   const CBooleanLogicOperationPtr& Get() const { return m_operation; }
+   CBooleanLogicOperationPtr Get() { return m_operation; }
+diff --git a/xbmc/utils/CMakeLists.txt b/xbmc/utils/CMakeLists.txt
+index da1642cc8176..2ccc9675a53e 100644
+--- a/xbmc/utils/CMakeLists.txt
++++ b/xbmc/utils/CMakeLists.txt
+@@ -114,6 +114,7 @@ set(HEADERS ActorProtocol.h
+             IRssObserver.h
+             ISerializable.h
+             ISortable.h
++            IXmlDeserializable.h
+             Job.h
+             JobManager.h
+             JSONVariantParser.h
+diff --git a/xbmc/utils/IXmlDeserializable.h b/xbmc/utils/IXmlDeserializable.h
+new file mode 100644
+index 000000000000..1ff118df5272
+--- /dev/null
++++ b/xbmc/utils/IXmlDeserializable.h
+@@ -0,0 +1,31 @@
++/*
++ *      Copyright (C) 2012-2013 Team XBMC
++ *      http://kodi.tv
++ *
++ *  This Program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2, or (at your option)
++ *  any later version.
++ *
++ *  This Program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with XBMC; see the file COPYING.  If not, see
++ *  <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#pragma once
++
++class TiXmlNode;
++
++class IXmlDeserializable
++{
++public:
++  virtual ~IXmlDeserializable() = default;
++
++  virtual bool Deserialize(const TiXmlNode *node) = 0;
++};
