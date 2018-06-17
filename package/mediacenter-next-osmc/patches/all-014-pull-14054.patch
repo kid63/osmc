@@ -1,0 +1,75 @@
+From 2e35091d50bfcdf92e277ee7a8a1eec3ce558160 Mon Sep 17 00:00:00 2001
+From: Wolfgang Haupt <haupt.wolfgang@gmail.com>
+Date: Fri, 15 Jun 2018 11:25:32 +0200
+Subject: [PATCH 1/2] Playlists: Remove dead code
+
+GetDynPath already returns m_strPath if m_strDynPath is empty.
+No need for the caller to implement the fallback again.
+---
+ xbmc/playlists/PlayListFactory.cpp | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/xbmc/playlists/PlayListFactory.cpp b/xbmc/playlists/PlayListFactory.cpp
+index 58a1f866f6e3..fc9d49654f06 100644
+--- a/xbmc/playlists/PlayListFactory.cpp
++++ b/xbmc/playlists/PlayListFactory.cpp
+@@ -73,8 +73,6 @@ CPlayList* CPlayListFactory::Create(const CFileItem& item)
+   }
+ 
+   std::string path = item.GetDynPath();
+-  if (path.empty())
+-    path = item.GetPath();
+ 
+   std::string extension = URIUtils::GetExtension(path);
+   StringUtils::ToLower(extension);
+
+From 4a1ab7c5894fc94111517202d6d50da4d0442b33 Mon Sep 17 00:00:00 2001
+From: Wolfgang Haupt <haupt.wolfgang@gmail.com>
+Date: Fri, 15 Jun 2018 11:27:31 +0200
+Subject: [PATCH 2/2] FileItem: determine mimetype based on DynPath
+
+Since commit 22b1e1e fileitems within playlists
+hold the filename of the playlist in m_strPath.
+Therefore we need to ask m_strDynPath for the mimetime, otherwise
+we end up trying to expand the item as playlist.
+
+For a live http video stream we read endless amount of data
+and add garbage to a playlist which is none.
+---
+ xbmc/FileItem.cpp | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/xbmc/FileItem.cpp b/xbmc/FileItem.cpp
+index 9d5f44dcbd60..b259d8ddebe1 100644
+--- a/xbmc/FileItem.cpp
++++ b/xbmc/FileItem.cpp
+@@ -1456,9 +1456,9 @@ void CFileItem::FillInMimeType(bool lookup /*= true*/)
+       m_mimetype = "x-directory/normal";
+     else if( m_pvrChannelInfoTag )
+       m_mimetype = m_pvrChannelInfoTag->InputFormat();
+-    else if( StringUtils::StartsWithNoCase(m_strPath, "shout://")
+-          || StringUtils::StartsWithNoCase(m_strPath, "http://")
+-          || StringUtils::StartsWithNoCase(m_strPath, "https://"))
++    else if( StringUtils::StartsWithNoCase(GetDynPath(), "shout://")
++          || StringUtils::StartsWithNoCase(GetDynPath(), "http://")
++          || StringUtils::StartsWithNoCase(GetDynPath(), "https://"))
+     {
+       // If lookup is false, bail out early to leave mime type empty
+       if (!lookup)
+@@ -1488,8 +1488,14 @@ void CFileItem::FillInMimeType(bool lookup /*= true*/)
+   }
+ 
+   // change protocol to mms for the following mime-type.  Allows us to create proper FileMMS.
+-  if( StringUtils::StartsWithNoCase(m_mimetype, "application/vnd.ms.wms-hdr.asfv1") || StringUtils::StartsWithNoCase(m_mimetype, "application/x-mms-framed") )
+-    StringUtils::Replace(m_strPath, "http:", "mms:");
++  if(StringUtils::StartsWithNoCase(m_mimetype, "application/vnd.ms.wms-hdr.asfv1") || 
++     StringUtils::StartsWithNoCase(m_mimetype, "application/x-mms-framed"))
++  {
++    if (m_strDynPath.empty())
++      m_strDynPath = m_strPath;
++
++    StringUtils::Replace(m_strDynPath, "http:", "mms:");
++  }
+ }
+ 
+ void CFileItem::SetMimeTypeForInternetFile()
