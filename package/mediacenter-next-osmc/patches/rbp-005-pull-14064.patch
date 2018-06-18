@@ -16,7 +16,7 @@ index 067199d88059..e721db639fff 100644
 @@ -203,6 +203,11 @@ int CLinuxRendererGLES::NextYV12Texture()
  void CLinuxRendererGLES::AddVideoPicture(const VideoPicture &picture, int index, double currentClock)
  {
-   CPictureBuffer &buf = m_buffers[index];
+   YUVBUFFER &buf = m_buffers[index];
 +  if (buf.videoBuffer)
 +  {
 +    CLog::LogF(LOGERROR, "unreleased video buffer");
