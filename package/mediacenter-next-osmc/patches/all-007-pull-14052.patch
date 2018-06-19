@@ -1,0 +1,61 @@
+From 3e80a8004a01a86c35553d49500080bc00bdebc7 Mon Sep 17 00:00:00 2001
+From: GTechAlpha <31323818+GTechAlpha@users.noreply.github.com>
+Date: Mon, 11 Jun 2018 05:05:59 -0500
+Subject: [PATCH] [RetroPlayer] Flush/sync audio
+
+---
+ xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+index 8d616e4b42e1..5e98f63dbf0f 100644
+--- a/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+@@ -33,6 +33,8 @@
+ using namespace KODI;
+ using namespace RETRO;
+ 
++const double MAX_DELAY = 0.3; // seconds
++
+ CRetroPlayerAudio::CRetroPlayerAudio(CRPProcessInfo& processInfo) :
+   m_processInfo(processInfo),
+   m_pAudioStream(nullptr),
+@@ -85,12 +87,16 @@ bool CRetroPlayerAudio::OpenStream(const StreamProperties& properties)
+   if (m_pAudioStream != nullptr)
+     CloseStream();
+ 
+-  CLog::Log(LOGINFO, "RetroPlayer[AUDIO]: Creating audio stream, sample rate = %d", iSampleRate);
+ 
+   IAE* audioEngine = CServiceBroker::GetActiveAE();
+   if (audioEngine == nullptr)
+     return false;
+ 
++  CLog::Log(LOGINFO, "RetroPlayer[AUDIO]: Creating audio stream, format = %s, sample rate = %d, channels = %d",
++             CAEUtil::DataFormatToStr(pcmFormat)
++             , iSampleRate
++             , channelLayout.Count());
++
+   AEAudioFormat audioFormat;
+   audioFormat.m_dataFormat = pcmFormat;
+   audioFormat.m_sampleRate = iSampleRate;
+@@ -118,8 +124,19 @@ void CRetroPlayerAudio::AddStreamData(const StreamPacket &packet)
+   {
+     if (m_pAudioStream)
+     {
++      const double delaySecs = m_pAudioStream->GetDelay();
++
+       const size_t frameSize = m_pAudioStream->GetChannelCount() * (CAEUtil::DataFormatToBits(m_pAudioStream->GetDataFormat()) >> 3);
+-      m_pAudioStream->AddData(&audioPacket.data, 0, static_cast<unsigned int>(audioPacket.size / frameSize));
++
++      const unsigned int frameCount = static_cast<unsigned int>(audioPacket.size / frameSize);
++
++      if (delaySecs > MAX_DELAY)
++      {
++        m_pAudioStream->Flush();
++        CLog::Log(LOGDEBUG, "RetroPlayer[AUDIO]: Audio delay (%0.2f ms) is too high - flushing", delaySecs * 1000);
++      }
++
++      m_pAudioStream->AddData(&audioPacket.data, 0, frameCount);
+     }
+   }
+ }
