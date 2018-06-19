@@ -1,0 +1,406 @@
+From 1915123b38ba54de19d2bc57c0bcc8b706832c99 Mon Sep 17 00:00:00 2001
+From: GTechAlpha <31323818+GTechAlpha@users.noreply.github.com>
+Date: Thu, 24 May 2018 23:44:36 -0500
+Subject: [PATCH 1/2] [RetroPlayer] Add basic resolution changing
+
+---
+ .../RetroPlayer/buffers/BaseRenderBufferPool.cpp   | 11 +++-
+ .../RetroPlayer/rendering/RPRenderManager.cpp      | 67 ++++++++++++++++++++--
+ xbmc/cores/RetroPlayer/rendering/RPRenderManager.h |  4 ++
+ 3 files changed, 77 insertions(+), 5 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/buffers/BaseRenderBufferPool.cpp b/xbmc/cores/RetroPlayer/buffers/BaseRenderBufferPool.cpp
+index b7a6f1e01756..547fa9a0d4db 100644
+--- a/xbmc/cores/RetroPlayer/buffers/BaseRenderBufferPool.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/BaseRenderBufferPool.cpp
+@@ -82,7 +82,10 @@ IRenderBuffer *CBaseRenderBufferPool::GetBuffer(size_t size)
+ 
+   // Changing sizes is not implemented
+   if (m_frameSize != size)
++  {
++    CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: buffer pool frame size change -- not implemented");
+     return nullptr;
++  }
+ 
+   IRenderBuffer *renderBuffer = nullptr;
+ 
+@@ -124,7 +127,11 @@ void CBaseRenderBufferPool::Return(IRenderBuffer *buffer)
+   buffer->SetLoaded(false);
+   buffer->SetRendered(false);
+ 
+-  m_free.emplace_back(buffer);
++  std::unique_ptr<IRenderBuffer> bufferPtr(buffer);
++
++  // Only reclaim buffers of the same size
++  if (buffer->GetFrameSize() == m_frameSize)
++    m_free.emplace_back(std::move(bufferPtr));
+ }
+ 
+ void CBaseRenderBufferPool::Prime(size_t bufferSize)
+@@ -158,4 +165,6 @@ void CBaseRenderBufferPool::Flush()
+   CSingleLock lock(m_bufferMutex);
+ 
+   m_free.clear();
++  m_frameSize = 0;
++  m_bConfigured = false;
+ }
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+index 4be278e3bb51..970137ec4994 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+@@ -97,20 +97,32 @@ bool CRPRenderManager::Configure(AVPixelFormat format, unsigned int nominalWidth
+ 
+   CSingleLock lock(m_stateMutex);
+ 
+-  m_state = RENDER_STATE::CONFIGURING;
++  if (m_state == RENDER_STATE::UNCONFIGURED)
++    m_state = RENDER_STATE::CONFIGURING;
++  else
++  {
++    Flush();
++    m_state = RENDER_STATE::RECONFIGURING;
++  }
+ 
+   return true;
+ }
+ 
+ void CRPRenderManager::AddFrame(const uint8_t* data, size_t size, unsigned int width, unsigned int height, unsigned int orientationDegCCW)
+ {
++  if (m_bFlush || m_state != RENDER_STATE::CONFIGURED)
++    return;
++
+   // Validate parameters
+   if (data == nullptr || size == 0 || width == 0 || height == 0)
+     return;
+ 
+-  //! @todo Allow dimension changes
+   if (width != m_width || height != m_height)
++  {
++    // Reconfigure
++    Configure(m_format, width, height, m_maxWidth, m_maxHeight);
+     return;
++  }
+ 
+   // Copy frame to buffers with visible renderers
+   std::vector<IRenderBuffer*> renderBuffers;
+@@ -125,6 +137,8 @@ void CRPRenderManager::AddFrame(const uint8_t* data, size_t size, unsigned int w
+       CopyFrame(renderBuffer, m_format, data, size, width, height);
+       renderBuffers.emplace_back(renderBuffer);
+     }
++    else
++      CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Unable to get render buffer for frame");
+   }
+ 
+   {
+@@ -165,7 +179,7 @@ void CRPRenderManager::SetSpeed(double speed)
+ 
+ void CRPRenderManager::FrameMove()
+ {
+-  UpdateResolution();
++  CheckFlush();
+ 
+   bool bIsConfigured = false;
+ 
+@@ -175,10 +189,21 @@ void CRPRenderManager::FrameMove()
+     if (m_state == RENDER_STATE::CONFIGURING)
+     {
+       MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
++
+       m_state = RENDER_STATE::CONFIGURED;
+ 
+       CLog::Log(LOGINFO, "RetroPlayer[RENDER]: Renderer configured on first frame");
+     }
++    else if (m_state == RENDER_STATE::RECONFIGURING)
++    {
++      CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Reconfiguring %u renderer(s)", m_renderers.size());
++
++      // Reconfigure any existing renderers
++      for (auto &renderer : m_renderers)
++        renderer->Configure(m_format, m_width, m_height);
++
++      m_state = RENDER_STATE::CONFIGURED;
++    }
+ 
+     if (m_state == RENDER_STATE::CONFIGURED)
+       bIsConfigured = true;
+@@ -191,9 +216,34 @@ void CRPRenderManager::FrameMove()
+   }
+ }
+ 
++void CRPRenderManager::CheckFlush()
++{
++  if (m_bFlush)
++  {
++    {
++      CSingleLock lock(m_bufferMutex);
++      for (auto renderBuffer : m_renderBuffers)
++        renderBuffer->Release();
++      m_renderBuffers.clear();
++
++      m_cachedFrame.clear();
++
++      m_bHasCachedFrame = false;
++    }
++
++    for (const auto &renderer : m_renderers)
++      renderer->Flush();
++
++    m_processInfo.GetBufferManager().FlushPools();
++
++
++    m_bFlush = false;
++  }
++}
++
+ void CRPRenderManager::Flush()
+ {
+-  m_processInfo.GetBufferManager().FlushPools();
++  m_bFlush = true;
+ }
+ 
+ void CRPRenderManager::TriggerUpdateResolution()
+@@ -358,7 +408,10 @@ std::shared_ptr<CRPBaseRenderer> CRPRenderManager::GetRenderer(IRenderBufferPool
+   std::shared_ptr<CRPBaseRenderer> renderer;
+ 
+   if (!bufferPool->IsCompatible(renderSettings.VideoSettings()))
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[RENDER]: buffer pool is not compatible with renderer");
+     return renderer;
++  }
+ 
+   // Get compatible renderer for this buffer pool
+   for (const auto &it : m_renderers)
+@@ -414,6 +467,9 @@ bool CRPRenderManager::HasRenderBuffer(IRenderBufferPool *bufferPool)
+ 
+ IRenderBuffer *CRPRenderManager::GetRenderBuffer(IRenderBufferPool *bufferPool)
+ {
++  if (m_bFlush || m_state != RENDER_STATE::CONFIGURED)
++    return nullptr;
++
+   IRenderBuffer *renderBuffer = nullptr;
+ 
+   CSingleLock lock(m_bufferMutex);
+@@ -435,6 +491,9 @@ IRenderBuffer *CRPRenderManager::GetRenderBuffer(IRenderBufferPool *bufferPool)
+ 
+ void CRPRenderManager::CreateRenderBuffer(IRenderBufferPool *bufferPool)
+ {
++  if (m_bFlush || m_state != RENDER_STATE::CONFIGURED)
++    return;
++
+   CSingleLock lock(m_bufferMutex);
+ 
+   if (!HasRenderBuffer(bufferPool) && m_bHasCachedFrame)
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
+index 5eddd6134b35..776f64a19258 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
+@@ -147,6 +147,8 @@ namespace RETRO
+ 
+     CRenderVideoSettings GetEffectiveSettings(const IGUIRenderSettings *settings) const;
+ 
++    void CheckFlush();
++
+     // Construction parameters
+     CRPProcessInfo &m_processInfo;
+     CRenderContext &m_renderContext;
+@@ -163,6 +165,7 @@ namespace RETRO
+     {
+       UNCONFIGURED,
+       CONFIGURING,
++      RECONFIGURING,
+       CONFIGURED,
+     };
+     RENDER_STATE m_state = RENDER_STATE::UNCONFIGURED;
+@@ -175,6 +178,7 @@ namespace RETRO
+     std::map<AVPixelFormat, SwsContext*> m_scalers;
+     bool m_bHasCachedFrame = false;
+     bool m_bTriggerUpdateResolution = false;
++    std::atomic<bool> m_bFlush = {false};
+     CCriticalSection m_stateMutex;
+     CCriticalSection m_bufferMutex;
+   };
+
+From db074aa0bc8c26cfb4798d5cc11717f727216564 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Tue, 12 Jun 2018 19:04:08 -0700
+Subject: [PATCH 2/2] RetroPlayer: Document cached frame behavior
+
+---
+ .../RetroPlayer/rendering/RPRenderManager.cpp      | 52 ++++++++++++++--------
+ xbmc/cores/RetroPlayer/rendering/RPRenderManager.h | 52 +++++++++++++++++-----
+ 2 files changed, 76 insertions(+), 28 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+index 970137ec4994..97b65ed4b6b6 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.cpp
+@@ -49,7 +49,6 @@ using namespace RETRO;
+ CRPRenderManager::CRPRenderManager(CRPProcessInfo &processInfo) :
+   m_processInfo(processInfo),
+   m_renderContext(processInfo.GetRenderContext()),
+-  m_speed(1.0),
+   m_renderSettings(new CGUIGameSettings(processInfo)),
+   m_renderControlFactory(new CGUIRenderTargetFactory(this))
+ {
+@@ -156,6 +155,11 @@ void CRPRenderManager::AddFrame(const uint8_t* data, size_t size, unsigned int w
+ 
+       if (!m_bHasCachedFrame)
+       {
++        // In this case, cachedFrame is definitely empty (see invariant for
++        // m_bHasCachedFrame). Otherwise, cachedFrame may be empty if the frame is being
++        // copied in the rendering thread. In that case, we would want to leave cached frame
++        // empty to avoid caching another frame.
++
+         cachedFrame.resize(size);
+         m_bHasCachedFrame = true;
+       }
+@@ -498,27 +502,39 @@ void CRPRenderManager::CreateRenderBuffer(IRenderBufferPool *bufferPool)
+ 
+   if (!HasRenderBuffer(bufferPool) && m_bHasCachedFrame)
+   {
+-    std::vector<uint8_t> cachedFrame = std::move(m_cachedFrame);
+-    if (!cachedFrame.empty())
+-    {
+-      CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Creating render buffer for renderer");
++    IRenderBuffer *renderBuffer = CreateFromCache(m_cachedFrame, bufferPool, m_bufferMutex);
++    if (renderBuffer != nullptr)
++      m_renderBuffers.emplace_back(renderBuffer);
++  }
++}
+ 
+-      IRenderBuffer *renderBuffer = bufferPool->GetBuffer(cachedFrame.size());
+-      if (renderBuffer != nullptr)
+-      {
+-        {
+-          CSingleExit exit(m_bufferMutex);
+-          CopyFrame(renderBuffer, m_format, cachedFrame.data(), cachedFrame.size(), m_width, m_height);
+-        }
+-        m_renderBuffers.emplace_back(renderBuffer);
+-      }
+-      m_cachedFrame = std::move(cachedFrame);
+-    }
+-    else
++IRenderBuffer *CRPRenderManager::CreateFromCache(std::vector<uint8_t> &cachedFrame, IRenderBufferPool *bufferPool, CCriticalSection &mutex)
++{
++  // Take ownership of cached frame
++  std::vector<uint8_t> ownedFrame = std::move(cachedFrame);
++
++  if (!ownedFrame.empty())
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Creating render buffer for renderer");
++
++    IRenderBuffer *renderBuffer = bufferPool->GetBuffer(ownedFrame.size());
++    if (renderBuffer != nullptr)
+     {
+-      CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Failed to create render buffer, no cached frame");
++      CSingleExit exit(mutex);
++      CopyFrame(renderBuffer, m_format, ownedFrame.data(), ownedFrame.size(), m_width, m_height);
+     }
++
++    // Return ownership of cached frame
++    cachedFrame = std::move(ownedFrame);
++
++    return renderBuffer;
+   }
++  else
++  {
++    CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Failed to create render buffer, no cached frame");
++  }
++
++  return nullptr;
+ }
+ 
+ void CRPRenderManager::UpdateResolution()
+diff --git a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
+index 776f64a19258..7bbbdfc26058 100644
+--- a/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
++++ b/xbmc/cores/RetroPlayer/rendering/RPRenderManager.h
+@@ -68,7 +68,7 @@ namespace RETRO
+    *
+    * Special behavior is needed when the game is paused. As no new frames are
+    * delivered, a newly created renderer will stay black. For this scenario,
+-   * when we detect a pause event, the frame is premptively cached so that a
++   * when we detect a pause event, the frame is preemptively cached so that a
+    * newly created renderer will have something to display.
+    */
+   class CRPRenderManager : public IRenderManager,
+@@ -138,6 +138,29 @@ namespace RETRO
+      */
+     void CreateRenderBuffer(IRenderBufferPool *bufferPool);
+ 
++    /*!
++     * \brief Create a render buffer and copy the cached data into it
++     *
++     * The cached frame is accessed by both the game and rendering threads,
++     * and therefore requires synchronization.
++     *
++     * However, assuming the memory copy is expensive, we must avoid holding
++     * the mutex during the copy.
++     *
++     * To allow for this, the function is permitted to invalidate its
++     * cachedFrame parameter, as long as it is restored upon exit. While the
++     * mutex is exited inside this function, cachedFrame is guaranteed to be
++     * empty.
++     *
++     * \param cachedFrame The cached frame
++     * \param bufferPool The buffer pool used to create the render buffer
++     * \param mutex The locked mutex, to be unlocked during memory copy
++     *
++     * \return The render buffer if one was created from the cached frame,
++     *         otherwise nullptr
++     */
++    IRenderBuffer *CreateFromCache(std::vector<uint8_t> &cachedFrame, IRenderBufferPool *bufferPool, CCriticalSection &mutex);
++
+     void UpdateResolution();
+ 
+     /*!
+@@ -153,6 +176,10 @@ namespace RETRO
+     CRPProcessInfo &m_processInfo;
+     CRenderContext &m_renderContext;
+ 
++    // Subsystems
++    std::shared_ptr<IGUIRenderSettings> m_renderSettings;
++    std::shared_ptr<CGUIRenderTargetFactory> m_renderControlFactory;
++
+     // Stream properties
+     AVPixelFormat m_format = AV_PIX_FMT_NONE;
+     unsigned int m_maxWidth = 0;
+@@ -160,7 +187,13 @@ namespace RETRO
+     unsigned int m_width = 0; //! @todo Remove me when dimension changing is implemented
+     unsigned int m_height = 0; //! @todo Remove me when dimension changing is implemented
+ 
+-    // Render properties
++    // Render resources
++    std::set<std::shared_ptr<CRPBaseRenderer>> m_renderers;
++    std::vector<IRenderBuffer*> m_renderBuffers;
++    std::map<AVPixelFormat, SwsContext*> m_scalers;
++    std::vector<uint8_t> m_cachedFrame;
++
++    // State parameters
+     enum class RENDER_STATE
+     {
+       UNCONFIGURED,
+@@ -169,16 +202,15 @@ namespace RETRO
+       CONFIGURED,
+     };
+     RENDER_STATE m_state = RENDER_STATE::UNCONFIGURED;
+-    std::atomic<double> m_speed;
+-    std::shared_ptr<IGUIRenderSettings> m_renderSettings;
+-    std::set<std::shared_ptr<CRPBaseRenderer>> m_renderers;
+-    std::shared_ptr<CGUIRenderTargetFactory> m_renderControlFactory;
+-    std::vector<IRenderBuffer*> m_renderBuffers;
+-    std::vector<uint8_t> m_cachedFrame;
+-    std::map<AVPixelFormat, SwsContext*> m_scalers;
+-    bool m_bHasCachedFrame = false;
++    bool m_bHasCachedFrame = false; // Invariant: m_cachedFrame is empty if false
++    std::set<std::string> m_failedShaderPresets;
+     bool m_bTriggerUpdateResolution = false;
+     std::atomic<bool> m_bFlush = {false};
++
++    // Playback parameters
++    std::atomic<double> m_speed = {1.0};
++
++    // Synchronization parameters
+     CCriticalSection m_stateMutex;
+     CCriticalSection m_bufferMutex;
+   };
