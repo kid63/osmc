@@ -1,0 +1,54 @@
+From 210f2ed63b33d84b00ea45d74f922fd49b5b4ac1 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sun, 17 Jun 2018 08:25:11 +0200
+Subject: [PATCH 1/2] json-rpc: fix playing URLs with options
+
+---
+ xbmc/interfaces/json-rpc/FileItemHandler.cpp | 3 ++-
+ xbmc/interfaces/json-rpc/VideoLibrary.cpp    | 1 +
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileItemHandler.cpp b/xbmc/interfaces/json-rpc/FileItemHandler.cpp
+index 8598c7596554..94039a238f92 100644
+--- a/xbmc/interfaces/json-rpc/FileItemHandler.cpp
++++ b/xbmc/interfaces/json-rpc/FileItemHandler.cpp
+@@ -397,7 +397,8 @@ bool CFileItemHandler::FillFileItemList(const CVariant &parameterObject, CFileIt
+     bool added = false;
+     for (int index = 0; index < list.Size(); index++)
+     {
+-      if (list[index]->GetPath() == file || list[index]->GetMusicInfoTag()->GetURL() == file || list[index]->GetVideoInfoTag()->GetPath() == file)
++      if (list[index]->GetDynPath() == file ||
++          list[index]->GetMusicInfoTag()->GetURL() == file || list[index]->GetVideoInfoTag()->GetPath() == file)
+       {
+         added = true;
+         break;
+diff --git a/xbmc/interfaces/json-rpc/VideoLibrary.cpp b/xbmc/interfaces/json-rpc/VideoLibrary.cpp
+index 477201ea81fd..a40662e8f5bf 100644
+--- a/xbmc/interfaces/json-rpc/VideoLibrary.cpp
++++ b/xbmc/interfaces/json-rpc/VideoLibrary.cpp
+@@ -933,6 +933,7 @@ bool CVideoLibrary::FillFileItem(const std::string &strFilename, CFileItemPtr &i
+     if (videodatabase.LoadVideoInfo(strFilename, details))
+     {
+       item->SetFromVideoInfoTag(details);
++      item->SetDynPath(strFilename);
+       filled = true;
+     }
+   }
+
+From 4bef3aef4c84b7acba2e6eb6b40f6aebc06e2d8f Mon Sep 17 00:00:00 2001
+From: DaveTBlake <oak99sky@yahoo.co.uk>
+Date: Mon, 18 Jun 2018 17:49:07 +0100
+Subject: [PATCH 2/2] [JSON] Bump patch to 9.4.1 for fix of play video streams
+ with URL + options
+
+---
+ xbmc/interfaces/json-rpc/schema/version.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/schema/version.txt b/xbmc/interfaces/json-rpc/schema/version.txt
+index ba808d3ff3a2..c0781233e4f1 100644
+--- a/xbmc/interfaces/json-rpc/schema/version.txt
++++ b/xbmc/interfaces/json-rpc/schema/version.txt
+@@ -1 +1 @@
+-JSONRPC_VERSION 9.4.0
++JSONRPC_VERSION 9.4.1
