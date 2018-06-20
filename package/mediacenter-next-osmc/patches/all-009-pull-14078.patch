@@ -1,0 +1,73 @@
+From 140bc064bbea8dc8d3a97f985770bc69c270701a Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Mon, 18 Jun 2018 20:32:23 +0200
+Subject: [PATCH 1/2] Revert "VideoPlayer: vtb - fix potential segfault on
+ reopen"
+
+This reverts commit ba4e532e8192890e8a7abf37cad19142f291ecad.
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
+index 3422c841da79..9c850d37099f 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
+@@ -459,8 +459,8 @@ void CDVDVideoCodecFFmpeg::Dispose()
+   av_frame_free(&m_pFrame);
+   av_frame_free(&m_pDecodedFrame);
+   av_frame_free(&m_pFilterFrame);
+-  SAFE_RELEASE(m_pHardware);
+   avcodec_free_context(&m_pCodecContext);
++  SAFE_RELEASE(m_pHardware);
+ 
+   FilterClose();
+ }
+
+From a4e9803bd6d7a49a080ed540254cb4139c86368c Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Mon, 18 Jun 2018 21:24:11 +0200
+Subject: [PATCH 2/2] VideoPlayer: vtb - move to new hwaccel api
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/VTB.cpp | 18 +++++++-----------
+ 1 file changed, 7 insertions(+), 11 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/VTB.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/VTB.cpp
+index 23f7d42f2622..698ec3b080fa 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/VTB.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/VTB.cpp
+@@ -167,11 +167,7 @@ CDecoder::~CDecoder()
+ 
+ void CDecoder::Close()
+ {
+-  if (m_avctx)
+-  {
+-    av_videotoolbox_default_free(m_avctx);
+-    m_avctx = nullptr;
+-  }
++
+ }
+ 
+ bool CDecoder::Open(AVCodecContext *avctx, AVCodecContext* mainctx, enum AVPixelFormat fmt)
+@@ -179,14 +175,14 @@ bool CDecoder::Open(AVCodecContext *avctx, AVCodecContext* mainctx, enum AVPixel
+   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEVTB))
+     return false;
+ 
+-  if (av_videotoolbox_default_init(avctx) < 0)
+-    return false;
+-
++  AVBufferRef *deviceRef =  av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_VIDEOTOOLBOX);
++  AVBufferRef *framesRef = av_hwframe_ctx_alloc(deviceRef);
++  AVHWFramesContext *framesCtx = (AVHWFramesContext*)framesRef->data;
++  framesCtx->format = AV_PIX_FMT_VIDEOTOOLBOX;
++  framesCtx->sw_format = AV_PIX_FMT_NV12;
++  avctx->hw_frames_ctx = framesRef;
+   m_avctx = avctx;
+ 
+-  mainctx->pix_fmt = fmt;
+-  mainctx->hwaccel_context = avctx->hwaccel_context;
+-
+   m_processInfo.SetVideoDeintMethod("none");
+ 
+   std::list<EINTERLACEMETHOD> deintMethods;
