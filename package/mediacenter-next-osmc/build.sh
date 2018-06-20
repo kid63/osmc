@@ -341,7 +341,7 @@ game.libretro.quicknes \
 game.libretro.snes9x game.libretro.stella game.libretro.scummvm \
 game.libretro.vbam game.libretro.yabause game.libretro.genplus"
 # Remove game.libretro.mame game.libretro.bsnes-mercury-accuracy game.libretro.mupen64plus game.libretro.pcsx-rearmed
-	ADDONS_PVR="pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.iptvsimple pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar
+	ADDONS_PVR="pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.mediaportal.tvserver pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.demo pvr.hdhomerun vfs.libarchive" # vfs.rar pvr.iptvsimple
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
 	#ADDONS_GLES_EXCL="screensaver.shadertoy visualization.shadertoy"
