@@ -12,14 +12,14 @@ index aace6ee..9cbb00f 100644
                  return ret;
              }
 @@ -2188,7 +2188,7 @@ bool CAMLCodec::GetPicture(DVDVideoPicture *pDvdVideoPicture)
-   if (m_last_pts <= 0)
-     pDvdVideoPicture->iDuration = (double)(am_private->video_rate * DVD_TIME_BASE) / UNIT_FREQ;
-   else
--    pDvdVideoPicture->iDuration = (double)((m_cur_pts - m_last_pts) * DVD_TIME_BASE) / PTS_FREQ;
-+    pDvdVideoPicture->iDuration = (double)((0x7FFFFFFF & (m_cur_pts - m_last_pts)) * DVD_TIME_BASE) / PTS_FREQ;
+        m_ptsOverflow += 0x80000000;
+        CLog::Log(LOGDEBUG, "CAMLCodec::GetPicture, PTS overflow incremented(%llX)", m_ptsOverflow);
+      }
+-    pVideoPicture->iDuration = (double)((m_cur_pts - m_last_pts) * DVD_TIME_BASE) / PTS_FREQ;
++    pVideoPicture->iDuration = (double)((0x7FFFFFFF & (m_cur_pts - m_last_pts)) * DVD_TIME_BASE) / PTS_FREQ;
+   }
  
-   pDvdVideoPicture->dts = DVD_NOPTS_VALUE;
-   pDvdVideoPicture->pts = (double)GetCurPts() / PTS_FREQ * DVD_TIME_BASE;
+   pVideoPicture->dts = DVD_NOPTS_VALUE;
 diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
 index bdd32af..e107a7d 100644
 --- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
