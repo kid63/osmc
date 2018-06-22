@@ -93,17 +93,17 @@ index 3bb003b..8d38532 100644
      iBitsPerPixel = 0;
      iBitRate = 0;
 +    is2020 = false;
+     workaround_bugs = 0;
    }
  
-   ~CDemuxStreamVideo() override = default;
 @@ -171,6 +172,7 @@ public:
    int iBitsPerPixel; 
    int iBitRate; 
    std::string stereo_mode; // expected stereo mode
 +  bool is2020;
+   int workaround_bugs; //info for decoder
  };
  
- class CDemuxStreamAudio : public CDemuxStream
 diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
 index e3a7330..4eed32a 100644
 --- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
@@ -125,9 +125,9 @@ index e59c84c..d7a8a52 100644
 --- a/xbmc/cores/VideoPlayer/DVDStreamInfo.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDStreamInfo.cpp
 @@ -233,6 +233,7 @@ void CDVDStreamInfo::Assign(const CDemuxStream& right, bool withextradata)
-     orientation = stream->iOrientation;
      bitsperpixel = stream->iBitsPerPixel;
-     stereo_mode = stream->stereo_mode;
+     stereo_mode = stream->stereo_mode; 
+     workaround_bugs = stream->workaround_bugs;
 +    is2020 = stream->is2020;
    }
    else if(  right.type == STREAM_SUBTITLE )
