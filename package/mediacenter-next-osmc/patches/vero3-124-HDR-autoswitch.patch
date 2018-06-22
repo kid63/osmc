@@ -101,7 +101,7 @@ index 3bb003b..8d38532 100644
    int iBitRate; 
    std::string stereo_mode; // expected stereo mode
 +  bool is2020;
-   int workaround_bugs; //info for decoder
+   int workaround_bugs; // info for decoder
  };
  
 diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
