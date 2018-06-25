@@ -1,0 +1,111 @@
+From 8e800b4671feb7744978724208e018b871435cd1 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sun, 24 Jun 2018 11:10:57 +0200
+Subject: [PATCH] VideoPlayer: fix pausing demuxer
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 31 ++++++++++++++++++++++---------
+ xbmc/cores/VideoPlayer/VideoPlayer.h   |  5 +++--
+ 2 files changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index c248a0d6d342..3013773e4398 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -912,6 +912,7 @@ bool CVideoPlayer::OpenDemuxStream()
+   m_SelectionStreams.Update(m_pInputStream, m_pDemuxer);
+   m_pDemuxer->GetPrograms(m_programs);
+   UpdateContent();
++  m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
+ 
+   int64_t len = m_pInputStream->GetLength();
+   int64_t tim = m_pDemuxer->GetStreamLength();
+@@ -1476,10 +1477,24 @@ void CVideoPlayer::Process()
+     if ((!m_VideoPlayerAudio->AcceptsData() && m_CurrentAudio.id >= 0) ||
+         (!m_VideoPlayerVideo->AcceptsData() && m_CurrentVideo.id >= 0))
+     {
++      if (m_playSpeed == DVD_PLAYSPEED_PAUSE &&
++          m_demuxerSpeed != DVD_PLAYSPEED_PAUSE)
++      {
++        if (m_pDemuxer)
++          m_pDemuxer->SetSpeed(DVD_PLAYSPEED_PAUSE);
++        m_demuxerSpeed = DVD_PLAYSPEED_PAUSE;
++      }
+       Sleep(10);
+       continue;
+     }
+ 
++    if (m_demuxerSpeed == DVD_PLAYSPEED_PAUSE)
++    {
++      if (m_pDemuxer)
++        m_pDemuxer->SetSpeed(DVD_PLAYSPEED_NORMAL);
++      m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
++    }
++
+     // always yield to players if they have data levels > 50 percent
+     if((m_VideoPlayerAudio->GetLevel() > 50 || m_CurrentAudio.id < 0) &&
+        (m_processInfo->GetLevelVQ() > 50 || m_CurrentVideo.id < 0))
+@@ -2951,8 +2966,6 @@ void CVideoPlayer::HandleMessages()
+       m_VideoPlayerAudio->SetSpeed(speed);
+       m_VideoPlayerVideo->SetSpeed(speed);
+       m_streamPlayerSpeed = speed;
+-      if (m_pDemuxer)
+-        m_pDemuxer->SetSpeed(speed);
+     }
+     else if (pMsg->IsType(CDVDMsg::PLAYER_FRAME_ADVANCE))
+     {
+@@ -4720,12 +4733,12 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+ 
+   if (m_Edl.HasCut())
+   {
+-    state.time        = (double) m_Edl.RemoveCutTime(llrint(state.time));
+-    state.timeMax  = (double) m_Edl.RemoveCutTime(llrint(state.timeMax));
++    state.time = (double) m_Edl.RemoveCutTime(llrint(state.time));
++    state.timeMax = (double) m_Edl.RemoveCutTime(llrint(state.timeMax));
+   }
+ 
+   if (state.timeMax <= 0)
+-    state.canseek  = false;
++    state.canseek = false;
+ 
+   if (m_caching > CACHESTATE_DONE && m_caching < CACHESTATE_PLAY)
+     state.caching = true;
+@@ -4735,14 +4748,14 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+   double level, delay, offset;
+   if (GetCachingTimes(level, delay, offset))
+   {
+-    state.cache_delay  = std::max(0.0, delay);
+-    state.cache_level  = std::max(0.0, std::min(1.0, level));
++    state.cache_delay = std::max(0.0, delay);
++    state.cache_level = std::max(0.0, std::min(1.0, level));
+     state.cache_offset = offset;
+   }
+   else
+   {
+-    state.cache_delay  = 0.0;
+-    state.cache_level  = std::min(1.0, GetQueueTime() / 8000.0);
++    state.cache_delay = 0.0;
++    state.cache_level = std::min(1.0, GetQueueTime() / 8000.0);
+     state.cache_offset = GetQueueTime() / state.timeMax;
+   }
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.h b/xbmc/cores/VideoPlayer/VideoPlayer.h
+index 1ac4143e6bbe..fb0e273cf91c 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.h
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.h
+@@ -526,12 +526,13 @@ class CVideoPlayer : public IPlayer, public CThread, public IVideoPlayer,
+ 
+   int m_playSpeed;
+   int m_streamPlayerSpeed;
++  int m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
+   struct SSpeedState
+   {
+-    double  lastpts;  // holds last display pts during ff/rw operations
++    double lastpts;  // holds last display pts during ff/rw operations
+     int64_t lasttime;
+     double lastseekpts;
+-    double  lastabstime;
++    double lastabstime;
+   } m_SpeedState;
+   std::atomic_bool m_canTempo;
+ 
