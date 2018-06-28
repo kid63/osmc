@@ -1,0 +1,88 @@
+From daebcd7fd5bb591b631018e9c22b7da3ec7b2240 Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Wed, 27 Jun 2018 15:36:37 +0200
+Subject: [PATCH] [CURL] Rework failonerror
+
+---
+ xbmc/filesystem/CurlFile.cpp | 11 ++++++-----
+ xbmc/filesystem/CurlFile.h   |  4 ++--
+ 2 files changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/filesystem/CurlFile.cpp b/xbmc/filesystem/CurlFile.cpp
+index 554999b6eb00..73ad1a5c24f0 100644
+--- a/xbmc/filesystem/CurlFile.cpp
++++ b/xbmc/filesystem/CurlFile.cpp
+@@ -468,7 +468,7 @@ void CCurlFile::Close()
+   m_inError = false;
+ }
+ 
+-void CCurlFile::SetCommonOptions(CReadState* state)
++void CCurlFile::SetCommonOptions(CReadState* state, bool failOnError /* = true */)
+ {
+   CURL_HANDLE* h = state->m_easyHandle;
+ 
+@@ -521,7 +521,7 @@ void CCurlFile::SetCommonOptions(CReadState* state)
+   // resolves. Unfortunately, c-ares does not yet support IPv6.
+   g_curlInterface.easy_setopt(h, CURLOPT_NOSIGNAL, CURL_ON);
+ 
+-  if (m_state->m_failOnError)
++  if (failOnError)
+   {
+     // not interested in failed requests
+     g_curlInterface.easy_setopt(h, CURLOPT_FAILONERROR, 1);
+@@ -824,6 +824,8 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
+           m_cipherlist = value;
+         else if (name == "connection-timeout")
+           m_connecttimeout = strtol(value.c_str(), NULL, 10);
++        else if (name == "failonerror")
++          m_failOnError = value == "true";
+         else if (name == "redirect-limit")
+           m_redirectlimit = strtol(value.c_str(), NULL, 10);
+         else if (name == "postdata")
+@@ -1014,15 +1016,14 @@ bool CCurlFile::Open(const CURL& url)
+                                 &m_state->m_multiHandle);
+ 
+   // setup common curl options
+-  m_state->m_failOnError = !g_advancedSettings.CanLogComponent(LOGCURL);
+-  SetCommonOptions(m_state);
++  SetCommonOptions(m_state, m_failOnError && !g_advancedSettings.CanLogComponent(LOGCURL));
+   SetRequestHeaders(m_state);
+   m_state->m_sendRange = m_seekable;
+   m_state->m_bRetry = m_allowRetry;
+ 
+   m_httpresponse = m_state->Connect(m_bufferSize);
+ 
+-  if (m_httpresponse <= 0 || m_httpresponse >= 400)
++  if (m_httpresponse <= 0 || (m_failOnError && m_httpresponse >= 400))
+   {
+     std::string error;
+     if (m_httpresponse >= 400 && g_advancedSettings.CanLogComponent(LOGCURL))
+diff --git a/xbmc/filesystem/CurlFile.h b/xbmc/filesystem/CurlFile.h
+index 8a8ee6df8b69..995f8055bb75 100644
+--- a/xbmc/filesystem/CurlFile.h
++++ b/xbmc/filesystem/CurlFile.h
+@@ -126,7 +126,6 @@ namespace XFILE
+           bool m_sendRange;
+           bool m_bLastError;
+           bool m_bRetry;
+-          bool m_failOnError = true;
+ 
+           char* m_readBuffer;
+ 
+@@ -154,7 +153,7 @@ namespace XFILE
+ 
+     protected:
+       void ParseAndCorrectUrl(CURL &url);
+-      void SetCommonOptions(CReadState* state);
++      void SetCommonOptions(CReadState* state, bool failOnError = true);
+       void SetRequestHeaders(CReadState* state);
+       void SetCorrectHeaders(CReadState* state);
+       bool Service(const std::string& strURL, std::string& strHTML);
+@@ -199,6 +198,7 @@ namespace XFILE
+       bool m_postdataset;
+       bool m_allowRetry;
+       bool m_verifyPeer = true;
++      bool m_failOnError = true;
+ 
+       CRingBuffer m_buffer; // our ringhold buffer
+       char* m_overflowBuffer; // in the rare case we would overflow the above buffer
