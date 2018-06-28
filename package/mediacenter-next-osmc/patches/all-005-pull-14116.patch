@@ -1,0 +1,26 @@
+From a0c033bd046ea2d5956e9e49918bfe6112ce45dc Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Tue, 26 Jun 2018 09:17:59 -0700
+Subject: [PATCH] windowing/gbm: use connector with a valid encoder
+
+---
+ xbmc/windowing/gbm/DRMUtils.cpp | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/windowing/gbm/DRMUtils.cpp b/xbmc/windowing/gbm/DRMUtils.cpp
+index e7c68d9cbdd4..f04ceb981a44 100644
+--- a/xbmc/windowing/gbm/DRMUtils.cpp
++++ b/xbmc/windowing/gbm/DRMUtils.cpp
+@@ -187,9 +187,9 @@ bool CDRMUtils::FindConnector()
+ {
+   for(auto i = 0; i < m_drm_resources->count_connectors; i++)
+   {
+-    m_connector->connector = drmModeGetConnector(m_fd,
+-                                                      m_drm_resources->connectors[i]);
+-    if(m_connector->connector->connection == DRM_MODE_CONNECTED)
++    m_connector->connector = drmModeGetConnector(m_fd, m_drm_resources->connectors[i]);
++    if((m_connector->connector->encoder_id > 0) &&
++        m_connector->connector->connection == DRM_MODE_CONNECTED)
+     {
+       CLog::Log(LOGDEBUG, "CDRMUtils::%s - found connector: %d", __FUNCTION__,
+                                                                  m_connector->connector->connector_id);
