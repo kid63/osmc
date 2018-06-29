@@ -1,0 +1,107 @@
+From 05a6ade3484ad75b8ed6870bce645eb2b4aaaf18 Mon Sep 17 00:00:00 2001
+From: DaVukovic <dvukovic@gmx.de>
+Date: Sun, 22 Apr 2018 13:24:33 +0200
+Subject: [PATCH] Add functionality to show profile name
+
+---
+ .../language/resource.language.en_gb/strings.po    | 18 ++++++++++++++++
+ addons/skin.estuary/xml/Includes.xml               | 25 ++++++++++++++++++++++
+ addons/skin.estuary/xml/SkinSettings.xml           |  6 ++++++
+ addons/skin.estuary/xml/Variables.xml              |  5 +++++
+ 4 files changed, 54 insertions(+)
+
+diff --git a/addons/skin.estuary/language/resource.language.en_gb/strings.po b/addons/skin.estuary/language/resource.language.en_gb/strings.po
+index b67142043a8d..2699e1d219f3 100644
+--- a/addons/skin.estuary/language/resource.language.en_gb/strings.po
++++ b/addons/skin.estuary/language/resource.language.en_gb/strings.po
+@@ -743,3 +743,21 @@ msgstr ""
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr ""
++
++#. Choose profile identifier
++#: /xml/SkinSettings.xml
++msgctxt "#31164"
++msgid "Choose kind of profile identification"
++msgstr ""
++
++#. Label for the kind of profile identification
++#: /xml/SkinSettings.xml
++msgctxt "#31165"
++msgid "Profile name"
++msgstr ""
++
++#. Label for the kind of profile identification
++#: /xml/SkinSettings.xml
++msgctxt "#31166"
++msgid "Profile avatar"
++msgstr ""
+diff --git a/addons/skin.estuary/xml/Includes.xml b/addons/skin.estuary/xml/Includes.xml
+index a8fb1562d8f1..5953bf2f76b1 100644
+--- a/addons/skin.estuary/xml/Includes.xml
++++ b/addons/skin.estuary/xml/Includes.xml
+@@ -893,6 +893,31 @@
+ 							<align>right</align>
+ 						</control>
+ 					</control>
++					<control type="group">
++						<visible>Integer.IsGreater(System.ProfileCount,1) + !Player.HasMedia</visible>
++						<control type="image">
++							<visible>Skin.HasSetting(show_profileavatar)</visible>
++							<top>25</top>
++							<left>-70</left>
++							<width>50</width>
++							<height>50</height>
++							<animation effect="fade" start="100" end="0" time="300" condition="Window.Next(screencalibration)">WindowClose</animation>
++							<texture>$INFO[System.ProfileThumb]</texture>
++							<aspectratio>scale</aspectratio>
++						</control>
++						<control type="label">
++							<visible>Skin.HasSetting(show_profilename)</visible>
++							<font>font45</font>
++							<align>right</align>
++							<left>-630</left>
++							<shadowcolor>text_shadow</shadowcolor>
++							<aligny>center</aligny>
++							<height>110</height>
++							<width max="600">auto</width>
++							<animation effect="fade" start="100" end="0" time="300" condition="Window.Next(screencalibration)">WindowClose</animation>
++							<label>$INFO[System.ProfileName]</label>
++						</control>
++					</control>
+ 					<control type="label">
+ 						<font>font_clock</font>
+ 						<shadowcolor>text_shadow</shadowcolor>
+diff --git a/addons/skin.estuary/xml/SkinSettings.xml b/addons/skin.estuary/xml/SkinSettings.xml
+index 0f2ed5403493..a342cea21fe8 100644
+--- a/addons/skin.estuary/xml/SkinSettings.xml
++++ b/addons/skin.estuary/xml/SkinSettings.xml
+@@ -67,6 +67,12 @@
+ 					<onclick>Skin.SelectBool($LOCALIZE[31024], 38018|circle_userrating, 563|circle_rating, 16018|)</onclick>
+ 					<label2>$VAR[RatingSettingLabel2Var]</label2>
+ 				</control>
++				<control type="button" id="707">
++					<label>$LOCALIZE[31164]</label>
++					<include>DefaultSettingButton</include>
++					<onclick>Skin.SelectBool(31164, 31165|show_profilename, 31166|show_profileavatar, 16018|show_none)</onclick>
++					<label2>$VAR[ProfileIdentificationLabel2Var]</label2>
++				</control>
+ 			</control>
+ 			<control type="grouplist" id="600">
+ 				<top>160</top>
+diff --git a/addons/skin.estuary/xml/Variables.xml b/addons/skin.estuary/xml/Variables.xml
+index fd4bb7f4baac..d57aeba7630a 100644
+--- a/addons/skin.estuary/xml/Variables.xml
++++ b/addons/skin.estuary/xml/Variables.xml
+@@ -141,6 +141,11 @@
+ 		<value condition="Skin.HasSetting(circle_userrating)">$LOCALIZE[38018]</value>
+ 		<value>$LOCALIZE[16018]</value>
+ 	</variable>
++	<variable name="ProfileIdentificationLabel2Var">
++		<value condition="Skin.HasSetting(show_profilename)">$LOCALIZE[31165]</value>
++		<value condition="Skin.HasSetting(show_profileavatar)">$LOCALIZE[31166]</value>
++		<value>$LOCALIZE[16018]</value>
++	</variable>
+ 	<variable name="AddonsListIconVar">
+ 		<value condition="!String.IsEmpty(ListItem.AddonBroken)">icons/addonstatus/disable.png</value>
+ 		<value condition="ListItem.Property(addon.orphaned)">icons/addonstatus/orphan.png</value>
