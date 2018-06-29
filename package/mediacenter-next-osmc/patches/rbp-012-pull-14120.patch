@@ -1,0 +1,23 @@
+From 94a221a1f8e21963d2394ab17e7e911bb7845704 Mon Sep 17 00:00:00 2001
+From: Wolfgang Haupt <haupt.wolfgang@gmail.com>
+Date: Wed, 27 Jun 2018 23:30:52 +0200
+Subject: [PATCH] Settings: GBM - hide "Display mode" setting
+
+---
+ system/settings/gbm.xml | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/system/settings/gbm.xml b/system/settings/gbm.xml
+index a223be5e6c7c..a4987186795f 100644
+--- a/system/settings/gbm.xml
++++ b/system/settings/gbm.xml
+@@ -31,6 +31,9 @@
+   <section id="system">
+     <category id="display">
+       <group id="1">
++        <setting id="videoscreen.screen">
++          <visible>false</visible>
++        </setting>
+         <setting id="videoscreen.limitedrange" type="boolean" label="36042" help="36359">
+           <level>3</level>
+           <default>false</default>
