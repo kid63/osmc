@@ -1,0 +1,147 @@
+From cacd81a7c9b9f4d639b8bcda422fd6337738c618 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Fri, 29 Jun 2018 17:50:04 +0200
+Subject: [PATCH] allow selecting resolutions with non standard aspect ratio
+
+---
+ xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp |  4 ++--
+ xbmc/windowing/Resolution.cpp                           | 16 +++++++---------
+ xbmc/windowing/Resolution.h                             |  4 ++--
+ xbmc/windowing/win10/WinSystemWin10.cpp                 |  2 +-
+ xbmc/windowing/windows/WinSystemWin32.cpp               |  2 +-
+ 5 files changed, 13 insertions(+), 15 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
+index 3e1de80d1f46..63df654dfabd 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
+@@ -686,7 +686,7 @@ RESOLUTION CRenderManager::GetResolution()
+     return res;
+ 
+   if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
+-    res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, !m_stereomode.empty());
++    res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, m_height, !m_stereomode.empty());
+ 
+   return res;
+ }
+@@ -875,7 +875,7 @@ void CRenderManager::UpdateResolution()
+     {
+       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
+       {
+-        RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, !m_stereomode.empty());
++        RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, m_height, !m_stereomode.empty());
+         CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
+         UpdateLatencyTweak();
+         if (m_pRenderer)
+diff --git a/xbmc/windowing/Resolution.cpp b/xbmc/windowing/Resolution.cpp
+index 7d24e0f733fa..46dea8ac71cf 100644
+--- a/xbmc/windowing/Resolution.cpp
++++ b/xbmc/windowing/Resolution.cpp
+@@ -64,7 +64,7 @@ float RESOLUTION_INFO::DisplayRatio() const
+   return iWidth * fPixelRatio / iHeight;
+ }
+ 
+-RESOLUTION CResolutionUtils::ChooseBestResolution(float fps, int width, bool is3D)
++RESOLUTION CResolutionUtils::ChooseBestResolution(float fps, int width, int height, bool is3D)
+ {
+   RESOLUTION res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
+   float weight;
+@@ -73,7 +73,7 @@ RESOLUTION CResolutionUtils::ChooseBestResolution(float fps, int width, bool is3
+   {
+     if (!FindResolutionFromOverride(fps, width, is3D, res, weight, true)) //if that fails find it from a fallback
+     {
+-      FindResolutionFromWhitelist(fps, width, is3D, res); //find a refreshrate from whitelist
++      FindResolutionFromWhitelist(fps, width, height, is3D, res); //find a refreshrate from whitelist
+     }
+   }
+ 
+@@ -82,7 +82,7 @@ RESOLUTION CResolutionUtils::ChooseBestResolution(float fps, int width, bool is3
+   return res;
+ }
+ 
+-void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, bool is3D, RESOLUTION &resolution)
++void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, int height, bool is3D, RESOLUTION &resolution)
+ {
+   RESOLUTION_INFO curr = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(resolution);
+ 
+@@ -96,8 +96,8 @@ void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, bool is
+     const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(i);
+ 
+     // allow resolutions that are exact and have the correct refresh rate
+-    if (info.iScreenWidth == width &&
+-        info.iScreen == curr.iScreen &&
++    if (((height == info.iScreenHeight && width <= info.iScreenWidth) ||
++         (width == info.iScreenWidth && height <= info.iScreenHeight)) &&
+         (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
+         MathUtils::FloatEquals(info.fRefreshRate, fps, 0.01f))
+     {
+@@ -115,8 +115,8 @@ void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, bool is
+     const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(i);
+ 
+     // allow resolutions that are exact and have double the refresh rate
+-    if (info.iScreenWidth == width &&
+-        info.iScreen == curr.iScreen &&
++    if (((height == info.iScreenHeight && width <= info.iScreenWidth) ||
++         (width == info.iScreenWidth && height <= info.iScreenHeight)) &&
+         (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (curr.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
+         MathUtils::FloatEquals(info.fRefreshRate, fps * 2, 0.01f))
+     {
+@@ -137,7 +137,6 @@ void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, bool is
+ 
+     // allow resolutions that are desktop resolution but have the correct refresh rate
+     if (info.iScreenWidth == desktop_info.iWidth &&
+-        info.iScreen == desktop_info.iScreen &&
+         (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (desktop_info.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
+         MathUtils::FloatEquals(info.fRefreshRate, fps, 0.01f))
+     {
+@@ -158,7 +157,6 @@ void CResolutionUtils::FindResolutionFromWhitelist(float fps, int width, bool is
+ 
+     // allow resolutions that are desktop resolution but have double the refresh rate
+     if (info.iScreenWidth == desktop_info.iWidth &&
+-        info.iScreen == desktop_info.iScreen &&
+         (info.dwFlags & D3DPRESENTFLAG_MODEMASK) == (desktop_info.dwFlags & D3DPRESENTFLAG_MODEMASK) &&
+         MathUtils::FloatEquals(info.fRefreshRate, fps * 2, 0.01f))
+     {
+diff --git a/xbmc/windowing/Resolution.h b/xbmc/windowing/Resolution.h
+index 1524c6bb9566..c7a93e7bbebb 100644
+--- a/xbmc/windowing/Resolution.h
++++ b/xbmc/windowing/Resolution.h
+@@ -100,10 +100,10 @@ struct RESOLUTION_INFO
+ class CResolutionUtils
+ {
+ public:
+-  static RESOLUTION ChooseBestResolution(float fps, int width, bool is3D);
++  static RESOLUTION ChooseBestResolution(float fps, int width, int height, bool is3D);
+   static bool HasWhitelist();
+ protected:
+-  static void FindResolutionFromWhitelist(float fps, int width, bool is3D, RESOLUTION &resolution);
++  static void FindResolutionFromWhitelist(float fps, int width, int height, bool is3D, RESOLUTION &resolution);
+   static bool FindResolutionFromOverride(float fps, int width, bool is3D, RESOLUTION &resolution, float& weight, bool fallback);
+   static float RefreshWeight(float refresh, float fps);
+ };
+diff --git a/xbmc/windowing/win10/WinSystemWin10.cpp b/xbmc/windowing/win10/WinSystemWin10.cpp
+index 046028f0cdc7..fae225fc6e13 100644
+--- a/xbmc/windowing/win10/WinSystemWin10.cpp
++++ b/xbmc/windowing/win10/WinSystemWin10.cpp
+@@ -235,7 +235,7 @@ bool CWinSystemWin10::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool
+   // entering to stereo mode, limit resolution to 1080p@23.976
+   if (stereoChange && !IsStereoEnabled() && res.iWidth > 1280)
+   {
+-    res = CDisplaySettings::GetInstance().GetResolutionInfo(CResolutionUtils::ChooseBestResolution(24.f / 1.001f, 1920, true));
++    res = CDisplaySettings::GetInstance().GetResolutionInfo(CResolutionUtils::ChooseBestResolution(24.f / 1.001f, 1920, 1080, true));
+   }
+ 
+   if (m_state == WINDOW_STATE_WINDOWED)
+diff --git a/xbmc/windowing/windows/WinSystemWin32.cpp b/xbmc/windowing/windows/WinSystemWin32.cpp
+index fe859a73d313..93c2abbe3a79 100644
+--- a/xbmc/windowing/windows/WinSystemWin32.cpp
++++ b/xbmc/windowing/windows/WinSystemWin32.cpp
+@@ -471,7 +471,7 @@ bool CWinSystemWin32::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool
+   // entering to stereo mode, limit resolution to 1080p@23.976
+   if (stereoChange && !IsStereoEnabled() && res.iWidth > 1280)
+   {
+-    res = CDisplaySettings::GetInstance().GetResolutionInfo(CResolutionUtils::ChooseBestResolution(24.f / 1.001f, 1920, true));
++    res = CDisplaySettings::GetInstance().GetResolutionInfo(CResolutionUtils::ChooseBestResolution(24.f / 1.001f, 1920, 1080, true));
+   }
+ 
+   if (m_state == WINDOW_STATE_WINDOWED)

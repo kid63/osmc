@@ -1,0 +1,393 @@
+From d9d600c2b9162933383f19efdac42da31709d5b9 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 30 Jun 2018 07:44:48 +0200
+Subject: [PATCH 1/2] VideoPlayer: handle cantempo dynamically
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 38 ++++++++++++++++++++--------------
+ xbmc/cores/VideoPlayer/VideoPlayer.h   |  3 ++-
+ 2 files changed, 25 insertions(+), 16 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 3013773e4398..b8268f916233 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -660,7 +660,6 @@ CVideoPlayer::CVideoPlayer(IPlayerCallback& callback)
+   m_offset_pts = 0.0;
+   m_playSpeed = DVD_PLAYSPEED_NORMAL;
+   m_streamPlayerSpeed = DVD_PLAYSPEED_NORMAL;
+-  m_canTempo = false;
+   m_caching = CACHESTATE_DONE;
+   m_HasVideo = false;
+   m_HasAudio = false;
+@@ -777,7 +776,6 @@ bool CVideoPlayer::CloseFile(bool reopen)
+ 
+   m_HasVideo = false;
+   m_HasAudio = false;
+-  m_canTempo = false;
+ 
+   CLog::Log(LOGNOTICE, "VideoPlayer: finished waiting");
+   m_renderManager.UnInit();
+@@ -866,16 +864,6 @@ bool CVideoPlayer::OpenInputStream()
+   m_dvd.Clear();
+   m_errorCount = 0;
+ 
+-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) &&
+-      !m_pInputStream->IsRealtime())
+-  {
+-    m_canTempo = true;
+-  }
+-  else
+-  {
+-    m_canTempo = false;
+-  }
+-
+   return true;
+ }
+ 
+@@ -2208,6 +2196,16 @@ void CVideoPlayer::HandlePlaySpeed()
+       }
+     }
+   }
++  
++  // reset tempo
++  if (!m_State.cantempo)
++  {
++    float currentTempo = m_processInfo->GetNewTempo();
++    if (currentTempo != 1.0)
++    {
++      SetTempo(1.0);
++    }
++  }
+ }
+ 
+ bool CVideoPlayer::CheckPlayerInit(CCurrentStream& current)
+@@ -3511,7 +3509,7 @@ void CVideoPlayer::FrameAdvance(int frames)
+ 
+ bool CVideoPlayer::SupportsTempo()
+ {
+-  return m_canTempo;
++  return m_State.cantempo;
+ }
+ 
+ bool CVideoPlayer::OpenStream(CCurrentStream& current, int64_t demuxerId, int iStream, int source, bool reset /*= true*/)
+@@ -4627,8 +4625,8 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
+ 
+ void CVideoPlayer::UpdatePlayState(double timeout)
+ {
+-  if(m_State.timestamp != 0 &&
+-     m_State.timestamp + DVD_MSEC_TO_TIME(timeout) > m_clock.GetAbsoluteClock())
++  if (m_State.timestamp != 0 &&
++      m_State.timestamp + DVD_MSEC_TO_TIME(timeout) > m_clock.GetAbsoluteClock())
+     return;
+ 
+   SPlayerState state(m_State);
+@@ -4729,6 +4727,16 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+ 
+     state.canpause = m_pInputStream->CanPause();
+     state.canseek = m_pInputStream->CanSeek();
++
++    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) &&
++        !m_pInputStream->IsRealtime())
++    {
++      state.cantempo = true;
++    }
++    else
++    {
++      state.cantempo = false;
++    }
+   }
+ 
+   if (m_Edl.HasCut())
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.h b/xbmc/cores/VideoPlayer/VideoPlayer.h
+index fb0e273cf91c..6c884717af99 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.h
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.h
+@@ -104,6 +104,7 @@ struct SPlayerState
+     chapters.clear();
+     canpause = false;
+     canseek = false;
++    cantempo = false;
+     caching = false;
+     cache_bytes = 0;
+     cache_level = 0.0;
+@@ -133,6 +134,7 @@ struct SPlayerState
+ 
+   bool canpause;            // pvr: can pause the current playing item
+   bool canseek;             // pvr: can seek in the current playing item
++  bool cantempo;
+   bool caching;
+ 
+   int64_t cache_bytes;   // number of bytes current's cached
+@@ -534,7 +536,6 @@ class CVideoPlayer : public IPlayer, public CThread, public IVideoPlayer,
+     double lastseekpts;
+     double lastabstime;
+   } m_SpeedState;
+-  std::atomic_bool m_canTempo;
+ 
+   int m_errorCount;
+   double m_offset_pts;
+
+From d6822583a33920e0002790b341007e1aa2daff56 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 30 Jun 2018 08:20:57 +0200
+Subject: [PATCH 2/2] VideoPlayer: handle realtime state of stream dynamically
+ (in regard to audio)
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h       |  2 --
+ .../VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp      |  2 --
+ .../VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp      |  1 -
+ .../DVDInputStreams/InputStreamPVRBase.cpp          |  1 -
+ xbmc/cores/VideoPlayer/DVDStreamInfo.cpp            | 10 +++-------
+ xbmc/cores/VideoPlayer/DVDStreamInfo.h              |  1 -
+ xbmc/cores/VideoPlayer/Process/ProcessInfo.cpp      | 14 ++++++++++++++
+ xbmc/cores/VideoPlayer/Process/ProcessInfo.h        |  3 +++
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp              |  6 +++++-
+ xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp         | 21 ++++++++++++++++-----
+ 10 files changed, 41 insertions(+), 20 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h
+index c7346dd819e9..6c18debb2caa 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.h
+@@ -94,7 +94,6 @@ class CDemuxStream
+     disabled = false;
+     changes = 0;
+     flags = StreamFlags::FLAG_NONE;
+-    realtime = false;
+   }
+ 
+   virtual ~CDemuxStream()
+@@ -113,7 +112,6 @@ class CDemuxStream
+   int level;   // encoder level of the stream reported by the decoder. used to qualify hw decoders.
+   StreamType type;
+   int source;
+-  bool realtime;
+ 
+   int iDuration; // in mseconds
+   void* pPrivate; // private pointer for the demuxer
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+index 7c2ab9d26b84..3995af413e3a 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+@@ -552,8 +552,6 @@ void CDVDDemuxClient::SetStreamProps(CDemuxStream *stream, std::map<int, std::sh
+   toStream->externalInterfaces = stream->externalInterfaces;
+   toStream->language = stream->language;
+ 
+-  toStream->realtime = stream->realtime;
+-
+   CLog::Log(LOGDEBUG,"CDVDDemuxClient::RequestStream(): added/updated stream %d with codec_id %d",
+       toStream->uniqueId,
+       toStream->codec);
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+index b7c3c621170b..f3f61ccf0105 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+@@ -1616,7 +1616,6 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
+     stream->codec_fourcc = pStream->codecpar->codec_tag;
+     stream->profile = pStream->codecpar->profile;
+     stream->level = pStream->codecpar->level;
+-    stream->realtime = m_pInput->IsRealtime();
+ 
+     stream->source = STREAM_SOURCE_DEMUX;
+     stream->pPrivate = pStream;
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.cpp b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.cpp
+index f5c1279f20a5..c3493147d1a9 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.cpp
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.cpp
+@@ -351,7 +351,6 @@ void CInputStreamPVRBase::UpdateStreamMap()
+     dStream->codec = (AVCodecID)stream.iCodecId;
+     dStream->uniqueId = stream.iPID;
+     dStream->language = stream.strLanguage;
+-    dStream->realtime = true;
+ 
+     newStreamMap[stream.iPID] = dStream;
+   }
+diff --git a/xbmc/cores/VideoPlayer/DVDStreamInfo.cpp b/xbmc/cores/VideoPlayer/DVDStreamInfo.cpp
+index 541c6aa43bb8..baf4a6a4e3a3 100644
+--- a/xbmc/cores/VideoPlayer/DVDStreamInfo.cpp
++++ b/xbmc/cores/VideoPlayer/DVDStreamInfo.cpp
+@@ -41,7 +41,6 @@ void CDVDStreamInfo::Clear()
+   codec = AV_CODEC_ID_NONE;
+   type = STREAM_NONE;
+   uniqueId = -1;
+-  realtime = false;
+   codecOptions = 0;
+   codec_tag  = 0;
+   flags = 0;
+@@ -86,7 +85,6 @@ bool CDVDStreamInfo::Equal(const CDVDStreamInfo& right, bool withextradata)
+   ||  type      != right.type
+   ||  uniqueId  != right.uniqueId
+   ||  demuxerId != right.demuxerId
+-  ||  realtime  != right.realtime
+   ||  codec_tag != right.codec_tag
+   ||  flags     != right.flags)
+     return false;
+@@ -150,7 +148,6 @@ void CDVDStreamInfo::Assign(const CDVDStreamInfo& right, bool withextradata)
+   type = right.type;
+   uniqueId = right.uniqueId;
+   demuxerId = right.demuxerId;
+-  realtime = right.realtime;
+   codec_tag = right.codec_tag;
+   flags = right.flags;
+   filename = right.filename;
+@@ -211,11 +208,10 @@ void CDVDStreamInfo::Assign(const CDemuxStream& right, bool withextradata)
+   type = right.type;
+   uniqueId = right.uniqueId;
+   demuxerId = right.demuxerId;
+-  realtime = right.realtime;
+   codec_tag = right.codec_fourcc;
+-  profile   = right.profile;
+-  level     = right.level;
+-  flags     = right.flags;
++  profile = right.profile;
++  level = right.level;
++  flags = right.flags;
+ 
+   if (withextradata && right.ExtraSize)
+   {
+diff --git a/xbmc/cores/VideoPlayer/DVDStreamInfo.h b/xbmc/cores/VideoPlayer/DVDStreamInfo.h
+index 2a5773eb59d8..b8e25535ed0e 100644
+--- a/xbmc/cores/VideoPlayer/DVDStreamInfo.h
++++ b/xbmc/cores/VideoPlayer/DVDStreamInfo.h
+@@ -52,7 +52,6 @@ class CDVDStreamInfo
+   StreamType type;
+   int uniqueId;
+   int demuxerId = -1;
+-  bool realtime;
+   int flags;
+   std::string filename;
+   bool dvd;
+diff --git a/xbmc/cores/VideoPlayer/Process/ProcessInfo.cpp b/xbmc/cores/VideoPlayer/Process/ProcessInfo.cpp
+index da701b0f4e26..75a4f0c0c238 100644
+--- a/xbmc/cores/VideoPlayer/Process/ProcessInfo.cpp
++++ b/xbmc/cores/VideoPlayer/Process/ProcessInfo.cpp
+@@ -489,6 +489,20 @@ bool CProcessInfo::IsSeeking()
+   return m_stateSeeking;
+ }
+ 
++void CProcessInfo::SetStateRealtime(bool state)
++{
++  CSingleLock lock(m_renderSection);
++
++  m_realTimeStream = state;
++}
++
++bool CProcessInfo::IsRealtimeStream()
++{
++  CSingleLock lock(m_stateSection);
++
++  return m_realTimeStream;
++}
++
+ void CProcessInfo::SetSpeed(float speed)
+ {
+   CSingleLock lock(m_stateSection);
+diff --git a/xbmc/cores/VideoPlayer/Process/ProcessInfo.h b/xbmc/cores/VideoPlayer/Process/ProcessInfo.h
+index f0c6aec6d953..6a3d3b637648 100644
+--- a/xbmc/cores/VideoPlayer/Process/ProcessInfo.h
++++ b/xbmc/cores/VideoPlayer/Process/ProcessInfo.h
+@@ -95,6 +95,8 @@ class CProcessInfo
+   // player states
+   void SetStateSeeking(bool active);
+   bool IsSeeking();
++  void SetStateRealtime(bool state);
++  bool IsRealtimeStream();
+   void SetSpeed(float speed);
+   void SetNewSpeed(float speed);
+   float GetNewSpeed();
+@@ -170,6 +172,7 @@ class CProcessInfo
+   int64_t m_time;
+   int64_t m_timeMax;
+   int64_t m_timeMin;
++  bool m_realTimeStream;
+ 
+   // settings
+   CCriticalSection m_settingsSection;
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index b8268f916233..bc5495daa238 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -4728,8 +4728,10 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+     state.canpause = m_pInputStream->CanPause();
+     state.canseek = m_pInputStream->CanSeek();
+ 
++    bool realtime = m_pInputStream->IsRealtime();
++
+     if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) &&
+-        !m_pInputStream->IsRealtime())
++        !realtime)
+     {
+       state.cantempo = true;
+     }
+@@ -4737,6 +4739,8 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+     {
+       state.cantempo = false;
+     }
++
++    m_processInfo->SetStateRealtime(realtime);
+   }
+ 
+   if (m_Edl.HasCut())
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp b/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
+index b4c90fc6ac9e..e35cf6e589ef 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
+@@ -90,7 +90,7 @@ bool CVideoPlayerAudio::OpenStream(CDVDStreamInfo hints)
+ {
+   CLog::Log(LOGNOTICE, "Finding audio codec for: %i", hints.codec);
+   bool allowpassthrough = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
+-  if (hints.realtime)
++  if (m_processInfo.IsRealtimeStream())
+     allowpassthrough = false;
+ 
+   CAEStreamInfo::DataType streamType = m_audioSink.GetPassthroughStreamType(hints.codec, hints.samplerate);
+@@ -146,7 +146,7 @@ void CVideoPlayerAudio::OpenStream(CDVDStreamInfo &hints, CDVDAudioCodec* codec)
+   m_setsynctype = SYNC_DISCON;
+   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK))
+     m_setsynctype = SYNC_RESAMPLE;
+-  else if (hints.realtime)
++  else if (m_processInfo.IsRealtimeStream())
+     m_setsynctype = SYNC_RESAMPLE;
+ 
+   m_prevsynctype = -1;
+@@ -464,6 +464,17 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
+       }
+     }
+ 
++    // if stream switches to realtime, disable pass through
++    if (m_processInfo.IsRealtimeStream() && m_synctype != SYNC_RESAMPLE)
++    {
++      if (SwitchCodecIfNeeded())
++      {
++        m_synctype = SYNC_RESAMPLE;
++        audioframe.nb_frames = 0;
++        return false;
++      }
++    }
++
+     // demuxer reads metatags that influence channel layout
+     if (m_streaminfo.codec == AV_CODEC_ID_FLAC && m_streaminfo.channellayout)
+       audioframe.format.m_channelLayout = CAEUtil::GetAEChannelLayout(m_streaminfo.channellayout);
+@@ -471,7 +482,7 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
+     // we have successfully decoded an audio frame, setup renderer to match
+     if (!m_audioSink.IsValidFormat(audioframe))
+     {
+-      if(m_speed)
++      if (m_speed)
+         m_audioSink.Drain();
+ 
+       m_audioSink.Destroy(false);
+@@ -596,9 +607,9 @@ bool CVideoPlayerAudio::AcceptsData() const
+ 
+ bool CVideoPlayerAudio::SwitchCodecIfNeeded()
+ {
+-  CLog::Log(LOGDEBUG, "CVideoPlayerAudio: Sample rate changed, checking for passthrough");
++  CLog::Log(LOGDEBUG, "CVideoPlayerAudio: stream props changed, checking for passthrough");
+   bool allowpassthrough = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
+-  if (m_streaminfo.realtime)
++  if (m_processInfo.IsRealtimeStream() || m_synctype == SYNC_RESAMPLE)
+     allowpassthrough = false;
+ 
+   CAEStreamInfo::DataType streamType = m_audioSink.GetPassthroughStreamType(m_streaminfo.codec, m_streaminfo.samplerate);
