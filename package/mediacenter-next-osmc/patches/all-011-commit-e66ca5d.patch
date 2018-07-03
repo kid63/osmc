@@ -1,0 +1,1168 @@
+From e66ca5d0d000dc092e6d24b10ca08ea1e28c2b62 Mon Sep 17 00:00:00 2001
+From: Attila Jakosa <attila.jakosa@gmail.com>
+Date: Sun, 1 Jul 2018 19:54:46 +0000
+Subject: [PATCH] [lang][skin.estuary] updated language files from Transifex
+
+---
+ addons/screensaver.xbmc.builtin.dim/addon.xml            |  2 +-
+ addons/skin.estuary/addon.xml                            |  7 ++++---
+ .../language/resource.language.af_za/strings.po          |  4 ++++
+ .../language/resource.language.am_et/strings.po          |  4 ++++
+ .../language/resource.language.ar_sa/strings.po          |  4 ++++
+ .../language/resource.language.be_by/strings.po          |  4 ++++
+ .../language/resource.language.bg_bg/strings.po          | 16 ++++++++++++++++
+ .../language/resource.language.bs_ba/strings.po          |  4 ++++
+ .../language/resource.language.ca_es/strings.po          |  4 ++++
+ .../language/resource.language.cs_cz/strings.po          | 16 ++++++++++++----
+ .../language/resource.language.cy_gb/strings.po          |  8 ++++++++
+ .../language/resource.language.da_dk/strings.po          |  8 ++++++++
+ .../language/resource.language.de_de/strings.po          |  8 ++++++++
+ .../language/resource.language.el_gr/strings.po          |  4 ++++
+ .../language/resource.language.en_au/strings.po          |  4 ++++
+ .../language/resource.language.en_nz/strings.po          |  4 ++++
+ .../language/resource.language.en_us/strings.po          |  4 ++++
+ .../language/resource.language.es_ar/strings.po          |  4 ++++
+ .../language/resource.language.es_es/strings.po          |  8 ++++++++
+ .../language/resource.language.es_mx/strings.po          |  4 ++++
+ .../language/resource.language.et_ee/strings.po          |  4 ++++
+ .../language/resource.language.eu_es/strings.po          | 16 ++++++++++++++++
+ .../language/resource.language.fa_ir/strings.po          |  4 ++++
+ .../language/resource.language.fi_fi/strings.po          | 16 ++++++++++++++++
+ .../language/resource.language.fo_fo/strings.po          |  4 ++++
+ .../language/resource.language.fr_ca/strings.po          |  8 ++++++++
+ .../language/resource.language.fr_fr/strings.po          | 16 ++++++++++++++++
+ .../language/resource.language.gl_es/strings.po          |  4 ++++
+ .../language/resource.language.he_il/strings.po          |  4 ++++
+ .../language/resource.language.hr_hr/strings.po          |  4 ++++
+ .../language/resource.language.hu_hu/strings.po          |  8 ++++++++
+ .../language/resource.language.id_id/strings.po          |  4 ++++
+ .../language/resource.language.is_is/strings.po          |  4 ++++
+ .../language/resource.language.it_it/strings.po          |  4 ++++
+ .../language/resource.language.ja_jp/strings.po          |  4 ++++
+ .../language/resource.language.ko_kr/strings.po          |  4 ++++
+ .../language/resource.language.lt_lt/strings.po          | 16 ++++++++++++++++
+ .../language/resource.language.lv_lv/strings.po          |  4 ++++
+ .../language/resource.language.mi/strings.po             |  4 ++++
+ .../language/resource.language.mk_mk/strings.po          |  4 ++++
+ .../language/resource.language.ms_my/strings.po          |  8 ++++++++
+ .../language/resource.language.mt_mt/strings.po          |  4 ++++
+ .../language/resource.language.my_mm/strings.po          |  4 ++++
+ .../language/resource.language.nb_no/strings.po          |  4 ++++
+ .../language/resource.language.nl_nl/strings.po          |  4 ++++
+ .../language/resource.language.pl_pl/strings.po          |  8 ++++++++
+ .../language/resource.language.pt_br/strings.po          |  8 ++++++++
+ .../language/resource.language.pt_pt/strings.po          |  4 ++++
+ .../language/resource.language.ro_ro/strings.po          |  4 ++++
+ .../language/resource.language.ru_ru/strings.po          |  8 ++++++++
+ .../language/resource.language.sk_sk/strings.po          | 16 ++++++++++++++++
+ .../language/resource.language.sl_si/strings.po          |  4 ++++
+ .../language/resource.language.sq_al/strings.po          |  4 ++++
+ .../language/resource.language.sr_rs/strings.po          |  4 ++++
+ .../language/resource.language.sr_rs@latin/strings.po    |  4 ++++
+ .../language/resource.language.sv_se/strings.po          |  8 ++++++++
+ .../language/resource.language.szl/strings.po            |  4 ++++
+ .../language/resource.language.ta_in/strings.po          |  4 ++++
+ .../language/resource.language.tg_tj/strings.po          |  4 ++++
+ .../language/resource.language.th_th/strings.po          |  4 ++++
+ .../language/resource.language.tr_tr/strings.po          |  4 ++++
+ .../language/resource.language.uk_ua/strings.po          |  4 ++++
+ .../language/resource.language.vi_vn/strings.po          |  4 ++++
+ .../language/resource.language.zh_cn/strings.po          |  4 ++++
+ .../language/resource.language.zh_tw/strings.po          |  4 ++++
+ 65 files changed, 381 insertions(+), 8 deletions(-)
+
+diff --git a/addons/screensaver.xbmc.builtin.dim/addon.xml b/addons/screensaver.xbmc.builtin.dim/addon.xml
+index b1a5f5f36de4..931df75ae212 100644
+--- a/addons/screensaver.xbmc.builtin.dim/addon.xml
++++ b/addons/screensaver.xbmc.builtin.dim/addon.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+ <addon id="screensaver.xbmc.builtin.dim"
+        name="Dim"
+-       version="1.0.41"
++       version="1.0.42"
+        provider-name="Team Kodi">
+   <extension point="xbmc.ui.screensaver" library=""/>
+   <extension point="xbmc.addon.metadata">
+diff --git a/addons/skin.estuary/addon.xml b/addons/skin.estuary/addon.xml
+index 97bcc687cca4..6c9749a9e6ba 100644
+--- a/addons/skin.estuary/addon.xml
++++ b/addons/skin.estuary/addon.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+-<addon id="skin.estuary" version="2.0.9" name="Estuary" provider-name="phil65, Ichabod Fletchman">
++<addon id="skin.estuary" version="2.0.10" name="Estuary" provider-name="phil65, Ichabod Fletchman">
+ 	<requires>
+ 		<import addon="xbmc.gui" version="5.13.0"/>
+ 	</requires>
+@@ -98,7 +98,7 @@
+ 		<description lang="sk_SK">Estuary je predvolený vzhľad pre Kodi 17.0 a vyššie. Pokúša sa byť pre prvotných používateľov Kodi jednoduchým na pochopenie a používanie.</description>
+ 		<description lang="sr_RS">Estuary је подразумевана маска за Kodi 17.0 и изнад. Покушава да буде једноставан за разумевање и коришћење новим корисницима Kodi-ја.</description>
+ 		<description lang="sr_RS@latin">Estuary je podrazumevana maska za Kodi 17.0 i iznad. Pokušava da bude jednostavan za razumevanje i korišćenje novim korisnicima Kodija.</description>
+-		<description lang="sv_SE">Estuary är standardskal för Kodi 17.0 och uppåt. Det försöker att vara lättförståeligt och användarvänligt för förstagångsanvändare av Kodi.</description>
++		<description lang="sv_SE">Estuary är standardskalet för Kodi 17.0 och uppåt. Det är utformat för att vara lättförståeligt och användarvänligt för förstagångsanvändare av Kodi.</description>
+ 		<description lang="szl">Estuary je wychodnōm skōrōm Kodi dlŏ wersyje 17.0 i dalszych. Prōbuje być proste dlŏ używŏczōw, dlŏ kerych Kodi je nowe</description>
+ 		<description lang="th_TH">Estuary คือหน้าตาเริ่มต้นของ Kodi 17.0 และสูงกว่า เป็นความพยายามที่จะทำให้ง่ายสำหรับผู้ใช้ Kodi ในครั้งแรก ที่จะเข้าใจและใช้งาน</description>
+ 		<description lang="tr_TR">Estuary Kodi 17.0 ve yukarısı için varsayılan dış görünümdür. İlk kez Kodi kullananlar için anlaşılması ve kullanımı kolaydır.</description>
+@@ -109,6 +109,7 @@
+ 		<disclaimer lang="bg_BG">Estuary е стандартният облик на Kodi. Премахването му може да предизвика проблеми</disclaimer>
+ 		<disclaimer lang="ca_ES">Estuary és l'aparença predeterminada de Kodi, si s'elimina pot causar problemes.</disclaimer>
+ 		<disclaimer lang="cs_CZ">Estuary je výchozí vzhled pro Kodi, jeho odebrání může způsobit problémy</disclaimer>
++		<disclaimer lang="cy_GB">Estuary yw croen diofyn Kodi. Efallai bydd ei dynnu yn achosi problemau</disclaimer>
+ 		<disclaimer lang="da_DK">Estuary er standard  brugerfladen. Fjernes det kan der opstå problemer.</disclaimer>
+ 		<disclaimer lang="de_DE">Estuary ist der Standardskin von Kodi. Ein Entfernen des Skins kann Probleme verursachen.</disclaimer>
+ 		<disclaimer lang="el_GR">Το Estuary είναι η προεπιλεγμένη αμφίεση για το Kodi. Η αφαίρεσή του μπορεί να δημιουργήσει προβλήματα.</disclaimer>
+@@ -142,7 +143,7 @@
+ 		<disclaimer lang="sk_SK">Estuary je predvolený vzhľad pre Kodi, jeho odstránenie môže spôsobiť problémy</disclaimer>
+ 		<disclaimer lang="sr_RS">Estuary је подразумевана маска за Kodi, уклањање може изазвати проблеме</disclaimer>
+ 		<disclaimer lang="sr_RS@latin">Estuary je podrazumevana maska za Kodi, uklanjanje može izazvati probleme</disclaimer>
+-		<disclaimer lang="sv_SE">Estuary är standardskalet för Kodi, om du tar bort den kan det orsaka problem</disclaimer>
++		<disclaimer lang="sv_SE">Estuary är Kodis standardskal. Om du tar bort det kan det orsaka problem.</disclaimer>
+ 		<disclaimer lang="szl">Estuary je wychodnōm skōrōm Kodi, jij uchrōniynie może sprŏwiać niyprzileżytości</disclaimer>
+ 		<disclaimer lang="th_TH">Estuary เป็นหน้าตาเริ่มต้นสำหรับ Kodi, การลบมัน อาจทำให้เกิดปัญหา</disclaimer>
+ 		<disclaimer lang="tr_TR">Estuary Kodi için varsayılan dış görünümdür, kaldırmak sorunlara yol açabilir</disclaimer>
+diff --git a/addons/skin.estuary/language/resource.language.af_za/strings.po b/addons/skin.estuary/language/resource.language.af_za/strings.po
+index ce3734727f7a..4f2495503376 100644
+--- a/addons/skin.estuary/language/resource.language.af_za/strings.po
++++ b/addons/skin.estuary/language/resource.language.af_za/strings.po
+@@ -535,3 +535,7 @@ msgstr "Wys media vlaggies"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Nommer blok"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profiel naam"
+diff --git a/addons/skin.estuary/language/resource.language.am_et/strings.po b/addons/skin.estuary/language/resource.language.am_et/strings.po
+index ee25447afc5e..e7a16af0dc3b 100644
+--- a/addons/skin.estuary/language/resource.language.am_et/strings.po
++++ b/addons/skin.estuary/language/resource.language.am_et/strings.po
+@@ -219,3 +219,7 @@ msgstr "ተጨማ-ሪዎች መፈለጊያ"
+ msgctxt "#31148"
+ msgid "Categories"
+ msgstr "ምድቦች"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "የ ገጽታ ስም"
+diff --git a/addons/skin.estuary/language/resource.language.ar_sa/strings.po b/addons/skin.estuary/language/resource.language.ar_sa/strings.po
+index 65485f10dc0c..001b648c5795 100644
+--- a/addons/skin.estuary/language/resource.language.ar_sa/strings.po
++++ b/addons/skin.estuary/language/resource.language.ar_sa/strings.po
+@@ -55,3 +55,7 @@ msgstr "تتوفر ترجمات محليه"
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "تغير"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "اسم الملف الشخصي"
+diff --git a/addons/skin.estuary/language/resource.language.be_by/strings.po b/addons/skin.estuary/language/resource.language.be_by/strings.po
+index 80815d0ca179..8dfafdc52097 100644
+--- a/addons/skin.estuary/language/resource.language.be_by/strings.po
++++ b/addons/skin.estuary/language/resource.language.be_by/strings.po
+@@ -59,3 +59,7 @@ msgstr "Shift"
+ msgctxt "#31137"
+ msgid "PVR info"
+ msgstr "Звесткі PVR"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profile name"
+diff --git a/addons/skin.estuary/language/resource.language.bg_bg/strings.po b/addons/skin.estuary/language/resource.language.bg_bg/strings.po
+index c82cd2dfa4cd..54f5d15fc0a8 100644
+--- a/addons/skin.estuary/language/resource.language.bg_bg/strings.po
++++ b/addons/skin.estuary/language/resource.language.bg_bg/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Изберете програма"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Изберете резолюция"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Остава"
+@@ -555,3 +559,15 @@ msgstr "Играйте собствените си игри или свалет
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Показване на фен-арт за фон"
++
++msgctxt "#31164"
++msgid "Choose kind of profile identification"
++msgstr "Изберете начин за идентифициране на профила"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Име на профила"
++
++msgctxt "#31166"
++msgid "Profile avatar"
++msgstr "Снимка на профила"
+diff --git a/addons/skin.estuary/language/resource.language.bs_ba/strings.po b/addons/skin.estuary/language/resource.language.bs_ba/strings.po
+index 466b833f8fae..5d1728780416 100644
+--- a/addons/skin.estuary/language/resource.language.bs_ba/strings.po
++++ b/addons/skin.estuary/language/resource.language.bs_ba/strings.po
+@@ -19,3 +19,7 @@ msgstr ""
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Shift"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Ime profila"
+diff --git a/addons/skin.estuary/language/resource.language.ca_es/strings.po b/addons/skin.estuary/language/resource.language.ca_es/strings.po
+index 0cd48df24abc..a3e9e77d3795 100644
+--- a/addons/skin.estuary/language/resource.language.ca_es/strings.po
++++ b/addons/skin.estuary/language/resource.language.ca_es/strings.po
+@@ -535,3 +535,7 @@ msgstr "Mostra els indicadors multimèdia"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Teclat numèric"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nom del perfil"
+diff --git a/addons/skin.estuary/language/resource.language.cs_cz/strings.po b/addons/skin.estuary/language/resource.language.cs_cz/strings.po
+index 82d648e007cb..6e07a280beec 100644
+--- a/addons/skin.estuary/language/resource.language.cs_cz/strings.po
++++ b/addons/skin.estuary/language/resource.language.cs_cz/strings.po
+@@ -266,7 +266,7 @@ msgstr "Možnosti napájení"
+ 
+ msgctxt "#31075"
+ msgid "Movie sets"
+-msgstr "Kolekce filmů"
++msgstr "Sbírky filmů"
+ 
+ msgctxt "#31079"
+ msgid "Cast not available"
+@@ -322,7 +322,7 @@ msgstr "Vyberte svůj uživatelský profil Kodi[CR]pro přihlášení a pokračo
+ 
+ msgctxt "#31099"
+ msgid "IconWall"
+-msgstr "Zeď ikon"
++msgstr "Stěna ikon"
+ 
+ msgctxt "#31100"
+ msgid "Shift"
+@@ -330,7 +330,7 @@ msgstr "Posun"
+ 
+ msgctxt "#31101"
+ msgid "InfoWall"
+-msgstr "Zeď informací"
++msgstr "Infostěna"
+ 
+ msgctxt "#31102"
+ msgid "Wall"
+@@ -422,7 +422,7 @@ msgstr "Stiskněte nahoru pro zobrazení informací o herci"
+ 
+ msgctxt "#31126"
+ msgid "Press OK to read plot"
+-msgstr "Stiskněte OK pro přečtení děje"
++msgstr "Stisknutím OK si přečtete zápletku"
+ 
+ msgctxt "#31127"
+ msgid "Show icons"
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Vybrat program"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Vyberte rozlišení"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Zbývá"
+@@ -555,3 +559,7 @@ msgstr "Hrajte své vlastní hry nebo si stáhněte jeden z mnoha doplňků her
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Zobrazit fanart na pozadí"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Název profilu"
+diff --git a/addons/skin.estuary/language/resource.language.cy_gb/strings.po b/addons/skin.estuary/language/resource.language.cy_gb/strings.po
+index f7a57c1ffec7..a8c277938850 100644
+--- a/addons/skin.estuary/language/resource.language.cy_gb/strings.po
++++ b/addons/skin.estuary/language/resource.language.cy_gb/strings.po
+@@ -52,6 +52,10 @@ msgctxt "#31053"
+ msgid "Arial based"
+ msgstr "Seileidig ar Ariel"
+ 
++msgctxt "#31066"
++msgid "Music playlist"
++msgstr "Rhestrau chwarae cerddoriaeth"
++
+ msgctxt "#31067"
+ msgid "Event log"
+ msgstr "Log y digwyddiad"
+@@ -79,3 +83,7 @@ msgstr "Teludestun"
+ msgctxt "#31138"
+ msgid "Player process info"
+ msgstr "Gwybodaeth ar gynnydd chwaraewr"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Enw proffil"
+diff --git a/addons/skin.estuary/language/resource.language.da_dk/strings.po b/addons/skin.estuary/language/resource.language.da_dk/strings.po
+index 28275724cfaa..44769fac0025 100644
+--- a/addons/skin.estuary/language/resource.language.da_dk/strings.po
++++ b/addons/skin.estuary/language/resource.language.da_dk/strings.po
+@@ -324,6 +324,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Vælg program"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Vælg opløsning"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Tilbage"
+@@ -395,3 +399,7 @@ msgstr "Vis medieflag"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Numerisk tastetur"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profilnavn"
+diff --git a/addons/skin.estuary/language/resource.language.de_de/strings.po b/addons/skin.estuary/language/resource.language.de_de/strings.po
+index 30506ed63f76..28d8fd6c42d5 100644
+--- a/addons/skin.estuary/language/resource.language.de_de/strings.po
++++ b/addons/skin.estuary/language/resource.language.de_de/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Programm auswählen"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Auflösung wählen"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Verbleibend"
+@@ -555,3 +559,7 @@ msgstr "Spielen oder eines von vielen Spiele-Addons aus dem offiziellen Reposito
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Fanart-Hintergrund anzeigen"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profil-Name"
+diff --git a/addons/skin.estuary/language/resource.language.el_gr/strings.po b/addons/skin.estuary/language/resource.language.el_gr/strings.po
+index 3cafc585d911..e1331ea0d240 100644
+--- a/addons/skin.estuary/language/resource.language.el_gr/strings.po
++++ b/addons/skin.estuary/language/resource.language.el_gr/strings.po
+@@ -507,3 +507,7 @@ msgstr "Λειτουργία αφής"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Αριθμητικό πληκτρολόγιο"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Όνομα προφίλ"
+diff --git a/addons/skin.estuary/language/resource.language.en_au/strings.po b/addons/skin.estuary/language/resource.language.en_au/strings.po
+index fd5635bb4374..5d5040815618 100644
+--- a/addons/skin.estuary/language/resource.language.en_au/strings.po
++++ b/addons/skin.estuary/language/resource.language.en_au/strings.po
+@@ -63,3 +63,7 @@ msgstr "Local subtitle available"
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Shift"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profile name"
+diff --git a/addons/skin.estuary/language/resource.language.en_nz/strings.po b/addons/skin.estuary/language/resource.language.en_nz/strings.po
+index b6ef6de8dee6..0458da10ad5b 100644
+--- a/addons/skin.estuary/language/resource.language.en_nz/strings.po
++++ b/addons/skin.estuary/language/resource.language.en_nz/strings.po
+@@ -551,3 +551,7 @@ msgstr "Play your personal games or download one of the many game add-ons from t
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Show Fanart background"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profile name"
+diff --git a/addons/skin.estuary/language/resource.language.en_us/strings.po b/addons/skin.estuary/language/resource.language.en_us/strings.po
+index 59b0ce576dfe..06b15efa252b 100644
+--- a/addons/skin.estuary/language/resource.language.en_us/strings.po
++++ b/addons/skin.estuary/language/resource.language.en_us/strings.po
+@@ -555,3 +555,7 @@ msgstr "Play your personal games or download one of the many game add-ons from t
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Show Fanart background"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profile name"
+diff --git a/addons/skin.estuary/language/resource.language.es_ar/strings.po b/addons/skin.estuary/language/resource.language.es_ar/strings.po
+index 0820664f13ab..a359ee904d56 100644
+--- a/addons/skin.estuary/language/resource.language.es_ar/strings.po
++++ b/addons/skin.estuary/language/resource.language.es_ar/strings.po
+@@ -535,3 +535,7 @@ msgstr "Mostrar banderas de medios"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Teclado numérico"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nombre de perfil"
+diff --git a/addons/skin.estuary/language/resource.language.es_es/strings.po b/addons/skin.estuary/language/resource.language.es_es/strings.po
+index 7022c4f19ff5..a057b0964676 100644
+--- a/addons/skin.estuary/language/resource.language.es_es/strings.po
++++ b/addons/skin.estuary/language/resource.language.es_es/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Elija Programa"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Seleccionar Resolución"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Restante"
+@@ -555,3 +559,7 @@ msgstr "Juegue a sus juegos o descargue alguno de los múltiples add-ons del rep
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Mostar fondo fanart"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nombre de perfil"
+diff --git a/addons/skin.estuary/language/resource.language.es_mx/strings.po b/addons/skin.estuary/language/resource.language.es_mx/strings.po
+index fa6c2a03f52b..62a5790f7522 100644
+--- a/addons/skin.estuary/language/resource.language.es_mx/strings.po
++++ b/addons/skin.estuary/language/resource.language.es_mx/strings.po
+@@ -535,3 +535,7 @@ msgstr "Mostrar indicadores de medios"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Teclado numérico"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nombre de perfil"
+diff --git a/addons/skin.estuary/language/resource.language.et_ee/strings.po b/addons/skin.estuary/language/resource.language.et_ee/strings.po
+index 61b211b7a3a4..79061a67bd38 100644
+--- a/addons/skin.estuary/language/resource.language.et_ee/strings.po
++++ b/addons/skin.estuary/language/resource.language.et_ee/strings.po
+@@ -63,3 +63,7 @@ msgstr "Nihe"
+ msgctxt "#31106"
+ msgid "Teletext"
+ msgstr "Teletekst"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profiili nimi"
+diff --git a/addons/skin.estuary/language/resource.language.eu_es/strings.po b/addons/skin.estuary/language/resource.language.eu_es/strings.po
+index 6bed0f495a6f..8ba32508e210 100644
+--- a/addons/skin.estuary/language/resource.language.eu_es/strings.po
++++ b/addons/skin.estuary/language/resource.language.eu_es/strings.po
+@@ -120,6 +120,10 @@ msgctxt "#31025"
+ msgid "No favourites found. You can add any item from media views to this list by using the context menu."
+ msgstr "Ez da gogokorik aurkitu. Elementuak gehitu ditzakezu edozein multimedia ikuspegitik zerrenda honetara laster-menua erabiliz."
+ 
++msgctxt "#31026"
++msgid "Timeshift"
++msgstr "Denbora aldaketa"
++
+ msgctxt "#31028"
+ msgid "Show fanart"
+ msgstr "Irakutsi fanart-a"
+@@ -440,6 +444,14 @@ msgctxt "#31131"
+ msgid "Choose skin fanart pack"
+ msgstr "Aukeratu azalaren fanart paketea"
+ 
++msgctxt "#31132"
++msgid "Select Program"
++msgstr "Hautatu Programa"
++
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Hautatu Bereizmena"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Geratzen dena"
+@@ -547,3 +559,7 @@ msgstr "Jokatu zure joko pertsonaletan edo deskargatu biltegi ofizialeko joko ge
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Irakutsi fanart atzean"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profilaren izena"
+diff --git a/addons/skin.estuary/language/resource.language.fa_ir/strings.po b/addons/skin.estuary/language/resource.language.fa_ir/strings.po
+index 66324acc3025..b0ca82fda9f3 100644
+--- a/addons/skin.estuary/language/resource.language.fa_ir/strings.po
++++ b/addons/skin.estuary/language/resource.language.fa_ir/strings.po
+@@ -87,3 +87,7 @@ msgstr "Shift"
+ msgctxt "#31106"
+ msgid "Teletext"
+ msgstr "تله تکست"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "نام پروفایل"
+diff --git a/addons/skin.estuary/language/resource.language.fi_fi/strings.po b/addons/skin.estuary/language/resource.language.fi_fi/strings.po
+index 3364ec29a5bf..279fe609b63e 100644
+--- a/addons/skin.estuary/language/resource.language.fi_fi/strings.po
++++ b/addons/skin.estuary/language/resource.language.fi_fi/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Valitse ohjelma"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Valitse resoluutio"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Jäljellä"
+@@ -555,3 +559,15 @@ msgstr "Pelaa omistamiasi pelejä tai lataa pelilisäosia virallisesta ohjelmava
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Näytä fanitaide"
++
++msgctxt "#31164"
++msgid "Choose kind of profile identification"
++msgstr "Valitse näytetäänkö profiilin nimi vai kuva"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profiilin nimi"
++
++msgctxt "#31166"
++msgid "Profile avatar"
++msgstr "Profiilin kuva"
+diff --git a/addons/skin.estuary/language/resource.language.fo_fo/strings.po b/addons/skin.estuary/language/resource.language.fo_fo/strings.po
+index 646e575cd809..ab059ac6063a 100644
+--- a/addons/skin.estuary/language/resource.language.fo_fo/strings.po
++++ b/addons/skin.estuary/language/resource.language.fo_fo/strings.po
+@@ -39,3 +39,7 @@ msgstr "Streym stillingar"
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Stórt"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Heiti á uppseting"
+diff --git a/addons/skin.estuary/language/resource.language.fr_ca/strings.po b/addons/skin.estuary/language/resource.language.fr_ca/strings.po
+index d7510d5c336e..edc6f14674b8 100644
+--- a/addons/skin.estuary/language/resource.language.fr_ca/strings.po
++++ b/addons/skin.estuary/language/resource.language.fr_ca/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Choisir un programme"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Sélectionner la résolution"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Restant"
+@@ -555,3 +559,7 @@ msgstr "Jouez à vos jeux personnels ou téléchargez l’un des nombreux addici
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Afficher le fanart en arrière-plan"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nom du profil"
+diff --git a/addons/skin.estuary/language/resource.language.fr_fr/strings.po b/addons/skin.estuary/language/resource.language.fr_fr/strings.po
+index 13c19de69cf1..43d130f9ecb4 100644
+--- a/addons/skin.estuary/language/resource.language.fr_fr/strings.po
++++ b/addons/skin.estuary/language/resource.language.fr_fr/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Sélectionner un programme"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Sélectionner la résolution"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Restant"
+@@ -555,3 +559,15 @@ msgstr "Jouer à vos jeux préférés ou télécharger une extension de jeu parm
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Afficher le FanArt d'arrière-plan"
++
++msgctxt "#31164"
++msgid "Choose kind of profile identification"
++msgstr "Choisir le type d'identification du profil"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nom du profil"
++
++msgctxt "#31166"
++msgid "Profile avatar"
++msgstr "Avatar du profil"
+diff --git a/addons/skin.estuary/language/resource.language.gl_es/strings.po b/addons/skin.estuary/language/resource.language.gl_es/strings.po
+index 31f42d95ee0d..e1128a6f9e8f 100644
+--- a/addons/skin.estuary/language/resource.language.gl_es/strings.po
++++ b/addons/skin.estuary/language/resource.language.gl_es/strings.po
+@@ -555,3 +555,7 @@ msgstr "Xoga aos teus xogos persoais ou descarrega un dos moitos complementos de
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Amosar Fanart como fondo"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nome do perfíl"
+diff --git a/addons/skin.estuary/language/resource.language.he_il/strings.po b/addons/skin.estuary/language/resource.language.he_il/strings.po
+index 553accc8d12d..2a58d25e03c9 100644
+--- a/addons/skin.estuary/language/resource.language.he_il/strings.po
++++ b/addons/skin.estuary/language/resource.language.he_il/strings.po
+@@ -555,3 +555,7 @@ msgstr "שחק את המשחקים האישיים שלך או הורד אחד מ
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "הצג רקע פאנארט"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "שם משתמש"
+diff --git a/addons/skin.estuary/language/resource.language.hr_hr/strings.po b/addons/skin.estuary/language/resource.language.hr_hr/strings.po
+index 5a1a6e2f020b..a08f0cdbb573 100644
+--- a/addons/skin.estuary/language/resource.language.hr_hr/strings.po
++++ b/addons/skin.estuary/language/resource.language.hr_hr/strings.po
+@@ -555,3 +555,7 @@ msgstr "Igrajte svoje igre ili preuzmite jednu od mnogih dodataka igra iz služb
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Prikaži poster obožavatelja kao pozadinu"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Naziv profila"
+diff --git a/addons/skin.estuary/language/resource.language.hu_hu/strings.po b/addons/skin.estuary/language/resource.language.hu_hu/strings.po
+index 5095755f537e..f2a86a7e1b6e 100644
+--- a/addons/skin.estuary/language/resource.language.hu_hu/strings.po
++++ b/addons/skin.estuary/language/resource.language.hu_hu/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Műsor kiválasztása"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Felbontás kiválasztása"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Hátralévő"
+@@ -555,3 +559,7 @@ msgstr "Játssz a saját játékaiddal vagy töltsd le a számos játék kiegés
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Illusztráció háttér megjelenítése"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profil neve"
+diff --git a/addons/skin.estuary/language/resource.language.id_id/strings.po b/addons/skin.estuary/language/resource.language.id_id/strings.po
+index c9db6c582143..8f2b610eae21 100644
+--- a/addons/skin.estuary/language/resource.language.id_id/strings.po
++++ b/addons/skin.estuary/language/resource.language.id_id/strings.po
+@@ -123,3 +123,7 @@ msgstr "Teleteks"
+ msgctxt "#31138"
+ msgid "Player process info"
+ msgstr "Informasi proses player"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nama profil"
+diff --git a/addons/skin.estuary/language/resource.language.is_is/strings.po b/addons/skin.estuary/language/resource.language.is_is/strings.po
+index eb42d8f42c29..b905477ea36a 100644
+--- a/addons/skin.estuary/language/resource.language.is_is/strings.po
++++ b/addons/skin.estuary/language/resource.language.is_is/strings.po
+@@ -555,3 +555,7 @@ msgstr "Spilaðu þína eigin leiki eða náðu í einhverja af fjölmörgum lei
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Birta aðdáendamynd sem bakgrunn"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nafn notanda"
+diff --git a/addons/skin.estuary/language/resource.language.it_it/strings.po b/addons/skin.estuary/language/resource.language.it_it/strings.po
+index d81046f344ee..90ca5d86f1f5 100644
+--- a/addons/skin.estuary/language/resource.language.it_it/strings.po
++++ b/addons/skin.estuary/language/resource.language.it_it/strings.po
+@@ -555,3 +555,7 @@ msgstr "Gioca ai tuoi giochi personali o scarica uno dei tanti giochi Add-on dal
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Mostra sfondo Fanart"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nome profilo"
+diff --git a/addons/skin.estuary/language/resource.language.ja_jp/strings.po b/addons/skin.estuary/language/resource.language.ja_jp/strings.po
+index cb3948650b78..bd3f29a8b992 100644
+--- a/addons/skin.estuary/language/resource.language.ja_jp/strings.po
++++ b/addons/skin.estuary/language/resource.language.ja_jp/strings.po
+@@ -423,3 +423,7 @@ msgstr "残り"
+ msgctxt "#31144"
+ msgid "Enter add-on browser"
+ msgstr "アドオンブラウザー"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "プロファイル名"
+diff --git a/addons/skin.estuary/language/resource.language.ko_kr/strings.po b/addons/skin.estuary/language/resource.language.ko_kr/strings.po
+index f69dafa3c0a6..12349904e207 100644
+--- a/addons/skin.estuary/language/resource.language.ko_kr/strings.po
++++ b/addons/skin.estuary/language/resource.language.ko_kr/strings.po
+@@ -535,3 +535,7 @@ msgstr "미디어 플래그 표시"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "숫자 패드"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "프로파일 이름"
+diff --git a/addons/skin.estuary/language/resource.language.lt_lt/strings.po b/addons/skin.estuary/language/resource.language.lt_lt/strings.po
+index 580df7b44d1f..6d5eb353bdd9 100644
+--- a/addons/skin.estuary/language/resource.language.lt_lt/strings.po
++++ b/addons/skin.estuary/language/resource.language.lt_lt/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Pasirinkite programą"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Pasirinkti raišką"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Liko"
+@@ -555,3 +559,15 @@ msgstr "Žaiskite asmeninius žaidimus arba atsisiųskite vieną iš daugelio ž
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Rodyti Fanart fone"
++
++msgctxt "#31164"
++msgid "Choose kind of profile identification"
++msgstr "Pasirinkite profilio identifikacijos būdą"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profilio vardas"
++
++msgctxt "#31166"
++msgid "Profile avatar"
++msgstr "Profilio avataras"
+diff --git a/addons/skin.estuary/language/resource.language.lv_lv/strings.po b/addons/skin.estuary/language/resource.language.lv_lv/strings.po
+index 59a5ddcd92d4..e408bd54eba2 100644
+--- a/addons/skin.estuary/language/resource.language.lv_lv/strings.po
++++ b/addons/skin.estuary/language/resource.language.lv_lv/strings.po
+@@ -267,3 +267,7 @@ msgstr "Pikseļu formāts"
+ msgctxt "#31142"
+ msgid "Play speed"
+ msgstr "Atskaņošanas ātrums"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profila vārds"
+diff --git a/addons/skin.estuary/language/resource.language.mi/strings.po b/addons/skin.estuary/language/resource.language.mi/strings.po
+index 5ce8012a5a83..7fc63c28e21e 100644
+--- a/addons/skin.estuary/language/resource.language.mi/strings.po
++++ b/addons/skin.estuary/language/resource.language.mi/strings.po
+@@ -19,3 +19,7 @@ msgstr ""
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Shift"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Ingoa Profile"
+diff --git a/addons/skin.estuary/language/resource.language.mk_mk/strings.po b/addons/skin.estuary/language/resource.language.mk_mk/strings.po
+index 1c639b973938..11d75cf53ff6 100644
+--- a/addons/skin.estuary/language/resource.language.mk_mk/strings.po
++++ b/addons/skin.estuary/language/resource.language.mk_mk/strings.po
+@@ -335,3 +335,7 @@ msgstr "Декорации"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Нумеричка тастатура"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Име на профил"
+diff --git a/addons/skin.estuary/language/resource.language.ms_my/strings.po b/addons/skin.estuary/language/resource.language.ms_my/strings.po
+index 89fa2eebfa47..e9cc7ba6f222 100644
+--- a/addons/skin.estuary/language/resource.language.ms_my/strings.po
++++ b/addons/skin.estuary/language/resource.language.ms_my/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Pilih Program"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Pilih Resolusi"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Berbaki"
+@@ -555,3 +559,7 @@ msgstr "Main game sendiri ataupun muat turun salah satu add-on game daripada rep
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Menunjuk latar balakang seni peminat"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nama profil"
+diff --git a/addons/skin.estuary/language/resource.language.mt_mt/strings.po b/addons/skin.estuary/language/resource.language.mt_mt/strings.po
+index 0422c693de56..8b7c2f957fe2 100644
+--- a/addons/skin.estuary/language/resource.language.mt_mt/strings.po
++++ b/addons/skin.estuary/language/resource.language.mt_mt/strings.po
+@@ -87,3 +87,7 @@ msgstr "Għażliet tal-istazzjon"
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Kbar"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Isem tal-Profil"
+diff --git a/addons/skin.estuary/language/resource.language.my_mm/strings.po b/addons/skin.estuary/language/resource.language.my_mm/strings.po
+index 78ab5157f23b..dba69b19e438 100644
+--- a/addons/skin.estuary/language/resource.language.my_mm/strings.po
++++ b/addons/skin.estuary/language/resource.language.my_mm/strings.po
+@@ -39,3 +39,7 @@ msgstr "Local စာတန်းထိုး များရနိုင်ပ
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Shift"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profile အမည်"
+diff --git a/addons/skin.estuary/language/resource.language.nb_no/strings.po b/addons/skin.estuary/language/resource.language.nb_no/strings.po
+index 58d9658141a6..22fd5ad51a25 100644
+--- a/addons/skin.estuary/language/resource.language.nb_no/strings.po
++++ b/addons/skin.estuary/language/resource.language.nb_no/strings.po
+@@ -555,3 +555,7 @@ msgstr "Spill personlige spill eller last ned en av de mange spilltilleggene fra
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Vis brukerkunstbidrag-bakgrunn"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profilnavn"
+diff --git a/addons/skin.estuary/language/resource.language.nl_nl/strings.po b/addons/skin.estuary/language/resource.language.nl_nl/strings.po
+index 256178ed3acf..c2bc2690e8f6 100644
+--- a/addons/skin.estuary/language/resource.language.nl_nl/strings.po
++++ b/addons/skin.estuary/language/resource.language.nl_nl/strings.po
+@@ -555,3 +555,7 @@ msgstr "Speel uw persoonlijke spellen, of download één van de vele speladd-ons
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Toon fanartachtergrond"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profielnaam"
+diff --git a/addons/skin.estuary/language/resource.language.pl_pl/strings.po b/addons/skin.estuary/language/resource.language.pl_pl/strings.po
+index ea312af450ba..1b0235e5a5bb 100644
+--- a/addons/skin.estuary/language/resource.language.pl_pl/strings.po
++++ b/addons/skin.estuary/language/resource.language.pl_pl/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Wybierz program"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Wybierz rozdzielczość"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Pozostało"
+@@ -555,3 +559,7 @@ msgstr "Zagraj w posiadane gry lub pobierz jedną z gier z oficjalnego repozytor
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Pokazuj fototapetę w tle interfejsu"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nazwa profilu"
+diff --git a/addons/skin.estuary/language/resource.language.pt_br/strings.po b/addons/skin.estuary/language/resource.language.pt_br/strings.po
+index ece21781052a..4db891042736 100644
+--- a/addons/skin.estuary/language/resource.language.pt_br/strings.po
++++ b/addons/skin.estuary/language/resource.language.pt_br/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Selecionar Programa"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Selecionar Resolução"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Remanescente"
+@@ -555,3 +559,7 @@ msgstr "Jogue seus jogos pessoais ou faça o download de um dos muitos add-ons d
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Mostrar Fanart como pano de fundo"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nome do Perfil"
+diff --git a/addons/skin.estuary/language/resource.language.pt_pt/strings.po b/addons/skin.estuary/language/resource.language.pt_pt/strings.po
+index 208eedda2636..c326a0be9491 100644
+--- a/addons/skin.estuary/language/resource.language.pt_pt/strings.po
++++ b/addons/skin.estuary/language/resource.language.pt_pt/strings.po
+@@ -503,3 +503,7 @@ msgstr "Editar categorias"
+ msgctxt "#31158"
+ msgid "Touch mode"
+ msgstr "Modo de toque"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nome do perfil"
+diff --git a/addons/skin.estuary/language/resource.language.ro_ro/strings.po b/addons/skin.estuary/language/resource.language.ro_ro/strings.po
+index d599df088ae1..abd26411ddf4 100644
+--- a/addons/skin.estuary/language/resource.language.ro_ro/strings.po
++++ b/addons/skin.estuary/language/resource.language.ro_ro/strings.po
+@@ -555,3 +555,7 @@ msgstr "Redați-vă jocurile personale sau descărcați unul din multele add-on-
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Arată decorul media ca fundal"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Nume profil"
+diff --git a/addons/skin.estuary/language/resource.language.ru_ru/strings.po b/addons/skin.estuary/language/resource.language.ru_ru/strings.po
+index b8ca5150a912..cf321aa8a7c8 100644
+--- a/addons/skin.estuary/language/resource.language.ru_ru/strings.po
++++ b/addons/skin.estuary/language/resource.language.ru_ru/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Выбрать программу"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Выберите разрешение"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Осталось"
+@@ -555,3 +559,7 @@ msgstr "Играйте в свои личные игры или загрузит
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Показать фанатный фон"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Название профиля"
+diff --git a/addons/skin.estuary/language/resource.language.sk_sk/strings.po b/addons/skin.estuary/language/resource.language.sk_sk/strings.po
+index 33cb813cb83c..44f5e8042101 100644
+--- a/addons/skin.estuary/language/resource.language.sk_sk/strings.po
++++ b/addons/skin.estuary/language/resource.language.sk_sk/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Vybrať program"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Vyberte rozlíšenie"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Zostáva"
+@@ -555,3 +559,15 @@ msgstr "Zahrajte si vaše osobné hry alebo si prevezmite jeden z mnohých hern
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Zobraziť Fanart pozadie"
++
++msgctxt "#31164"
++msgid "Choose kind of profile identification"
++msgstr "Vyberte si spôsob identifikácie profilu"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Názov profilu"
++
++msgctxt "#31166"
++msgid "Profile avatar"
++msgstr "Profilový avatar"
+diff --git a/addons/skin.estuary/language/resource.language.sl_si/strings.po b/addons/skin.estuary/language/resource.language.sl_si/strings.po
+index 80ef19d1f25e..a47b2f958ac5 100644
+--- a/addons/skin.estuary/language/resource.language.sl_si/strings.po
++++ b/addons/skin.estuary/language/resource.language.sl_si/strings.po
+@@ -219,3 +219,7 @@ msgstr "Uredi kategorije"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Številčnica"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Ime profila"
+diff --git a/addons/skin.estuary/language/resource.language.sq_al/strings.po b/addons/skin.estuary/language/resource.language.sq_al/strings.po
+index ada3aad00cda..e2f3d70aeb30 100644
+--- a/addons/skin.estuary/language/resource.language.sq_al/strings.po
++++ b/addons/skin.estuary/language/resource.language.sq_al/strings.po
+@@ -43,3 +43,7 @@ msgstr "Subtitra lokal në dispozicion"
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Shift"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Emri i profilit"
+diff --git a/addons/skin.estuary/language/resource.language.sr_rs/strings.po b/addons/skin.estuary/language/resource.language.sr_rs/strings.po
+index 06756dda2c26..920ff608e630 100644
+--- a/addons/skin.estuary/language/resource.language.sr_rs/strings.po
++++ b/addons/skin.estuary/language/resource.language.sr_rs/strings.po
+@@ -535,3 +535,7 @@ msgstr "Прикажи медијске ознаке"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Нумеричка тастатура"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Име профила"
+diff --git a/addons/skin.estuary/language/resource.language.sr_rs@latin/strings.po b/addons/skin.estuary/language/resource.language.sr_rs@latin/strings.po
+index 4db767415094..3564ef2d7ca9 100644
+--- a/addons/skin.estuary/language/resource.language.sr_rs@latin/strings.po
++++ b/addons/skin.estuary/language/resource.language.sr_rs@latin/strings.po
+@@ -535,3 +535,7 @@ msgstr "Prikaži medijske oznake"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "Numerička tastatura"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Ime profila"
+diff --git a/addons/skin.estuary/language/resource.language.sv_se/strings.po b/addons/skin.estuary/language/resource.language.sv_se/strings.po
+index 2253ed4771f3..de4fecdbba01 100644
+--- a/addons/skin.estuary/language/resource.language.sv_se/strings.po
++++ b/addons/skin.estuary/language/resource.language.sv_se/strings.po
+@@ -448,6 +448,10 @@ msgctxt "#31132"
+ msgid "Select Program"
+ msgstr "Välj program"
+ 
++msgctxt "#31133"
++msgid "Select Resolution"
++msgstr "Välj upplösning"
++
+ msgctxt "#31134"
+ msgid "Remaining"
+ msgstr "Återstående"
+@@ -555,3 +559,7 @@ msgstr "Spela dina egna spel eller ladda ned någon av de många speltillägg fr
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Visa Fanart-bakgrund"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profilnamn"
+diff --git a/addons/skin.estuary/language/resource.language.szl/strings.po b/addons/skin.estuary/language/resource.language.szl/strings.po
+index 2f920be366bb..3bff8ca0ef54 100644
+--- a/addons/skin.estuary/language/resource.language.szl/strings.po
++++ b/addons/skin.estuary/language/resource.language.szl/strings.po
+@@ -455,3 +455,7 @@ msgstr "Gibkość ôdtwŏrzaniŏ"
+ msgctxt "#31144"
+ msgid "Enter add-on browser"
+ msgstr "Wlyź do przeziyrŏczki przidŏwkōw"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Miano profilu"
+diff --git a/addons/skin.estuary/language/resource.language.ta_in/strings.po b/addons/skin.estuary/language/resource.language.ta_in/strings.po
+index cb4c0a3f7887..8dac3c96c949 100644
+--- a/addons/skin.estuary/language/resource.language.ta_in/strings.po
++++ b/addons/skin.estuary/language/resource.language.ta_in/strings.po
+@@ -43,3 +43,7 @@ msgstr "உள்ளூர் வசன வரிகள் இருக்கி
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "மாற்று"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "சுயவிவர பெயர்"
+diff --git a/addons/skin.estuary/language/resource.language.tg_tj/strings.po b/addons/skin.estuary/language/resource.language.tg_tj/strings.po
+index 2a7f69552fa9..119f2585fd65 100644
+--- a/addons/skin.estuary/language/resource.language.tg_tj/strings.po
++++ b/addons/skin.estuary/language/resource.language.tg_tj/strings.po
+@@ -55,3 +55,7 @@ msgstr "Зерунвонҳои маҳаллӣ дастрасанд"
+ msgctxt "#31100"
+ msgid "Shift"
+ msgstr "Shift"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Номи профил"
+diff --git a/addons/skin.estuary/language/resource.language.th_th/strings.po b/addons/skin.estuary/language/resource.language.th_th/strings.po
+index d60e6c875eed..a60327a8f856 100644
+--- a/addons/skin.estuary/language/resource.language.th_th/strings.po
++++ b/addons/skin.estuary/language/resource.language.th_th/strings.po
+@@ -531,3 +531,7 @@ msgstr "แสดงป้ายสื่อ"
+ msgctxt "#31161"
+ msgid "Numeric pad"
+ msgstr "แป้นตัวเลข"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "ชื่อ ข้อมูลส่วนตัว"
+diff --git a/addons/skin.estuary/language/resource.language.tr_tr/strings.po b/addons/skin.estuary/language/resource.language.tr_tr/strings.po
+index 8d571813c457..03520ab3ce94 100644
+--- a/addons/skin.estuary/language/resource.language.tr_tr/strings.po
++++ b/addons/skin.estuary/language/resource.language.tr_tr/strings.po
+@@ -555,3 +555,7 @@ msgstr "Kişisel oyunlarınızı oynayın veya resmi depodaki birçok oyun eklen
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "Arka plan fanartını göster"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Profil adı"
+diff --git a/addons/skin.estuary/language/resource.language.uk_ua/strings.po b/addons/skin.estuary/language/resource.language.uk_ua/strings.po
+index b030c0275866..f65c347d900b 100644
+--- a/addons/skin.estuary/language/resource.language.uk_ua/strings.po
++++ b/addons/skin.estuary/language/resource.language.uk_ua/strings.po
+@@ -551,3 +551,7 @@ msgstr "Цифрова клавіатура"
+ msgctxt "#31162"
+ msgid "Play your personal games or download one of the many game add-ons from the official repository."
+ msgstr "Грайте в свої персональні ігри, або завантажте одні з багатьох ігрових додатків з офіційного сховища."
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Назва профілю"
+diff --git a/addons/skin.estuary/language/resource.language.vi_vn/strings.po b/addons/skin.estuary/language/resource.language.vi_vn/strings.po
+index af3f4b3d32d1..72b5d9c5d1c9 100644
+--- a/addons/skin.estuary/language/resource.language.vi_vn/strings.po
++++ b/addons/skin.estuary/language/resource.language.vi_vn/strings.po
+@@ -75,3 +75,7 @@ msgstr "Phụ đề sẵn có trong máy"
+ msgctxt "#31097"
+ msgid "Channel options"
+ msgstr "Thiết lập kênh"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "Tên tài khoản"
+diff --git a/addons/skin.estuary/language/resource.language.zh_cn/strings.po b/addons/skin.estuary/language/resource.language.zh_cn/strings.po
+index 3aac7f1a04d2..c8f05d9d73d9 100644
+--- a/addons/skin.estuary/language/resource.language.zh_cn/strings.po
++++ b/addons/skin.estuary/language/resource.language.zh_cn/strings.po
+@@ -555,3 +555,7 @@ msgstr "玩你自己珍藏的游戏或者从官方仓库中下载游戏插件"
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "显示同人画背景"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "用户配置名称"
+diff --git a/addons/skin.estuary/language/resource.language.zh_tw/strings.po b/addons/skin.estuary/language/resource.language.zh_tw/strings.po
+index f33202020d58..23df9354e4fb 100644
+--- a/addons/skin.estuary/language/resource.language.zh_tw/strings.po
++++ b/addons/skin.estuary/language/resource.language.zh_tw/strings.po
+@@ -555,3 +555,7 @@ msgstr "執行您收藏的遊戲，或下載官方的眾多遊戲附加元件"
+ msgctxt "#31163"
+ msgid "Show Fanart background"
+ msgstr "顯示劇照背景"
++
++msgctxt "#31165"
++msgid "Profile name"
++msgstr "設定檔名稱"
