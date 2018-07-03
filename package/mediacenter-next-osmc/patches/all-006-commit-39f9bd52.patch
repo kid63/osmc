@@ -1,0 +1,23 @@
+From 39f9bd520c95b75da0b2f7be30a9b501346e0c30 Mon Sep 17 00:00:00 2001
+From: Attila Jakosa <attila.jakosa@gmail.com>
+Date: Sun, 1 Jul 2018 19:54:46 +0000
+Subject: [PATCH] [lang][skin.estuary] automatic syntax corrections for the
+ en_GB language file
+
+---
+ addons/skin.estuary/language/resource.language.en_gb/strings.po | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/addons/skin.estuary/language/resource.language.en_gb/strings.po b/addons/skin.estuary/language/resource.language.en_gb/strings.po
+index 2699e1d219f3..b8505b2f0a95 100644
+--- a/addons/skin.estuary/language/resource.language.en_gb/strings.po
++++ b/addons/skin.estuary/language/resource.language.en_gb/strings.po
+@@ -603,8 +603,6 @@ msgctxt "#31133"
+ msgid "Select Resolution"
+ msgstr ""
+ 
+-#empty string with id 31134
+-
+ #: /xml/DialogSeekBar.xml
+ msgctxt "#31134"
+ msgid "Remaining"
