@@ -1,0 +1,23 @@
+From 26565774744da022ed9428a1862159484d2aede6 Mon Sep 17 00:00:00 2001
+From: Attila Jakosa <attila.jakosa@gmail.com>
+Date: Sun, 1 Jul 2018 19:54:46 +0000
+Subject: [PATCH] [lang][kodi.core] automatic syntax corrections for the en_GB
+ language file
+
+---
+ addons/resource.language.en_gb/resources/strings.po | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
+index 6ca67aca1354..150fb6c2ca10 100644
+--- a/addons/resource.language.en_gb/resources/strings.po
++++ b/addons/resource.language.en_gb/resources/strings.po
+@@ -21347,7 +21347,7 @@ msgstr ""
+ 
+ #empty strings from id 39028 to 39029
+ 
+-#. Media source, a filter and smart playlist rule option 
++#. Media source, a filter and smart playlist rule option
+ #: xbmc/dialogs/GUIDialogMediaFilter.cpp
+ #: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
+ #: xbmc/playlists/SmartPlaylist.cpp
