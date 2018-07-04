@@ -1,0 +1,32 @@
+From d92328e9356185d1689de66e50484c277bda4bbd Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Wed, 4 Jul 2018 18:41:54 +0100
+Subject: [PATCH] patch
+
+---
+ tools/depends/target/ffmpeg/pfcd_hevc_optimisations.patch | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/tools/depends/target/ffmpeg/pfcd_hevc_optimisations.patch b/tools/depends/target/ffmpeg/pfcd_hevc_optimisations.patch
+index bd5db50f8c..bf6d9cb124 100644
+--- a/tools/depends/target/ffmpeg/pfcd_hevc_optimisations.patch
++++ b/tools/depends/target/ffmpeg/pfcd_hevc_optimisations.patch
+@@ -30,15 +30,6 @@ index dee507cb6a..0ee9efe1e7 100755
+    --disable-nvdec          disable Nvidia video decoding acceleration (via hwaccel) [autodetect]
+    --disable-nvenc          disable Nvidia video encoding code [autodetect]
+    --enable-omx             enable OpenMAX IL code [no]
+-@@ -1036,7 +1037,7 @@ EOF
+- 
+- check_insn(){
+-     log check_insn "$@"
+--    check_inline_asm ${1}_inline "$2"
+-+    check_inline_asm ${1}_inline "\"$2\""
+-     check_as ${1}_external "$2"
+- }
+- 
+ @@ -1776,6 +1777,7 @@ FEATURE_LIST="
+      gray
+      hardcoded_tables
+-- 
+2.12.3
+
