@@ -99,7 +99,7 @@ index 49f9bcb..374cdff 100644
 @@ -460,6 +464,7 @@ protected:
  #endif
    // screensaver
-   bool m_screensaverActive; 
+   bool m_screensaverActive=false; 
 +  bool m_bVeroStandby;
    std::string m_screensaverIdInUse;
    ADDON::AddonPtr m_pythonScreenSaver; // @warning: Fallback for Python interface, for binaries not needed!
