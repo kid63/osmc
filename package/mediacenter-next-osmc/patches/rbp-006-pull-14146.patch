@@ -1,0 +1,329 @@
+From 2bbd26fe51d36f0e0f55696d84a43a8910578288 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Tue, 3 Jul 2018 23:49:32 -0700
+Subject: [PATCH 1/3] Game add-ons: Fix segfault for some cores
+
+The cause of the segfault is libretro cores that fail to allocate input
+resources during initialization. Instead, input resources are allocated
+when the game is loaded. To accomodate this, we move our controller
+connecting/disconnecting to after the game is loaded.
+
+This commit also corrects the order of init/deinit for other game add-on
+resources.
+---
+ xbmc/games/addons/GameClient.cpp            | 30 +++++++++++++++++++++--------
+ xbmc/games/addons/input/GameClientInput.cpp |  8 ++++++++
+ xbmc/games/addons/input/GameClientInput.h   |  3 +++
+ 3 files changed, 33 insertions(+), 8 deletions(-)
+
+diff --git a/xbmc/games/addons/GameClient.cpp b/xbmc/games/addons/GameClient.cpp
+index f3c90159a681..d6eab4c3bdf8 100644
+--- a/xbmc/games/addons/GameClient.cpp
++++ b/xbmc/games/addons/GameClient.cpp
+@@ -269,6 +269,8 @@ bool CGameClient::OpenFile(const CFileItem& file, RETRO::IStreamManager& streamM
+ 
+   CloseFile();
+ 
++  Streams().Initialize(streamManager);
++
+   GAME_ERROR error = GAME_ERROR_FAILED;
+ 
+   try { LogError(error = m_struct.toAddon.LoadGame(path.c_str()), "LoadGame()"); }
+@@ -277,11 +279,15 @@ bool CGameClient::OpenFile(const CFileItem& file, RETRO::IStreamManager& streamM
+   if (error != GAME_ERROR_NO_ERROR)
+   {
+     NotifyError(error);
++    Streams().Deinitialize();
+     return false;
+   }
+ 
+   if (!InitializeGameplay(file.GetPath(), streamManager, input))
++  {
++    Streams().Deinitialize();
+     return false;
++  }
+ 
+   return true;
+ }
+@@ -297,6 +303,8 @@ bool CGameClient::OpenStandalone(RETRO::IStreamManager& streamManager, IGameInpu
+ 
+   CloseFile();
+ 
++  Streams().Initialize(streamManager);
++
+   GAME_ERROR error = GAME_ERROR_FAILED;
+ 
+   try { LogError(error = m_struct.toAddon.LoadStandalone(), "LoadStandalone()"); }
+@@ -305,11 +313,15 @@ bool CGameClient::OpenStandalone(RETRO::IStreamManager& streamManager, IGameInpu
+   if (error != GAME_ERROR_NO_ERROR)
+   {
+     NotifyError(error);
++    Streams().Deinitialize();
+     return false;
+   }
+ 
+   if (!InitializeGameplay("", streamManager, input))
++  {
++    Streams().Deinitialize();
+     return false;
++  }
+ 
+   return true;
+ }
+@@ -318,7 +330,7 @@ bool CGameClient::InitializeGameplay(const std::string& gamePath, RETRO::IStream
+ {
+   if (LoadGameInfo())
+   {
+-    Streams().Initialize(streamManager);
++    Input().Start();
+ 
+     m_bIsPlaying      = true;
+     m_gamePath        = gamePath;
+@@ -464,16 +476,18 @@ void CGameClient::CloseFile()
+     m_inGameSaves->Save();
+     m_inGameSaves.reset();
+ 
++    m_bIsPlaying = false;
++    m_gamePath.clear();
++    m_serializeSize = 0;
++    m_input = nullptr;
++
++    Input().Stop();
++
+     try { LogError(m_struct.toAddon.UnloadGame(), "UnloadGame()"); }
+     catch (...) { LogException("UnloadGame()"); }
+-  }
+ 
+-  m_bIsPlaying = false;
+-  m_gamePath.clear();
+-  m_serializeSize = 0;
+-  m_input = nullptr;
+-
+-  Streams().Deinitialize();
++    Streams().Deinitialize();
++  }
+ }
+ 
+ void CGameClient::RunFrame()
+diff --git a/xbmc/games/addons/input/GameClientInput.cpp b/xbmc/games/addons/input/GameClientInput.cpp
+index 5dc404c5cac8..c4cc442948ee 100644
+--- a/xbmc/games/addons/input/GameClientInput.cpp
++++ b/xbmc/games/addons/input/GameClientInput.cpp
+@@ -60,7 +60,10 @@ CGameClientInput::~CGameClientInput()
+ void CGameClientInput::Initialize()
+ {
+   LoadTopology();
++}
+ 
++void CGameClientInput::Start()
++{
+   // Open keyboard
+   //! @todo Move to player manager
+   if (SupportsKeyboard())
+@@ -103,6 +106,11 @@ void CGameClientInput::Initialize()
+ }
+ 
+ void CGameClientInput::Deinitialize()
++{
++  Stop();
++}
++
++void CGameClientInput::Stop()
+ {
+   m_hardware.reset();
+ 
+diff --git a/xbmc/games/addons/input/GameClientInput.h b/xbmc/games/addons/input/GameClientInput.h
+index 04a15bbeaba6..874788d76be0 100644
+--- a/xbmc/games/addons/input/GameClientInput.h
++++ b/xbmc/games/addons/input/GameClientInput.h
+@@ -60,6 +60,9 @@ namespace GAME
+     void Initialize();
+     void Deinitialize();
+ 
++    void Start();
++    void Stop();
++
+     // Input functions
+     bool AcceptsInput() const;
+ 
+
+From aed611527102aa7981a40c5d7f8b5e61033b13a1 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Fri, 22 Jun 2018 11:11:43 -0700
+Subject: [PATCH 2/3] Game add-ons: Guard against edge cases in libretro cores
+
+This guards against an edge case where, in rare circumstances, an
+audio/video stream could fail to open, causing a segfault.
+
+Observed during testing, but not in production.
+---
+ xbmc/games/addons/streams/GameClientStreamAudio.cpp | 7 +++++--
+ xbmc/games/addons/streams/GameClientStreamAudio.h   | 6 +++---
+ xbmc/games/addons/streams/GameClientStreamVideo.cpp | 7 +++++--
+ xbmc/games/addons/streams/GameClientStreamVideo.h   | 4 ++--
+ xbmc/games/addons/streams/GameClientStreams.cpp     | 2 ++
+ 5 files changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/xbmc/games/addons/streams/GameClientStreamAudio.cpp b/xbmc/games/addons/streams/GameClientStreamAudio.cpp
+index d227508ff397..c2cef8b1a095 100644
+--- a/xbmc/games/addons/streams/GameClientStreamAudio.cpp
++++ b/xbmc/games/addons/streams/GameClientStreamAudio.cpp
+@@ -52,8 +52,11 @@ bool CGameClientStreamAudio::OpenStream(RETRO::IRetroPlayerStream* stream, const
+ 
+ void CGameClientStreamAudio::CloseStream()
+ {
+-  m_stream->CloseStream();
+-  m_stream = nullptr;
++  if (m_stream != nullptr)
++  {
++    m_stream->CloseStream();
++    m_stream = nullptr;
++  }
+ }
+ 
+ void CGameClientStreamAudio::AddData(const game_stream_packet &packet)
+diff --git a/xbmc/games/addons/streams/GameClientStreamAudio.h b/xbmc/games/addons/streams/GameClientStreamAudio.h
+index 204d187df1ac..bffcf868f1b4 100644
+--- a/xbmc/games/addons/streams/GameClientStreamAudio.h
++++ b/xbmc/games/addons/streams/GameClientStreamAudio.h
+@@ -40,7 +40,7 @@ class CGameClientStreamAudio : public IGameClientStream
+ {
+ public:
+   CGameClientStreamAudio(double sampleRate);
+-  ~CGameClientStreamAudio() override = default;
++  ~CGameClientStreamAudio() override { CloseStream(); }
+ 
+   // Implementation of IGameClientStream
+   bool OpenStream(RETRO::IRetroPlayerStream* stream,
+@@ -53,10 +53,10 @@ class CGameClientStreamAudio : public IGameClientStream
+   static RETRO::AudioStreamProperties* TranslateProperties(const game_stream_audio_properties &properties, double sampleRate);
+ 
+   // Construction parameters
+-  double m_sampleRate;
++  const double m_sampleRate;
+ 
+   // Stream parameters
+-  RETRO::IRetroPlayerStream* m_stream;
++  RETRO::IRetroPlayerStream* m_stream = nullptr;
+ };
+ 
+ } // namespace GAME
+diff --git a/xbmc/games/addons/streams/GameClientStreamVideo.cpp b/xbmc/games/addons/streams/GameClientStreamVideo.cpp
+index 7b829c378f1b..0562694de1de 100644
+--- a/xbmc/games/addons/streams/GameClientStreamVideo.cpp
++++ b/xbmc/games/addons/streams/GameClientStreamVideo.cpp
+@@ -47,8 +47,11 @@ bool CGameClientStreamVideo::OpenStream(RETRO::IRetroPlayerStream* stream, const
+ 
+ void CGameClientStreamVideo::CloseStream()
+ {
+-  m_stream->CloseStream();
+-  m_stream = nullptr;
++  if (m_stream != nullptr)
++  {
++    m_stream->CloseStream();
++    m_stream = nullptr;
++  }
+ }
+ 
+ void CGameClientStreamVideo::AddData(const game_stream_packet& packet)
+diff --git a/xbmc/games/addons/streams/GameClientStreamVideo.h b/xbmc/games/addons/streams/GameClientStreamVideo.h
+index b68508e12893..cec7399b0d28 100644
+--- a/xbmc/games/addons/streams/GameClientStreamVideo.h
++++ b/xbmc/games/addons/streams/GameClientStreamVideo.h
+@@ -39,7 +39,7 @@ class CGameClientStreamVideo : public IGameClientStream
+ {
+ public:
+   CGameClientStreamVideo() = default;
+-  ~CGameClientStreamVideo() override = default;
++  ~CGameClientStreamVideo() override { CloseStream(); }
+ 
+   // Implementation of IGameClientStream
+   bool OpenStream(RETRO::IRetroPlayerStream* stream,
+@@ -52,7 +52,7 @@ class CGameClientStreamVideo : public IGameClientStream
+   static RETRO::VideoStreamProperties* TranslateProperties(const game_stream_video_properties &properties);
+ 
+   // Stream parameters
+-  RETRO::IRetroPlayerStream* m_stream;
++  RETRO::IRetroPlayerStream* m_stream = nullptr;
+ };
+ 
+ } // namespace GAME
+diff --git a/xbmc/games/addons/streams/GameClientStreams.cpp b/xbmc/games/addons/streams/GameClientStreams.cpp
+index 915e579b8b1c..bb9f5bf3318e 100644
+--- a/xbmc/games/addons/streams/GameClientStreams.cpp
++++ b/xbmc/games/addons/streams/GameClientStreams.cpp
+@@ -90,6 +90,8 @@ void CGameClientStreams::CloseStream(IGameClientStream *stream)
+   if (stream != nullptr)
+   {
+     std::unique_ptr<IGameClientStream> streamHolder(stream);
++    streamHolder->CloseStream();
++
+     m_streamManager->CloseStream(std::move(m_streams[stream]));
+     m_streams.erase(stream);
+   }
+
+From f774144f57b47a304038a465063eddad633b0d8f Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Wed, 4 Jul 2018 13:54:04 -0700
+Subject: [PATCH 3/3] RetroPlayer: Fix order of resource deinitialization
+
+---
+ xbmc/cores/RetroPlayer/RetroPlayer.cpp | 18 +++++++++++-------
+ 1 file changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.cpp b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+index 2b54e342b6ea..0d904fe05844 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+@@ -193,11 +193,11 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+   }
+   else
+   {
++    m_input.reset();
++    m_streamManager.reset();
+     if (m_gameClient)
+       m_gameClient->Unload();
+     m_gameClient.reset();
+-    m_input.reset();
+-    m_streamManager.reset();
+   }
+ 
+   return bSuccess;
+@@ -209,6 +209,8 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+ 
+   m_autoSave.reset();
+ 
++  UnregisterWindowCallbacks();
++
+   CSingleLock lock(m_mutex);
+ 
+   if (m_gameClient)
+@@ -218,21 +220,23 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Saved state to %s", CURL::GetRedacted(savePath).c_str());
+     else
+       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Failed to save state at close");
++  }
+ 
+-    UnregisterWindowCallbacks();
++  if (m_gameClient)
+     m_gameClient->CloseFile();
+-    m_gameClient->Unload();
+-    m_gameClient.reset();
+-    m_callback.OnPlayBackEnded();
+-  }
+ 
+   m_input.reset();
+   m_streamManager.reset();
+ 
++  if (m_gameClient)
++    m_gameClient->Unload();
++  m_gameClient.reset();
++
+   m_renderManager.reset();
+   m_processInfo.reset();
+ 
+   CLog::Log(LOGDEBUG, "RetroPlayer[PLAYER]: Playback ended");
++  m_callback.OnPlayBackEnded();
+ 
+   return true;
+ }
