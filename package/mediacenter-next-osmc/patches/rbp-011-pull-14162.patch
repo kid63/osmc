@@ -1,0 +1,22 @@
+From d719736a48b7277bbd1b33d2073714d7e923b315 Mon Sep 17 00:00:00 2001
+From: Viktor Richter <vrichter@posteo.de>
+Date: Sun, 8 Jul 2018 01:51:36 +0200
+Subject: [PATCH] fix mimetype of items expanded from playlists
+
+---
+ xbmc/utils/Mime.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/utils/Mime.cpp b/xbmc/utils/Mime.cpp
+index e61ceea02efe..384b0df8176f 100644
+--- a/xbmc/utils/Mime.cpp
++++ b/xbmc/utils/Mime.cpp
+@@ -536,7 +536,7 @@ std::string CMime::GetMimeType(const std::string &extension)
+ 
+ std::string CMime::GetMimeType(const CFileItem &item)
+ {
+-  std::string path = item.GetPath();
++  std::string path = item.GetDynPath();
+   if (item.HasVideoInfoTag() && !item.GetVideoInfoTag()->GetPath().empty())
+     path = item.GetVideoInfoTag()->GetPath();
+   else if (item.HasMusicInfoTag() && !item.GetMusicInfoTag()->GetURL().empty())
