@@ -1,0 +1,128 @@
+From 8d3fbe15a64e4eaaf1f05666a827fbd20efd1d82 Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Tue, 10 Jul 2018 10:31:33 +0200
+Subject: [PATCH] Fix Install from zip from addon view
+
+---
+ xbmc/addons/GUIWindowAddonBrowser.cpp      | 43 +++++++++++++++++-------------
+ xbmc/addons/GUIWindowAddonBrowser.h        |  2 ++
+ xbmc/favourites/FavouritesService.cpp      |  5 +++-
+ xbmc/interfaces/builtins/AddonBuiltins.cpp | 10 +++++++
+ 4 files changed, 40 insertions(+), 20 deletions(-)
+
+diff --git a/xbmc/addons/GUIWindowAddonBrowser.cpp b/xbmc/addons/GUIWindowAddonBrowser.cpp
+index 4346a61230f3..7ffaa614a8b4 100644
+--- a/xbmc/addons/GUIWindowAddonBrowser.cpp
++++ b/xbmc/addons/GUIWindowAddonBrowser.cpp
+@@ -183,30 +183,35 @@ void CGUIWindowAddonBrowser::OnEvent(const ADDON::AddonEvent& event)
+   CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
+ }
+ 
++void CGUIWindowAddonBrowser::InstallFromZip()
++{
++  using namespace KODI::MESSAGING::HELPERS;
++
++  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
++  {
++    if (ShowYesNoDialogText(13106, 36617, 186, 10004) == DialogResponse::YES)
++      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SETTINGS_SYSTEM, CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES);
++  }
++  else
++  {
++    // pop up filebrowser to grab an installed folder
++    VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
++    g_mediaManager.GetLocalDrives(shares);
++    g_mediaManager.GetNetworkLocations(shares);
++    std::string path;
++    if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
++    {
++      CAddonInstaller::GetInstance().InstallFromZip(path);
++    }
++  }
++}
++
+ bool CGUIWindowAddonBrowser::OnClick(int iItem, const std::string &player)
+ {
+   CFileItemPtr item = m_vecItems->Get(iItem);
+   if (item->GetPath() == "addons://install/")
+   {
+-    using namespace KODI::MESSAGING::HELPERS;
+-
+-    if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
+-    {
+-      if (ShowYesNoDialogText(13106, 36617, 186, 10004) == DialogResponse::YES)
+-        CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SETTINGS_SYSTEM, CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES);
+-    }
+-    else
+-    {
+-      // pop up filebrowser to grab an installed folder
+-      VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
+-      g_mediaManager.GetLocalDrives(shares);
+-      g_mediaManager.GetNetworkLocations(shares);
+-      std::string path;
+-      if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
+-      {
+-        CAddonInstaller::GetInstance().InstallFromZip(path);
+-      }
+-    }
++    InstallFromZip();
+     return true;
+   }
+   if (item->GetPath() == "addons://update_all/")
+diff --git a/xbmc/addons/GUIWindowAddonBrowser.h b/xbmc/addons/GUIWindowAddonBrowser.h
+index b23a73ec7899..cf4a6d91acd7 100644
+--- a/xbmc/addons/GUIWindowAddonBrowser.h
++++ b/xbmc/addons/GUIWindowAddonBrowser.h
+@@ -67,6 +67,8 @@ class CGUIWindowAddonBrowser : public CGUIMediaWindow
+ 
+   bool UseFileDirectories() override { return false; }
+ 
++  static void InstallFromZip();
++
+ protected:
+   bool OnClick(int iItem, const std::string &player = "") override;
+   void UpdateButtons() override;
+diff --git a/xbmc/favourites/FavouritesService.cpp b/xbmc/favourites/FavouritesService.cpp
+index 20c717302157..14548c1014b3 100644
+--- a/xbmc/favourites/FavouritesService.cpp
++++ b/xbmc/favourites/FavouritesService.cpp
+@@ -207,7 +207,10 @@ std::string CFavouritesService::GetExecutePath(const CFileItem &item, const std:
+   else if (item.IsAddonsPath() && item.GetPath().size() > 9) // addons://<foo>
+   {
+     CURL url(item.GetPath());
+-    execute = StringUtils::Format("RunAddon(%s)", url.GetFileName().c_str());
++    if (url.GetHostName() == "install")
++      execute = "installfromzip";
++    else
++      execute = StringUtils::Format("RunAddon(%s)", url.GetFileName().c_str());
+   }
+   else if (item.IsAndroidApp() && item.GetPath().size() > 26) // androidapp://sources/apps/<foo>
+     execute = StringUtils::Format("StartAndroidActivity(%s)", StringUtils::Paramify(item.GetPath().substr(26)).c_str());
+diff --git a/xbmc/interfaces/builtins/AddonBuiltins.cpp b/xbmc/interfaces/builtins/AddonBuiltins.cpp
+index ad3d1c95b2cf..919201933629 100644
+--- a/xbmc/interfaces/builtins/AddonBuiltins.cpp
++++ b/xbmc/interfaces/builtins/AddonBuiltins.cpp
+@@ -293,6 +293,15 @@ static int AddonSettings(const std::vector<std::string>& params)
+   return 0;
+ }
+ 
++/*! \brief Open the settings for a given add-on.
++*  \param params The parameters.
++*/
++static int InstallFromZip(const std::vector<std::string>& params)
++{
++  CGUIWindowAddonBrowser::InstallFromZip();
++  return 0;
++}
++
+ /*! \brief Stop a running script.
+  *  \param params The parameters.
+  *  \details params[0] = The add-on ID of the script to stop
+@@ -440,6 +449,7 @@ CBuiltins::CommandMap CAddonBuiltins::GetOperations() const
+            {"addon.default.set",          {"Open a select dialog to allow choosing the default addon of the given type", 1, SetDefaultAddon}},
+            {"addon.opensettings",         {"Open a settings dialog for the addon of the given id", 1, AddonSettings}},
+            {"installaddon",               {"Install the specified plugin/script", 1, InstallAddon}},
++           {"installfromzip",             { "Open the install from zip dialog", 0, InstallFromZip}},
+            {"runaddon",                   {"Run the specified plugin/script", 1, RunAddon}},
+ #ifdef TARGET_DARWIN
+            {"runapplescript",             {"Run the specified AppleScript command", 1, RunScript<true>}},
