@@ -717,9 +717,9 @@ index d5ad05379ed2..82bf8e796cd0 100644
    s << "aq:"     << std::setw(2) << std::min(99,m_messageQueue.GetLevel()) << "%";
 -  s << ", Kb/s:" << std::fixed << std::setprecision(2) << (double)m_audioStats.GetBitrate() / 1024.0;
 +  s << ", Kb/s:" << std::fixed << std::setprecision(2) << m_audioStats.GetBitrate() / 1024.0;
- 
-   //print the inverse of the resample ratio, since that makes more sense
-   //if the resample ratio is 0.5, then we're playing twice as fast
+   s << ", ac:"   << m_processInfo.GetAudioDecoderName().c_str();
+   if (!m_info.passthrough)
+     s << ", chan:" << m_processInfo.GetAudioChannels().c_str();
 diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp
 index 3c987e38d74e..2d4fc00108ef 100644
 --- a/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp
