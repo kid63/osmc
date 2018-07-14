@@ -1,0 +1,147 @@
+From 53e3f3286b8e384af46fa3719605b50e471e6269 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Tue, 10 Jul 2018 00:32:27 +0200
+Subject: [PATCH 1/3] Make URIUtils::Split also remove protocol options
+
+in addition to query options. Does not make much sense to remove the
+query but keep protocol options.
+This is needed for video/music database to function correctly as they
+do not expect protocol options to turn up in the filename.
+---
+ xbmc/utils/URIUtils.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/utils/URIUtils.cpp b/xbmc/utils/URIUtils.cpp
+index 8036f343f3c9..9c21e9bc9dec 100644
+--- a/xbmc/utils/URIUtils.cpp
++++ b/xbmc/utils/URIUtils.cpp
+@@ -226,7 +226,7 @@ void URIUtils::Split(const std::string& strFileNameAndPath,
+     while (i > 0)
+     {
+       char ch = strFileName[i];
+-      if (ch == '?') break;
++      if (ch == '?' || ch == '|') break;
+       else i--;
+     }
+     if (i > 0)
+
+From 2bb2bd37ab2bccc67bc17a212fb42ba6a8a6cb31 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Tue, 10 Jul 2018 00:33:54 +0200
+Subject: [PATCH 2/3] Video database: Keep protocol options as part of path
+
+URIUtils::Split now removes protocol options, and not adding them
+to the path would cause them to get lost when the path from the
+database is used directly.
+---
+ xbmc/video/VideoDatabase.cpp | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/video/VideoDatabase.cpp b/xbmc/video/VideoDatabase.cpp
+index f33763e93e24..f81521eb940b 100644
+--- a/xbmc/video/VideoDatabase.cpp
++++ b/xbmc/video/VideoDatabase.cpp
+@@ -9629,7 +9629,16 @@ void CVideoDatabase::SplitPath(const std::string& strFileNameAndPath, std::strin
+     strFileName = strFileNameAndPath;
+   }
+   else
+-    URIUtils::Split(strFileNameAndPath,strPath, strFileName);
++  {
++    URIUtils::Split(strFileNameAndPath, strPath, strFileName);
++    // Keep protocol options as part of the path
++    if (URIUtils::IsURL(strFileNameAndPath))
++    {
++      CURL url(strFileNameAndPath);
++      if (!url.GetProtocolOptions().empty())
++        strPath += "|" + url.GetProtocolOptions();
++    }
++  }
+ }
+ 
+ void CVideoDatabase::InvalidatePathHash(const std::string& strPath)
+
+From 1edd0f115b3f79d285ca8d928e106ed2527592f6 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Tue, 10 Jul 2018 00:34:09 +0200
+Subject: [PATCH 3/3] Music database: Keep protocol options as part of path
+
+URIUtils::Split now removes protocol options, and not adding them
+to the path would cause them to get lost when the path from the
+database is used directly.
+---
+ xbmc/music/MusicDatabase.cpp | 20 ++++++++++++++++----
+ xbmc/music/MusicDatabase.h   |  2 ++
+ 2 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/music/MusicDatabase.cpp b/xbmc/music/MusicDatabase.cpp
+index 5ffbec328249..57543cb2b6a6 100644
+--- a/xbmc/music/MusicDatabase.cpp
++++ b/xbmc/music/MusicDatabase.cpp
+@@ -404,6 +404,18 @@ void CMusicDatabase::CreateViews()
+               "     song_artist.idRole = role.idRole");
+ }
+ 
++void CMusicDatabase::SplitPath(const std::string& strFileNameAndPath, std::string& strPath, std::string& strFileName)
++{
++  URIUtils::Split(strFileNameAndPath, strPath, strFileName);
++  // Keep protocol options as part of the path
++  if (URIUtils::IsURL(strFileNameAndPath))
++  {
++    CURL url(strFileNameAndPath);
++    if (!url.GetProtocolOptions().empty())
++      strPath += "|" + url.GetProtocolOptions();
++  }
++}
++
+ bool CMusicDatabase::AddAlbum(CAlbum& album, int idSource)
+ {
+   BeginTransaction();
+@@ -564,7 +576,7 @@ int CMusicDatabase::AddSong(const int idAlbum,
+     if (NULL == m_pDS.get()) return -1;
+ 
+     std::string strPath, strFileName;
+-    URIUtils::Split(strPathAndFileName, strPath, strFileName);
++    SplitPath(strPathAndFileName, strPath, strFileName);
+     int idPath = AddPath(strPath);
+ 
+     if (!strMusicBrainzTrackID.empty())
+@@ -760,7 +772,7 @@ int CMusicDatabase::UpdateSong(int idSong,
+ 
+   std::string strSQL;
+   std::string strPath, strFileName;
+-  URIUtils::Split(strPathAndFileName, strPath, strFileName);
++  SplitPath(strPathAndFileName, strPath, strFileName);
+   int idPath = AddPath(strPath);
+ 
+   strSQL = PrepareSQL("UPDATE song SET idPath = %i, strArtistDisp = '%s', strGenres = '%s', "
+@@ -2337,7 +2349,7 @@ bool CMusicDatabase::GetSongByFileName(const std::string& strFileNameAndPath, CS
+   if (NULL == m_pDS.get()) return false;
+ 
+   std::string strPath, strFileName;
+-  URIUtils::Split(strFileNameAndPath, strPath, strFileName);
++  SplitPath(strFileNameAndPath, strPath, strFileName);
+   URIUtils::AddSlashAtEnd(strPath);
+ 
+   std::string strSQL = PrepareSQL("select idSong from songview "
+@@ -7342,7 +7354,7 @@ int CMusicDatabase::GetSongIDFromPath(const std::string &filePath)
+     if (NULL == m_pDS.get()) return -1;
+ 
+     std::string strPath, strFileName;
+-    URIUtils::Split(filePath, strPath, strFileName);
++    SplitPath(filePath, strPath, strFileName);
+     URIUtils::AddSlashAtEnd(strPath);
+ 
+     std::string sql = PrepareSQL("select idSong from song join path on song.idPath = path.idPath where song.strFileName='%s' and path.strPath='%s'", strFileName.c_str(), strPath.c_str());
+diff --git a/xbmc/music/MusicDatabase.h b/xbmc/music/MusicDatabase.h
+index c323b11a18b6..e158893c807a 100644
+--- a/xbmc/music/MusicDatabase.h
++++ b/xbmc/music/MusicDatabase.h
+@@ -629,6 +629,8 @@ void SetLibraryLastUpdated();
+    */
+   virtual void CreateViews();
+ 
++  void SplitPath(const std::string& strFileNameAndPath, std::string& strPath, std::string& strFileName);
++
+   CSong GetSongFromDataset();
+   CSong GetSongFromDataset(const dbiplus::sql_record* const record, int offset = 0);
+   CArtist GetArtistFromDataset(dbiplus::Dataset* pDS, int offset = 0, bool needThumb = true);
