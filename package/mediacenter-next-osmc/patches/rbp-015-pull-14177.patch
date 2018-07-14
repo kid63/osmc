@@ -1,0 +1,2781 @@
+From f911c67bf555f1698abaab529e62282922be7d94 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 01/28] [cleanup] remove unused BS_RB16 define
+
+---
+ xbmc/utils/BitstreamReader.h | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/xbmc/utils/BitstreamReader.h b/xbmc/utils/BitstreamReader.h
+index 9b3944bb43a7..2e7018a0dcf2 100644
+--- a/xbmc/utils/BitstreamReader.h
++++ b/xbmc/utils/BitstreamReader.h
+@@ -45,10 +45,6 @@ const uint8_t* find_start_code(const uint8_t *p, const uint8_t *end, uint32_t *s
+ // This is part of FFmpeg
+ //  * License as published by the Free Software Foundation; either
+ //  * version 2.1 of the License, or (at your option) any later version.
+-#define BS_RB16(x)                          \
+-  ((((const uint8_t*)(x))[0] <<  8) |        \
+-   ((const uint8_t*)(x)) [1])
+-
+ #define BS_RB24(x)                          \
+   ((((const uint8_t*)(x))[0] << 16) |        \
+    (((const uint8_t*)(x))[1] <<  8) |        \
+
+From f6c594e5e055feb8abe66a90fb8ef5a343ffc413 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 02/28] [cleanup] replace XMIN define with std::min
+
+---
+ xbmc/filesystem/CurlFile.cpp | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/filesystem/CurlFile.cpp b/xbmc/filesystem/CurlFile.cpp
+index 2860c7473a61..9876b8bd68b9 100644
+--- a/xbmc/filesystem/CurlFile.cpp
++++ b/xbmc/filesystem/CurlFile.cpp
+@@ -29,6 +29,7 @@
+ #include "threads/SystemClock.h"
+ #include "utils/Base64.h"
+ 
++#include <algorithm>
+ #include <vector>
+ #include <climits>
+ #include <cassert>
+@@ -51,7 +52,6 @@
+ using namespace XFILE;
+ using namespace XCURL;
+ 
+-#define XMIN(a,b) ((a)<(b)?(a):(b))
+ #define FITS_INT(a) (((a) <= INT_MAX) && ((a) >= INT_MIN))
+ 
+ curl_proxytype proxyType2CUrlProxyType[] = {
+@@ -186,7 +186,7 @@ size_t CCurlFile::CReadState::ReadCallback(char *buffer, size_t size, size_t nit
+     return CURL_READFUNC_PAUSE;
+   }
+ 
+-  int64_t retSize = XMIN(m_fileSize - m_filePos, int64_t(nitems * size));
++  int64_t retSize = std::min(m_fileSize - m_filePos, int64_t(nitems * size));
+   memcpy(buffer, m_readBuffer + m_filePos, retSize);
+   m_filePos += retSize;
+ 
+@@ -199,7 +199,7 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
+   if (m_overflowSize)
+   {
+     // we have our overflow buffer - first get rid of as much as we can
+-    unsigned int maxWriteable = XMIN((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
++    unsigned int maxWriteable = std::min((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
+     if (maxWriteable)
+     {
+       if (!m_buffer.WriteData(m_overflowBuffer, maxWriteable))
+@@ -220,7 +220,7 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
+     }
+   }
+   // ok, now copy the data into our ring buffer
+-  unsigned int maxWriteable = XMIN((unsigned int)m_buffer.getMaxWriteSize(), amount);
++  unsigned int maxWriteable = std::min((unsigned int)m_buffer.getMaxWriteSize(), amount);
+   if (maxWriteable)
+   {
+     if (!m_buffer.WriteData(buffer, maxWriteable))
+@@ -1179,7 +1179,7 @@ bool CCurlFile::CReadState::ReadString(char *szLine, int iLineLength)
+     return false;
+ 
+   // ensure only available data is considered
+-  want = XMIN((unsigned int)m_buffer.getMaxReadSize(), want);
++  want = std::min((unsigned int)m_buffer.getMaxReadSize(), want);
+ 
+   /* check if we finished prematurely */
+   if (!m_stillRunning && (m_fileSize == 0 || m_filePos != m_fileSize) && !want)
+@@ -1516,7 +1516,7 @@ ssize_t CCurlFile::CReadState::Read(void* lpBuf, size_t uiBufSize)
+   }
+ 
+   /* ensure only available data is considered */
+-  unsigned int want = (unsigned int)XMIN(m_buffer.getMaxReadSize(), uiBufSize);
++  unsigned int want = std::min<unsigned int>(m_buffer.getMaxReadSize(), uiBufSize);
+ 
+   /* xfer data to caller */
+   if (m_buffer.ReadData((char *)lpBuf, want))
+@@ -1553,7 +1553,7 @@ int8_t CCurlFile::CReadState::FillBuffer(unsigned int want)
+     /* if there is data in overflow buffer, try to use that first */
+     if (m_overflowSize)
+     {
+-      unsigned amount = XMIN((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
++      unsigned amount = std::min((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
+       m_buffer.WriteData(m_overflowBuffer, amount);
+ 
+       if (amount < m_overflowSize)
+
+From b114a76ade4fddc0cf0f1c6d7a1a785c51394f94 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 03/28] [cleanup] replace FFMIN define with std::min
+
+---
+ xbmc/utils/BitstreamConverter.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/utils/BitstreamConverter.cpp b/xbmc/utils/BitstreamConverter.cpp
+index c5cff00a485b..b303e5fde764 100644
+--- a/xbmc/utils/BitstreamConverter.cpp
++++ b/xbmc/utils/BitstreamConverter.cpp
+@@ -29,6 +29,8 @@
+ #include "BitstreamReader.h"
+ #include "BitstreamWriter.h"
+ 
++#include <algorithm>
++
+ enum {
+   AVC_NAL_SLICE=1,
+   AVC_NAL_DPA,
+@@ -1053,7 +1055,7 @@ int CBitstreamConverter::isom_write_avcc(AVIOContext *pb, const uint8_t *data, i
+       {
+         uint32_t size;
+         uint8_t  nal_type;
+-        size = FFMIN(BS_RB32(buf), end - buf - 4);
++        size = std::min<uint32_t>(BS_RB32(buf), end - buf - 4);
+         buf += 4;
+         nal_type = buf[0] & 0x1f;
+         if (nal_type == 7) /* SPS */
+
+From 9009de080165912ddccc44c713cefcb7de007447 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 04/28] [cleanup] convert defines to functions
+
+---
+ .../cores/VideoPlayer/Interface/Addon/TimingConstants.h |  6 +++---
+ xbmc/utils/BitstreamReader.h                            | 17 ++++++++---------
+ 2 files changed, 11 insertions(+), 12 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/Interface/Addon/TimingConstants.h b/xbmc/cores/VideoPlayer/Interface/Addon/TimingConstants.h
+index 39899b9714e4..f9a1a2e26522 100644
+--- a/xbmc/cores/VideoPlayer/Interface/Addon/TimingConstants.h
++++ b/xbmc/cores/VideoPlayer/Interface/Addon/TimingConstants.h
+@@ -23,9 +23,9 @@
+ #define DVD_TIME_BASE 1000000
+ #define DVD_NOPTS_VALUE 0xFFF0000000000000
+ 
+-#define DVD_TIME_TO_MSEC(x) ((int)((double)(x) * 1000 / DVD_TIME_BASE))
+-#define DVD_SEC_TO_TIME(x)  ((double)(x) * DVD_TIME_BASE)
+-#define DVD_MSEC_TO_TIME(x) ((double)(x) * DVD_TIME_BASE / 1000)
++constexpr int DVD_TIME_TO_MSEC(double x) { return static_cast<int>(x * 1000 / DVD_TIME_BASE); }
++constexpr double DVD_SEC_TO_TIME(double x) { return x * DVD_TIME_BASE; }
++constexpr double DVD_MSEC_TO_TIME(double x) { return x * DVD_TIME_BASE / 1000; }
+ 
+ #define DVD_PLAYSPEED_PAUSE       0       // frame stepping
+ #define DVD_PLAYSPEED_NORMAL      1000
+diff --git a/xbmc/utils/BitstreamReader.h b/xbmc/utils/BitstreamReader.h
+index 2e7018a0dcf2..b0175b48b70b 100644
+--- a/xbmc/utils/BitstreamReader.h
++++ b/xbmc/utils/BitstreamReader.h
+@@ -45,13 +45,12 @@ const uint8_t* find_start_code(const uint8_t *p, const uint8_t *end, uint32_t *s
+ // This is part of FFmpeg
+ //  * License as published by the Free Software Foundation; either
+ //  * version 2.1 of the License, or (at your option) any later version.
+-#define BS_RB24(x)                          \
+-  ((((const uint8_t*)(x))[0] << 16) |        \
+-   (((const uint8_t*)(x))[1] <<  8) |        \
+-   ((const uint8_t*)(x))[2])
++constexpr uint32_t BS_RB24(const uint8_t* x)
++{
++  return (x[0] << 16) | (x[1] << 8) | x[2];
++}
+ 
+-#define BS_RB32(x)                          \
+-  ((((const uint8_t*)(x))[0] << 24) |        \
+-   (((const uint8_t*)(x))[1] << 16) |        \
+-   (((const uint8_t*)(x))[2] <<  8) |        \
+-   ((const uint8_t*)(x))[3])
++constexpr uint32_t BS_RB32(const uint8_t* x)
++{
++  return (x[1] << 24) | (x[1] << 16) | (x[2] << 8) | x[3];
++}
+
+From da2223b8612019e88181ffff9f39214f54ae525b Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 05/28] [cleanup][xbmc] silence useless cast warnings
+
+---
+ xbmc/Application.cpp      | 12 ++++++------
+ xbmc/FileItem.cpp         | 16 ++++++++--------
+ xbmc/PartyModeManager.cpp |  2 +-
+ xbmc/XBDateTime.cpp       |  2 +-
+ 4 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index a844c3970247..462c7224444f 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -2239,9 +2239,9 @@ bool CApplication::OnAction(const CAction &action)
+         step *= action.GetRepeat() * 50; // 50 fps
+ #endif
+       if (action.GetID() == ACTION_VOLUME_UP)
+-        volume += (float)(action.GetAmount() * action.GetAmount() * step);
++        volume += action.GetAmount() * action.GetAmount() * step;
+       else if (action.GetID() == ACTION_VOLUME_DOWN)
+-        volume -= (float)(action.GetAmount() * action.GetAmount() * step);
++        volume -= action.GetAmount() * action.GetAmount() * step;
+       else
+         volume = action.GetAmount() * step;
+       if (volume != m_volumeLevel)
+@@ -3058,7 +3058,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
+   {
+     double fallback = 0.0f;
+     if(item.GetProperty("StartPercent").isString())
+-      fallback = (double)atof(item.GetProperty("StartPercent").asString().c_str());
++      fallback = atof(item.GetProperty("StartPercent").asString().c_str());
+     options.startpercent = item.GetProperty("StartPercent").asDouble(fallback);
+   }
+ 
+@@ -3151,7 +3151,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
+   if (!(options.startpercent > 0.0f || options.starttime > 0.0f) && (item.IsBDFile() || item.IsDiscImage()))
+   {
+     //check if we must show the simplified bd menu
+-    if (!CGUIDialogSimpleMenu::ShowPlaySelection(const_cast<CFileItem&>(item)))
++    if (!CGUIDialogSimpleMenu::ShowPlaySelection(item))
+       return false;
+   }
+ 
+@@ -4565,13 +4565,13 @@ void CApplication::VolumeChanged()
+ int CApplication::GetSubtitleDelay()
+ {
+   // converts subtitle delay to a percentage
+-  return int(((float)(m_appPlayer.GetVideoSettings().m_SubtitleDelay + g_advancedSettings.m_videoSubsDelayRange)) / (2 * g_advancedSettings.m_videoSubsDelayRange)*100.0f + 0.5f);
++  return int(((m_appPlayer.GetVideoSettings().m_SubtitleDelay + g_advancedSettings.m_videoSubsDelayRange)) / (2 * g_advancedSettings.m_videoSubsDelayRange)*100.0f + 0.5f);
+ }
+ 
+ int CApplication::GetAudioDelay()
+ {
+   // converts audio delay to a percentage
+-  return int(((float)(m_appPlayer.GetVideoSettings().m_AudioDelay + g_advancedSettings.m_videoAudioDelayRange)) / (2 * g_advancedSettings.m_videoAudioDelayRange)*100.0f + 0.5f);
++  return int(((m_appPlayer.GetVideoSettings().m_AudioDelay + g_advancedSettings.m_videoAudioDelayRange)) / (2 * g_advancedSettings.m_videoAudioDelayRange)*100.0f + 0.5f);
+ }
+ 
+ // Returns the total time in seconds of the current media.  Fractional
+diff --git a/xbmc/FileItem.cpp b/xbmc/FileItem.cpp
+index ae456a967d43..a353f551d117 100644
+--- a/xbmc/FileItem.cpp
++++ b/xbmc/FileItem.cpp
+@@ -2052,7 +2052,7 @@ void CFileItemList::Remove(int iItem)
+ {
+   CSingleLock lock(m_lock);
+ 
+-  if (iItem >= 0 && iItem < (int)Size())
++  if (iItem >= 0 && iItem < Size())
+   {
+     CFileItemPtr pItem = *(m_items.begin() + iItem);
+     if (m_fastLookup)
+@@ -2361,14 +2361,14 @@ void CFileItemList::Archive(CArchive& ar)
+     ar >> fastLookup;
+ 
+     int tempint;
+-    ar >> (int&)tempint;
++    ar >> tempint;
+     m_sortDescription.sortBy = (SortBy)tempint;
+-    ar >> (int&)tempint;
++    ar >> tempint;
+     m_sortDescription.sortOrder = (SortOrder)tempint;
+-    ar >> (int&)tempint;
++    ar >> tempint;
+     m_sortDescription.sortAttributes = (SortAttribute)tempint;
+     ar >> m_sortIgnoreFolders;
+-    ar >> (int&)tempint;
++    ar >> tempint;
+     m_cacheToDisc = CACHE_TYPE(tempint);
+ 
+     unsigned int detailSize = 0;
+@@ -2376,11 +2376,11 @@ void CFileItemList::Archive(CArchive& ar)
+     for (unsigned int j = 0; j < detailSize; ++j)
+     {
+       GUIViewSortDetails details;
+-      ar >> (int&)tempint;
++      ar >> tempint;
+       details.m_sortDescription.sortBy = (SortBy)tempint;
+-      ar >> (int&)tempint;
++      ar >> tempint;
+       details.m_sortDescription.sortOrder = (SortOrder)tempint;
+-      ar >> (int&)tempint;
++      ar >> tempint;
+       details.m_sortDescription.sortAttributes = (SortAttribute)tempint;
+       ar >> details.m_buttonLabel;
+       ar >> details.m_labelMasks.m_strLabelFile;
+diff --git a/xbmc/PartyModeManager.cpp b/xbmc/PartyModeManager.cpp
+index 6d8006383285..28586e533c8a 100644
+--- a/xbmc/PartyModeManager.cpp
++++ b/xbmc/PartyModeManager.cpp
+@@ -179,7 +179,7 @@ bool CPartyModeManager::Enable(PartyModeContext context /*= PARTYMODECONTEXT_MUS
+   if (m_iMatchingSongs < 50)
+     m_songsInHistory = 0;
+   else
+-    m_songsInHistory = (int)(m_iMatchingSongs/2);
++    m_songsInHistory = m_iMatchingSongs/2;
+   if (m_songsInHistory > 200)
+     m_songsInHistory = 200;
+ 
+diff --git a/xbmc/XBDateTime.cpp b/xbmc/XBDateTime.cpp
+index 7f1dcc621ebc..0da119a3c303 100644
+--- a/xbmc/XBDateTime.cpp
++++ b/xbmc/XBDateTime.cpp
+@@ -619,7 +619,7 @@ void CDateTime::Archive(CArchive& ar)
+   {
+     Reset();
+     int state;
+-    ar >> (int &)state;
++    ar >> state;
+     m_state = CDateTime::STATE(state);
+     if (m_state==valid)
+     {
+
+From 88569f1c2aa2f3db809b9a5fce575631ea66c3d7 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 06/28] [cleanup][addons] silence useless cast warnings
+
+---
+ xbmc/addons/PVRClient.cpp                        |  2 +-
+ xbmc/addons/interfaces/GUI/AddonCallbacksGUI.cpp |  2 +-
+ xbmc/addons/interfaces/GUI/AddonGUIWindow.cpp    |  4 ++--
+ xbmc/addons/interfaces/GUI/Window.cpp            | 12 ++++++------
+ 4 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/xbmc/addons/PVRClient.cpp b/xbmc/addons/PVRClient.cpp
+index 9006354338e1..739b61ab7e1a 100644
+--- a/xbmc/addons/PVRClient.cpp
++++ b/xbmc/addons/PVRClient.cpp
+@@ -855,7 +855,7 @@ PVR_ERROR CPVRClient::GetChannels(CPVRChannelGroup &channels, bool radio)
+   return DoAddonCall(__FUNCTION__, [this, &channels, radio](const AddonInstance* addon) {
+     ADDON_HANDLE_STRUCT handle;
+     handle.callerAddress = this;
+-    handle.dataAddress = (CPVRChannelGroup*) &channels;
++    handle.dataAddress = &channels;
+     return addon->GetChannels(&handle, radio);
+   }, (radio && m_clientCapabilities.SupportsRadio()) || (!radio && m_clientCapabilities.SupportsTV()));
+ }
+diff --git a/xbmc/addons/interfaces/GUI/AddonCallbacksGUI.cpp b/xbmc/addons/interfaces/GUI/AddonCallbacksGUI.cpp
+index 16cfbaab570f..cb9161e700ac 100644
+--- a/xbmc/addons/interfaces/GUI/AddonCallbacksGUI.cpp
++++ b/xbmc/addons/interfaces/GUI/AddonCallbacksGUI.cpp
+@@ -437,7 +437,7 @@ bool CAddonCallbacksGUI::Window_Close(void *addonData, GUIHANDLE handle)
+   if (pAddonWindow->IsDialog())
+     static_cast<CGUIAddonWindowDialog*>(pAddonWindow)->PulseActionEvent();
+   else
+-    static_cast<CGUIAddonWindow*>(pAddonWindow)->PulseActionEvent();
++    pAddonWindow->PulseActionEvent();
+ 
+   Lock();
+   // if it's a dialog, we have to close it a bit different
+diff --git a/xbmc/addons/interfaces/GUI/AddonGUIWindow.cpp b/xbmc/addons/interfaces/GUI/AddonGUIWindow.cpp
+index 8fee5ecaea74..4f80d95fd284 100644
+--- a/xbmc/addons/interfaces/GUI/AddonGUIWindow.cpp
++++ b/xbmc/addons/interfaces/GUI/AddonGUIWindow.cpp
+@@ -99,7 +99,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
+ 
+     case GUI_MSG_SETFOCUS:
+     {
+-      if (m_viewControl.HasControl(message.GetControlId()) && m_viewControl.GetCurrentControl() != (int)message.GetControlId())
++      if (m_viewControl.HasControl(message.GetControlId()) && m_viewControl.GetCurrentControl() != message.GetControlId())
+       {
+         m_viewControl.SetFocused();
+         return true;
+@@ -143,7 +143,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
+         return true;
+       }
+ 
+-      if (CBOnClick && iControl && iControl != (int)this->GetID())
++      if (CBOnClick && iControl && iControl != this->GetID())
+       {
+         CGUIControl* controlClicked = this->GetControl(iControl);
+ 
+diff --git a/xbmc/addons/interfaces/GUI/Window.cpp b/xbmc/addons/interfaces/GUI/Window.cpp
+index 922907f37f9b..0fe192239fef 100644
+--- a/xbmc/addons/interfaces/GUI/Window.cpp
++++ b/xbmc/addons/interfaces/GUI/Window.cpp
+@@ -192,7 +192,7 @@ void* Interface_GUIWindow::create(void* kodiBase, const char* xml_filename,
+   CServiceBroker::GetGUI()->GetWindowManager().Add(window);
+   Interface_GUIGeneral::unlock();
+ 
+-  if (!dynamic_cast<CGUIWindow*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(id)))
++  if (!CServiceBroker::GetGUI()->GetWindowManager().GetWindow(id))
+   {
+     CLog::Log(LOGERROR, "Interface_GUIWindow::%s - Requested window id '%i' does not exist for addon '%s'",
+                           __FUNCTION__, id, addon->ID().c_str());
+@@ -215,7 +215,7 @@ void Interface_GUIWindow::destroy(void* kodiBase, void* handle)
+   }
+ 
+   Interface_GUIGeneral::lock();
+-  CGUIWindow *pWindow = dynamic_cast<CGUIWindow*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(pAddonWindow->GetID()));
++  CGUIWindow *pWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(pAddonWindow->GetID());
+   if (pWindow)
+   {
+     // first change to an existing window
+@@ -1028,7 +1028,7 @@ CGUIAddonWindow::CGUIAddonWindow(int id, const std::string& strXML, CAddonDll* a
+ 
+ CGUIControl* CGUIAddonWindow::GetAddonControl(int controlId, CGUIControl::GUICONTROLTYPES type, const std::string& typeName)
+ {
+-  CGUIControl* pGUIControl = dynamic_cast<CGUIControl*>(GetControl(controlId));
++  CGUIControl* pGUIControl = GetControl(controlId);
+   if (!pGUIControl)
+   {
+     CLog::Log(LOGERROR, "CGUIAddonGUI_Window::%s: %s - Requested GUI control Id '%i' for '%s' not present!",
+@@ -1081,7 +1081,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
+     case GUI_MSG_FOCUSED:
+     {
+       if (m_viewControl.HasControl(message.GetControlId()) &&
+-          m_viewControl.GetCurrentControl() != (int)message.GetControlId())
++          m_viewControl.GetCurrentControl() != message.GetControlId())
+       {
+         m_viewControl.SetFocused();
+         return true;
+@@ -1104,9 +1104,9 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
+     case GUI_MSG_CLICKED:
+     {
+       int iControl = message.GetSenderId();
+-      if (iControl && iControl != static_cast<int>(this->GetID()))
++      if (iControl && iControl != this->GetID())
+       {
+-        CGUIControl* controlClicked = dynamic_cast<CGUIControl*>(this->GetControl(iControl));
++        CGUIControl* controlClicked = this->GetControl(iControl);
+ 
+         // The old python way used to check list AND SELECITEM method or if its a button, checkmark.
+         // Its done this way for now to allow other controls without a python version like togglebutton to still raise a onAction event
+
+From 67dc00a19b649d14ef14415b86acdddb4b6ec24c Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 07/28] [cleanup][AudioEngine] silence useless cast warnings
+
+---
+ xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp     | 2 +-
+ xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp | 2 +-
+ xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp             | 4 ++--
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
+index 5bd51ed42440..a4bf9ac04dae 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
+@@ -2357,7 +2357,7 @@ CSampleBuffer* CActiveAE::SyncStream(CActiveAEStream *stream)
+     }
+   }
+ 
+-  int timeout = (stream->m_syncState != CAESyncInfo::AESyncState::SYNC_INSYNC) ? 100 : (int)stream->GetErrorInterval();
++  int timeout = (stream->m_syncState != CAESyncInfo::AESyncState::SYNC_INSYNC) ? 100 : stream->GetErrorInterval();
+   bool newerror = stream->m_syncError.Get(error, timeout);
+ 
+   if (newerror && fabs(error) > threshold && stream->m_syncState == CAESyncInfo::AESyncState::SYNC_INSYNC)
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
+index 113fd4dafe18..aeda08346444 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
+@@ -1083,7 +1083,7 @@ void CActiveAESink::GenerateNoise()
+       }
+       while(R1 == 0.0f);
+ 
+-      noise[i] = (float) sqrt( -2.0f * log( R1 )) * cos( 2.0f * PI * R2 ) * 0.00001f;
++      noise[i] = sqrt( -2.0f * log( R1 )) * cos( 2.0f * PI * R2 ) * 0.00001f;
+     }
+   }
+ 
+diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
+index 630414b17311..ec227cd1d491 100644
+--- a/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
++++ b/xbmc/cores/AudioEngine/Sinks/AESinkPULSE.cpp
+@@ -925,7 +925,7 @@ unsigned int CAESinkPULSE::AddPackets(uint8_t **data, unsigned int frames, unsig
+   while ((length = pa_stream_writable_size(m_Stream)) < m_periodSize)
+     pa_threaded_mainloop_wait(m_MainLoop);
+ 
+-  length =  std::min((unsigned int)length, available);
++  length =  std::min(length, available);
+ 
+   int error = pa_stream_write(m_Stream, buffer, length, NULL, 0, PA_SEEK_RELATIVE);
+   pa_threaded_mainloop_unlock(m_MainLoop);
+@@ -935,7 +935,7 @@ unsigned int CAESinkPULSE::AddPackets(uint8_t **data, unsigned int frames, unsig
+     CLog::Log(LOGERROR, "CPulseAudioDirectSound::AddPackets - pa_stream_write failed\n");
+     return 0;
+   }
+-  unsigned int res = (unsigned int)(length / m_format.m_frameSize);
++  unsigned int res = length / m_format.m_frameSize;
+ 
+   return res;
+ }
+
+From 2808df59ae3e6acc4e983946e3c44d9444681f95 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 08/28] [cleanup][DllLoader] silence useless cast warnings
+
+---
+ xbmc/cores/DllLoader/coff.cpp               |  2 +-
+ xbmc/cores/DllLoader/exports/emu_msvcrt.cpp | 18 +++++++++---------
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/xbmc/cores/DllLoader/coff.cpp b/xbmc/cores/DllLoader/coff.cpp
+index 01fa87715256..ad95374ea2b8 100644
+--- a/xbmc/cores/DllLoader/coff.cpp
++++ b/xbmc/cores/DllLoader/coff.cpp
+@@ -376,7 +376,7 @@ int CoffLoader::LoadSections(FILE *fp)
+ 
+   for (int SctnCnt = 0; SctnCnt < NumOfSections; SctnCnt++)
+   {
+-    SectionHeader_t *ScnHdr = (SectionHeader_t *)(SectionHeader + SctnCnt);
++    SectionHeader_t *ScnHdr = SectionHeader + SctnCnt;
+     SectionData[SctnCnt] = ((char*)hModule + ScnHdr->VirtualAddress);
+ 
+     if (fseek(fp, ScnHdr->PtrToRawData, SEEK_SET) != 0)
+diff --git a/xbmc/cores/DllLoader/exports/emu_msvcrt.cpp b/xbmc/cores/DllLoader/exports/emu_msvcrt.cpp
+index 109ccc70a772..8bb314b06c0d 100644
+--- a/xbmc/cores/DllLoader/exports/emu_msvcrt.cpp
++++ b/xbmc/cores/DllLoader/exports/emu_msvcrt.cpp
+@@ -146,29 +146,29 @@ extern "C" void __stdcall init_emu_environ()
+   {
+     // using external python, it's build looking for xxx/lib/python2.7
+     // so point it to frameworks which is where python2.7 is located
+-    dll_putenv(std::string("PYTHONPATH=" +
++    dll_putenv(("PYTHONPATH=" +
+       CSpecialProtocol::TranslatePath("special://frameworks")).c_str());
+-    dll_putenv(std::string("PYTHONHOME=" +
++    dll_putenv(("PYTHONHOME=" +
+       CSpecialProtocol::TranslatePath("special://frameworks")).c_str());
+-    dll_putenv(std::string("PATH=.;" +
++    dll_putenv(("PATH=.;" +
+       CSpecialProtocol::TranslatePath("special://xbmc") + ";" +
+       CSpecialProtocol::TranslatePath("special://frameworks")).c_str());
+   }
+   else
+   {
+-    dll_putenv(std::string("PYTHONPATH=" +
++    dll_putenv(("PYTHONPATH=" +
+       CSpecialProtocol::TranslatePath("special://xbmc/system/python/DLLs") + ";" +
+       CSpecialProtocol::TranslatePath("special://xbmc/system/python/Lib")).c_str());
+-    dll_putenv(std::string("PYTHONHOME=" +
++    dll_putenv(("PYTHONHOME=" +
+       CSpecialProtocol::TranslatePath("special://xbmc/system/python")).c_str());
+-    dll_putenv(std::string("PATH=.;" + CSpecialProtocol::TranslatePath("special://xbmc") + ";" +
++    dll_putenv(("PATH=.;" + CSpecialProtocol::TranslatePath("special://xbmc") + ";" +
+       CSpecialProtocol::TranslatePath("special://xbmc/system/python")).c_str());
+   }
+ 
+ #if defined(TARGET_ANDROID)
+   std::string apkPath = getenv("KODI_ANDROID_APK");
+   apkPath += "/assets/python2.7";
+-  dll_putenv(std::string("PYTHONHOME=" + apkPath).c_str());
++  dll_putenv(("PYTHONHOME=" + apkPath).c_str());
+   dll_putenv("PYTHONOPTIMIZE=");
+   dll_putenv("PYTHONNOUSERSITE=1");
+   dll_putenv("PYTHONPATH=");
+@@ -684,7 +684,7 @@ extern "C"
+   {
+     if (g_emuFileWrapper.DescriptorIsEmulatedFile(fd))
+     {
+-      return (__off_t)dll_lseeki64(fd, (__off_t)lPos, iWhence);
++      return (__off_t)dll_lseeki64(fd, lPos, iWhence);
+     }
+     else if (!IS_STD_DESCRIPTOR(fd))
+     {
+@@ -1977,7 +1977,7 @@ extern "C"
+ 
+   char*** dll___p__environ()
+   {
+-    static char*** t = (char***)&dll__environ;
++    static char*** t = &dll__environ;
+     return (char***)&t;
+   }
+ 
+
+From 7e9a66d5db769356335b4c87081d28dfa568d611 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 09/28] [cleanup][VideoPlayer] silence useless cast warnings
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h      | 2 +-
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp | 2 +-
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp          | 4 ++--
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp          | 2 +-
+ xbmc/cores/VideoPlayer/DVDOverlayContainer.cpp                 | 2 +-
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp                         | 6 +++---
+ xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp                    | 2 +-
+ xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp         | 2 +-
+ xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.cpp | 4 ++--
+ xbmc/cores/VideoPlayer/VideoRenderers/OverlayRenderer.cpp      | 4 ++--
+ xbmc/cores/VideoPlayer/VideoRenderers/OverlayRendererGL.cpp    | 4 ++--
+ 11 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h b/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h
+index 9a94b10a2464..ac5485fbf0b9 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h
+@@ -131,7 +131,7 @@ class CDVDOverlayText : public CDVDOverlay
+       else if(e->IsElementType(ELEMENT_TYPE_PROPERTY))
+         AddElement(new CElementProperty(*static_cast<CElementProperty*>(e)));
+       else
+-        AddElement(new CElement(*static_cast<CElement*>(e)));
++        AddElement(new CElement(*e));
+     }
+   }
+ 
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
+index 9c850d37099f..5f9fc13d0e0b 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
+@@ -1122,7 +1122,7 @@ int CDVDVideoCodecFFmpeg::FilterOpen(const std::string& filters, bool scale)
+     inputs->pad_idx = 0;
+     inputs->next = nullptr;
+ 
+-    result = avfilter_graph_parse_ptr(m_pFilterGraph, (const char*)m_filters.c_str(), &inputs, &outputs, NULL);
++    result = avfilter_graph_parse_ptr(m_pFilterGraph, m_filters.c_str(), &inputs, &outputs, NULL);
+     avfilter_inout_free(&outputs);
+     avfilter_inout_free(&inputs);
+ 
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+index 823afe71b8e3..89e84f533b67 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+@@ -170,13 +170,13 @@ bool CDVDDemuxClient::ParsePacket(DemuxPacket* pkt)
+     if (len > 0 && len < FF_MAX_EXTRADATA_SIZE)
+     {
+       if (st->ExtraData)
+-        delete[] (uint8_t*)st->ExtraData;
++        delete[] st->ExtraData;
+       st->changes++;
+       st->disabled = false;
+       st->ExtraSize = len;
+       st->ExtraData = new uint8_t[len+AV_INPUT_BUFFER_PADDING_SIZE];
+       memcpy(st->ExtraData, pkt->pData, len);
+-      memset((uint8_t*)st->ExtraData + len, 0 , AV_INPUT_BUFFER_PADDING_SIZE);
++      memset(st->ExtraData + len, 0 , AV_INPUT_BUFFER_PADDING_SIZE);
+       stream->m_parser_split = false;
+       change = true;
+       CLog::Log(LOGDEBUG, "CDVDDemuxClient::ParsePacket - split extradata");
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+index ba1ec12b84d3..b453dc77213b 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+@@ -317,7 +317,7 @@ bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool streami
+         pd.filename = strFile.c_str();
+ 
+         // av_probe_input_buffer might have changed the buffer_size beyond our allocated amount
+-        int buffer_size = std::min((int) probeBufferSize, m_ioContext->buffer_size);
++        int buffer_size = std::min(probeBufferSize, m_ioContext->buffer_size);
+         buffer_size = m_ioContext->max_packet_size ? m_ioContext->max_packet_size : buffer_size;
+         // read data using avformat's buffers
+         pd.buf_size = avio_read(m_ioContext, pd.buf, buffer_size);
+diff --git a/xbmc/cores/VideoPlayer/DVDOverlayContainer.cpp b/xbmc/cores/VideoPlayer/DVDOverlayContainer.cpp
+index 5f48efee47ae..62983f51cb31 100644
+--- a/xbmc/cores/VideoPlayer/DVDOverlayContainer.cpp
++++ b/xbmc/cores/VideoPlayer/DVDOverlayContainer.cpp
+@@ -144,7 +144,7 @@ bool CDVDOverlayContainer::ContainsOverlayType(DVDOverlayType type)
+   VecOverlaysIter it = m_overlays.begin();
+   while (!result && it != m_overlays.end())
+   {
+-    if (((CDVDOverlay*)*it)->IsOverlayType(type)) result = true;
++    if ((*it)->IsOverlayType(type)) result = true;
+     ++it;
+   }
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 92b0c90f9f84..45759c499323 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -1845,7 +1845,7 @@ bool CVideoPlayer::GetCachingTimes(double& level, double& delay, double& offset)
+ 
+   delay  = 0.0;
+   level  = 0.0;
+-  offset = (double)(cached + queued) / length;
++  offset = (cached + queued) / length;
+ 
+   if (currate == 0)
+     return true;
+@@ -2949,7 +2949,7 @@ void CVideoPlayer::HandleMessages()
+         }
+ 
+         m_OmxPlayerState.av_clock.OMXSetSpeed(speed);
+-        CLog::Log(LOGDEBUG, "%s::%s CDVDMsg::PLAYER_SETSPEED speed : %d (%d)", "CVideoPlayer", __FUNCTION__, speed, static_cast<int>(m_playSpeed));
++        CLog::Log(LOGDEBUG, "%s::%s CDVDMsg::PLAYER_SETSPEED speed : %d (%d)", "CVideoPlayer", __FUNCTION__, speed, m_playSpeed);
+       }
+ 
+       if (static_cast<CDVDMsgPlayerSetSpeed*>(pMsg)->IsTempo())
+@@ -5109,7 +5109,7 @@ void CVideoPlayer::GetSubtitleStreamInfo(int index, SubtitleStreamInfo &info)
+ {
+   CSingleLock lock(m_content.m_section);
+ 
+-  if (index < 0 || index > (int) GetSubtitleCount() - 1)
++  if (index < 0 || index > GetSubtitleCount() - 1)
+     return;
+ 
+   SelectionStream& s = m_content.m_selectionStreams.Get(STREAM_SUBTITLE, index);
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp b/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
+index d5ad05379ed2..82bf8e796cd0 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayerAudio.cpp
+@@ -207,7 +207,7 @@ void CVideoPlayerAudio::UpdatePlayerInfo()
+ {
+   std::ostringstream s;
+   s << "aq:"     << std::setw(2) << std::min(99,m_messageQueue.GetLevel()) << "%";
+-  s << ", Kb/s:" << std::fixed << std::setprecision(2) << (double)m_audioStats.GetBitrate() / 1024.0;
++  s << ", Kb/s:" << std::fixed << std::setprecision(2) << m_audioStats.GetBitrate() / 1024.0;
+ 
+   //print the inverse of the resample ratio, since that makes more sense
+   //if the resample ratio is 0.5, then we're playing twice as fast
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp
+index 3c987e38d74e..2d4fc00108ef 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp
+@@ -319,7 +319,7 @@ void CBaseRenderer::CalculateFrameAspectRatio(unsigned int desired_width, unsign
+   // This indicates either a scaling has taken place (which we didn't ask for) or it has
+   // found an aspect ratio parameter from the file, and is changing the frame size based
+   // on that.
+-  if (m_sourceWidth == (unsigned int) desired_width && m_sourceHeight == (unsigned int) desired_height)
++  if (m_sourceWidth == desired_width && m_sourceHeight == desired_height)
+     return ;
+ 
+   // mplayer is scaling in one or both directions.  We must alter our Source Pixel Ratio
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.cpp
+index 476073804580..8d0382fa5d94 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/VaapiEGL.cpp
+@@ -581,8 +581,8 @@ bool CVaapi2Texture::Map(CVaapiRenderPicture* pic)
+ 
+     CEGLAttributes<8> attribs; // 6 static + 2 modifiers
+     attribs.Add({{EGL_LINUX_DRM_FOURCC_EXT, static_cast<EGLint>(layer.drm_format)},
+-      {EGL_WIDTH, static_cast<EGLint>(width)},
+-      {EGL_HEIGHT, static_cast<EGLint>(height)},
++      {EGL_WIDTH, width},
++      {EGL_HEIGHT, height},
+       {EGL_DMA_BUF_PLANE0_FD_EXT, object.fd},
+       {EGL_DMA_BUF_PLANE0_OFFSET_EXT, static_cast<EGLint>(layer.offset[plane])},
+       {EGL_DMA_BUF_PLANE0_PITCH_EXT, static_cast<EGLint>(layer.pitch[plane])}});
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRenderer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRenderer.cpp
+index 5ca5e1af448b..40ec912e1394 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRenderer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRenderer.cpp
+@@ -238,8 +238,8 @@ void CRenderer::Render(COverlay* o, float adjust_height)
+     if(align == COverlay::ALIGN_SCREEN
+     || align == COverlay::ALIGN_SUBTITLE)
+     {
+-      scale_x = (float)m_rv.Width();
+-      scale_y = (float)m_rv.Height();
++      scale_x = m_rv.Width();
++      scale_y = m_rv.Height();
+     }
+ 
+     if(align == COverlay::ALIGN_VIDEO)
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRendererGL.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRendererGL.cpp
+index 7f0097b44a4f..3cee67326a42 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRendererGL.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/OverlayRendererGL.cpp
+@@ -204,8 +204,8 @@ COverlayTextureGL::COverlayTextureGL(CDVDOverlayImage* o)
+ 
+   if(o->source_width && o->source_height)
+   {
+-    float center_x = (float)(0.5f * o->width  + o->x) / o->source_width;
+-    float center_y = (float)(0.5f * o->height + o->y) / o->source_height;
++    float center_x = (0.5f * o->width  + o->x) / o->source_width;
++    float center_y = (0.5f * o->height + o->y) / o->source_height;
+ 
+     m_width  = (float)o->width  / o->source_width;
+     m_height = (float)o->height / o->source_height;
+
+From abf4f1c42c8d5c5e9afa1a820a635df6fbf46a2b Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 10/28] [cleanup][dbwrappers] silence useless cast warning
+
+---
+ xbmc/dbwrappers/qry_dat.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/dbwrappers/qry_dat.cpp b/xbmc/dbwrappers/qry_dat.cpp
+index b278673ffaec..bbb3b7742fb1 100644
+--- a/xbmc/dbwrappers/qry_dat.cpp
++++ b/xbmc/dbwrappers/qry_dat.cpp
+@@ -400,7 +400,7 @@ unsigned short field_value::get_asUShort() const {
+ int field_value::get_asInt() const {
+     switch (field_type) {
+     case ft_String: {
+-      return (int)atoi(str_value.c_str());
++      return atoi(str_value.c_str());
+     }
+     case ft_Boolean:{
+       return (int)bool_value;
+
+From 1d92bbb50d3cec748508fc1c61b9b32e6cfdebbe Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 11/28] [cleanup][dialogs] silence useless cast warnings
+
+---
+ xbmc/dialogs/GUIDialogFileBrowser.cpp | 4 ++--
+ xbmc/dialogs/GUIDialogMediaFilter.cpp | 4 ++--
+ xbmc/dialogs/GUIDialogSelect.cpp      | 2 +-
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/xbmc/dialogs/GUIDialogFileBrowser.cpp b/xbmc/dialogs/GUIDialogFileBrowser.cpp
+index 725ec4bbc1f0..616dfe4ee021 100644
+--- a/xbmc/dialogs/GUIDialogFileBrowser.cpp
++++ b/xbmc/dialogs/GUIDialogFileBrowser.cpp
+@@ -454,7 +454,7 @@ void CGUIDialogFileBrowser::Update(const std::string &strDirectory)
+   strSelectedItem = m_history.GetSelectedItem(strPath2==""?"empty":strPath2);
+ 
+   bool bSelectedFound = false;
+-  for (int i = 0; i < (int)m_vecItems->Size(); ++i)
++  for (int i = 0; i < m_vecItems->Size(); ++i)
+   {
+     CFileItemPtr pItem = (*m_vecItems)[i];
+     strPath2 = pItem->GetPath();
+@@ -529,7 +529,7 @@ void CGUIDialogFileBrowser::FrameMove()
+ 
+ void CGUIDialogFileBrowser::OnClick(int iItem)
+ {
+-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return ;
++  if ( iItem < 0 || iItem >= m_vecItems->Size() ) return ;
+   CFileItemPtr pItem = (*m_vecItems)[iItem];
+   std::string strPath = pItem->GetPath();
+ 
+diff --git a/xbmc/dialogs/GUIDialogMediaFilter.cpp b/xbmc/dialogs/GUIDialogMediaFilter.cpp
+index c2995b06a1ec..bbf81bb3e63e 100644
+--- a/xbmc/dialogs/GUIDialogMediaFilter.cpp
++++ b/xbmc/dialogs/GUIDialogMediaFilter.cpp
+@@ -915,8 +915,8 @@ bool CGUIDialogMediaFilter::GetMinMax(const std::string &table, const std::strin
+ 
+   std::string strSQL = "SELECT %s FROM %s ";
+ 
+-  min = static_cast<int>(strtol(db->GetSingleValue(db->PrepareSQL(strSQL, std::string("MIN(" + field + ")").c_str(), table.c_str()) + strSQLExtra).c_str(), NULL, 0));
+-  max = static_cast<int>(strtol(db->GetSingleValue(db->PrepareSQL(strSQL, std::string("MAX(" + field + ")").c_str(), table.c_str()) + strSQLExtra).c_str(), NULL, 0));
++  min = static_cast<int>(strtol(db->GetSingleValue(db->PrepareSQL(strSQL, ("MIN(" + field + ")").c_str(), table.c_str()) + strSQLExtra).c_str(), NULL, 0));
++  max = static_cast<int>(strtol(db->GetSingleValue(db->PrepareSQL(strSQL, ("MAX(" + field + ")").c_str(), table.c_str()) + strSQLExtra).c_str(), NULL, 0));
+ 
+   db->Close();
+   delete db;
+diff --git a/xbmc/dialogs/GUIDialogSelect.cpp b/xbmc/dialogs/GUIDialogSelect.cpp
+index 56ffc92019ee..ee8ff6344cbe 100644
+--- a/xbmc/dialogs/GUIDialogSelect.cpp
++++ b/xbmc/dialogs/GUIDialogSelect.cpp
+@@ -241,7 +241,7 @@ void CGUIDialogSelect::Sort(bool bSortOrder /*=true*/)
+ 
+ void CGUIDialogSelect::SetSelected(int iSelected)
+ {
+-  if (iSelected < 0 || iSelected >= (int)m_vecList->Size() ||
++  if (iSelected < 0 || iSelected >= m_vecList->Size() ||
+       m_vecList->Get(iSelected).get() == NULL)
+     return;
+ 
+
+From d3c57e9622de694eb2122f06a0b9be01eb8dbcb6 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 12/28] [cleanup][filesystem] silence useless cast warnings
+
+---
+ xbmc/filesystem/CurlFile.cpp              | 12 ++++++------
+ xbmc/filesystem/Directory.cpp             |  2 +-
+ xbmc/filesystem/FTPDirectory.cpp          |  2 +-
+ xbmc/filesystem/FileCache.cpp             |  2 +-
+ xbmc/filesystem/MultiPathDirectory.cpp    |  2 +-
+ xbmc/filesystem/NFSFile.cpp               |  6 +++---
+ xbmc/filesystem/PlaylistFileDirectory.cpp |  2 +-
+ xbmc/filesystem/ZipFile.cpp               |  2 +-
+ 8 files changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/xbmc/filesystem/CurlFile.cpp b/xbmc/filesystem/CurlFile.cpp
+index 9876b8bd68b9..34f3fdf1d286 100644
+--- a/xbmc/filesystem/CurlFile.cpp
++++ b/xbmc/filesystem/CurlFile.cpp
+@@ -199,7 +199,7 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
+   if (m_overflowSize)
+   {
+     // we have our overflow buffer - first get rid of as much as we can
+-    unsigned int maxWriteable = std::min((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
++    unsigned int maxWriteable = std::min(m_buffer.getMaxWriteSize(), m_overflowSize);
+     if (maxWriteable)
+     {
+       if (!m_buffer.WriteData(m_overflowBuffer, maxWriteable))
+@@ -220,7 +220,7 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
+     }
+   }
+   // ok, now copy the data into our ring buffer
+-  unsigned int maxWriteable = std::min((unsigned int)m_buffer.getMaxWriteSize(), amount);
++  unsigned int maxWriteable = std::min(m_buffer.getMaxWriteSize(), amount);
+   if (maxWriteable)
+   {
+     if (!m_buffer.WriteData(buffer, maxWriteable))
+@@ -1179,7 +1179,7 @@ bool CCurlFile::CReadState::ReadString(char *szLine, int iLineLength)
+     return false;
+ 
+   // ensure only available data is considered
+-  want = std::min((unsigned int)m_buffer.getMaxReadSize(), want);
++  want = std::min(m_buffer.getMaxReadSize(), want);
+ 
+   /* check if we finished prematurely */
+   if (!m_stillRunning && (m_fileSize == 0 || m_filePos != m_fileSize) && !want)
+@@ -1200,7 +1200,7 @@ bool CCurlFile::CReadState::ReadString(char *szLine, int iLineLength)
+   } while (((pLine - 1)[0] != '\n') && ((unsigned int)(pLine - szLine) < want));
+   pLine[0] = 0;
+   m_filePos += (pLine - szLine);
+-  return (bool)((pLine - szLine) > 0);
++  return (pLine - szLine) > 0;
+ }
+ 
+ bool CCurlFile::ReOpen(const CURL& url)
+@@ -1545,7 +1545,7 @@ int8_t CCurlFile::CReadState::FillBuffer(unsigned int want)
+ 
+   // only attempt to fill buffer if transactions still running and buffer
+   // doesnt exceed required size already
+-  while ((unsigned int)m_buffer.getMaxReadSize() < want && m_buffer.getMaxWriteSize() > 0 )
++  while (m_buffer.getMaxReadSize() < want && m_buffer.getMaxWriteSize() > 0 )
+   {
+     if (m_cancelled)
+       return FILLBUFFER_NO_DATA;
+@@ -1553,7 +1553,7 @@ int8_t CCurlFile::CReadState::FillBuffer(unsigned int want)
+     /* if there is data in overflow buffer, try to use that first */
+     if (m_overflowSize)
+     {
+-      unsigned amount = std::min((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
++      unsigned amount = std::min(m_buffer.getMaxWriteSize(), m_overflowSize);
+       m_buffer.WriteData(m_overflowBuffer, amount);
+ 
+       if (amount < m_overflowSize)
+diff --git a/xbmc/filesystem/Directory.cpp b/xbmc/filesystem/Directory.cpp
+index eccdc0f7b186..44710213937e 100644
+--- a/xbmc/filesystem/Directory.cpp
++++ b/xbmc/filesystem/Directory.cpp
+@@ -188,7 +188,7 @@ bool CDirectory::GetDirectory(const CURL& url, std::shared_ptr<IDirectory> pDire
+       pDirectory->SetFlags(hints.flags);
+ 
+       bool result = false, cancel = false;
+-      CURL authUrl = CURL(realURL);
++      CURL authUrl = realURL;
+ 
+       while (!result && !cancel)
+       {
+diff --git a/xbmc/filesystem/FTPDirectory.cpp b/xbmc/filesystem/FTPDirectory.cpp
+index 69234e4e5837..c505f54eba6a 100644
+--- a/xbmc/filesystem/FTPDirectory.cpp
++++ b/xbmc/filesystem/FTPDirectory.cpp
+@@ -91,7 +91,7 @@ bool CFTPDirectory::GetDirectory(const CURL& url2, CFileItemList &items)
+ 
+       CFileItemPtr pItem(new CFileItem(name));
+ 
+-      pItem->m_bIsFolder = (bool)(parse.getFlagtrycwd() != 0);
++      pItem->m_bIsFolder = parse.getFlagtrycwd() != 0;
+       std::string filePath = path + name;
+       if (pItem->m_bIsFolder)
+         URIUtils::AddSlashAtEnd(filePath);
+diff --git a/xbmc/filesystem/FileCache.cpp b/xbmc/filesystem/FileCache.cpp
+index bc7544b6f8b5..7c5d1a023bbd 100644
+--- a/xbmc/filesystem/FileCache.cpp
++++ b/xbmc/filesystem/FileCache.cpp
+@@ -451,7 +451,7 @@ ssize_t CFileCache::Read(void* lpBuf, size_t uiBufSize)
+ 
+ retry:
+   // attempt to read
+-  iRc = m_pCache->ReadFromCache((char *)lpBuf, (size_t)uiBufSize);
++  iRc = m_pCache->ReadFromCache((char *)lpBuf, uiBufSize);
+   if (iRc > 0)
+   {
+     m_readPos += iRc;
+diff --git a/xbmc/filesystem/MultiPathDirectory.cpp b/xbmc/filesystem/MultiPathDirectory.cpp
+index 34d9b8fab55e..439338ba6591 100644
+--- a/xbmc/filesystem/MultiPathDirectory.cpp
++++ b/xbmc/filesystem/MultiPathDirectory.cpp
+@@ -244,7 +244,7 @@ std::string CMultiPathDirectory::ConstructMultiPath(const std::set<std::string>
+ 
+ void CMultiPathDirectory::MergeItems(CFileItemList &items)
+ {
+-  CLog::Log(LOGDEBUG, "CMultiPathDirectory::MergeItems, items = %i", (int)items.Size());
++  CLog::Log(LOGDEBUG, "CMultiPathDirectory::MergeItems, items = %i", items.Size());
+   unsigned int time = XbmcThreads::SystemClockMillis();
+   if (items.Size() == 0)
+     return;
+diff --git a/xbmc/filesystem/NFSFile.cpp b/xbmc/filesystem/NFSFile.cpp
+index 0165c9ebf0fb..a6c232225ebb 100644
+--- a/xbmc/filesystem/NFSFile.cpp
++++ b/xbmc/filesystem/NFSFile.cpp
+@@ -523,7 +523,7 @@ int64_t CNFSFile::GetPosition()
+ 
+   if (gNfsConnection.GetNfsContext() == NULL || m_pFileHandle == NULL) return 0;
+ 
+-  ret = (int)gNfsConnection.GetImpl()->nfs_lseek(gNfsConnection.GetNfsContext(), m_pFileHandle, 0, SEEK_CUR, &offset);
++  ret = gNfsConnection.GetImpl()->nfs_lseek(gNfsConnection.GetNfsContext(), m_pFileHandle, 0, SEEK_CUR, &offset);
+ 
+   if (ret < 0)
+   {
+@@ -677,7 +677,7 @@ int64_t CNFSFile::Seek(int64_t iFilePosition, int iWhence)
+   if (m_pFileHandle == NULL || m_pNfsContext == NULL) return -1;
+ 
+ 
+-  ret = (int)gNfsConnection.GetImpl()->nfs_lseek(m_pNfsContext, m_pFileHandle, iFilePosition, iWhence, &offset);
++  ret = gNfsConnection.GetImpl()->nfs_lseek(m_pNfsContext, m_pFileHandle, iFilePosition, iWhence, &offset);
+   if (ret < 0)
+   {
+     CLog::Log(LOGERROR, "%s - Error( seekpos: %" PRId64", whence: %i, fsize: %" PRId64", %s)", __FUNCTION__, iFilePosition, iWhence, m_fileSize, gNfsConnection.GetImpl()->nfs_get_error(m_pNfsContext));
+@@ -694,7 +694,7 @@ int CNFSFile::Truncate(int64_t iSize)
+   if (m_pFileHandle == NULL || m_pNfsContext == NULL) return -1;
+ 
+ 
+-  ret = (int)gNfsConnection.GetImpl()->nfs_ftruncate(m_pNfsContext, m_pFileHandle, iSize);
++  ret = gNfsConnection.GetImpl()->nfs_ftruncate(m_pNfsContext, m_pFileHandle, iSize);
+   if (ret < 0)
+   {
+     CLog::Log(LOGERROR, "%s - Error( ftruncate: %" PRId64", fsize: %" PRId64", %s)", __FUNCTION__, iSize, m_fileSize, gNfsConnection.GetImpl()->nfs_get_error(m_pNfsContext));
+diff --git a/xbmc/filesystem/PlaylistFileDirectory.cpp b/xbmc/filesystem/PlaylistFileDirectory.cpp
+index 7d10d4456e3f..89654687b5f6 100644
+--- a/xbmc/filesystem/PlaylistFileDirectory.cpp
++++ b/xbmc/filesystem/PlaylistFileDirectory.cpp
+@@ -44,7 +44,7 @@ namespace XFILE
+ 
+       CPlayList playlist = *pPlayList;
+       // convert playlist items to songs
+-      for (int i = 0; i < (int)playlist.size(); ++i)
++      for (int i = 0; i < playlist.size(); ++i)
+       {
+         CFileItemPtr item = playlist[i];
+         item->m_iprogramCount = i;  // hack for playlist order
+diff --git a/xbmc/filesystem/ZipFile.cpp b/xbmc/filesystem/ZipFile.cpp
+index b81a02639937..20bc34e542bc 100644
+--- a/xbmc/filesystem/ZipFile.cpp
++++ b/xbmc/filesystem/ZipFile.cpp
+@@ -299,7 +299,7 @@ ssize_t CZipFile::Read(void* lpBuf, size_t uiBufSize)
+   // flush what might be left in the string buffer
+   if (m_iDataInStringBuffer > 0)
+   {
+-    size_t iMax = static_cast<size_t>((uiBufSize>m_iDataInStringBuffer?m_iDataInStringBuffer:uiBufSize));
++    size_t iMax = uiBufSize>m_iDataInStringBuffer?m_iDataInStringBuffer:uiBufSize;
+     memcpy(lpBuf,m_szStartOfStringBuffer,iMax);
+     uiBufSize -= iMax;
+     m_iDataInStringBuffer -= iMax;
+
+From c4871e3f869fd402c729cff9eb5d67d1e8e2df87 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 13/28] [cleanup][games] silence useless cast warning
+
+---
+ xbmc/games/addons/playback/GameClientReversiblePlayback.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp b/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp
+index c9af0c5d2bc2..c0250d0b0b05 100644
+--- a/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp
++++ b/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp
+@@ -254,7 +254,7 @@ void CGameClientReversiblePlayback::RewindFrames(uint64_t frames)
+     UpdatePlaybackStats();
+   }
+ 
+-  m_totalFrameCount -= std::min(m_totalFrameCount, static_cast<uint64_t>(frames));
++  m_totalFrameCount -= std::min(m_totalFrameCount, frames);
+ }
+ 
+ void CGameClientReversiblePlayback::AdvanceFrames(uint64_t frames)
+
+From a1443a03fbd217ad084396ca4015dd46ea03e7f5 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 14/28] [cleanup][guilib] silence useless cast warnings
+
+---
+ xbmc/guilib/FFmpegImage.cpp          |  6 +++---
+ xbmc/guilib/GUIBaseContainer.cpp     | 10 +++++-----
+ xbmc/guilib/GUIControlFactory.cpp    |  4 ++--
+ xbmc/guilib/GUIControlGroup.cpp      |  4 ++--
+ xbmc/guilib/GUIEditControl.cpp       |  6 +++---
+ xbmc/guilib/GUIFontManager.cpp       |  2 +-
+ xbmc/guilib/GUIFontTTFGL.cpp         |  8 ++++----
+ xbmc/guilib/GUISpinControl.cpp       |  6 +++---
+ xbmc/guilib/GUIWindow.cpp            |  2 +-
+ xbmc/guilib/StereoscopicsManager.cpp |  2 +-
+ xbmc/guilib/TextureManager.cpp       |  2 +-
+ 11 files changed, 26 insertions(+), 26 deletions(-)
+
+diff --git a/xbmc/guilib/FFmpegImage.cpp b/xbmc/guilib/FFmpegImage.cpp
+index 2559478e5b7f..01a4fc519e20 100644
+--- a/xbmc/guilib/FFmpegImage.cpp
++++ b/xbmc/guilib/FFmpegImage.cpp
+@@ -686,9 +686,9 @@ bool CFFmpegImage::CreateThumbnailFromSurface(unsigned char* bufferin, unsigned
+   }
+   tdm.frame_input->pts = 1;
+   tdm.frame_input->quality = tdm.avOutctx->global_quality;
+-  tdm.frame_input->data[0] = (uint8_t*) tdm.frame_temporary->data[0];
+-  tdm.frame_input->data[1] = (uint8_t*) tdm.frame_temporary->data[1];
+-  tdm.frame_input->data[2] = (uint8_t*) tdm.frame_temporary->data[2];
++  tdm.frame_input->data[0] = tdm.frame_temporary->data[0];
++  tdm.frame_input->data[1] = tdm.frame_temporary->data[1];
++  tdm.frame_input->data[2] = tdm.frame_temporary->data[2];
+   tdm.frame_input->height = height;
+   tdm.frame_input->width = width;
+   tdm.frame_input->linesize[0] = tdm.frame_temporary->linesize[0];
+diff --git a/xbmc/guilib/GUIBaseContainer.cpp b/xbmc/guilib/GUIBaseContainer.cpp
+index b928f878a8e3..55ce46a1272d 100644
+--- a/xbmc/guilib/GUIBaseContainer.cpp
++++ b/xbmc/guilib/GUIBaseContainer.cpp
+@@ -442,7 +442,7 @@ bool CGUIBaseContainer::OnMessage(CGUIMessage& message)
+         int offset = GetOffset();
+         if (message.GetParam2() && message.GetParam2() == 1)
+           offset = 0;
+-        int item = std::min(offset + (int)message.GetParam1() - 1, (int)m_items.size() - 1);
++        int item = std::min(offset + message.GetParam1() - 1, (int)m_items.size() - 1);
+         SelectItem(item);
+       }
+     }
+@@ -455,7 +455,7 @@ bool CGUIBaseContainer::OnMessage(CGUIMessage& message)
+     {
+       if (message.GetSenderId() == m_pageControl && IsVisible())
+       { // update our page if we're visible - not much point otherwise
+-        if ((int)message.GetParam1() != GetOffset())
++        if (message.GetParam1() != GetOffset())
+           m_pageChangeTimer.StartZero();
+         ScrollToOffset(message.GetParam1());
+         return true;
+@@ -468,7 +468,7 @@ bool CGUIBaseContainer::OnMessage(CGUIMessage& message)
+     }
+     else if (message.GetMessage() == GUI_MSG_MOVE_OFFSET)
+     {
+-      int count = (int)message.GetParam1();
++      int count = message.GetParam1();
+       while (count < 0)
+       {
+         MoveUp(true);
+@@ -734,7 +734,7 @@ EVENT_RESULT CGUIBaseContainer::OnMouseEvent(const CPoint &point, const CMouseEv
+   { // do the drag and validate our offset (corrects for end of scroll)
+     m_scroller.SetValue(m_scroller.GetValue() - ((m_orientation == HORIZONTAL) ? event.m_offsetX : event.m_offsetY));
+     float size = (m_layout) ? m_layout->Size(m_orientation) : 10.0f;
+-    int offset = (int)MathUtils::round_int(m_scroller.GetValue() / size);
++    int offset = MathUtils::round_int(m_scroller.GetValue() / size);
+     m_lastScrollStartTimer.Stop();
+     m_scrollTimer.Start();
+     SetOffset(offset);
+@@ -749,7 +749,7 @@ EVENT_RESULT CGUIBaseContainer::OnMouseEvent(const CPoint &point, const CMouseEv
+     // and compute the nearest offset from this and scroll there
+     float size = (m_layout) ? m_layout->Size(m_orientation) : 10.0f;
+     float offset = m_scroller.GetValue() / size;
+-    int toOffset = (int)MathUtils::round_int(offset);
++    int toOffset = MathUtils::round_int(offset);
+     if (toOffset < offset)
+       SetOffset(toOffset+1);
+     else
+diff --git a/xbmc/guilib/GUIControlFactory.cpp b/xbmc/guilib/GUIControlFactory.cpp
+index 6c24ee14f71e..a6cf89023712 100644
+--- a/xbmc/guilib/GUIControlFactory.cpp
++++ b/xbmc/guilib/GUIControlFactory.cpp
+@@ -779,8 +779,8 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
+   // Read control properties from XML
+   //
+ 
+-  if (!pControlNode->Attribute("id", (int*) &id))
+-    XMLUtils::GetInt(pControlNode, "id", (int&) id);       // backward compatibility - not desired
++  if (!pControlNode->Attribute("id", &id))
++    XMLUtils::GetInt(pControlNode, "id", id);       // backward compatibility - not desired
+   //! @todo Perhaps we should check here whether id is valid for focusable controls
+   //! such as buttons etc.  For labels/fadelabels/images it does not matter
+ 
+diff --git a/xbmc/guilib/GUIControlGroup.cpp b/xbmc/guilib/GUIControlGroup.cpp
+index a3d859212ef4..cc3587a56d6e 100644
+--- a/xbmc/guilib/GUIControlGroup.cpp
++++ b/xbmc/guilib/GUIControlGroup.cpp
+@@ -451,7 +451,7 @@ CGUIControl *CGUIControlGroup::GetFocusedControl() const
+ CGUIControl *CGUIControlGroup::GetFirstFocusableControl(int id)
+ {
+   if (!CanFocus()) return NULL;
+-  if (id && id == (int) GetID()) return this; // we're focusable and they want us
++  if (id && id == GetID()) return this; // we're focusable and they want us
+   for (auto *pControl : m_children)
+   {
+     CGUIControlGroup *group(dynamic_cast<CGUIControlGroup*>(pControl));
+@@ -460,7 +460,7 @@ CGUIControl *CGUIControlGroup::GetFirstFocusableControl(int id)
+       CGUIControl *control = group->GetFirstFocusableControl(id);
+       if (control) return control;
+     }
+-    if ((!id || (int) pControl->GetID() == id) && pControl->CanFocus())
++    if ((!id || pControl->GetID() == id) && pControl->CanFocus())
+       return pControl;
+   }
+   return NULL;
+diff --git a/xbmc/guilib/GUIEditControl.cpp b/xbmc/guilib/GUIEditControl.cpp
+index 14a0bc4185b8..d7c64041e165 100644
+--- a/xbmc/guilib/GUIEditControl.cpp
++++ b/xbmc/guilib/GUIEditControl.cpp
+@@ -91,7 +91,7 @@ bool CGUIEditControl::OnMessage(CGUIMessage &message)
+ {
+   if (message.GetMessage() == GUI_MSG_SET_TYPE)
+   {
+-    SetInputType((INPUT_TYPE)message.GetParam1(), (int)message.GetParam2());
++    SetInputType((INPUT_TYPE)message.GetParam1(), message.GetParam2());
+     return true;
+   }
+   else if (message.GetMessage() == GUI_MSG_ITEM_SELECTED)
+@@ -138,7 +138,7 @@ bool CGUIEditControl::OnAction(const CAction &action)
+     else if (action.GetID() == ACTION_MOVE_RIGHT ||
+              action.GetID() == ACTION_CURSOR_RIGHT)
+     {
+-      if ((unsigned int) m_cursorPos < m_text2.size())
++      if (m_cursorPos < m_text2.size())
+       {
+         m_cursorPos++;
+         UpdateText(false);
+@@ -257,7 +257,7 @@ bool CGUIEditControl::OnAction(const CAction &action)
+         {
+           ClearMD5();
+           m_edit.clear();
+-          m_text2.insert(m_text2.begin() + m_cursorPos++, static_cast<wchar_t>(action.GetUnicode()));
++          m_text2.insert(m_text2.begin() + m_cursorPos++, action.GetUnicode());
+           break;
+         }
+       }
+diff --git a/xbmc/guilib/GUIFontManager.cpp b/xbmc/guilib/GUIFontManager.cpp
+index 54c329b7e395..52f95957d456 100644
+--- a/xbmc/guilib/GUIFontManager.cpp
++++ b/xbmc/guilib/GUIFontManager.cpp
+@@ -283,7 +283,7 @@ CGUIFontTTFBase* GUIFontManager::GetFontFile(const std::string& strFileName)
+ {
+   for (int i = 0; i < (int)m_vecFontFiles.size(); ++i)
+   {
+-    CGUIFontTTFBase* pFont = static_cast<CGUIFontTTFBase*>(m_vecFontFiles[i]);
++    CGUIFontTTFBase* pFont = m_vecFontFiles[i];
+     if (StringUtils::EqualsNoCase(pFont->GetFileName(), strFileName))
+       return pFont;
+   }
+diff --git a/xbmc/guilib/GUIFontTTFGL.cpp b/xbmc/guilib/GUIFontTTFGL.cpp
+index cf6a5ab49e61..490168172124 100644
+--- a/xbmc/guilib/GUIFontTTFGL.cpp
++++ b/xbmc/guilib/GUIFontTTFGL.cpp
+@@ -335,8 +335,8 @@ CBaseTexture* CGUIFontTTFGL::ReallocTexture(unsigned int& newHeight)
+     m_updateY1 = 0;
+     m_updateY2 = m_texture->GetHeight();
+ 
+-    unsigned char* src = (unsigned char*) m_texture->GetPixels();
+-    unsigned char* dst = (unsigned char*) newTexture->GetPixels();
++    unsigned char* src = m_texture->GetPixels();
++    unsigned char* dst = newTexture->GetPixels();
+     for (unsigned int y = 0; y < m_texture->GetHeight(); y++)
+     {
+       memcpy(dst, src, m_texture->GetPitch());
+@@ -355,8 +355,8 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1,
+ {
+   FT_Bitmap bitmap = bitGlyph->bitmap;
+ 
+-  unsigned char* source = (unsigned char*) bitmap.buffer;
+-  unsigned char* target = (unsigned char*) m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
++  unsigned char* source = bitmap.buffer;
++  unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
+ 
+   for (unsigned int y = y1; y < y2; y++)
+   {
+diff --git a/xbmc/guilib/GUISpinControl.cpp b/xbmc/guilib/GUISpinControl.cpp
+index 731d78add544..cc9cdbd9d6fb 100644
+--- a/xbmc/guilib/GUISpinControl.cpp
++++ b/xbmc/guilib/GUISpinControl.cpp
+@@ -298,7 +298,7 @@ bool CGUISpinControl::OnMessage(CGUIMessage& message)
+ 
+     case GUI_MSG_MOVE_OFFSET:
+       {
+-        int count = (int)message.GetParam1();
++        int count = message.GetParam1();
+         while (count < 0)
+         {
+           MoveUp();
+@@ -420,11 +420,11 @@ void CGUISpinControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyr
+     {
+       if (m_bShowRange)
+       {
+-        text = StringUtils::Format("(%i/%i) %s", m_iValue + 1, (int)m_vecLabels.size(), std::string(m_vecLabels[m_iValue]).c_str() );
++        text = StringUtils::Format("(%i/%i) %s", m_iValue + 1, (int)m_vecLabels.size(), m_vecLabels[m_iValue].c_str() );
+       }
+       else
+       {
+-        text = StringUtils::Format("%s", std::string(m_vecLabels[m_iValue]).c_str() );
++        text = StringUtils::Format("%s", m_vecLabels[m_iValue].c_str() );
+       }
+     }
+     else text = StringUtils::Format("?%i?", m_iValue);
+diff --git a/xbmc/guilib/GUIWindow.cpp b/xbmc/guilib/GUIWindow.cpp
+index 24bf55f3d350..3166c1ab0eed 100644
+--- a/xbmc/guilib/GUIWindow.cpp
++++ b/xbmc/guilib/GUIWindow.cpp
+@@ -903,7 +903,7 @@ bool CGUIWindow::ControlGroupHasFocus(int groupID, int controlID)
+     {
+       CGUIMessage message(GUI_MSG_ITEM_SELECTED, GetID(), group->GetID());
+       group->OnMessage(message);
+-      return (controlID == static_cast<int>(message.GetParam1()));
++      return (controlID == message.GetParam1());
+     }
+   }
+   return false;
+diff --git a/xbmc/guilib/StereoscopicsManager.cpp b/xbmc/guilib/StereoscopicsManager.cpp
+index 7a1712bc33f4..d2647b457151 100644
+--- a/xbmc/guilib/StereoscopicsManager.cpp
++++ b/xbmc/guilib/StereoscopicsManager.cpp
+@@ -248,7 +248,7 @@ RENDER_STEREO_MODE CStereoscopicsManager::GetStereoModeByUserChoice() const
+ 
+   int iItem = pDlgSelect->GetSelectedItem();
+   if (iItem > -1 && pDlgSelect->IsConfirmed())
+-    mode = static_cast<RENDER_STEREO_MODE>(selectableModes[iItem]);
++    mode = selectableModes[iItem];
+   else
+     mode = GetStereoMode();
+ 
+diff --git a/xbmc/guilib/TextureManager.cpp b/xbmc/guilib/TextureManager.cpp
+index b7437820ff26..02e2cfd90364 100644
+--- a/xbmc/guilib/TextureManager.cpp
++++ b/xbmc/guilib/TextureManager.cpp
+@@ -197,7 +197,7 @@ void CTextureMap::FreeTexture()
+ 
+ void CTextureMap::SetHeight(int height)
+ {
+-  m_texture.m_height = (int) height;
++  m_texture.m_height = height;
+ }
+ 
+ void CTextureMap::SetWidth(int height)
+
+From 34de7a88d96a89432bfaa1a76b4c485a8db94923 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 15/28] [cleanup][interfaces] silence useless cast warnings
+
+---
+ xbmc/interfaces/json-rpc/FileItemHandler.cpp    | 2 +-
+ xbmc/interfaces/json-rpc/SettingsOperations.cpp | 6 +++---
+ xbmc/interfaces/legacy/PlayList.cpp             | 2 +-
+ xbmc/interfaces/legacy/Window.cpp               | 2 +-
+ xbmc/interfaces/legacy/WindowXML.cpp            | 6 +++---
+ xbmc/interfaces/python/LanguageHook.cpp         | 2 +-
+ xbmc/interfaces/python/PythonSwig.cpp.template  | 6 +++---
+ xbmc/interfaces/python/swig.cpp                 | 2 +-
+ 8 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileItemHandler.cpp b/xbmc/interfaces/json-rpc/FileItemHandler.cpp
+index 94039a238f92..b1f91ba3aebb 100644
+--- a/xbmc/interfaces/json-rpc/FileItemHandler.cpp
++++ b/xbmc/interfaces/json-rpc/FileItemHandler.cpp
+@@ -298,7 +298,7 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
+       else if (item->HasPVRTimerInfoTag() && item->GetPVRTimerInfoTag()->m_iTimerId > 0)
+          object[ID] = item->GetPVRTimerInfoTag()->m_iTimerId;
+       else if (item->HasMusicInfoTag() && item->GetMusicInfoTag()->GetDatabaseId() > 0)
+-        object[ID] = (int)item->GetMusicInfoTag()->GetDatabaseId();
++        object[ID] = item->GetMusicInfoTag()->GetDatabaseId();
+       else if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_iDbId > 0)
+         object[ID] = item->GetVideoInfoTag()->m_iDbId;
+ 
+diff --git a/xbmc/interfaces/json-rpc/SettingsOperations.cpp b/xbmc/interfaces/json-rpc/SettingsOperations.cpp
+index 77c17bf703d3..f0eaf2f301eb 100644
+--- a/xbmc/interfaces/json-rpc/SettingsOperations.cpp
++++ b/xbmc/interfaces/json-rpc/SettingsOperations.cpp
+@@ -37,7 +37,7 @@ using namespace JSONRPC;
+ 
+ JSONRPC_STATUS CSettingsOperations::GetSections(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+-  SettingLevel level = (SettingLevel)ParseSettingLevel(parameterObject["level"].asString());
++  SettingLevel level = ParseSettingLevel(parameterObject["level"].asString());
+   bool listCategories = !parameterObject["properties"].empty() && parameterObject["properties"][0].asString() == "categories";
+ 
+   result["sections"] = CVariant(CVariant::VariantTypeArray);
+@@ -75,7 +75,7 @@ JSONRPC_STATUS CSettingsOperations::GetSections(const std::string &method, ITran
+ 
+ JSONRPC_STATUS CSettingsOperations::GetCategories(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+-  SettingLevel level = (SettingLevel)ParseSettingLevel(parameterObject["level"].asString());
++  SettingLevel level = ParseSettingLevel(parameterObject["level"].asString());
+   std::string strSection = parameterObject["section"].asString();
+   bool listSettings = !parameterObject["properties"].empty() && parameterObject["properties"][0].asString() == "settings";
+ 
+@@ -140,7 +140,7 @@ JSONRPC_STATUS CSettingsOperations::GetCategories(const std::string &method, ITr
+ 
+ JSONRPC_STATUS CSettingsOperations::GetSettings(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+-  SettingLevel level = (SettingLevel)ParseSettingLevel(parameterObject["level"].asString());
++  SettingLevel level = ParseSettingLevel(parameterObject["level"].asString());
+   const CVariant &filter = parameterObject["filter"];
+   bool doFilter = filter.isMember("section") && filter.isMember("category");
+   std::string strSection, strCategory;
+diff --git a/xbmc/interfaces/legacy/PlayList.cpp b/xbmc/interfaces/legacy/PlayList.cpp
+index 5bc76c828f0e..2d5edd5a1192 100644
+--- a/xbmc/interfaces/legacy/PlayList.cpp
++++ b/xbmc/interfaces/legacy/PlayList.cpp
+@@ -92,7 +92,7 @@ namespace XBMCAddon
+           CServiceBroker::GetPlaylistPlayer().ClearPlaylist(this->iPlayList);
+ 
+           // add each item of the playlist to the playlistplayer
+-          for (int i=0; i < (int)pPlayList->size(); ++i)
++          for (int i=0; i < pPlayList->size(); ++i)
+           {
+             CFileItemPtr playListItem =(*pPlayList)[i];
+             if (playListItem->GetLabel().empty())
+diff --git a/xbmc/interfaces/legacy/Window.cpp b/xbmc/interfaces/legacy/Window.cpp
+index 7967d11aa69f..dcd49357b392 100644
+--- a/xbmc/interfaces/legacy/Window.cpp
++++ b/xbmc/interfaces/legacy/Window.cpp
+@@ -271,7 +271,7 @@ namespace XBMCAddon
+       MaybeLock lock(gc);
+ 
+       // check if control exists
+-      CGUIControl* pGUIControl = (CGUIControl*)ref(window)->GetControl(iControlId);
++      CGUIControl* pGUIControl = ref(window)->GetControl(iControlId);
+       if (!pGUIControl)
+       {
+         // control does not exist.
+diff --git a/xbmc/interfaces/legacy/WindowXML.cpp b/xbmc/interfaces/legacy/WindowXML.cpp
+index 4381fd716a63..a9d8cb13b239 100644
+--- a/xbmc/interfaces/legacy/WindowXML.cpp
++++ b/xbmc/interfaces/legacy/WindowXML.cpp
+@@ -333,7 +333,7 @@ namespace XBMCAddon
+       case GUI_MSG_FOCUSED:
+         {
+           if (A(m_viewControl).HasControl(message.GetControlId()) &&
+-              A(m_viewControl).GetCurrentControl() != (int)message.GetControlId())
++              A(m_viewControl).GetCurrentControl() != message.GetControlId())
+           {
+             A(m_viewControl).SetFocused();
+             return true;
+@@ -373,9 +373,9 @@ namespace XBMCAddon
+             return true;
+           }
+ 
+-          if(iControl && iControl != (int)interceptor->GetID()) // pCallbackWindow &&  != this->GetID())
++          if(iControl && iControl != interceptor->GetID()) // pCallbackWindow &&  != this->GetID())
+           {
+-            CGUIControl* controlClicked = (CGUIControl*)interceptor->GetControl(iControl);
++            CGUIControl* controlClicked = interceptor->GetControl(iControl);
+ 
+             // The old python way used to check list AND SELECITEM method
+             //   or if its a button, radiobutton.
+diff --git a/xbmc/interfaces/python/LanguageHook.cpp b/xbmc/interfaces/python/LanguageHook.cpp
+index 7b2e6f6695d2..e2ebf97b4bc3 100644
+--- a/xbmc/interfaces/python/LanguageHook.cpp
++++ b/xbmc/interfaces/python/LanguageHook.cpp
+@@ -87,7 +87,7 @@ namespace XBMCAddon
+       CSingleLock lock(hooksMutex);
+       std::map<PyInterpreterState*,AddonClass::Ref<PythonLanguageHook> >::iterator iter = hooks.find(interp);
+       if (iter != hooks.end())
+-        return AddonClass::Ref<PythonLanguageHook>(iter->second);
++        return iter->second;
+ 
+       // if we got here then we need to use the global one.
+       if (g_languageHook.isNull())
+diff --git a/xbmc/interfaces/python/PythonSwig.cpp.template b/xbmc/interfaces/python/PythonSwig.cpp.template
+index da20f8b0bede..dc34cade666b 100644
+--- a/xbmc/interfaces/python/PythonSwig.cpp.template
++++ b/xbmc/interfaces/python/PythonSwig.cpp.template
+@@ -189,7 +189,7 @@ void doMethod(Node method, MethodType methodType)
+ <%  }
+     }
+     // now actually invoke the method
+-    if (returns != "void") { %>    ${SwigTypeParser.SwigType_lstr(returns)} apiResult;<%   }
++    if (returns != "void") { %>    ${SwigTypeParser.SwigType_str(returns)} apiResult;<%   }
+ %>
+     try
+     {
+@@ -209,7 +209,7 @@ void doMethod(Node method, MethodType methodType)
+     if (!destructor) {
+     if (constructor || !clazz) {  %>      XBMCAddon::SetLanguageHookGuard slhg(XBMCAddon::Python::PythonLanguageHook::GetIfExists(PyThreadState_Get()->interp).get());<% println() }
+ %>      <%
+-    if (returns != "void") { %>apiResult = (${SwigTypeParser.SwigType_lstr(returns)})<% }
++    if (returns != "void") { %>apiResult = <% }
+     if (clazz && !constructor) {
+       %>((${clazz}*)retrieveApiInstance((PyObject*)self,&Ty${classNameAsVariable}_Type,"${Helper.callingName(method)}","${clazz}"))-> <%
+     }
+@@ -471,7 +471,7 @@ void doClassMethodInfo(Node clazz, List initTypeCalls)
+      String returns = Helper.getPropertyReturnSwigType(it);
+ %>   if (strcmp((char*)name, "${it.@sym_name}") == 0)
+       {
+-        ${SwigTypeParser.SwigType_lstr(returns)} apiResult = (${SwigTypeParser.SwigType_lstr(returns)})theObj->${it.@sym_name};
++        ${SwigTypeParser.SwigType_lstr(returns)} apiResult = theObj->${it.@sym_name};
+         ${Helper.getOutConversion(returns, 'result', it)}
+       }
+       else<%
+diff --git a/xbmc/interfaces/python/swig.cpp b/xbmc/interfaces/python/swig.cpp
+index 7440e43481f5..b4f5354b4399 100644
+--- a/xbmc/interfaces/python/swig.cpp
++++ b/xbmc/interfaces/python/swig.cpp
+@@ -277,7 +277,7 @@ namespace PythonBindings
+         throw XBMCAddon::WrongTypeException("Incorrect type passed to \"%s\", was expecting a \"%s\" but received a \"%s\"",
+                                  methodNameForErrorString,expectedType,typeInfo->swigType);
+     }
+-    return const_cast<XBMCAddon::AddonClass*>(reinterpret_cast<const PyHolder*>(pythonObj)->pSelf);
++    return const_cast<XBMCAddon::AddonClass*>(pythonObj->pSelf);
+   }
+ 
+   /**
+
+From efc1c708fd43654bddbcfb7d5d89688ef131db90 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 16/28] [cleanup][music] silence useless cast warnings
+
+---
+ xbmc/music/MusicDatabase.cpp                  | 6 +++---
+ xbmc/music/MusicInfoLoader.cpp                | 2 +-
+ xbmc/music/dialogs/GUIDialogMusicInfo.cpp     | 2 +-
+ xbmc/music/tags/MusicInfoTag.cpp              | 2 +-
+ xbmc/music/tags/TagLoaderTagLib.cpp           | 6 +++---
+ xbmc/music/windows/GUIWindowMusicBase.cpp     | 2 +-
+ xbmc/music/windows/GUIWindowMusicNav.cpp      | 2 +-
+ xbmc/music/windows/GUIWindowMusicPlaylist.cpp | 2 +-
+ 8 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/xbmc/music/MusicDatabase.cpp b/xbmc/music/MusicDatabase.cpp
+index 57543cb2b6a6..384245b0c658 100644
+--- a/xbmc/music/MusicDatabase.cpp
++++ b/xbmc/music/MusicDatabase.cpp
+@@ -1219,7 +1219,7 @@ int CMusicDatabase::AddArtist(const std::string& strArtist, const std::string& s
+       m_pDS->query(strSQL);
+       if (m_pDS->num_rows() > 0)
+       {
+-        int idArtist = (int)m_pDS->fv("idArtist").get_asInt();
++        int idArtist = m_pDS->fv("idArtist").get_asInt();
+         bool update = m_pDS->fv("strArtist").get_asString().compare(strMusicBrainzArtistID) == 0;
+         m_pDS->close();
+         if (update)
+@@ -1239,7 +1239,7 @@ int CMusicDatabase::AddArtist(const std::string& strArtist, const std::string& s
+       m_pDS->query(strSQL);
+       if (m_pDS->num_rows() > 0)
+       {
+-        int idArtist = (int)m_pDS->fv("idArtist").get_asInt();
++        int idArtist = m_pDS->fv("idArtist").get_asInt();
+         m_pDS->close();
+         // 1.b.a) We found an artist by name but with no MusicBrainz ID set, update it and assume it is our artist, flag when mbid scraped
+         strSQL = PrepareSQL("UPDATE artist SET strArtist = '%s', strMusicBrainzArtistID = '%s', bScrapedMBID = %i WHERE idArtist = %i",
+@@ -1263,7 +1263,7 @@ int CMusicDatabase::AddArtist(const std::string& strArtist, const std::string& s
+       m_pDS->query(strSQL);
+       if (m_pDS->num_rows() > 0)
+       {
+-        int idArtist = (int)m_pDS->fv("idArtist").get_asInt();
++        int idArtist = m_pDS->fv("idArtist").get_asInt();
+         m_pDS->close();
+         return idArtist;
+       }
+diff --git a/xbmc/music/MusicInfoLoader.cpp b/xbmc/music/MusicInfoLoader.cpp
+index aa9ac9ed2c5f..c8efb1b9ca43 100644
+--- a/xbmc/music/MusicInfoLoader.cpp
++++ b/xbmc/music/MusicInfoLoader.cpp
+@@ -301,7 +301,7 @@ void CMusicInfoLoader::SaveCache(const std::string& strFileName, CFileItemList&
+   if (file.OpenForWrite(strFileName))
+   {
+     CArchive ar(&file, CArchive::store);
+-    ar << (int)items.Size();
++    ar << items.Size();
+     for (int i = 0; i < iSize; i++)
+     {
+       CFileItemPtr pItem = items[i];
+diff --git a/xbmc/music/dialogs/GUIDialogMusicInfo.cpp b/xbmc/music/dialogs/GUIDialogMusicInfo.cpp
+index a37def6d941b..4c4ac39cff82 100644
+--- a/xbmc/music/dialogs/GUIDialogMusicInfo.cpp
++++ b/xbmc/music/dialogs/GUIDialogMusicInfo.cpp
+@@ -414,7 +414,7 @@ bool CGUIDialogMusicInfo::OnMessage(CGUIMessage& message)
+           CGUIMessage msg(GUI_MSG_ITEM_SELECTED, GetID(), iControl);
+           CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
+           int iItem = msg.GetParam1();
+-          if (iItem < 0 || iItem >= static_cast<int>(m_albumSongs->Size()))
++          if (iItem < 0 || iItem >= m_albumSongs->Size())
+             break;
+           OnAlbumInfo(m_albumSongs->Get(iItem)->GetMusicInfoTag()->GetDatabaseId());
+ 
+diff --git a/xbmc/music/tags/MusicInfoTag.cpp b/xbmc/music/tags/MusicInfoTag.cpp
+index ed5a542d0759..ee50a32ef171 100644
+--- a/xbmc/music/tags/MusicInfoTag.cpp
++++ b/xbmc/music/tags/MusicInfoTag.cpp
+@@ -726,7 +726,7 @@ void CMusicInfoTag::Serialize(CVariant& value) const
+     CVariant contributor;
+     contributor["name"] = role.GetArtist();
+     contributor["role"] = role.GetRoleDesc();
+-    contributor["roleid"] = (int)(role.GetRoleId());
++    contributor["roleid"] = role.GetRoleId();
+     contributor["artistid"] = (int)(role.GetArtistId());
+     value["contributors"].push_back(contributor);
+   }
+diff --git a/xbmc/music/tags/TagLoaderTagLib.cpp b/xbmc/music/tags/TagLoaderTagLib.cpp
+index 3eca9921ae4d..2d1429f55353 100644
+--- a/xbmc/music/tags/TagLoaderTagLib.cpp
++++ b/xbmc/music/tags/TagLoaderTagLib.cpp
+@@ -1237,11 +1237,11 @@ bool CTagLoaderTagLib::Load(const std::string& strFileName, CMusicInfoTag& tag,
+     ape = mpegFile->APETag(false);
+   }
+   else if (oggFlacFile)
+-    xiph = dynamic_cast<Ogg::XiphComment *>(oggFlacFile->tag());
++    xiph = oggFlacFile->tag();
+   else if (oggVorbisFile)
+-    xiph = dynamic_cast<Ogg::XiphComment *>(oggVorbisFile->tag());
++    xiph = oggVorbisFile->tag();
+   else if (oggOpusFile)
+-    xiph = dynamic_cast<Ogg::XiphComment *>(oggOpusFile->tag());
++    xiph = oggOpusFile->tag();
+   else if (ttaFile)
+     id3v2 = ttaFile->ID3v2Tag(false);
+   else if (aiffFile)
+diff --git a/xbmc/music/windows/GUIWindowMusicBase.cpp b/xbmc/music/windows/GUIWindowMusicBase.cpp
+index 6bd0f6e57d49..7996078dee31 100644
+--- a/xbmc/music/windows/GUIWindowMusicBase.cpp
++++ b/xbmc/music/windows/GUIWindowMusicBase.cpp
+@@ -468,7 +468,7 @@ void CGUIWindowMusicBase::AddItemToPlayList(const CFileItemPtr &pItem, CFileItem
+         }
+ 
+         CPlayList playlist = *pPlayList;
+-        for (int i = 0; i < (int)playlist.size(); ++i)
++        for (int i = 0; i < playlist.size(); ++i)
+         {
+           AddItemToPlayList(playlist[i], queuedItems);
+         }
+diff --git a/xbmc/music/windows/GUIWindowMusicNav.cpp b/xbmc/music/windows/GUIWindowMusicNav.cpp
+index 9a1a57e4fa1e..572979e89f82 100644
+--- a/xbmc/music/windows/GUIWindowMusicNav.cpp
++++ b/xbmc/music/windows/GUIWindowMusicNav.cpp
+@@ -848,7 +848,7 @@ bool CGUIWindowMusicNav::GetSongsFromPlayList(const std::string& strPlayList, CF
+     }
+     CPlayList playlist = *pPlayList;
+     // convert playlist items to songs
+-    for (int i = 0; i < (int)playlist.size(); ++i)
++    for (int i = 0; i < playlist.size(); ++i)
+     {
+       items.Add(playlist[i]);
+     }
+diff --git a/xbmc/music/windows/GUIWindowMusicPlaylist.cpp b/xbmc/music/windows/GUIWindowMusicPlaylist.cpp
+index 620475606ece..06aa5161561c 100644
+--- a/xbmc/music/windows/GUIWindowMusicPlaylist.cpp
++++ b/xbmc/music/windows/GUIWindowMusicPlaylist.cpp
+@@ -320,7 +320,7 @@ void CGUIWindowMusicPlayList::SavePlayList()
+     m_history.SetSelectedItem(strSelectedItem, strOldDirectory);
+ 
+     CPlayListM3U playlist;
+-    for (int i = 0; i < (int)m_vecItems->Size(); ++i)
++    for (int i = 0; i < m_vecItems->Size(); ++i)
+     {
+       CFileItemPtr pItem = m_vecItems->Get(i);
+ 
+
+From 25d37b3f448b8db230a7b744c5e718aaec13798c Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 17/28] [cleanup][network] silence useless cast warnings
+
+---
+ xbmc/network/EventClient.cpp       |  4 ++--
+ xbmc/network/WebServer.cpp         |  2 +-
+ xbmc/network/upnp/UPnPInternal.cpp | 10 +++++-----
+ xbmc/network/upnp/UPnPServer.cpp   |  8 ++++----
+ 4 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/xbmc/network/EventClient.cpp b/xbmc/network/EventClient.cpp
+index 6608ca2cc560..5e8b837c5180 100644
+--- a/xbmc/network/EventClient.cpp
++++ b/xbmc/network/EventClient.cpp
+@@ -800,8 +800,8 @@ bool CEventClient::GetMousePos(float& x, float& y)
+   CSingleLock lock(m_critSection);
+   if (m_bMouseMoved)
+   {
+-    x = (float)((m_iMouseX / 65535.0f) * CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth());
+-    y = (float)((m_iMouseY / 65535.0f) * CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
++    x = (m_iMouseX / 65535.0f) * CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
++    y = (m_iMouseY / 65535.0f) * CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
+     m_bMouseMoved = false;
+     return true;
+   }
+diff --git a/xbmc/network/WebServer.cpp b/xbmc/network/WebServer.cpp
+index 3ad3b2787cb7..bd9b05a45c63 100644
+--- a/xbmc/network/WebServer.cpp
++++ b/xbmc/network/WebServer.cpp
+@@ -1015,7 +1015,7 @@ ssize_t CWebServer::ContentReaderCallback(void *cls, uint64_t pos, char *buf, si
+ 
+   // seek to the position if necessary
+   if (context->file->GetPosition() < 0 || context->writePosition != static_cast<uint64_t>(context->file->GetPosition()))
+-    context->file->Seek(static_cast<uint64_t>(context->writePosition));
++    context->file->Seek(context->writePosition);
+ 
+   // read data from the file
+   ssize_t res = context->file->Read(buf, static_cast<size_t>(maximum));
+diff --git a/xbmc/network/upnp/UPnPInternal.cpp b/xbmc/network/upnp/UPnPInternal.cpp
+index d5024f208706..e9808552fe76 100644
+--- a/xbmc/network/upnp/UPnPInternal.cpp
++++ b/xbmc/network/upnp/UPnPInternal.cpp
+@@ -396,7 +396,7 @@ BuildObject(CFileItem&                    item,
+             object->m_ObjectClass.type = "object.item.audioItem.musicTrack";
+ 
+             if (item.HasMusicInfoTag()) {
+-                CMusicInfoTag *tag = (CMusicInfoTag*)item.GetMusicInfoTag();
++                CMusicInfoTag *tag = item.GetMusicInfoTag();
+                 PopulateObjectFromTag(*tag, *object, &file_path, &resource, quirks, upnp_service);
+             }
+         } else if (item.IsVideoDb() || item.IsVideo()) {
+@@ -406,7 +406,7 @@ BuildObject(CFileItem&                    item,
+                 object->m_Affiliation.album = "[Unknown Series]";
+ 
+             if (item.HasVideoInfoTag()) {
+-                CVideoInfoTag *tag = (CVideoInfoTag*)item.GetVideoInfoTag();
++                CVideoInfoTag *tag = item.GetVideoInfoTag();
+                 PopulateObjectFromTag(*tag, *object, &file_path, &resource, quirks, upnp_service);
+             }
+         } else if (item.IsPicture()) {
+@@ -472,7 +472,7 @@ BuildObject(CFileItem&                    item,
+             switch(node) {
+                 case MUSICDATABASEDIRECTORY::NODE_TYPE_ARTIST: {
+                       container->m_ObjectClass.type += ".person.musicArtist";
+-                      CMusicInfoTag *tag = (CMusicInfoTag*)item.GetMusicInfoTag();
++                      CMusicInfoTag *tag = item.GetMusicInfoTag();
+                       if (tag) {
+                           container->m_People.artists.Add(
+                               CorrectAllItemsSortHack(tag->GetArtistString()).c_str(), "Performer");
+@@ -491,7 +491,7 @@ BuildObject(CFileItem&                    item,
+                 case MUSICDATABASEDIRECTORY::NODE_TYPE_YEAR_ALBUM: {
+                       container->m_ObjectClass.type += ".album.musicAlbum";
+                       // for Sonos to be happy
+-                      CMusicInfoTag *tag = (CMusicInfoTag*)item.GetMusicInfoTag();
++                      CMusicInfoTag *tag = item.GetMusicInfoTag();
+                       if (tag) {
+                           container->m_People.artists.Add(
+                               CorrectAllItemsSortHack(tag->GetArtistString()).c_str(), "Performer");
+@@ -513,7 +513,7 @@ BuildObject(CFileItem&                    item,
+             }
+         } else if (item.IsVideoDb()) {
+             VIDEODATABASEDIRECTORY::NODE_TYPE node = CVideoDatabaseDirectory::GetDirectoryType(item.GetPath());
+-            CVideoInfoTag &tag = *(CVideoInfoTag*)item.GetVideoInfoTag();
++            CVideoInfoTag &tag = *item.GetVideoInfoTag();
+             switch(node) {
+                 case VIDEODATABASEDIRECTORY::NODE_TYPE_GENRE:
+                   container->m_ObjectClass.type += ".genre.movieGenre";
+diff --git a/xbmc/network/upnp/UPnPServer.cpp b/xbmc/network/upnp/UPnPServer.cpp
+index fdb4db2b379c..d07d9624bbe2 100644
+--- a/xbmc/network/upnp/UPnPServer.cpp
++++ b/xbmc/network/upnp/UPnPServer.cpp
+@@ -549,7 +549,7 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
+     CFileItemPtr                   item;
+     NPT_Reference<CThumbLoader>    thumb_loader;
+ 
+-    CLog::Log(LOGINFO, "Received UPnP Browse Metadata request for object '%s'", (const char*)object_id);
++    CLog::Log(LOGINFO, "Received UPnP Browse Metadata request for object '%s'", object_id);
+ 
+     if(NPT_FAILED(ObjectIDValidate(id))) {
+         action->SetError(701, "Incorrect ObjectID.");
+@@ -748,7 +748,7 @@ CUPnPServer::BuildResponse(PLT_ActionReference&          action,
+     NPT_COMPILER_UNUSED(sort_criteria);
+ 
+     CLog::Log(LOGDEBUG, "Building UPnP response with filter '%s', starting @ %d with %d requested",
+-        (const char*)filter,
++        filter,
+         starting_index,
+         requested_count);
+ 
+@@ -857,8 +857,8 @@ CUPnPServer::OnSearchContainer(PLT_ActionReference&          action,
+                                const PLT_HttpRequestContext& context)
+ {
+     CLog::Log(LOGDEBUG, "Received Search request for object '%s' with search '%s'",
+-        (const char*)object_id,
+-        (const char*)search_criteria);
++        object_id,
++        search_criteria);
+ 
+     NPT_String id = object_id;
+     if (id.StartsWith("musicdb://")) {
+
+From 9df081fca08864de5317272beb8d69e1cb7cbf6a Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 18/28] [cleanup][peripherals] silence useless cast warning
+
+---
+ xbmc/peripherals/devices/Peripheral.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/peripherals/devices/Peripheral.cpp b/xbmc/peripherals/devices/Peripheral.cpp
+index d8d2e5f8d63b..1fa793a4533f 100644
+--- a/xbmc/peripherals/devices/Peripheral.cpp
++++ b/xbmc/peripherals/devices/Peripheral.cpp
+@@ -458,7 +458,7 @@ bool CPeripheral::SetSetting(const std::string &strKey, const std::string &strVa
+       }
+     }
+     else if ((*it).second.m_setting->GetType() == SettingType::Integer)
+-      bChanged = SetSetting(strKey, (int) (strValue.empty() ? 0 : atoi(strValue.c_str())));
++      bChanged = SetSetting(strKey, strValue.empty() ? 0 : atoi(strValue.c_str()));
+     else if ((*it).second.m_setting->GetType() == SettingType::Number)
+       bChanged = SetSetting(strKey, (float) (strValue.empty() ? 0 : atof(strValue.c_str())));
+     else if ((*it).second.m_setting->GetType() == SettingType::Boolean)
+
+From aed0aebfaaa864616447344516fcf24757347463 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 19/28] [cleanup][pictures] silence useless cast warning
+
+---
+ xbmc/pictures/GUIWindowPictures.cpp | 8 ++++----
+ xbmc/pictures/PictureInfoTag.cpp    | 2 +-
+ xbmc/pictures/SlideShowPicture.cpp  | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/xbmc/pictures/GUIWindowPictures.cpp b/xbmc/pictures/GUIWindowPictures.cpp
+index e3ff87624054..5dbee9118e4b 100644
+--- a/xbmc/pictures/GUIWindowPictures.cpp
++++ b/xbmc/pictures/GUIWindowPictures.cpp
+@@ -268,7 +268,7 @@ bool CGUIWindowPictures::Update(const std::string &strDirectory, bool updateFilt
+ 
+ bool CGUIWindowPictures::OnClick(int iItem, const std::string &player)
+ {
+-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return true;
++  if ( iItem < 0 || iItem >= m_vecItems->Size() ) return true;
+   CFileItemPtr pItem = m_vecItems->Get(iItem);
+ 
+   if (pItem->IsCBZ() || pItem->IsCBR())
+@@ -312,7 +312,7 @@ bool CGUIWindowPictures::OnPlayMedia(int iItem, const std::string &player)
+ 
+ bool CGUIWindowPictures::ShowPicture(int iItem, bool startSlideShow)
+ {
+-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return false;
++  if ( iItem < 0 || iItem >= m_vecItems->Size() ) return false;
+   CFileItemPtr pItem = m_vecItems->Get(iItem);
+   std::string strPicture = pItem->GetPath();
+ 
+@@ -331,7 +331,7 @@ bool CGUIWindowPictures::ShowPicture(int iItem, bool startSlideShow)
+     g_application.StopPlaying();
+ 
+   pSlideShow->Reset();
+-  for (int i = 0; i < (int)m_vecItems->Size();++i)
++  for (int i = 0; i < m_vecItems->Size();++i)
+   {
+     CFileItemPtr pItem = m_vecItems->Get(i);
+     if (!pItem->m_bIsFolder && !(URIUtils::IsRAR(pItem->GetPath()) ||
+@@ -566,7 +566,7 @@ void CGUIWindowPictures::LoadPlayList(const std::string& strPlayList)
+ 
+     // convert playlist items into slideshow items
+     pSlideShow->Reset();
+-    for (int i = 0; i < (int)playlist.size(); ++i)
++    for (int i = 0; i < playlist.size(); ++i)
+     {
+       CFileItemPtr pItem = playlist[i];
+       //CLog::Log(LOGDEBUG,"-- playlist item: %s", pItem->GetPath().c_str());
+diff --git a/xbmc/pictures/PictureInfoTag.cpp b/xbmc/pictures/PictureInfoTag.cpp
+index 090b9060ff55..54407c469066 100644
+--- a/xbmc/pictures/PictureInfoTag.cpp
++++ b/xbmc/pictures/PictureInfoTag.cpp
+@@ -266,7 +266,7 @@ void CPictureInfoTag::GetStringFromArchive(CArchive &ar, char *string, size_t le
+ {
+   std::string temp;
+   ar >> temp;
+-  length = std::min((size_t)temp.size(), length - 1);
++  length = std::min(temp.size(), length - 1);
+   if (!temp.empty())
+     memcpy(string, temp.c_str(), length);
+   string[length] = 0;
+diff --git a/xbmc/pictures/SlideShowPicture.cpp b/xbmc/pictures/SlideShowPicture.cpp
+index 0fde644567bd..b0b901ca7daf 100644
+--- a/xbmc/pictures/SlideShowPicture.cpp
++++ b/xbmc/pictures/SlideShowPicture.cpp
+@@ -718,7 +718,7 @@ void CSlideShowPic::Rotate(float fRotateAngle, bool immediate /* = false */)
+   m_transitionTemp.type = TRANSITION_ROTATE;
+   m_transitionTemp.start = m_iCounter;
+   m_transitionTemp.length = IMMEDIATE_TRANSITION_TIME;
+-  m_fTransitionAngle = (float)fRotateAngle / (float)m_transitionTemp.length;
++  m_fTransitionAngle = fRotateAngle / (float)m_transitionTemp.length;
+   // reset the timer
+   m_transitionEnd.start = m_iCounter + m_transitionStart.length + (int)(CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS() * CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SLIDESHOW_STAYTIME));
+ }
+
+From 5d950557fbad2380f6f0df45c9853f8faa18c989 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 20/28] [cleanup][platform] silence useless cast warning
+
+---
+ xbmc/platform/linux/DBusUtil.cpp             | 2 +-
+ xbmc/platform/linux/network/NetworkLinux.cpp | 2 +-
+ xbmc/platform/posix/filesystem/SMBFile.cpp   | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/platform/linux/DBusUtil.cpp b/xbmc/platform/linux/DBusUtil.cpp
+index 450243989b49..bdc7ff31cc2a 100644
+--- a/xbmc/platform/linux/DBusUtil.cpp
++++ b/xbmc/platform/linux/DBusUtil.cpp
+@@ -144,7 +144,7 @@ CVariant CDBusUtil::ParseType(DBusMessageIter *itr)
+     break;
+   case DBUS_TYPE_DOUBLE:
+     dbus_message_iter_get_basic(itr, &doublev);
+-    value = (double)doublev;
++    value = doublev;
+     break;
+   case DBUS_TYPE_ARRAY:
+     DBusMessageIter array;
+diff --git a/xbmc/platform/linux/network/NetworkLinux.cpp b/xbmc/platform/linux/network/NetworkLinux.cpp
+index ea8598e6a401..8be8f89ca78e 100644
+--- a/xbmc/platform/linux/network/NetworkLinux.cpp
++++ b/xbmc/platform/linux/network/NetworkLinux.cpp
+@@ -515,7 +515,7 @@ std::vector<std::string> CNetworkLinux::GetNameServers(void)
+ 
+    for (int i = 0; i < _res.nscount; i ++)
+    {
+-      std::string ns = inet_ntoa(((struct sockaddr_in *)&_res.nsaddr_list[i])->sin_addr);
++      std::string ns = inet_ntoa(_res.nsaddr_list[i].sin_addr);
+       result.push_back(ns);
+    }
+ #endif
+diff --git a/xbmc/platform/posix/filesystem/SMBFile.cpp b/xbmc/platform/posix/filesystem/SMBFile.cpp
+index 2043965d854d..252d2b39f7ae 100644
+--- a/xbmc/platform/posix/filesystem/SMBFile.cpp
++++ b/xbmc/platform/posix/filesystem/SMBFile.cpp
+@@ -564,7 +564,7 @@ int64_t CSMBFile::Seek(int64_t iFilePosition, int iWhence)
+     return -1;
+   }
+ 
+-  return (int64_t)pos;
++  return pos;
+ }
+ 
+ void CSMBFile::Close()
+
+From d615e45e366d64317ab3633fc1dda67e50a35ada Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 21/28] [cleanup][playlists] silence useless cast warning
+
+---
+ xbmc/playlists/PlayList.cpp | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/playlists/PlayList.cpp b/xbmc/playlists/PlayList.cpp
+index 3bda2aceb76e..ac2e814ddbfa 100644
+--- a/xbmc/playlists/PlayList.cpp
++++ b/xbmc/playlists/PlayList.cpp
+@@ -125,13 +125,13 @@ void CPlayList::Add(const CFileItemPtr &item)
+ 
+ void CPlayList::Add(const CPlayList& playlist)
+ {
+-  for (int i = 0; i < (int)playlist.size(); i++)
++  for (int i = 0; i < playlist.size(); i++)
+     Add(playlist[i], -1, -1);
+ }
+ 
+ void CPlayList::Add(const CFileItemList& items)
+ {
+-  for (int i = 0; i < (int)items.Size(); i++)
++  for (int i = 0; i < items.Size(); i++)
+     Add(items[i]);
+ }
+ 
+@@ -144,7 +144,7 @@ void CPlayList::Insert(const CPlayList& playlist, int iPosition /* = -1 */)
+     Add(playlist);
+     return;
+   }
+-  for (int i = 0; i < (int)playlist.size(); i++)
++  for (int i = 0; i < playlist.size(); i++)
+   {
+     int iPos = iPosition + i;
+     Add(playlist[i], iPos, iPos);
+@@ -160,7 +160,7 @@ void CPlayList::Insert(const CFileItemList& items, int iPosition /* = -1 */)
+     Add(items);
+     return;
+   }
+-  for (int i = 0; i < (int)items.Size(); i++)
++  for (int i = 0; i < items.Size(); i++)
+   {
+     Add(items[i], iPosition + i, iPosition + i);
+   }
+
+From 37fb98c4f4347880c9a29e61c882843ee2db64e5 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 22/28] [cleanup][programs] silence useless cast warning
+
+---
+ xbmc/programs/GUIWindowPrograms.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/programs/GUIWindowPrograms.cpp b/xbmc/programs/GUIWindowPrograms.cpp
+index a6cbaeaa7381..401992e6701e 100644
+--- a/xbmc/programs/GUIWindowPrograms.cpp
++++ b/xbmc/programs/GUIWindowPrograms.cpp
+@@ -141,7 +141,7 @@ bool CGUIWindowPrograms::Update(const std::string &strDirectory, bool updateFilt
+ 
+ bool CGUIWindowPrograms::OnPlayMedia(int iItem, const std::string&)
+ {
+-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return false;
++  if ( iItem < 0 || iItem >= m_vecItems->Size() ) return false;
+   CFileItemPtr pItem = m_vecItems->Get(iItem);
+ 
+ #ifdef HAS_DVD_DRIVE
+
+From 539ee72b46aa60af273df4e7473eb965dbd2bb85 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 23/28] [cleanup][pvr] silence useless cast warnings
+
+---
+ xbmc/pvr/PVRGUIInfo.cpp                         | 2 +-
+ xbmc/pvr/PVRSettings.cpp                        | 2 +-
+ xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp   | 2 +-
+ xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp | 8 ++++----
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp    | 4 ++--
+ xbmc/pvr/dialogs/GUIDialogPVRGroupManager.cpp   | 4 ++--
+ 6 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/xbmc/pvr/PVRGUIInfo.cpp b/xbmc/pvr/PVRGUIInfo.cpp
+index 7f14a2088429..f173d97a7af9 100644
+--- a/xbmc/pvr/PVRGUIInfo.cpp
++++ b/xbmc/pvr/PVRGUIInfo.cpp
+@@ -1729,7 +1729,7 @@ int CPVRGUIInfo::GetElapsedTime(void) const
+   if (m_playingEpgTag || m_iTimeshiftStartTime)
+   {
+     CDateTime current(m_iTimeshiftPlayTime);
+-    CDateTime start = m_playingEpgTag ? CDateTime(m_playingEpgTag->StartAsUTC())
++    CDateTime start = m_playingEpgTag ? m_playingEpgTag->StartAsUTC()
+                                       : CDateTime(m_iTimeshiftStartTime);
+     CDateTimeSpan time = current > start ? current - start : CDateTimeSpan(0, 0, 0, 0);
+     return time.GetSecondsTotal();
+diff --git a/xbmc/pvr/PVRSettings.cpp b/xbmc/pvr/PVRSettings.cpp
+index 7b47a341a2b7..3a4b276d8824 100644
+--- a/xbmc/pvr/PVRSettings.cpp
++++ b/xbmc/pvr/PVRSettings.cpp
+@@ -82,7 +82,7 @@ void CPVRSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+     return;
+ 
+   CSingleLock lock(m_critSection);
+-  m_settings[setting->GetId()] = SettingPtr(setting->Clone(setting->GetId()));
++  m_settings[setting->GetId()] = setting->Clone(setting->GetId());
+ }
+ 
+ bool CPVRSettings::GetBoolValue(const std::string &settingName) const
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
+index 28a1861a9023..8f0afebff2e8 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
+@@ -127,7 +127,7 @@ void CGUIDialogPVRChannelGuide::Clear()
+ 
+ void CGUIDialogPVRChannelGuide::ShowInfo(int item)
+ {
+-  if (item < 0 || item >= (int)m_vecItems->Size())
++  if (item < 0 || item >= m_vecItems->Size())
+     return;
+ 
+   CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(m_vecItems->Get(item));
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+index 317f619b4638..7a4b6dcf3709 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+@@ -188,7 +188,7 @@ bool CGUIDialogPVRChannelManager::OnClickListChannels(CGUIMessage &message)
+     int iItem = m_viewControl.GetSelectedItem();
+ 
+     /* Check file item is in list range and get his pointer */
+-    if (iItem < 0 || iItem >= (int)m_channelItems->Size()) return true;
++    if (iItem < 0 || iItem >= m_channelItems->Size()) return true;
+ 
+     /* Process actions */
+     if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_CONTEXT_MENU || iAction == ACTION_MOUSE_RIGHT_CLICK)
+@@ -598,7 +598,7 @@ bool CGUIDialogPVRChannelManager::OnPopupMenu(int iItem)
+ bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
+ {
+   /* Check file item is in list range and get his pointer */
+-  if (itemNumber < 0 || itemNumber >= (int)m_channelItems->Size()) return false;
++  if (itemNumber < 0 || itemNumber >= m_channelItems->Size()) return false;
+ 
+   CFileItemPtr pItem = m_channelItems->Get(itemNumber);
+   if (!pItem)
+@@ -658,7 +658,7 @@ bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON
+ void CGUIDialogPVRChannelManager::SetData(int iItem)
+ {
+   /* Check file item is in list range and get his pointer */
+-  if (iItem < 0 || iItem >= (int)m_channelItems->Size()) return;
++  if (iItem < 0 || iItem >= m_channelItems->Size()) return;
+ 
+   CFileItemPtr pItem = m_channelItems->Get(iItem);
+   if (!pItem)
+@@ -699,7 +699,7 @@ void CGUIDialogPVRChannelManager::Update()
+     channelFile->SetProperty("Name", channel->ChannelName());
+     channelFile->SetProperty("UseEPG", channel->EPGEnabled());
+     channelFile->SetProperty("Icon", channel->IconPath());
+-    channelFile->SetProperty("EPGSource", (int)0);
++    channelFile->SetProperty("EPGSource", 0);
+     channelFile->SetProperty("ParentalLocked", channel->IsLocked());
+     channelFile->SetProperty("Number", StringUtils::Format("%i", channel->ChannelNumber().GetChannelNumber()));
+ 
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+index 35b934753154..95bed4e0771a 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+@@ -252,7 +252,7 @@ void CGUIDialogPVRChannelsOSD::Clear()
+ 
+ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
+ {
+-  if (item < 0 || item >= (int)m_vecItems->Size())
++  if (item < 0 || item >= m_vecItems->Size())
+     return;
+ 
+   Close();
+@@ -261,7 +261,7 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
+ 
+ void CGUIDialogPVRChannelsOSD::ShowInfo(int item)
+ {
+-  if (item < 0 || item >= (int)m_vecItems->Size())
++  if (item < 0 || item >= m_vecItems->Size())
+     return;
+ 
+   CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(m_vecItems->Get(item));
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRGroupManager.cpp b/xbmc/pvr/dialogs/GUIDialogPVRGroupManager.cpp
+index 0ad4deeef729..54092211986f 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRGroupManager.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRGroupManager.cpp
+@@ -118,7 +118,7 @@ bool CGUIDialogPVRGroupManager::ActionButtonNewGroup(CGUIMessage &message)
+       if (strGroupName != "")
+       {
+         /* add the group if it doesn't already exist */
+-        CPVRChannelGroups *groups = static_cast<CPVRChannelGroups*>(CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio));
++        CPVRChannelGroups *groups = CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio);
+         if (groups->AddGroup(strGroupName))
+         {
+           CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio)->GetByName(strGroupName)->SetGroupType(PVR_GROUP_TYPE_USER_DEFINED);
+@@ -155,7 +155,7 @@ bool CGUIDialogPVRGroupManager::ActionButtonDeleteGroup(CGUIMessage &message)
+ 
+     if (pDialog->IsConfirmed())
+     {
+-      if (static_cast<CPVRChannelGroups*>(CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio))->DeleteGroup(*m_selectedGroup))
++      if (CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio)->DeleteGroup(*m_selectedGroup))
+         Update();
+     }
+ 
+
+From 6c3d6950ce4efda7bbbb450aabacbb54508c7599 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 24/28] [cleanup][settings] silence useless cast warnings
+
+---
+ xbmc/settings/dialogs/GUIDialogSettingsManualBase.cpp        | 2 +-
+ xbmc/settings/lib/Setting.cpp                                | 4 ++--
+ xbmc/settings/lib/SettingsManager.cpp                        | 2 +-
+ xbmc/settings/windows/GUIControlSettings.cpp                 | 2 +-
+ xbmc/settings/windows/GUIWindowSettingsCategory.cpp          | 2 +-
+ xbmc/settings/windows/GUIWindowSettingsScreenCalibration.cpp | 4 ++--
+ 6 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/xbmc/settings/dialogs/GUIDialogSettingsManualBase.cpp b/xbmc/settings/dialogs/GUIDialogSettingsManualBase.cpp
+index 4970b7b16bdb..c69d3aca1730 100644
+--- a/xbmc/settings/dialogs/GUIDialogSettingsManualBase.cpp
++++ b/xbmc/settings/dialogs/GUIDialogSettingsManualBase.cpp
+@@ -1031,7 +1031,7 @@ void CGUIDialogSettingsManualBase::setSettingDetails(std::shared_ptr<CSetting> s
+   else if (level > SettingLevel::Expert)
+     level = SettingLevel::Expert;
+ 
+-  setting->SetLevel(static_cast<SettingLevel>(level));
++  setting->SetLevel(level);
+   setting->SetVisible(visible);
+   if (help >= 0)
+     setting->SetHelp(help);
+diff --git a/xbmc/settings/lib/Setting.cpp b/xbmc/settings/lib/Setting.cpp
+index f3c08f279cae..55ef77e959a4 100644
+--- a/xbmc/settings/lib/Setting.cpp
++++ b/xbmc/settings/lib/Setting.cpp
+@@ -409,7 +409,7 @@ void CSettingList::Reset()
+   CExclusiveLock lock(m_critical);
+   SettingList values;
+   for (auto it : m_defaults)
+-    values.push_back(SettingPtr(it->Clone(it->GetId())));
++    values.push_back(it->Clone(it->GetId()));
+ 
+   SetValue(values);
+ }
+@@ -477,7 +477,7 @@ void CSettingList::SetDefault(const SettingList &values)
+   {
+     m_values.clear();
+     for (auto it : m_defaults)
+-      m_values.push_back(SettingPtr(it->Clone(it->GetId())));
++      m_values.push_back(it->Clone(it->GetId()));
+   }
+ }
+ 
+diff --git a/xbmc/settings/lib/SettingsManager.cpp b/xbmc/settings/lib/SettingsManager.cpp
+index 3744fda8147a..b93f5e346748 100644
+--- a/xbmc/settings/lib/SettingsManager.cpp
++++ b/xbmc/settings/lib/SettingsManager.cpp
+@@ -1179,7 +1179,7 @@ void CSettingsManager::UpdateSettingByDependency(const std::string &settingId, S
+ 
+     case SettingDependencyType::Update:
+     {
+-      SettingType type = (SettingType)setting->GetType();
++      SettingType type = setting->GetType();
+       if (type == SettingType::Integer)
+       {
+         auto settingInt = std::static_pointer_cast<CSettingInt>(setting);
+diff --git a/xbmc/settings/windows/GUIControlSettings.cpp b/xbmc/settings/windows/GUIControlSettings.cpp
+index 35fb0040ed33..0452bc576d7f 100644
+--- a/xbmc/settings/windows/GUIControlSettings.cpp
++++ b/xbmc/settings/windows/GUIControlSettings.cpp
+@@ -1068,7 +1068,7 @@ void CGUIControlSliderSetting::Update(bool updateDisplayOnly /* = false */)
+       std::shared_ptr<const CSettingNumber> settingNumber = std::static_pointer_cast<CSettingNumber>(m_pSetting);
+       double value;
+       if (updateDisplayOnly)
+-        value = (float)m_pSlider->GetFloatValue();
++        value = m_pSlider->GetFloatValue();
+       else
+       {
+         value = std::static_pointer_cast<CSettingNumber>(m_pSetting)->GetValue();
+diff --git a/xbmc/settings/windows/GUIWindowSettingsCategory.cpp b/xbmc/settings/windows/GUIWindowSettingsCategory.cpp
+index fd7f66a75a80..6589e08b053e 100644
+--- a/xbmc/settings/windows/GUIWindowSettingsCategory.cpp
++++ b/xbmc/settings/windows/GUIWindowSettingsCategory.cpp
+@@ -80,7 +80,7 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
+   {
+     case GUI_MSG_WINDOW_INIT:
+     {
+-      m_iSection = (int)message.GetParam2() - (int)CGUIDialogSettingsManagerBase::GetID();
++      m_iSection = message.GetParam2() - CGUIDialogSettingsManagerBase::GetID();
+       CGUIDialogSettingsManagerBase::OnMessage(message);
+       m_returningFromSkinLoad = false;
+ 
+diff --git a/xbmc/settings/windows/GUIWindowSettingsScreenCalibration.cpp b/xbmc/settings/windows/GUIWindowSettingsScreenCalibration.cpp
+index c83c5b35cb72..2aefb719848a 100644
+--- a/xbmc/settings/windows/GUIWindowSettingsScreenCalibration.cpp
++++ b/xbmc/settings/windows/GUIWindowSettingsScreenCalibration.cpp
+@@ -322,8 +322,8 @@ void CGUIWindowSettingsScreenCalibration::UpdateFromControl(int iControl)
+     CGUIControl *pControl = GetControl(CONTROL_PIXEL_RATIO);
+     if (pControl)
+     {
+-      float fWidth = (float)pControl->GetWidth();
+-      float fHeight = (float)pControl->GetHeight();
++      float fWidth = pControl->GetWidth();
++      float fHeight = pControl->GetHeight();
+       info.fPixelRatio = fHeight / fWidth;
+       // recenter our control...
+       pControl->SetPosition((info.iWidth - pControl->GetWidth()) / 2,
+
+From 13e24d82ce206ccbe8b99de28210b377e6b20852 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 25/28] [cleanup][utils] silence useless cast warning
+
+---
+ xbmc/utils/XMLUtils.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/utils/XMLUtils.cpp b/xbmc/utils/XMLUtils.cpp
+index 0b46c81aadcf..0e65d1345771 100644
+--- a/xbmc/utils/XMLUtils.cpp
++++ b/xbmc/utils/XMLUtils.cpp
+@@ -29,7 +29,7 @@ bool XMLUtils::GetHex(const TiXmlNode* pRootNode, const char* strTag, uint32_t&
+ {
+   const TiXmlNode* pNode = pRootNode->FirstChild(strTag );
+   if (!pNode || !pNode->FirstChild()) return false;
+-  return sscanf(pNode->FirstChild()->Value(), "%x", (uint32_t*)&hexValue) == 1;
++  return sscanf(pNode->FirstChild()->Value(), "%x", &hexValue) == 1;
+ }
+ 
+ 
+
+From ead747020f2a5bb4e09a3b8546792335d9260138 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 26/28] [cleanup][video] silence useless cast warnings
+
+---
+ xbmc/video/VideoDatabase.cpp                  | 48 +++++++++++++--------------
+ xbmc/video/VideoInfoScanner.cpp               |  2 +-
+ xbmc/video/VideoThumbLoader.cpp               |  2 +-
+ xbmc/video/dialogs/GUIDialogCMSSettings.cpp   | 12 +++----
+ xbmc/video/dialogs/GUIDialogVideoSettings.cpp |  2 +-
+ xbmc/video/windows/GUIWindowVideoBase.cpp     | 12 +++----
+ xbmc/video/windows/GUIWindowVideoPlaylist.cpp |  4 +--
+ 7 files changed, 41 insertions(+), 41 deletions(-)
+
+diff --git a/xbmc/video/VideoDatabase.cpp b/xbmc/video/VideoDatabase.cpp
+index f81521eb940b..e87154c55e8c 100644
+--- a/xbmc/video/VideoDatabase.cpp
++++ b/xbmc/video/VideoDatabase.cpp
+@@ -730,7 +730,7 @@ int CVideoDatabase::AddPath(const std::string& strPath, const std::string &paren
+ 
+     URIUtils::AddSlashAtEnd(strPath1);
+ 
+-    int idParentPath = GetPathId(parentPath.empty() ? (std::string)URIUtils::GetParentPath(strPath1) : parentPath);
++    int idParentPath = GetPathId(parentPath.empty() ? URIUtils::GetParentPath(strPath1) : parentPath);
+ 
+     // add the path
+     if (idParentPath < 0)
+@@ -5762,7 +5762,7 @@ bool CVideoDatabase::GetNavCommon(const std::string& strBaseDir, CFileItemList&
+         if (it == mapItems.end())
+         {
+           // check path
+-          if (g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv(2).get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++          if (g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv(2).get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+           {
+             if (idContent == VIDEODB_CONTENT_MOVIES || idContent == VIDEODB_CONTENT_MUSICVIDEOS)
+               mapItems.insert(std::pair<int, std::pair<std::string,int> >(id, std::pair<std::string, int>(str,m_pDS->fv(3).get_asInt()))); //fv(3) is file.playCount
+@@ -5943,7 +5943,7 @@ bool CVideoDatabase::GetMusicVideoAlbumsNav(const std::string& strBaseDir, CFile
+         if (it == mapAlbums.end())
+         {
+           // check path
+-          if (g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++          if (g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+             mapAlbums.insert(make_pair(lidMVideo, make_pair(strAlbum,m_pDS->fv(2).get_asString())));
+         }
+         m_pDS->next();
+@@ -6198,7 +6198,7 @@ bool CVideoDatabase::GetPeopleNav(const std::string& strBaseDir, CFileItemList&
+         if (it == mapActors.end())
+         {
+           // check path
+-          if (g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++          if (g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+             mapActors.insert(std::pair<int, CActor>(idActor, actor));
+         }
+         else if (idContent != VIDEODB_CONTENT_TVSHOWS)
+@@ -6356,7 +6356,7 @@ bool CVideoDatabase::GetYearsNav(const std::string& strBaseDir, CFileItemList& i
+         if (it == mapYears.end())
+         {
+           // check path
+-          if (g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++          if (g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+           {
+             std::string year = StringUtils::Format("%d", lYear);
+             if (idContent == VIDEODB_CONTENT_MOVIES || idContent == VIDEODB_CONTENT_MUSICVIDEOS)
+@@ -7484,7 +7484,7 @@ void CVideoDatabase::GetMovieGenresByName(const std::string& strSearch, CFileIte
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),
+                                                       *CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+@@ -7524,7 +7524,7 @@ void CVideoDatabase::GetMovieCountriesByName(const std::string& strSearch, CFile
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),
+                                                       *CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+@@ -7564,7 +7564,7 @@ void CVideoDatabase::GetTvShowGenresByName(const std::string& strSearch, CFileIt
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -7603,7 +7603,7 @@ void CVideoDatabase::GetMovieActorsByName(const std::string& strSearch, CFileIte
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -7642,7 +7642,7 @@ void CVideoDatabase::GetTvShowsActorsByName(const std::string& strSearch, CFileI
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -7684,7 +7684,7 @@ void CVideoDatabase::GetMusicVideoArtistsByName(const std::string& strSearch, CF
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -7723,7 +7723,7 @@ void CVideoDatabase::GetMusicVideoGenresByName(const std::string& strSearch, CFi
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -7777,7 +7777,7 @@ void CVideoDatabase::GetMusicVideoAlbumsByName(const std::string& strSearch, CFi
+       }
+ 
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv(2).get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv(2).get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -7816,7 +7816,7 @@ void CVideoDatabase::GetMusicVideosByAlbum(const std::string& strSearch, CFileIt
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8019,7 +8019,7 @@ int CVideoDatabase::GetMatchingMusicVideo(const std::string& strArtist, const st
+       return -1;
+ 
+     if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-      if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++      if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+       {
+         m_pDS->close();
+         return -1;
+@@ -8054,7 +8054,7 @@ void CVideoDatabase::GetMoviesByName(const std::string& strSearch, CFileItemList
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8099,7 +8099,7 @@ void CVideoDatabase::GetTvShowsByName(const std::string& strSearch, CFileItemLis
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8140,7 +8140,7 @@ void CVideoDatabase::GetEpisodesByName(const std::string& strSearch, CFileItemLi
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8183,7 +8183,7 @@ void CVideoDatabase::GetMusicVideosByName(const std::string& strSearch, CFileIte
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8230,7 +8230,7 @@ void CVideoDatabase::GetEpisodesByPlot(const std::string& strSearch, CFileItemLi
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8270,7 +8270,7 @@ void CVideoDatabase::GetMoviesByPlot(const std::string& strSearch, CFileItemList
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv(2).get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv(2).get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8312,7 +8312,7 @@ void CVideoDatabase::GetMovieDirectorsByName(const std::string& strSearch, CFile
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8353,7 +8353,7 @@ void CVideoDatabase::GetTvShowsDirectorsByName(const std::string& strSearch, CFi
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+@@ -8394,7 +8394,7 @@ void CVideoDatabase::GetMusicVideoDirectorsByName(const std::string& strSearch,
+     while (!m_pDS->eof())
+     {
+       if (m_profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser)
+-        if (!g_passwordManager.IsDatabasePathUnlocked(std::string(m_pDS->fv("path.strPath").get_asString()),*CMediaSourceSettings::GetInstance().GetSources("video")))
++        if (!g_passwordManager.IsDatabasePathUnlocked(m_pDS->fv("path.strPath").get_asString(),*CMediaSourceSettings::GetInstance().GetSources("video")))
+         {
+           m_pDS->next();
+           continue;
+diff --git a/xbmc/video/VideoInfoScanner.cpp b/xbmc/video/VideoInfoScanner.cpp
+index 9b2a437f0c0c..8e647421c2fa 100644
+--- a/xbmc/video/VideoInfoScanner.cpp
++++ b/xbmc/video/VideoInfoScanner.cpp
+@@ -416,7 +416,7 @@ namespace VIDEO
+ 
+     bool FoundSomeInfo = false;
+     std::vector<int> seenPaths;
+-    for (int i = 0; i < (int)items.Size(); ++i)
++    for (int i = 0; i < items.Size(); ++i)
+     {
+       CFileItemPtr pItem = items[i];
+ 
+diff --git a/xbmc/video/VideoThumbLoader.cpp b/xbmc/video/VideoThumbLoader.cpp
+index 6c40dcc78d04..a071232ad6f1 100644
+--- a/xbmc/video/VideoThumbLoader.cpp
++++ b/xbmc/video/VideoThumbLoader.cpp
+@@ -161,7 +161,7 @@ bool CThumbExtractor::DoWork()
+       }
+ 
+       if (info->m_iFileId < 0)
+-        db.SetStreamDetailsForFile(info->m_streamDetails, !info->m_strFileNameAndPath.empty() ? info->m_strFileNameAndPath : static_cast<const std::string&>(m_item.GetPath()));
++        db.SetStreamDetailsForFile(info->m_streamDetails, !info->m_strFileNameAndPath.empty() ? info->m_strFileNameAndPath : m_item.GetPath());
+       else
+         db.SetStreamDetailsForFileId(info->m_streamDetails, info->m_iFileId);
+ 
+diff --git a/xbmc/video/dialogs/GUIDialogCMSSettings.cpp b/xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+index 31f8a33cef5c..58ea38f94bac 100644
+--- a/xbmc/video/dialogs/GUIDialogCMSSettings.cpp
++++ b/xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+@@ -191,19 +191,19 @@ void CGUIDialogCMSSettings::OnSettingChanged(std::shared_ptr<const CSetting> set
+   if (settingId == SETTING_VIDEO_CMSENABLE)
+     CServiceBroker::GetSettings().SetBool(SETTING_VIDEO_CMSENABLE, (std::static_pointer_cast<const CSettingBool>(setting)->GetValue()));
+   else if (settingId == SETTING_VIDEO_CMSMODE)
+-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSMODE, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
++    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSMODE, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+   else if (settingId == SETTING_VIDEO_CMS3DLUT)
+-    CServiceBroker::GetSettings().SetString(SETTING_VIDEO_CMS3DLUT, static_cast<std::string>(std::static_pointer_cast<const CSettingString>(setting)->GetValue()));
++    CServiceBroker::GetSettings().SetString(SETTING_VIDEO_CMS3DLUT, std::static_pointer_cast<const CSettingString>(setting)->GetValue());
+   else if (settingId == SETTING_VIDEO_CMSWHITEPOINT)
+-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSWHITEPOINT, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
++    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSWHITEPOINT, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+   else if (settingId == SETTING_VIDEO_CMSPRIMARIES)
+-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSPRIMARIES, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
++    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSPRIMARIES, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+   else if (settingId == SETTING_VIDEO_CMSGAMMAMODE)
+-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSGAMMAMODE, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
++    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSGAMMAMODE, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+   else if (settingId == SETTING_VIDEO_CMSGAMMA)
+     CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSGAMMA, static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue())*100);
+   else if (settingId == SETTING_VIDEO_CMSLUTSIZE)
+-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSLUTSIZE, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
++    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSLUTSIZE, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
+ }
+ 
+ bool CGUIDialogCMSSettings::OnBack(int actionID)
+diff --git a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+index b8bf276cb303..f4fe0a781bc4 100644
+--- a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
++++ b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+@@ -181,7 +181,7 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
+   else if (settingId == SETTING_VIDEO_TONEMAP_METHOD)
+   {
+     CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
+-    vs.m_ToneMapMethod = static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
++    vs.m_ToneMapMethod = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
+     g_application.GetAppPlayer().SetVideoSettings(vs);
+   }
+   else if (settingId == SETTING_VIDEO_TONEMAP_PARAM)
+diff --git a/xbmc/video/windows/GUIWindowVideoBase.cpp b/xbmc/video/windows/GUIWindowVideoBase.cpp
+index a87d06324ae0..23e2ae301d95 100644
+--- a/xbmc/video/windows/GUIWindowVideoBase.cpp
++++ b/xbmc/video/windows/GUIWindowVideoBase.cpp
+@@ -530,7 +530,7 @@ void CGUIWindowVideoBase::AddItemToPlayList(const CFileItemPtr &pItem, CFileItem
+         }
+ 
+         CPlayList playlist = *pPlayList;
+-        for (int i = 0; i < (int)playlist.size(); ++i)
++        for (int i = 0; i < playlist.size(); ++i)
+         {
+           AddItemToPlayList(playlist[i], queuedItems);
+         }
+@@ -969,7 +969,7 @@ bool CGUIWindowVideoBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
+   {
+   case CONTEXT_BUTTON_SET_CONTENT:
+     {
+-      OnAssignContent(item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strPath.empty() ? item->GetVideoInfoTag()->m_strPath : static_cast<const std::string&>(item->GetPath()));
++      OnAssignContent(item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strPath.empty() ? item->GetVideoInfoTag()->m_strPath : item->GetPath());
+       return true;
+     }
+   case CONTEXT_BUTTON_PLAY_PART:
+@@ -1076,7 +1076,7 @@ bool CGUIWindowVideoBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
+ 
+ bool CGUIWindowVideoBase::OnPlayMedia(int iItem, const std::string &player)
+ {
+-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() )
++  if ( iItem < 0 || iItem >= m_vecItems->Size() )
+     return false;
+ 
+   CFileItemPtr pItem = m_vecItems->Get(iItem);
+@@ -1458,7 +1458,7 @@ void CGUIWindowVideoBase::OnSearch()
+     pDlgSelect->Reset();
+     pDlgSelect->SetHeading(CVariant{283});
+ 
+-    for (int i = 0; i < (int)items.Size(); i++)
++    for (int i = 0; i < items.Size(); i++)
+     {
+       CFileItemPtr pItem = items[i];
+       pDlgSelect->Add(pItem->GetLabel());
+@@ -1521,7 +1521,7 @@ void CGUIWindowVideoBase::OnSearchItemFound(const CFileItem* pSelItem)
+     else
+       SetHistoryForPath(strPath);
+ 
+-    for (int i = 0; i < (int)m_vecItems->Size(); i++)
++    for (int i = 0; i < m_vecItems->Size(); i++)
+     {
+       CFileItemPtr pItem = m_vecItems->Get(i);
+       CURL url(pItem->GetPath());
+@@ -1554,7 +1554,7 @@ int CGUIWindowVideoBase::GetScraperForItem(CFileItem *item, ADDON::ScraperPtr &i
+   }
+ 
+   bool foundDirectly = false;
+-  info = m_database.GetScraperForPath(item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strPath.empty() ? std::string(item->GetVideoInfoTag()->m_strPath) : item->GetPath(), settings, foundDirectly);
++  info = m_database.GetScraperForPath(item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strPath.empty() ? item->GetVideoInfoTag()->m_strPath : item->GetPath(), settings, foundDirectly);
+   return foundDirectly ? 1 : 0;
+ }
+ 
+diff --git a/xbmc/video/windows/GUIWindowVideoPlaylist.cpp b/xbmc/video/windows/GUIWindowVideoPlaylist.cpp
+index 334afe612582..100416170913 100644
+--- a/xbmc/video/windows/GUIWindowVideoPlaylist.cpp
++++ b/xbmc/video/windows/GUIWindowVideoPlaylist.cpp
+@@ -112,7 +112,7 @@ bool CGUIWindowVideoPlaylist::OnMessage(CGUIMessage& message)
+       if (g_application.GetAppPlayer().IsPlayingVideo() && CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() == PLAYLIST_VIDEO)
+       {
+         int iSong = CServiceBroker::GetPlaylistPlayer().GetCurrentSong();
+-        if (iSong >= 0 && iSong <= (int)m_vecItems->Size())
++        if (iSong >= 0 && iSong <= m_vecItems->Size())
+           m_viewControl.SetSelectedItem(iSong);
+       }
+ 
+@@ -324,7 +324,7 @@ void CGUIWindowVideoPlaylist::UpdateButtons()
+ 
+ bool CGUIWindowVideoPlaylist::OnPlayMedia(int iItem, const std::string &player)
+ {
+-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return false;
++  if ( iItem < 0 || iItem >= m_vecItems->Size() ) return false;
+   if (g_partyModeManager.IsEnabled())
+     g_partyModeManager.Play(iItem);
+   else
+
+From 7d109cf065eca0056cd5cb79d9db2c9602c16a44 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 27/28] [cleanup][windowing] silence useless cast warning
+
+---
+ xbmc/windowing/X11/GLContextGLX.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/windowing/X11/GLContextGLX.cpp b/xbmc/windowing/X11/GLContextGLX.cpp
+index 67f6af6024f2..9769afdfe8b0 100644
+--- a/xbmc/windowing/X11/GLContextGLX.cpp
++++ b/xbmc/windowing/X11/GLContextGLX.cpp
+@@ -267,7 +267,7 @@ void CGLContextGLX::SwapBuffers()
+ void CGLContextGLX::QueryExtensions()
+ {
+   m_extensions  = " ";
+-  m_extensions += (const char*)glXQueryExtensionsString(m_dpy, m_nScreen);
++  m_extensions += glXQueryExtensionsString(m_dpy, m_nScreen);
+   m_extensions += " ";
+ 
+   CLog::Log(LOGDEBUG, "GLX_EXTENSIONS:%s", m_extensions.c_str());
+
+From b0cae1d7a0b63f0103769a324423a7378b6c4544 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Fri, 13 Jul 2018 10:00:00 +0200
+Subject: [PATCH 28/28] [cleanup][windows] silence useless cast warnings
+
+---
+ xbmc/windows/GUIMediaWindow.cpp       | 12 ++++++------
+ xbmc/windows/GUIWindowDebugInfo.cpp   |  2 +-
+ xbmc/windows/GUIWindowFileManager.cpp |  8 ++++----
+ 3 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/xbmc/windows/GUIMediaWindow.cpp b/xbmc/windows/GUIMediaWindow.cpp
+index 22766160a247..54257772bfd4 100644
+--- a/xbmc/windows/GUIMediaWindow.cpp
++++ b/xbmc/windows/GUIMediaWindow.cpp
+@@ -224,7 +224,7 @@ bool CGUIMediaWindow::OnAction(const CAction &action)
+ 
+   if (action.GetID() >= ACTION_FILTER_SMS2 && action.GetID() <= ACTION_FILTER_SMS9)
+   {
+-    std::string filter = StringUtils::Format("%i", (int)(action.GetID() - ACTION_FILTER_SMS2 + 2));
++    std::string filter = StringUtils::Format("%i", action.GetID() - ACTION_FILTER_SMS2 + 2);
+     CGUIMessage message(GUI_MSG_NOTIFY_ALL, GetID(), 0, GUI_MSG_FILTER_ITEMS, 1); // 1 for append
+     message.SetStringParam(filter);
+     OnMessage(message);
+@@ -486,7 +486,7 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
+       if (message.GetParam1())  // we have an id
+         viewMode = m_viewControl.GetViewModeByID(message.GetParam1());
+       else if (message.GetParam2())
+-        viewMode = m_viewControl.GetNextViewMode((int)message.GetParam2());
++        viewMode = m_viewControl.GetNextViewMode(message.GetParam2());
+ 
+       if (m_guiState.get())
+         m_guiState->SaveViewAsControl(viewMode);
+@@ -499,9 +499,9 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
+       if (m_guiState.get())
+       {
+         if (message.GetParam1())
+-          m_guiState->SetCurrentSortMethod((int)message.GetParam1());
++          m_guiState->SetCurrentSortMethod(message.GetParam1());
+         else if (message.GetParam2())
+-          m_guiState->SetNextSortMethod((int)message.GetParam2());
++          m_guiState->SetNextSortMethod(message.GetParam2());
+       }
+       UpdateFileList();
+       return true;
+@@ -991,7 +991,7 @@ void CGUIMediaWindow::OnCacheFileItems(CFileItemList &items)
+  */
+ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
+ {
+-  if (iItem < 0 || iItem >= (int)m_vecItems->Size())
++  if (iItem < 0 || iItem >= m_vecItems->Size())
+     return true;
+ 
+   const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+@@ -1405,7 +1405,7 @@ void CGUIMediaWindow::SetHistoryForPath(const std::string& strDirectory)
+     bool originalPath = true;
+     while (URIUtils::GetParentPath(strPath, strParentPath))
+     {
+-      for (int i = 0; i < (int)items.Size(); ++i)
++      for (int i = 0; i < items.Size(); ++i)
+       {
+         CFileItemPtr pItem = items[i];
+         std::string path(pItem->GetPath());
+diff --git a/xbmc/windows/GUIWindowDebugInfo.cpp b/xbmc/windows/GUIWindowDebugInfo.cpp
+index 63c43e2b041c..42da465ce56c 100644
+--- a/xbmc/windows/GUIWindowDebugInfo.cpp
++++ b/xbmc/windows/GUIWindowDebugInfo.cpp
+@@ -140,7 +140,7 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
+     {
+       std::string windowName = CWindowTranslator::TranslateWindow(window->GetID());
+       if (!windowName.empty())
+-        windowName += " (" + std::string(window->GetProperty("xmlfile").asString()) + ")";
++        windowName += " (" + window->GetProperty("xmlfile").asString() + ")";
+       else
+         windowName = window->GetProperty("xmlfile").asString();
+       info += "Window: " + windowName + "\n";
+diff --git a/xbmc/windows/GUIWindowFileManager.cpp b/xbmc/windows/GUIWindowFileManager.cpp
+index df4b20cd8b4e..fa2790b82bcf 100644
+--- a/xbmc/windows/GUIWindowFileManager.cpp
++++ b/xbmc/windows/GUIWindowFileManager.cpp
+@@ -460,7 +460,7 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
+   int iItem = GetSelectedItem(iList);
+   std::string strSelectedItem = "";
+ 
+-  if (iItem >= 0 && iItem < (int)m_vecItems[iList]->Size())
++  if (iItem >= 0 && iItem < m_vecItems[iList]->Size())
+   {
+     CFileItemPtr pItem = m_vecItems[iList]->Get(iItem);
+     if (!pItem->IsParentFolder())
+@@ -534,7 +534,7 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
+   }
+ 
+   // if we have a .tbn file, use itself as the thumb
+-  for (int i = 0; i < (int)m_vecItems[iList]->Size(); i++)
++  for (int i = 0; i < m_vecItems[iList]->Size(); i++)
+   {
+     CFileItemPtr pItem = m_vecItems[iList]->Get(i);
+     if (pItem->IsHD() &&
+@@ -848,7 +848,7 @@ void CGUIWindowFileManager::Refresh()
+   Update(0, m_Directory[0]->GetPath());
+   Update(1, m_Directory[1]->GetPath());
+ 
+-  while (nSel > (int)m_vecItems[iList]->Size())
++  while (nSel > m_vecItems[iList]->Size())
+     nSel--;
+ 
+   CONTROL_SELECT_ITEM(iList + CONTROL_LEFT_LIST, nSel);
+@@ -860,7 +860,7 @@ int CGUIWindowFileManager::GetSelectedItem(int iControl)
+     return -1;
+   CGUIMessage msg(GUI_MSG_ITEM_SELECTED, GetID(), iControl + CONTROL_LEFT_LIST);
+   if (OnMessage(msg))
+-    return (int)msg.GetParam1();
++    return msg.GetParam1();
+   return -1;
+ }
+ 
