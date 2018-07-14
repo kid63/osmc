@@ -1,0 +1,126 @@
+From 7c0fda0cdc045fac4dfc5245680d075736117089 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Thu, 1 Jun 2017 20:59:25 +0200
+Subject: [PATCH] X11: egl - make sure that we block in swapBuffers
+
+---
+ xbmc/windowing/X11/GLContextEGL.cpp | 61 +++++++++++++++++++++++++++++++++++++
+ xbmc/windowing/X11/GLContextEGL.h   | 13 ++++++++
+ 2 files changed, 74 insertions(+)
+
+diff --git a/xbmc/windowing/X11/GLContextEGL.cpp b/xbmc/windowing/X11/GLContextEGL.cpp
+index e73af99cba04..ab42a7b27acb 100644
+--- a/xbmc/windowing/X11/GLContextEGL.cpp
++++ b/xbmc/windowing/X11/GLContextEGL.cpp
+@@ -49,6 +49,8 @@ CGLContextEGL::~CGLContextEGL()
+ 
+ bool CGLContextEGL::Refresh(bool force, int screen, Window glWindow, bool &newContext)
+ {
++  m_sync.cont = 0;
++
+   // refresh context
+   if (m_eglContext && !force)
+   {
+@@ -214,6 +216,7 @@ bool CGLContextEGL::Refresh(bool force, int screen, Window glWindow, bool &newCo
+     CLog::Log(LOGERROR, "EGL Error: vInfo is NULL!");
+   }
+ 
++  eglGetSyncValuesCHROMIUM = (PFNEGLGETSYNCVALUESCHROMIUMPROC)eglGetProcAddress("eglGetSyncValuesCHROMIUM");
+   return retVal;
+ }
+ 
+@@ -331,7 +334,65 @@ void CGLContextEGL::SwapBuffers()
+   if ((m_eglDisplay == EGL_NO_DISPLAY) || (m_eglSurface == EGL_NO_SURFACE))
+     return;
+ 
++  uint64_t ust1, ust2;
++  uint64_t msc1, msc2;
++  uint64_t sbc1, sbc2;
++
++  eglGetSyncValuesCHROMIUM(m_eglDisplay, m_eglSurface, &ust1, &msc1, &sbc1);
++
+   eglSwapBuffers(m_eglDisplay, m_eglSurface);
++
++  eglGetSyncValuesCHROMIUM(m_eglDisplay, m_eglSurface, &ust2, &msc2, &sbc2);
++
++  if ((msc1 - m_sync.msc1) > 2)
++  {
++    m_sync.cont = 0;
++  }
++
++  struct timespec nowTs;
++  uint64_t now;
++  clock_gettime(CLOCK_MONOTONIC, &nowTs);
++  now = nowTs.tv_sec * 1000000000 + nowTs.tv_nsec;
++
++  // we want to block in SwapBuffers
++  // if a vertical retrace occurs 5 times in a row outside
++  // of this function, we take action
++  if (m_sync.cont < 5)
++  {
++    if ((msc1 - m_sync.msc1) == 2)
++    {
++      m_sync.cont = 0;
++    }
++    else if ((msc1 - m_sync.msc1) == 1)
++    {
++      m_sync.interval = (ust1 - m_sync.ust1) / (msc1 - m_sync.msc1);
++      m_sync.cont++;
++    }
++  }
++  else if ((m_sync.cont == 5) && (msc2 == msc1))
++  {
++    // if no vertical retrace has occurred in eglSwapBuffers,
++    // sleep until next vertical retrace
++    uint64_t sleeptime = m_sync.interval - (now / 1000 - ust2);
++    usleep(sleeptime);
++    m_sync.cont++;
++    msc2++;
++  }
++  else if ((m_sync.cont > 5) && (msc2 == m_sync.msc2))
++  {
++    // sleep until next vertical retrace
++    // this avoids blocking outside of this function
++    uint64_t sleeptime = m_sync.interval - (now / 1000 - ust2);
++    usleep(sleeptime);
++    msc2++;
++  }
++
++  m_sync.ust1 = ust1;
++  m_sync.ust2 = ust2;
++  m_sync.msc1 = msc1;
++  m_sync.msc2 = msc2;
++  m_sync.sbc2 = sbc2;
++
+ }
+ 
+ void CGLContextEGL::QueryExtensions()
+diff --git a/xbmc/windowing/X11/GLContextEGL.h b/xbmc/windowing/X11/GLContextEGL.h
+index 0b9becee2b62..bc2d044773f8 100644
+--- a/xbmc/windowing/X11/GLContextEGL.h
++++ b/xbmc/windowing/X11/GLContextEGL.h
+@@ -22,6 +22,7 @@
+ 
+ #include "GLContext.h"
+ #include "EGL/egl.h"
++#include "EGL/eglextchromium.h"
+ #include <X11/Xutil.h>
+ 
+ class CGLContextEGL : public CGLContext
+@@ -42,4 +43,16 @@ class CGLContextEGL : public CGLContext
+ protected:
+   bool IsSuitableVisual(XVisualInfo *vInfo);
+   EGLConfig GetEGLConfig(EGLDisplay eglDisplay, XVisualInfo *vInfo);
++  PFNEGLGETSYNCVALUESCHROMIUMPROC eglGetSyncValuesCHROMIUM = nullptr;
++
++  struct Sync
++  {
++    uint64_t cont = 0;
++    uint64_t ust1 = 0;
++    uint64_t ust2 = 0;
++    uint64_t msc1 = 0;
++    uint64_t msc2 = 0;
++    uint64_t sbc2 = 0;
++    uint64_t interval = 0;
++  } m_sync;
+ };
