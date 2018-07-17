@@ -1,0 +1,265 @@
+From ef3f64cbca464266d4dd5d07feefd167bb1279a1 Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 11 Jun 2018 20:33:14 +0200
+Subject: [PATCH 1/6] utils/BitstreamStats: include cleanup
+
+---
+ xbmc/utils/BitstreamStats.h | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/xbmc/utils/BitstreamStats.h b/xbmc/utils/BitstreamStats.h
+index 4921b423baee..46ed24d892de 100644
+--- a/xbmc/utils/BitstreamStats.h
++++ b/xbmc/utils/BitstreamStats.h
+@@ -20,12 +20,7 @@
+ 
+ #pragma once
+ 
+-#include <string>
+-#ifdef TARGET_POSIX
+-#include "platform/linux/PlatformDefs.h"
+-#else
+ #include <stdint.h>
+-#endif
+ 
+ class BitstreamStats
+ {
+
+From c46be496ff5f7dbbc1923468a8df7c825c43219c Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 11 Jun 2018 20:13:13 +0200
+Subject: [PATCH 2/6] addons/AddonManager, ...: add missing include for
+ g_langInfo
+
+---
+ xbmc/addons/AddonManager.cpp           | 1 +
+ xbmc/addons/interfaces/General.cpp     | 1 +
+ xbmc/addons/settings/AddonSettings.cpp | 1 +
+ xbmc/filesystem/BlurayDirectory.cpp    | 1 +
+ xbmc/weather/WeatherJob.cpp            | 1 +
+ 5 files changed, 5 insertions(+)
+
+diff --git a/xbmc/addons/AddonManager.cpp b/xbmc/addons/AddonManager.cpp
+index 1c80c6a8f714..bd4674c0996b 100644
+--- a/xbmc/addons/AddonManager.cpp
++++ b/xbmc/addons/AddonManager.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "AddonManager.h"
+ 
++#include "LangInfo.h"
+ #include "ServiceBroker.h"
+ #include "events/AddonManagementEvent.h"
+ #include "events/EventLog.h"
+diff --git a/xbmc/addons/interfaces/General.cpp b/xbmc/addons/interfaces/General.cpp
+index 72d720fb8378..b0ec462f920f 100644
+--- a/xbmc/addons/interfaces/General.cpp
++++ b/xbmc/addons/interfaces/General.cpp
+@@ -22,6 +22,7 @@
+ 
+ #include "addons/kodi-addon-dev-kit/include/kodi/General.h"
+ 
++#include "LangInfo.h"
+ #include "Application.h"
+ #include "CompileInfo.h"
+ #include "ServiceBroker.h"
+diff --git a/xbmc/addons/settings/AddonSettings.cpp b/xbmc/addons/settings/AddonSettings.cpp
+index dd98963f6b67..1d11196a25c5 100644
+--- a/xbmc/addons/settings/AddonSettings.cpp
++++ b/xbmc/addons/settings/AddonSettings.cpp
+@@ -24,6 +24,7 @@
+ #include "AddonSettings.h"
+ #include "FileItem.h"
+ #include "GUIInfoManager.h"
++#include "LangInfo.h"
+ #include "ServiceBroker.h"
+ #include "addons/Addon.h"
+ #include "addons/settings/GUIDialogAddonSettings.h"
+diff --git a/xbmc/filesystem/BlurayDirectory.cpp b/xbmc/filesystem/BlurayDirectory.cpp
+index f658bb62ca1d..66d9801d4ef3 100644
+--- a/xbmc/filesystem/BlurayDirectory.cpp
++++ b/xbmc/filesystem/BlurayDirectory.cpp
+@@ -24,6 +24,7 @@
+ #include "URL.h"
+ #include "DllLibbluray.h"
+ #include "FileItem.h"
++#include "LangInfo.h"
+ #include "video/VideoInfoTag.h"
+ #include "guilib/LocalizeStrings.h"
+ 
+diff --git a/xbmc/weather/WeatherJob.cpp b/xbmc/weather/WeatherJob.cpp
+index d27e4febd331..7a9fdf3450a2 100644
+--- a/xbmc/weather/WeatherJob.cpp
++++ b/xbmc/weather/WeatherJob.cpp
+@@ -25,6 +25,7 @@
+ #include "guilib/GUIWindowManager.h"
+ #include "guilib/LocalizeStrings.h"
+ #include "GUIUserMessages.h"
++#include "LangInfo.h"
+ #include "interfaces/generic/ScriptInvocationManager.h"
+ #include "network/Network.h"
+ #ifdef TARGET_POSIX
+
+From 40c2fc854535b3ef5d9e10bdc9546a0337d326ff Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 11 Jun 2018 20:15:19 +0200
+Subject: [PATCH 3/6] input/MouseTranslator: add missing include for std::map
+
+---
+ xbmc/input/mouse/MouseTranslator.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xbmc/input/mouse/MouseTranslator.cpp b/xbmc/input/mouse/MouseTranslator.cpp
+index baf7771a8933..adf9813f4ee5 100644
+--- a/xbmc/input/mouse/MouseTranslator.cpp
++++ b/xbmc/input/mouse/MouseTranslator.cpp
+@@ -25,6 +25,7 @@
+ #include "utils/StringUtils.h"
+ #include "utils/XBMCTinyXML.h"
+ 
++#include <map>
+ #include <string>
+ 
+ using namespace KODI;
+
+From 0450d16b46b76e133b5adad9e966449a9fbccb82 Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 11 Jun 2018 20:14:27 +0200
+Subject: [PATCH 4/6] utils/EGLUtils: include cleanup
+
+---
+ xbmc/utils/EGLUtils.cpp | 2 +-
+ xbmc/utils/EGLUtils.h   | 3 +--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/utils/EGLUtils.cpp b/xbmc/utils/EGLUtils.cpp
+index 723f7e923233..4c7fe5021673 100644
+--- a/xbmc/utils/EGLUtils.cpp
++++ b/xbmc/utils/EGLUtils.cpp
+@@ -21,11 +21,11 @@
+ #include "EGLUtils.h"
+ #include "log.h"
+ 
++#include "StringUtils.h"
+ #include "guilib/IDirtyRegionSolver.h"
+ #include "settings/AdvancedSettings.h"
+ 
+ #include <EGL/eglext.h>
+-#include <string.h>
+ 
+ std::set<std::string> CEGLUtils::GetClientExtensions()
+ {
+diff --git a/xbmc/utils/EGLUtils.h b/xbmc/utils/EGLUtils.h
+index 97a934c5b5da..c888869aa71a 100644
+--- a/xbmc/utils/EGLUtils.h
++++ b/xbmc/utils/EGLUtils.h
+@@ -20,14 +20,13 @@
+ 
+ #pragma once
+ 
++#include <array>
+ #include <set>
+ #include <string>
+ #include <stdexcept>
+ 
+ #include <EGL/egl.h>
+ 
+-#include "StringUtils.h"
+-
+ class CEGLUtils
+ {
+ public:
+
+From 83ea72e0d7e8ed2a8b4c42584a7c420e629d61af Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 11 Jun 2018 20:18:53 +0200
+Subject: [PATCH 5/6] interfaces/DrmCryptoSession: ad missing includes for
+ std::map and std::vector
+
+---
+ xbmc/interfaces/legacy/DrmCryptoSession.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/xbmc/interfaces/legacy/DrmCryptoSession.h b/xbmc/interfaces/legacy/DrmCryptoSession.h
+index 6e2270f91c96..067f915a5ae7 100644
+--- a/xbmc/interfaces/legacy/DrmCryptoSession.h
++++ b/xbmc/interfaces/legacy/DrmCryptoSession.h
+@@ -24,6 +24,9 @@
+ #include "Exception.h"
+ #include "commons/Buffer.h"
+ 
++#include <map>
++#include <vector>
++
+ namespace DRM
+ {
+   class CCryptoSession;
+
+From 14363e02ac269c91176104571a48ea61b7dea6af Mon Sep 17 00:00:00 2001
+From: Max Kellermann <max.kellermann@gmail.com>
+Date: Mon, 11 Jun 2018 20:09:30 +0200
+Subject: [PATCH 6/6] utils/StringUtils: eliminate LangInfo.h header dependency
+
+Hide the `g_langInfo` access inside the new static method
+`GetOriginalLocale()` to avoid this heavy header dependency.
+---
+ xbmc/utils/StringUtils.cpp |  6 ++++++
+ xbmc/utils/StringUtils.h   | 10 ++++++++--
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/utils/StringUtils.cpp b/xbmc/utils/StringUtils.cpp
+index c06be10e3c89..74cc92d36aad 100644
+--- a/xbmc/utils/StringUtils.cpp
++++ b/xbmc/utils/StringUtils.cpp
+@@ -36,6 +36,7 @@
+ 
+ #include "StringUtils.h"
+ #include "CharsetConverter.h"
++#include "LangInfo.h"
+ #include "utils/fstrcmp.h"
+ #include "Util.h"
+ #include <functional>
+@@ -1279,3 +1280,8 @@ std::string StringUtils::FormatFileSize(uint64_t bytes)
+   auto frmt = "%.0" + Format("%u", decimals) + "f%s";
+   return Format(frmt.c_str(), value, units[i].c_str());
+ }
++
++const std::locale& StringUtils::GetOriginalLocale() noexcept
++{
++  return g_langInfo.GetOriginalLocale();
++}
+diff --git a/xbmc/utils/StringUtils.h b/xbmc/utils/StringUtils.h
+index 361c1a29b025..5b1c23447b76 100644
+--- a/xbmc/utils/StringUtils.h
++++ b/xbmc/utils/StringUtils.h
+@@ -44,7 +44,6 @@
+ #include <fmt/printf.h>
+ #endif
+ 
+-#include "LangInfo.h"
+ #include "XBDateTime.h"
+ #include "utils/params_check_macros.h"
+ 
+@@ -341,7 +340,7 @@ class StringUtils
+ // ifdef is needed because when you set _ITERATOR_DEBUG_LEVEL=0 and you use custom numpunct you will get runtime error in debug mode
+ // for more info https://connect.microsoft.com/VisualStudio/feedback/details/2655363
+ #if !(defined(_DEBUG) && defined(TARGET_WINDOWS))
+-    ss.imbue(g_langInfo.GetOriginalLocale());
++    ss.imbue(GetOriginalLocale());
+ #endif
+     ss.precision(1);
+     ss << std::fixed << num;
+@@ -380,6 +379,13 @@ class StringUtils
+    * 102400 bytes as "100kB". See TestStringUtils for more examples.
+    */
+   static std::string FormatFileSize(uint64_t bytes);
++
++private:
++  /*!
++   * Wrapper for CLangInfo::GetOriginalLocale() which allows us to
++   * avoid including LangInfo.h from this header.
++   */
++  static const std::locale& GetOriginalLocale() noexcept;
+ };
+ 
+ struct sortstringbyname
