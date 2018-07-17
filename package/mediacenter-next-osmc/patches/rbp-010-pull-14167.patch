@@ -1,0 +1,353 @@
+From e80eb9aed5b544c7e96e65f4825347bd9eb50d6f Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Mon, 9 Jul 2018 07:54:49 -0700
+Subject: [PATCH 1/5] MyGames: Make root folder default view consistent with
+ videos
+
+---
+ xbmc/games/windows/GUIViewStateWindowGames.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/games/windows/GUIViewStateWindowGames.cpp b/xbmc/games/windows/GUIViewStateWindowGames.cpp
+index 82ec25aa0df0..ab043929dfc4 100644
+--- a/xbmc/games/windows/GUIViewStateWindowGames.cpp
++++ b/xbmc/games/windows/GUIViewStateWindowGames.cpp
+@@ -49,7 +49,7 @@ CGUIViewStateWindowGames::CGUIViewStateWindowGames(const CFileItemList& items) :
+     AddSortMethod(SortByDriveType, 564, LABEL_MASKS());
+     SetSortMethod(SortByLabel);
+     SetSortOrder(SortOrderAscending);
+-    SetViewAsControl(DEFAULT_VIEW_ICONS);
++    SetViewAsControl(DEFAULT_VIEW_LIST);
+   }
+   else
+   {
+
+From 6e40098cc52bdd0e6e4fce5a30e08f04b2b1e17e Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Mon, 9 Jul 2018 09:01:55 -0700
+Subject: [PATCH 2/5] MyGames: Update avialable views
+
+This shuffles the Game window views around to be more appropriate for
+games.
+---
+ addons/skin.estuary/xml/MyGames.xml          | 14 ++++++--------
+ addons/skin.estuary/xml/View_500_Wall.xml    |  2 +-
+ addons/skin.estuary/xml/View_51_Poster.xml   |  2 +-
+ addons/skin.estuary/xml/View_53_Shift.xml    |  2 +-
+ addons/skin.estuary/xml/View_54_InfoWall.xml |  2 +-
+ addons/skin.estuary/xml/View_55_WideList.xml |  4 ++--
+ 6 files changed, 12 insertions(+), 14 deletions(-)
+
+diff --git a/addons/skin.estuary/xml/MyGames.xml b/addons/skin.estuary/xml/MyGames.xml
+index a8854f5f48cd..617beb617b5a 100644
+--- a/addons/skin.estuary/xml/MyGames.xml
++++ b/addons/skin.estuary/xml/MyGames.xml
+@@ -2,25 +2,23 @@
+ <window>
+ 	<defaultcontrol always="true">50</defaultcontrol>
+ 	<backgroundcolor>background</backgroundcolor>
+-	<views>50,52,53,54,55,500</views>
++	<views>55,51,52,53,54,500,50</views>
+ 	<menucontrol>9000</menucontrol>
+-	<controls>`
++	<controls>
+ 		<include>DefaultBackground</include>
+ 		<control type="group">
+ 			<animation effect="fade" start="100" end="0" time="200" tween="sine" condition="$EXP[infodialog_active]">Conditional</animation>
+ 			<include>View_50_List</include>
++			<include>View_51_Poster</include>
+ 			<include>View_52_IconWall</include>
+ 			<include>View_53_Shift</include>
+-			<control type="group">
+-				<left>50</left>
+-				<include>View_54_InfoWall</include>
+-			</control>
++			<include>View_54_InfoWall</include>
+ 			<include>View_55_WideList</include>
+ 			<include>View_500_Wall</include>
+ 			<include>CommonScrollbars</include>
+ 			<control type="group">
+ 				<include>OpenClose_Left</include>
+-				<visible>Control.Isvisible(54)</visible>
++				<visible>Control.IsVisible(55)</visible>
+ 				<include>Visible_Left</include>
+ 				<visible>Container.Content(games)</visible>
+ 				<include content="ContentPanel">
+@@ -41,7 +39,7 @@
+ 			</control>
+ 			<control type="group">
+ 				<include>OpenClose_Left</include>
+-				<visible>Control.IsVisible(50) | Control.IsVisible(55)</visible>
++				<visible>Control.IsVisible(50) | Control.Isvisible(54) | [Control.IsVisible(501) + String.IsEqual(Skin.AspectRatio,21:9)]</visible>
+ 				<include>Visible_Left</include>
+ 				<include>ListThumbInfoPanel</include>
+ 			</control>
+diff --git a/addons/skin.estuary/xml/View_500_Wall.xml b/addons/skin.estuary/xml/View_500_Wall.xml
+index 776b85ac59ec..f280b3d2876f 100644
+--- a/addons/skin.estuary/xml/View_500_Wall.xml
++++ b/addons/skin.estuary/xml/View_500_Wall.xml
+@@ -21,7 +21,7 @@
+ 				<preloaditems>2</preloaditems>
+ 				<pagecontrol>531</pagecontrol>
+ 				<scrolltime tween="cubic" easing="out">500</scrolltime>
+-				<visible>Container.Content(movies) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(artists) | Container.Content(albums) | Container.Content(musicvideos) | Container.Content(addons) | Container.Content(images) | Container.Content(videos)</visible>
++				<visible>Container.Content(movies) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(artists) | Container.Content(albums) | Container.Content(musicvideos) | Container.Content(addons) | Container.Content(images) | Container.Content(videos) | Container.Content(games)</visible>
+ 				<itemlayout height="445" width="300" condition="Container.Content(movies) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(seasons)">
+ 					<control type="group">
+ 						<top>120</top>
+diff --git a/addons/skin.estuary/xml/View_51_Poster.xml b/addons/skin.estuary/xml/View_51_Poster.xml
+index 369f5756ec90..326f19aacd77 100644
+--- a/addons/skin.estuary/xml/View_51_Poster.xml
++++ b/addons/skin.estuary/xml/View_51_Poster.xml
+@@ -43,7 +43,7 @@
+ 					<ondown>5199</ondown>
+ 					<onright>51</onright>
+ 					<hitrect x="100" y="0" w="800" h="400" />
+-					<visible>Container.Content(movies) | Container.Content(seasons) | Container.Content(sets) | Container.Content(tvshows)</visible>
++					<visible>Container.Content(movies) | Container.Content(seasons) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(games)</visible>
+ 					<preloaditems>1</preloaditems>
+ 					<viewtype label="20021">icon</viewtype>
+ 					<itemlayout width="317">
+diff --git a/addons/skin.estuary/xml/View_53_Shift.xml b/addons/skin.estuary/xml/View_53_Shift.xml
+index e0758c35d93b..b420d41a69f7 100644
+--- a/addons/skin.estuary/xml/View_53_Shift.xml
++++ b/addons/skin.estuary/xml/View_53_Shift.xml
+@@ -54,7 +54,7 @@
+ 					<pagecontrol>5199</pagecontrol>
+ 					<scrolltime tween="cubic" easing="out">500</scrolltime>
+ 					<orientation>horizontal</orientation>
+-					<visible>Container.Content(movies) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(musicvideos) | Container.Content(artists) | Container.Content(albums) | Container.Content(mixed) | Container.Content(images) | Container.Content(videos)</visible>
++					<visible>Container.Content(movies) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(musicvideos) | Container.Content(artists) | Container.Content(albums) | Container.Content(mixed) | Container.Content(images) | Container.Content(videos) | Container.Content(games)</visible>
+ 					<onleft>53</onleft>
+ 					<onup>9000</onup>
+ 					<ondown>5199</ondown>
+diff --git a/addons/skin.estuary/xml/View_54_InfoWall.xml b/addons/skin.estuary/xml/View_54_InfoWall.xml
+index ae74935067bd..c225baf06447 100644
+--- a/addons/skin.estuary/xml/View_54_InfoWall.xml
++++ b/addons/skin.estuary/xml/View_54_InfoWall.xml
+@@ -380,7 +380,7 @@
+ 				<preloaditems>2</preloaditems>
+ 				<pagecontrol>531</pagecontrol>
+ 				<scrolltime tween="cubic" easing="out">500</scrolltime>
+-				<visible>Container.Content(artists) | Container.Content(albums) | Container.Content(sets) | Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(musicvideos) | Container.Content(images) | Container.Content(videos)</visible>
++				<visible>Container.Content(artists) | Container.Content(albums) | Container.Content(sets) | Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(musicvideos) | Container.Content(images) | Container.Content(videos) | Container.Content(games)</visible>
+ 				<itemlayout height="445" width="320" condition="Container.Content(movies) | Container.Content(sets) | Container.Content(tvshows) | Container.Content(seasons)">
+ 					<control type="group">
+ 						<left>30</left>
+diff --git a/addons/skin.estuary/xml/View_55_WideList.xml b/addons/skin.estuary/xml/View_55_WideList.xml
+index 13f2203604f1..5903f1d4fa2b 100644
+--- a/addons/skin.estuary/xml/View_55_WideList.xml
++++ b/addons/skin.estuary/xml/View_55_WideList.xml
+@@ -20,7 +20,7 @@
+ 				<onup>55</onup>
+ 				<ondown>55</ondown>
+ 				<viewtype label="$LOCALIZE[31107]">list</viewtype>
+-				<focusedlayout height="list_item_height" condition="Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(movies) | Container.Content(musicvideos) | Container.Content(videos)">
++				<focusedlayout height="list_item_height" condition="Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(movies) | Container.Content(musicvideos) | Container.Content(videos) | Container.Content(games)">
+ 					<control type="image">
+ 						<left>0</left>
+ 						<right>0</right>
+@@ -56,7 +56,7 @@
+ 						<shadowcolor>text_shadow</shadowcolor>
+ 					</control>
+ 				</focusedlayout>
+-				<itemlayout height="list_item_height" condition="Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(movies) | Container.Content(musicvideos) | Container.Content(videos)">
++				<itemlayout height="list_item_height" condition="Container.Content(tvshows) | Container.Content(seasons) | Container.Content(episodes) | Container.Content(movies) | Container.Content(musicvideos) | Container.Content(videos) | Container.Content(games)">
+ 					<control type="image">
+ 						<left>35</left>
+ 						<centertop>50%</centertop>
+
+From 7fd38536092e8fd49d3096aa1f7ded87dacf0e81 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Mon, 9 Jul 2018 09:03:19 -0700
+Subject: [PATCH 3/5] MyGames: Update XML with changes made to MyVideos
+
+---
+ addons/skin.estuary/xml/MyGames.xml   | 70 ++++++++++++++++++++++++++---------
+ addons/skin.estuary/xml/Variables.xml |  3 ++
+ 2 files changed, 55 insertions(+), 18 deletions(-)
+
+diff --git a/addons/skin.estuary/xml/MyGames.xml b/addons/skin.estuary/xml/MyGames.xml
+index 617beb617b5a..286f089b8dc6 100644
+--- a/addons/skin.estuary/xml/MyGames.xml
++++ b/addons/skin.estuary/xml/MyGames.xml
+@@ -17,34 +17,68 @@
+ 			<include>View_500_Wall</include>
+ 			<include>CommonScrollbars</include>
+ 			<control type="group">
++				<depth>DepthContentPanel</depth>
+ 				<include>OpenClose_Left</include>
+ 				<visible>Control.IsVisible(55)</visible>
+ 				<include>Visible_Left</include>
+-				<visible>Container.Content(games)</visible>
+-				<include content="ContentPanel">
+-					<param name="width" value="656" />
+-				</include>
+-				<control type="textbox">
+-					<left>40</left>
+-					<top>360</top>
+-					<width>529</width>
+-					<height>413</height>
+-					<align>center</align>
+-					<aligny>center</aligny>
+-					<font>font27</font>
+-					<textcolor>80FFFFFF</textcolor>
+-					<label>$LOCALIZE[19055]</label>
+-					<visible>!ListItem.IsParentFolder + ListItem.IsFolder</visible>
+-				</control>
++				<include>ListThumbInfoPanel</include>
+ 			</control>
+ 			<control type="group">
++				<depth>DepthContentPanel</depth>
+ 				<include>OpenClose_Left</include>
+ 				<visible>Control.IsVisible(50) | Control.Isvisible(54) | [Control.IsVisible(501) + String.IsEqual(Skin.AspectRatio,21:9)]</visible>
+ 				<include>Visible_Left</include>
+-				<include>ListThumbInfoPanel</include>
++				<include content="ContentPanel">
++					<param name="width" value="656" />
++				</include>
++				<control type="group">
++					<width>550</width>
++					<control type="textbox">
++						<top>120</top>
++						<left>30</left>
++						<width>550</width>
++						<aligny>center</aligny>
++						<height>110</height>
++						<font>font36_title</font>
++						<label>$INFO[ListItem.Label]</label>
++					</control>
++					<control type="textbox">
++						<left>30</left>
++						<top>240</top>
++						<width>525</width>
++						<bottom>100</bottom>
++						<visible>!ListItem.IsCollection</visible>
++						<label>$INFO[ListItem.Tagline,[I],[/I][CR][CR]]$INFO[ListItem.Plot][CR][CR]</label>
++						<autoscroll delay="10000" time="3000" repeat="10000">Skin.HasSetting(autoscroll)</autoscroll>
++					</control>
++					<control type="textbox">
++						<left>30</left>
++						<top>360</top>
++						<width>530</width>
++						<height>413</height>
++						<align>center</align>
++						<aligny>center</aligny>
++						<font>font27</font>
++						<textcolor>80FFFFFF</textcolor>
++						<label>$LOCALIZE[19055]</label>
++						<visible>String.IsEmpty(Listitem.Plot) + String.IsEmpty(Listitem.Tagline) + !ListItem.IsCollection + !ListItem.IsParentFolder</visible>
++					</control>
++					<control type="group">
++						<left>20</left>
++						<top>245</top>
++						<visible>ListItem.IsCollection + String.IsEmpty(ListItem.Plot)</visible>
++						<include content="InfoList">
++							<param name="bottom" value="108" />
++							<param name="width" value="540" />
++							<param name="sortby" value="year" />
++							<param name="sortorder" value="descending" />
++							<param name="font" value="font13" />
++						</include>
++					</control>
++				</control>
+ 			</control>
+ 			<include content="TopBar">
+-				<param name="breadcrumbs_label" value="$LOCALIZE[15016]" />
++				<param name="breadcrumbs_label" value="$VAR[BreadcrumbsGameVar]" />
+ 			</include>
+ 			<include content="BottomBar">
+ 				<param name="info_visible" value="true" />
+diff --git a/addons/skin.estuary/xml/Variables.xml b/addons/skin.estuary/xml/Variables.xml
+index d57aeba7630a..24482c6f9ae4 100644
+--- a/addons/skin.estuary/xml/Variables.xml
++++ b/addons/skin.estuary/xml/Variables.xml
+@@ -357,6 +357,9 @@
+ 		<value condition="Window.IsActive(TVSearch)">$LOCALIZE[19020] / $LOCALIZE[137]</value>
+ 		<value>$LOCALIZE[19021] / $LOCALIZE[137]</value>
+ 	</variable>
++	<variable name="BreadcrumbsGameVar">
++		<value>$LOCALIZE[15016]</value>
++	</variable>
+ 	<variable name="RepeatButtonColordiffuseVar">
+ 		<value condition="Control.HasFocus(704)">button_focus</value>
+ 		<value>FFFFFFFF</value>
+
+From 8a7587138c8de01d3e54c0bf6c0bfb46da994c30 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Mon, 9 Jul 2018 09:03:51 -0700
+Subject: [PATCH 4/5] MyGames: Reorder "Add-on settings" and "Get more" to
+ match videos
+
+---
+ addons/skin.estuary/xml/MyGames.xml | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/addons/skin.estuary/xml/MyGames.xml b/addons/skin.estuary/xml/MyGames.xml
+index 286f089b8dc6..71638482358a 100644
+--- a/addons/skin.estuary/xml/MyGames.xml
++++ b/addons/skin.estuary/xml/MyGames.xml
+@@ -95,12 +95,6 @@
+ 						<label>$LOCALIZE[31020]</label>
+ 						<visible>Control.IsVisible(621) | Control.IsVisible(624)</visible>
+ 					</control>
+-					<control type="button" id="624">
+-						<include>MediaMenuItemsCommon</include>
+-						<label>$LOCALIZE[10140]</label>
+-						<onclick>Addon.OpenSettings($INFO[Container.PluginName])</onclick>
+-						<visible>!String.IsEmpty(Container.PluginName)</visible>
+-					</control>
+ 					<control type="button" id="621">
+ 						<description>Get more</description>
+ 						<include>MediaMenuItemsCommon</include>
+@@ -108,6 +102,12 @@
+ 						<onclick>ActivateWindow(addonbrowser,addons://more/game/,return)</onclick>
+ 						<visible>Container.Content(addons)</visible>
+ 					</control>
++					<control type="button" id="624">
++						<include>MediaMenuItemsCommon</include>
++						<label>$LOCALIZE[10140]</label>
++						<onclick>Addon.OpenSettings($INFO[Container.PluginName])</onclick>
++						<visible>!String.IsEmpty(Container.PluginName)</visible>
++					</control>
+ 					<include>MediaMenuNowPlaying</include>
+ 				</control>
+ 			</control>
+
+From 84fa3e54b02cb8c878adb90087ce01951a0e8412 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Mon, 9 Jul 2018 12:20:44 -0700
+Subject: [PATCH 5/5] MyGames: [cosmetic] Remove commented code
+
+---
+ xbmc/games/windows/GUIViewStateWindowGames.cpp | 17 -----------------
+ 1 file changed, 17 deletions(-)
+
+diff --git a/xbmc/games/windows/GUIViewStateWindowGames.cpp b/xbmc/games/windows/GUIViewStateWindowGames.cpp
+index ab043929dfc4..42b58e2e87d2 100644
+--- a/xbmc/games/windows/GUIViewStateWindowGames.cpp
++++ b/xbmc/games/windows/GUIViewStateWindowGames.cpp
+@@ -104,23 +104,6 @@ VECSOURCES& CGUIViewStateWindowGames::GetSources()
+   AddOrReplace(*pGameSources, CGUIViewState::GetSources());
+ 
+   return *pGameSources;
+-  /*
+-  m_sources.clear();
+-
+-  // Files
+-  {
+-    CMediaSource share;
+-    share.strPath = "sources://games/";
+-    share.strName = g_localizeStrings.Get(744); // Files
+-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
+-    share.m_strThumbnailImage = "DefaultFolder.png";
+-    m_sources.push_back(share);
+-  }
+-
+-  // Add-ons
+-  AddAddonsSource("game", g_localizeStrings.Get(27016), "DefaultAddonGame.png"); // Game Add-ons
+-  return CGUIViewState::GetSources();
+-  */
+ }
+ 
+ void CGUIViewStateWindowGames::SaveViewState()
