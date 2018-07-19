@@ -1,0 +1,148 @@
+From f2975d76380b70dc117f7324f726e57548025697 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Tue, 17 Jul 2018 07:00:17 +0200
+Subject: [PATCH] [guiinfo] Fix 'Slideshow.File(Name|Path|Size|Date)' and
+ 'Slideshow.Index' labels - trac#17956.
+
+---
+ xbmc/guilib/guiinfo/PicturesGUIInfo.cpp | 86 +++++++++++++++------------------
+ 1 file changed, 39 insertions(+), 47 deletions(-)
+
+diff --git a/xbmc/guilib/guiinfo/PicturesGUIInfo.cpp b/xbmc/guilib/guiinfo/PicturesGUIInfo.cpp
+index ca35dd3e224c..3ae36d2fb958 100644
+--- a/xbmc/guilib/guiinfo/PicturesGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/PicturesGUIInfo.cpp
+@@ -131,11 +131,11 @@ bool CPicturesGUIInfo::InitCurrentItem(CFileItem *item)
+ 
+ bool CPicturesGUIInfo::GetLabel(std::string& value, const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback) const
+ {
+-  ///////////////////////////////////////////////////////////////////////////////////////////////
+-  // LISTITEM_* / SLIDESHOW_* (values directly supported by PictureInfoTag)
+-  ///////////////////////////////////////////////////////////////////////////////////////////////
+   if (item->IsPicture() && info.m_info >= LISTITEM_PICTURE_START && info.m_info <= LISTITEM_PICTURE_END)
+   {
++    ///////////////////////////////////////////////////////////////////////////////////////////////
++    // LISTITEM_*
++    ///////////////////////////////////////////////////////////////////////////////////////////////
+     const auto& it = listitem2slideshow_map.find(info.m_info);
+     if (it != listitem2slideshow_map.end())
+     {
+@@ -153,82 +153,74 @@ bool CPicturesGUIInfo::GetLabel(std::string& value, const CFileItem *item, int c
+   }
+   else if (m_currentSlide && info.m_info >= SLIDESHOW_LABELS_START && info.m_info <= SLIDESHOW_LABELS_END)
+   {
+-    value = m_currentSlide->GetPictureInfoTag()->GetInfo(info.m_info);
+-    return true;
+-  }
+-
+-  if (item->IsPicture())
+-  {
+-    /////////////////////////////////////////////////////////////////////////////////////////////////
+-    // LISTITEM_*
+-    /////////////////////////////////////////////////////////////////////////////////////////////////
+-    switch (info.m_info)
+-    {
+-      case LISTITEM_PICTURE_PATH:
+-      {
+-        if (!item->IsZIP() || item->IsRAR() || item->IsCBZ() || item->IsCBR())
+-        {
+-          value = item->GetPath();
+-          return true;
+-        }
+-        break;
+-      }
+-    }
+-  }
+-
+-  if (item->HasPictureInfoTag())
+-  {
++    ///////////////////////////////////////////////////////////////////////////////////////////////
++    // SLIDESHOW_*
++    ///////////////////////////////////////////////////////////////////////////////////////////////
+     switch (info.m_info)
+     {
+-      ///////////////////////////////////////////////////////////////////////////////////////////////
+-      // SLIDESHOW_* (values not directly supported by PictureInfoTag)
+-      ///////////////////////////////////////////////////////////////////////////////////////////////
+       case SLIDESHOW_FILE_NAME:
+       {
+-        value = URIUtils::GetFileName(item->GetPath());
++        value = URIUtils::GetFileName(m_currentSlide->GetPath());
+         return true;
+       }
+       case SLIDESHOW_FILE_PATH:
+       {
+-        const std::string path = URIUtils::GetDirectory(item->GetPath());
++        const std::string path = URIUtils::GetDirectory(m_currentSlide->GetPath());
+         value = CURL(path).GetWithoutUserDetails();
+         return true;
+       }
+       case SLIDESHOW_FILE_SIZE:
+       {
+-        if (!item->m_bIsFolder || item->m_dwSize)
++        if (!m_currentSlide->m_bIsFolder || m_currentSlide->m_dwSize)
+         {
+-          value = StringUtils::SizeToString(item->m_dwSize);
++          value = StringUtils::SizeToString(m_currentSlide->m_dwSize);
+           return true;
+         }
+         break;
+       }
+       case SLIDESHOW_FILE_DATE:
+       {
+-        if (item->m_dateTime.IsValid())
++        if (m_currentSlide->m_dateTime.IsValid())
++        {
++          value = m_currentSlide->m_dateTime.GetAsLocalizedDate();
++          return true;
++        }
++        break;
++      }
++      case SLIDESHOW_INDEX:
++      {
++        CGUIWindowSlideShow *slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
++        if (slideshow && slideshow->NumSlides())
+         {
+-          value = item->m_dateTime.GetAsLocalizedDate();
++          value = StringUtils::Format("%d/%d", slideshow->CurrentSlide(), slideshow->NumSlides());
+           return true;
+         }
+         break;
+       }
++      default:
++      {
++        value = m_currentSlide->GetPictureInfoTag()->GetInfo(info.m_info);
++        return true;
++      }
+     }
+   }
+ 
+-  switch (info.m_info)
++  if (item->IsPicture())
+   {
+-    ///////////////////////////////////////////////////////////////////////////////////////////////
+-    // SLIDESHOW_*
+-    ///////////////////////////////////////////////////////////////////////////////////////////////
+-    case SLIDESHOW_INDEX:
++    /////////////////////////////////////////////////////////////////////////////////////////////////
++    // LISTITEM_*
++    /////////////////////////////////////////////////////////////////////////////////////////////////
++    switch (info.m_info)
+     {
+-      CGUIWindowSlideShow *slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+-      if (slideshow && slideshow->NumSlides())
++      case LISTITEM_PICTURE_PATH:
+       {
+-        value = StringUtils::Format("%d/%d", slideshow->CurrentSlide(), slideshow->NumSlides());
+-        return true;
++        if (!item->IsZIP() || item->IsRAR() || item->IsCBZ() || item->IsCBR())
++        {
++          value = item->GetPath();
++          return true;
++        }
++        break;
+       }
+-      break;
+     }
+   }
+ 
