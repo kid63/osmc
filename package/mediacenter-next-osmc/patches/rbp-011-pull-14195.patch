@@ -1,0 +1,51 @@
+From 476103926b15aed147a782b2535560c319e80424 Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Wed, 18 Jul 2018 07:31:47 +0200
+Subject: [PATCH 1/2] [android] Fix "Iterator 'it' used after element has been
+ erased".
+
+---
+ xbmc/platform/android/activity/XBMCApp.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/platform/android/activity/XBMCApp.cpp b/xbmc/platform/android/activity/XBMCApp.cpp
+index 0392bcd3d7c8..54ff2f8d1fad 100644
+--- a/xbmc/platform/android/activity/XBMCApp.cpp
++++ b/xbmc/platform/android/activity/XBMCApp.cpp
+@@ -1078,10 +1078,10 @@ void CXBMCApp::onActivityResult(int requestCode, int resultCode, CJNIIntent resu
+   {
+     if ((*it)->GetRequestCode() == requestCode)
+     {
+-      m_activityResultEvents.erase(it);
+       (*it)->SetResultCode(resultCode);
+       (*it)->SetResultData(resultData);
+       (*it)->Set();
++      m_activityResultEvents.erase(it);
+       break;
+     }
+   }
+
+From dfd1e4a409159a523ba7c5b865a40c70cc4fe1f0 Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Wed, 18 Jul 2018 07:33:59 +0200
+Subject: [PATCH 2/2] [wayland] Fix "Iterator 'it' used after element has been
+ erased".
+
+---
+ xbmc/windowing/wayland/Registry.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/windowing/wayland/Registry.cpp b/xbmc/windowing/wayland/Registry.cpp
+index 74cc8bf260c3..65d7785ac3b3 100644
+--- a/xbmc/windowing/wayland/Registry.cpp
++++ b/xbmc/windowing/wayland/Registry.cpp
+@@ -133,8 +133,8 @@ void CRegistry::Bind()
+     auto it = m_boundNames.find(name);
+     if (it != m_boundNames.end())
+     {
+-      m_boundNames.erase(it);
+       it->second.get().removeHandler(name);
++      m_boundNames.erase(it);
+     }
+   };
+ 
