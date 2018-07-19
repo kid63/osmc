@@ -1,0 +1,429 @@
+From 8b548862e2561cbf5a1bc69afc7ed2de366321f7 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Tue, 10 Jul 2018 08:51:45 -0700
+Subject: [PATCH 1/3] Players: Add missing forward declaration
+
+---
+ xbmc/cores/IPlayer.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xbmc/cores/IPlayer.h b/xbmc/cores/IPlayer.h
+index 03ea361c35c8..f76c4a997431 100644
+--- a/xbmc/cores/IPlayer.h
++++ b/xbmc/cores/IPlayer.h
+@@ -37,6 +37,7 @@ struct TextCacheStruct_t;
+ class TiXmlElement;
+ class CStreamDetails;
+ class CAction;
++class IPlayerCallback;
+ 
+ class CPlayerOptions
+ {
+
+From 1655ee9a884cdc6c3ad6e41d2a3f258618891259 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Tue, 10 Jul 2018 08:39:47 -0700
+Subject: [PATCH 2/3] Games: Encapsulate setting IDs
+
+---
+ xbmc/games/GameSettings.cpp                        | 39 +++++++++++++++++++---
+ xbmc/games/GameSettings.h                          |  6 ++++
+ .../playback/GameClientReversiblePlayback.cpp      | 12 ++++---
+ xbmc/input/joysticks/JoystickEasterEgg.cpp         |  8 +++--
+ xbmc/settings/Settings.cpp                         |  3 --
+ xbmc/settings/Settings.h                           |  3 --
+ 6 files changed, 54 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/games/GameSettings.cpp b/xbmc/games/GameSettings.cpp
+index 8f3a05f6b0be..6ba26059d701 100644
+--- a/xbmc/games/GameSettings.cpp
++++ b/xbmc/games/GameSettings.cpp
+@@ -22,15 +22,24 @@
+ #include "settings/lib/Setting.h"
+ #include "settings/Settings.h"
+ 
++#include <algorithm>
++
+ using namespace KODI;
+ using namespace GAME;
+ 
++namespace
++{
++  const std::string SETTING_GAMES_ENABLE = "gamesgeneral.enable";
++  const std::string SETTING_GAMES_ENABLEREWIND = "gamesgeneral.enablerewind";
++  const std::string SETTING_GAMES_REWINDTIME = "gamesgeneral.rewindtime";
++}
++
+ CGameSettings::CGameSettings(CSettings &settings) :
+   m_settings(settings)
+ {
+   m_settings.RegisterCallback(this, {
+-    CSettings::SETTING_GAMES_ENABLEREWIND,
+-    CSettings::SETTING_GAMES_REWINDTIME,
++    SETTING_GAMES_ENABLEREWIND,
++    SETTING_GAMES_REWINDTIME,
+   });
+ }
+ 
+@@ -39,6 +48,28 @@ CGameSettings::~CGameSettings()
+   m_settings.UnregisterCallback(this);
+ }
+ 
++bool CGameSettings::GamesEnabled()
++{
++  return m_settings.GetBool(SETTING_GAMES_ENABLE);
++}
++
++void CGameSettings::ToggleGames()
++{
++  m_settings.ToggleBool(SETTING_GAMES_ENABLE);
++}
++
++bool CGameSettings::RewindEnabled()
++{
++  return m_settings.GetBool(SETTING_GAMES_ENABLEREWIND);
++}
++
++unsigned int CGameSettings::MaxRewindTimeSec()
++{
++  int rewindTimeSec = m_settings.GetInt(SETTING_GAMES_REWINDTIME);
++
++  return static_cast<unsigned int>(std::max(rewindTimeSec, 0));
++}
++
+ void CGameSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+ {
+   if (setting == nullptr)
+@@ -46,8 +77,8 @@ void CGameSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+ 
+   const std::string& settingId = setting->GetId();
+ 
+-  if (settingId == CSettings::SETTING_GAMES_ENABLEREWIND ||
+-      settingId == CSettings::SETTING_GAMES_REWINDTIME)
++  if (settingId == SETTING_GAMES_ENABLEREWIND ||
++      settingId == SETTING_GAMES_REWINDTIME)
+   {
+     SetChanged();
+     NotifyObservers(ObservableMessageSettingsChanged);
+diff --git a/xbmc/games/GameSettings.h b/xbmc/games/GameSettings.h
+index 898df4a67260..b5a27700d054 100644
+--- a/xbmc/games/GameSettings.h
++++ b/xbmc/games/GameSettings.h
+@@ -38,6 +38,12 @@ class CGameSettings : public ISettingCallback,
+   CGameSettings(CSettings &settings);
+   ~CGameSettings() override;
+ 
++  // General settings
++  bool GamesEnabled();
++  void ToggleGames();
++  bool RewindEnabled();
++  unsigned int MaxRewindTimeSec();
++
+   // Inherited from ISettingCallback
+   virtual void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+ 
+diff --git a/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp b/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp
+index c9af0c5d2bc2..9d695f238b2c 100644
+--- a/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp
++++ b/xbmc/games/addons/playback/GameClientReversiblePlayback.cpp
+@@ -28,7 +28,6 @@
+ #include "games/addons/savestates/SavestateWriter.h"
+ #include "games/GameServices.h"
+ #include "games/GameSettings.h"
+-#include "settings/Settings.h"
+ #include "threads/SingleLock.h"
+ #include "utils/MathUtils.h"
+ #include "ServiceBroker.h"
+@@ -54,7 +53,8 @@ CGameClientReversiblePlayback::CGameClientReversiblePlayback(CGameClient* gameCl
+ {
+   UpdateMemoryStream();
+ 
+-  CServiceBroker::GetGameServices().GameSettings().RegisterObserver(this);
++  CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
++  gameSettings.RegisterObserver(this);
+ 
+   m_gameLoop.Start();
+ }
+@@ -303,12 +303,16 @@ void CGameClientReversiblePlayback::UpdateMemoryStream()
+ 
+   bool bRewindEnabled = false;
+ 
++  CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
++
++  gameSettings.UnregisterObserver(this);
++
+   if (m_gameClient->SerializeSize() > 0)
+-    bRewindEnabled = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GAMES_ENABLEREWIND);
++    bRewindEnabled = gameSettings.RewindEnabled();
+ 
+   if (bRewindEnabled)
+   {
+-    unsigned int rewindBufferSec = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_GAMES_REWINDTIME);
++    unsigned int rewindBufferSec = gameSettings.MaxRewindTimeSec();
+     if (rewindBufferSec < 10)
+       rewindBufferSec = 10; // Sanity check
+ 
+diff --git a/xbmc/input/joysticks/JoystickEasterEgg.cpp b/xbmc/input/joysticks/JoystickEasterEgg.cpp
+index 335d5c4d9cf3..44d9653afb49 100644
+--- a/xbmc/input/joysticks/JoystickEasterEgg.cpp
++++ b/xbmc/input/joysticks/JoystickEasterEgg.cpp
+@@ -21,9 +21,10 @@
+ #include "JoystickEasterEgg.h"
+ #include "ServiceBroker.h"
+ #include "games/controllers/ControllerIDs.h"
++#include "games/GameServices.h"
++#include "games/GameSettings.h"
+ #include "guilib/GUIAudioManager.h"
+ #include "guilib/WindowIDs.h"
+-#include "settings/Settings.h"
+ 
+ using namespace KODI;
+ using namespace JOYSTICK;
+@@ -106,9 +107,10 @@ bool CJoystickEasterEgg::IsCapturing()
+ 
+ void CJoystickEasterEgg::OnFinish(void)
+ {
+-  CServiceBroker::GetSettings().ToggleBool(CSettings::SETTING_GAMES_ENABLE);
++  GAME::CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
++  gameSettings.ToggleGames();
+ 
+-  WINDOW_SOUND sound = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GAMES_ENABLE) ? SOUND_INIT : SOUND_DEINIT;
++  WINDOW_SOUND sound = gameSettings.GamesEnabled() ? SOUND_INIT : SOUND_DEINIT;
+   g_audioManager.PlayWindowSound(WINDOW_DIALOG_KAI_TOAST, sound);
+ 
+   //! @todo Shake screen
+diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
+index 82d6e82a58e0..ecae8e2c0c35 100644
+--- a/xbmc/settings/Settings.cpp
++++ b/xbmc/settings/Settings.cpp
+@@ -426,9 +426,6 @@ const std::string CSettings::SETTING_GENERAL_ADDONBROKENFILTER = "general.addonb
+ const std::string CSettings::SETTING_SOURCE_VIDEOS = "source.videos";
+ const std::string CSettings::SETTING_SOURCE_MUSIC = "source.music";
+ const std::string CSettings::SETTING_SOURCE_PICTURES = "source.pictures";
+-const std::string CSettings::SETTING_GAMES_ENABLE = "gamesgeneral.enable";
+-const std::string CSettings::SETTING_GAMES_ENABLEREWIND = "gamesgeneral.enablerewind";
+-const std::string CSettings::SETTING_GAMES_REWINDTIME = "gamesgeneral.rewindtime";
+ 
+ bool CSettings::Initialize()
+ {
+diff --git a/xbmc/settings/Settings.h b/xbmc/settings/Settings.h
+index 6e75e58c478a..f6def9bb71bc 100644
+--- a/xbmc/settings/Settings.h
++++ b/xbmc/settings/Settings.h
+@@ -380,9 +380,6 @@ class CSettings : public CSettingsBase, public CSettingCreator, public CSettingC
+   static const std::string SETTING_SOURCE_VIDEOS;
+   static const std::string SETTING_SOURCE_MUSIC;
+   static const std::string SETTING_SOURCE_PICTURES;
+-  static const std::string SETTING_GAMES_ENABLE;
+-  static const std::string SETTING_GAMES_ENABLEREWIND;
+-  static const std::string SETTING_GAMES_REWINDTIME;
+ 
+   /*!
+    \brief Creates a new settings wrapper around a new settings manager.
+
+From 7cba8eb91aca52970b39b2168972c787ef77c920 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Tue, 10 Jul 2018 09:03:19 -0700
+Subject: [PATCH 3/3] Games: Add setting to disable autosave
+
+---
+ addons/resource.language.en_gb/resources/strings.po | 12 +++++++++++-
+ system/settings/settings.xml                        |  5 +++++
+ xbmc/cores/RetroPlayer/RetroPlayer.cpp              |  7 ++++---
+ xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp      | 10 ++++++++--
+ xbmc/cores/RetroPlayer/RetroPlayerAutoSave.h        | 13 ++++++++++---
+ xbmc/games/GameSettings.cpp                         |  6 ++++++
+ xbmc/games/GameSettings.h                           |  1 +
+ 7 files changed, 45 insertions(+), 9 deletions(-)
+
+diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
+index 6f5b6f590430..a1d00f51b492 100644
+--- a/addons/resource.language.en_gb/resources/strings.po
++++ b/addons/resource.language.en_gb/resources/strings.po
+@@ -17437,7 +17437,17 @@ msgctxt "#35252"
+ msgid "Edit game source"
+ msgstr ""
+ 
+-#empty strings from id 35253 to 35255
++#: system/settings/settings.xml
++msgctxt "#35253"
++msgid "Enable autosave if supported"
++msgstr ""
++
++#: system/settings/settings.xml
++msgctxt "#35254"
++msgid "Save the game automatically during game play, if supported. Resume playing where you left off."
++msgstr ""
++
++#empty string with id 35255
+ 
+ #. Error message when a game client fails to install when a game is being launched
+ #: xbmc/games/dialogs/GUIDialogSelectGameClient.cpp
+diff --git a/system/settings/settings.xml b/system/settings/settings.xml
+index dea94ec2aedd..8369fe59e00d 100755
+--- a/system/settings/settings.xml
++++ b/system/settings/settings.xml
+@@ -1974,6 +1974,11 @@
+           <default>false</default>
+           <control type="toggle" />
+         </setting>
++        <setting id="gamesgeneral.enableautosave" type="boolean" label="35253" help="35254">
++          <level>0</level>
++          <default>true</default>
++          <control type="toggle" />
++        </setting>
+         <setting id="gamesgeneral.enablerewind" type="boolean" label="35203" help="35204">
+           <level>0</level>
+           <default>true</default>
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayer.cpp b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+index 0d904fe05844..fa45626a5563 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayer.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayer.cpp
+@@ -37,6 +37,7 @@
+ #include "games/dialogs/osd/DialogGameVideoSelect.h"
+ #include "games/tags/GameInfoTag.h"
+ #include "games/GameServices.h"
++#include "games/GameSettings.h"
+ #include "games/GameUtils.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIWindowManager.h"
+@@ -171,7 +172,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+       }
+     }
+ 
+-    if (bSuccess)
++    if (bSuccess && m_gameServices.GameSettings().AutosaveEnabled())
+     {
+       std::string redactedSavestatePath = CURL::GetRedacted(savestatePath);
+       CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Loading savestate %s", redactedSavestatePath.c_str());
+@@ -188,7 +189,7 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
+     m_callback.OnPlayBackStarted(fileCopy);
+     m_callback.OnAVStarted(fileCopy);
+     if (!bStandalone)
+-      m_autoSave.reset(new CRetroPlayerAutoSave(*m_gameClient));
++      m_autoSave.reset(new CRetroPlayerAutoSave(*m_gameClient, m_gameServices.GameSettings()));
+     m_processInfo->SetVideoFps(static_cast<float>(m_gameClient->GetFrameRate()));
+   }
+   else
+@@ -213,7 +214,7 @@ bool CRetroPlayer::CloseFile(bool reopen /* = false */)
+ 
+   CSingleLock lock(m_mutex);
+ 
+-  if (m_gameClient)
++  if (m_gameClient && m_gameServices.GameSettings().AutosaveEnabled())
+   {
+     std::string savePath = m_gameClient->GetPlayback()->CreateSavestate();
+     if (!savePath.empty())
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp b/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp
+index 990e84afcfc2..c1d04e7c22b0 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp
++++ b/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.cpp
+@@ -21,6 +21,7 @@
+ #include "RetroPlayerAutoSave.h"
+ #include "games/addons/GameClient.h"
+ #include "games/addons/playback/IGameClientPlayback.h"
++#include "games/GameSettings.h"
+ #include "utils/log.h"
+ #include "URL.h"
+ 
+@@ -29,9 +30,11 @@ using namespace RETRO;
+ 
+ #define AUTOSAVE_DURATION_SECS    10 // Auto-save every 10 seconds
+ 
+-CRetroPlayerAutoSave::CRetroPlayerAutoSave(GAME::CGameClient &gameClient) :
++CRetroPlayerAutoSave::CRetroPlayerAutoSave(GAME::CGameClient &gameClient,
++                                           GAME::CGameSettings &settings) :
+   CThread("CRetroPlayerAutoSave"),
+-  m_gameClient(gameClient)
++  m_gameClient(gameClient),
++  m_settings(settings)
+ {
+   CLog::Log(LOGDEBUG, "RetroPlayer[SAVE]: Initializing autosave");
+ 
+@@ -56,6 +59,9 @@ void CRetroPlayerAutoSave::Process()
+     if (m_bStop)
+       break;
+ 
++    if (!m_settings.AutosaveEnabled())
++      continue;
++
+     if (m_gameClient.GetPlayback()->GetSpeed() > 0.0)
+     {
+       std::string savePath = m_gameClient.GetPlayback()->CreateSavestate();
+diff --git a/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.h b/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.h
+index b17849eb4e7e..93105603af6a 100644
+--- a/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.h
++++ b/xbmc/cores/RetroPlayer/RetroPlayerAutoSave.h
+@@ -20,17 +20,23 @@
+ 
+ #pragma once
+ 
+-#include "games/GameTypes.h"
+ #include "threads/Thread.h"
+ 
+ namespace KODI
+ {
++namespace GAME
++{
++  class CGameClient;
++  class CGameSettings;
++}
++
+ namespace RETRO
+ {
+   class CRetroPlayerAutoSave : protected CThread
+   {
+   public:
+-    explicit CRetroPlayerAutoSave(GAME::CGameClient &gameClient);
++    explicit CRetroPlayerAutoSave(GAME::CGameClient &gameClient,
++                                  GAME::CGameSettings &settings);
+ 
+     ~CRetroPlayerAutoSave() override;
+ 
+@@ -39,8 +45,9 @@ namespace RETRO
+     virtual void Process() override;
+ 
+   private:
+-    // Construction parameter
++    // Construction parameters
+     GAME::CGameClient &m_gameClient;
++    GAME::CGameSettings &m_settings;
+   };
+ }
+ }
+diff --git a/xbmc/games/GameSettings.cpp b/xbmc/games/GameSettings.cpp
+index 6ba26059d701..08c269ef0dd1 100644
+--- a/xbmc/games/GameSettings.cpp
++++ b/xbmc/games/GameSettings.cpp
+@@ -30,6 +30,7 @@ using namespace GAME;
+ namespace
+ {
+   const std::string SETTING_GAMES_ENABLE = "gamesgeneral.enable";
++  const std::string SETTING_GAMES_ENABLEAUTOSAVE = "gamesgeneral.enableautosave";
+   const std::string SETTING_GAMES_ENABLEREWIND = "gamesgeneral.enablerewind";
+   const std::string SETTING_GAMES_REWINDTIME = "gamesgeneral.rewindtime";
+ }
+@@ -58,6 +59,11 @@ void CGameSettings::ToggleGames()
+   m_settings.ToggleBool(SETTING_GAMES_ENABLE);
+ }
+ 
++bool CGameSettings::AutosaveEnabled()
++{
++  return m_settings.GetBool(SETTING_GAMES_ENABLEAUTOSAVE);
++}
++
+ bool CGameSettings::RewindEnabled()
+ {
+   return m_settings.GetBool(SETTING_GAMES_ENABLEREWIND);
+diff --git a/xbmc/games/GameSettings.h b/xbmc/games/GameSettings.h
+index b5a27700d054..147a0a9c3966 100644
+--- a/xbmc/games/GameSettings.h
++++ b/xbmc/games/GameSettings.h
+@@ -41,6 +41,7 @@ class CGameSettings : public ISettingCallback,
+   // General settings
+   bool GamesEnabled();
+   void ToggleGames();
++  bool AutosaveEnabled();
+   bool RewindEnabled();
+   unsigned int MaxRewindTimeSec();
+ 
