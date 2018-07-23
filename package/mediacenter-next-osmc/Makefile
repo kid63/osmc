@@ -7,11 +7,6 @@ rbp1:
 rbp2:
 	sudo bash build.sh "rbp2"
 
-atv:
-	sudo setarch i686 bash build.sh "atv"
-
-vero3noaddons:
-	sudo bash build.sh "vero3noaddons"
 
 vero2:
 	sudo bash build.sh "vero2"
