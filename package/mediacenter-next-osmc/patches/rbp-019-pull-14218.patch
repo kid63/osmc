@@ -1,0 +1,514 @@
+From e4e0be756bd453538e9a04b5ef80fd6baccbcbca Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Mon, 23 Jul 2018 14:00:00 +0200
+Subject: [PATCH 1/2] [depends][python27] uniformize patches
+
+---
+ tools/depends/target/python27/Makefile             | 16 +++----
+ .../target/python27/android-binmodule.patch        |  4 +-
+ .../target/python27/android-nl_langinfo.patch      | 22 +++++-----
+ tools/depends/target/python27/android.patch        | 30 ++++++-------
+ tools/depends/target/python27/fix-datetime.patch   |  4 +-
+ tools/depends/target/python27/fix-ffi.patch        | 50 +++++++++++-----------
+ .../target/python27/make-fork-optional.patch       |  4 +-
+ tools/depends/target/python27/no-abort.patch       |  8 ++--
+ tools/depends/target/python27/no-export-path.patch |  4 +-
+ tools/depends/target/python27/setup.patch          | 24 +++++------
+ tools/depends/target/python27/urllib.patch         |  4 +-
+ 11 files changed, 85 insertions(+), 85 deletions(-)
+
+diff --git a/tools/depends/target/python27/Makefile b/tools/depends/target/python27/Makefile
+index ad4d715b86df..04b8ffa70084 100644
+--- a/tools/depends/target/python27/Makefile
++++ b/tools/depends/target/python27/Makefile
+@@ -34,17 +34,17 @@ $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
+ 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+ 	cd $(PLATFORM); patch -p1 < ../crosscompile.patch
+-	cd $(PLATFORM); patch -p0 < ../setup.patch
+-	cd $(PLATFORM); patch -p0 < ../fix-datetime.patch
+-	cd $(PLATFORM); patch -p0 < ../android.patch
+-	cd $(PLATFORM); patch -p0 < ../no-export-path.patch
+-	cd $(PLATFORM); patch -p0 < ../fix-ffi.patch
+-	cd $(PLATFORM); patch -p0 < ../android-binmodule.patch
++	cd $(PLATFORM); patch -p1 < ../setup.patch
++	cd $(PLATFORM); patch -p1 < ../fix-datetime.patch
++	cd $(PLATFORM); patch -p1 < ../android.patch
++	cd $(PLATFORM); patch -p1 < ../no-export-path.patch
++	cd $(PLATFORM); patch -p1 < ../fix-ffi.patch
++	cd $(PLATFORM); patch -p1 < ../android-binmodule.patch
+ 	cd $(PLATFORM); patch -p1 < ../no-abort.patch
+ 	cd $(PLATFORM); patch -p1 < ../android-nl_langinfo.patch
+ ifeq ($(OS),ios)
+-	cd $(PLATFORM); patch -p0 < ../make-fork-optional.patch
+-	cd $(PLATFORM); patch -p0 < ../urllib.patch
++	cd $(PLATFORM); patch -p1 < ../make-fork-optional.patch
++	cd $(PLATFORM); patch -p1 < ../urllib.patch
+ 	cd $(PLATFORM); sed -ie 's|MACHDEP="unknown"|MACHDEP="darwin"|' configure.ac
+ endif
+ 	cp modules.setup $(PLATFORM)/Modules/Setup.dist
+diff --git a/tools/depends/target/python27/android-binmodule.patch b/tools/depends/target/python27/android-binmodule.patch
+index a5132cd47b33..ec767a2ac1bb 100644
+--- a/tools/depends/target/python27/android-binmodule.patch
++++ b/tools/depends/target/python27/android-binmodule.patch
+@@ -1,5 +1,5 @@
+---- Python/dynload_shlib.c	2014-08-13 15:13:49.879675283 +0200
+-+++ Python/dynload_shlib.c	2014-08-13 19:03:57.456363680 +0200
++--- a/Python/dynload_shlib.c
+++++ b/Python/dynload_shlib.c
+ @@ -112,10 +112,6 @@
+      dlopenflags = PyThreadState_GET()->interp->dlopenflags;
+  #endif
+diff --git a/tools/depends/target/python27/android-nl_langinfo.patch b/tools/depends/target/python27/android-nl_langinfo.patch
+index f0a9f0942dbc..ddfed91a7398 100644
+--- a/tools/depends/target/python27/android-nl_langinfo.patch
++++ b/tools/depends/target/python27/android-nl_langinfo.patch
+@@ -1,14 +1,3 @@
+---- a/configure.ac
+-+++ b/configure.ac
+-@@ -3088,7 +3088,7 @@
+-  getentropy \
+-  getpriority getresuid getresgid getpwent getspnam getspent getsid getwd \
+-  initgroups kill killpg lchmod lchown lstat mkfifo mknod mktime mmap \
+-- mremap nice pathconf pause plock poll pthread_init \
+-+ mremap nice nl_langinfo pathconf pause plock poll pthread_init \
+-  putenv readlink realpath \
+-  select sem_open sem_timedwait sem_getvalue sem_unlink setegid seteuid \
+-  setgid \
+ --- a/Python/pythonrun.c
+ +++ b/Python/pythonrun.c
+ @@ -294,7 +294,7 @@
+@@ -20,3 +9,14 @@
+      /* On Unix, set the file system encoding according to the
+         user's preference, if the CODESET names a well-known
+         Python codec, and Py_FileSystemDefaultEncoding isn't
++--- a/configure.ac
+++++ b/configure.ac
++@@ -3088,7 +3088,7 @@
++  getentropy \
++  getpriority getresuid getresgid getpwent getspnam getspent getsid getwd \
++  initgroups kill killpg lchmod lchown lstat mkfifo mknod mktime mmap \
++- mremap nice pathconf pause plock poll pthread_init \
+++ mremap nice nl_langinfo pathconf pause plock poll pthread_init \
++  putenv readlink realpath \
++  select sem_open sem_timedwait sem_getvalue sem_unlink setegid seteuid \
++  setgid \
+diff --git a/tools/depends/target/python27/android.patch b/tools/depends/target/python27/android.patch
+index afd598c81f08..aa80113c3db3 100644
+--- a/tools/depends/target/python27/android.patch
++++ b/tools/depends/target/python27/android.patch
+@@ -1,5 +1,16 @@
+---- Modules/pwdmodule.c.orig	2015-10-09 10:16:03.679939815 +0200
+-+++ Modules/pwdmodule.c	2015-10-09 10:18:48.567945964 +0200
++--- a/Modules/posixmodule.c
+++++ b/Modules/posixmodule.c
++@@ -3985,7 +3985,7 @@
++     slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
++     if (slave_fd < 0)
++         return posix_error();
++-#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
+++#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC) && !defined(ANDROID)
++     ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
++     ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
++ #ifndef __hpux
++--- a/Modules/pwdmodule.c
+++++ b/Modules/pwdmodule.c
+ @@ -68,14 +68,14 @@
+  #define SETS(i,val) sets(v, i, val)
+  
+@@ -17,8 +28,8 @@
+      SETS(setIndex++, "");
+  #else
+      SETS(setIndex++, p->pw_gecos);
+---- Modules/termios.c.orig	2015-10-09 10:56:52.448031136 +0200
+-+++ Modules/termios.c	2015-10-09 10:59:43.668037521 +0200
++--- a/Modules/termios.c
+++++ b/Modules/termios.c
+ @@ -230,6 +230,7 @@
+      return Py_None;
+  }
+@@ -46,14 +57,3 @@
+      {"tcflush", termios_tcflush,
+       METH_VARARGS, termios_tcflush__doc__},
+      {"tcflow", termios_tcflow,
+---- Modules/posixmodule.c.orig	2015-10-09 13:19:47.524350922 +0200
+-+++ Modules/posixmodule.c	2015-10-09 13:20:55.436353454 +0200
+-@@ -3985,7 +3985,7 @@
+-     slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
+-     if (slave_fd < 0)
+-         return posix_error();
+--#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
+-+#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC) && !defined(ANDROID)
+-     ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
+-     ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
+- #ifndef __hpux
+diff --git a/tools/depends/target/python27/fix-datetime.patch b/tools/depends/target/python27/fix-datetime.patch
+index 2d9d0d5f7c9c..dafe720f0e62 100644
+--- a/tools/depends/target/python27/fix-datetime.patch
++++ b/tools/depends/target/python27/fix-datetime.patch
+@@ -1,5 +1,5 @@
+---- Modules/_testcapimodule.c.orig	2015-10-07 16:50:38.751087989 +0200
+-+++ Modules/_testcapimodule.c	2015-10-07 16:50:59.119088070 +0200
++--- a/Modules/_testcapimodule.c
+++++ b/Modules/_testcapimodule.c
+ @@ -8,8 +8,14 @@
+  #include "Python.h"
+  #include <float.h>
+diff --git a/tools/depends/target/python27/fix-ffi.patch b/tools/depends/target/python27/fix-ffi.patch
+index ca90d0dadc63..c0989705afd8 100644
+--- a/tools/depends/target/python27/fix-ffi.patch
++++ b/tools/depends/target/python27/fix-ffi.patch
+@@ -1,28 +1,5 @@
+---- Modules/_ctypes/malloc_closure.c.orig	2015-10-11 20:37:30.534378131 +0200
+-+++ Modules/_ctypes/malloc_closure.c	2015-10-11 20:38:57.322381368 +0200
+-@@ -89,6 +89,7 @@
+- /******************************************************************/
+- 
+- /* put the item back into the free list */
+-+/*
+- void ffi_closure_free(void *p)
+- {
+-     ITEM *item = (ITEM *)p;
+-@@ -96,7 +97,6 @@
+-     free_list = item;
+- }
+- 
+--/* return one item from the free list, allocating more if needed */
+- void *ffi_closure_alloc(size_t ignored, void** codeloc)
+- {
+-     ITEM *item;
+-@@ -109,3 +109,4 @@
+-     *codeloc = (void *)item;
+-     return (void *)item;
+- }
+-+*/
+---- Modules/_ctypes/cfield.c.orig	2015-10-11 20:34:03.034370393 +0200
+-+++ Modules/_ctypes/cfield.c	2015-10-11 20:37:04.462377159 +0200
++--- a/Modules/_ctypes/cfield.c
+++++ b/Modules/_ctypes/cfield.c
+ @@ -1727,6 +1727,7 @@
+  */
+  
+@@ -49,3 +26,26 @@
+ -
+ +*/
+  /*---------------- EOF ----------------*/
++--- a/Modules/_ctypes/malloc_closure.c
+++++ b/Modules/_ctypes/malloc_closure.c
++@@ -89,6 +89,7 @@
++ /******************************************************************/
++ 
++ /* put the item back into the free list */
+++/*
++ void ffi_closure_free(void *p)
++ {
++     ITEM *item = (ITEM *)p;
++@@ -96,7 +97,6 @@
++     free_list = item;
++ }
++ 
++-/* return one item from the free list, allocating more if needed */
++ void *ffi_closure_alloc(size_t ignored, void** codeloc)
++ {
++     ITEM *item;
++@@ -109,3 +109,4 @@
++     *codeloc = (void *)item;
++     return (void *)item;
++ }
+++*/
+diff --git a/tools/depends/target/python27/make-fork-optional.patch b/tools/depends/target/python27/make-fork-optional.patch
+index 049d078014e6..50df22d4ddfd 100644
+--- a/tools/depends/target/python27/make-fork-optional.patch
++++ b/tools/depends/target/python27/make-fork-optional.patch
+@@ -1,5 +1,5 @@
+---- Modules/posixmodule.c.orig	2015-12-12 17:13:12.000000000 +0100
+-+++ Modules/posixmodule.c	2015-12-12 17:13:47.000000000 +0100
++--- a/Modules/posixmodule.c
+++++ b/Modules/posixmodule.c
+ @@ -162,6 +162,12 @@
+  #endif  /* ! __WATCOMC__ || __QNX__ */
+  #endif /* ! __IBMC__ */
+diff --git a/tools/depends/target/python27/no-abort.patch b/tools/depends/target/python27/no-abort.patch
+index bc98d9f5a515..2ceb7dafbc87 100644
+--- a/tools/depends/target/python27/no-abort.patch
++++ b/tools/depends/target/python27/no-abort.patch
+@@ -1,5 +1,5 @@
+---- orig/Modules/posixmodule.c	2016-07-30 22:35:02.016158026 +0200
+-+++ arm-linux-androideabi-21/Modules/posixmodule.c	2016-08-27 13:02:46.755833610 +0200
++--- a/Modules/posixmodule.c
+++++ b/Modules/posixmodule.c
+ @@ -8643,7 +8643,7 @@
+  static PyObject *
+  posix_abort(PyObject *self, PyObject *noargs)
+@@ -9,8 +9,8 @@
+      /*NOTREACHED*/
+      Py_FatalError("abort() called from Python code didn't abort!");
+      return NULL;
+---- orig/Python/pythonrun.c	2009-10-27 13:48:52.000000000 +0100
+-+++ arm-linux-androideabi-21/Python/pythonrun.c	2016-08-27 13:03:38.051914732 +0200
++--- a/Python/pythonrun.c
+++++ b/Python/pythonrun.c
+ @@ -1697,7 +1697,7 @@
+      DebugBreak();
+  #endif
+diff --git a/tools/depends/target/python27/no-export-path.patch b/tools/depends/target/python27/no-export-path.patch
+index e16482adab86..d23b3513f53a 100644
+--- a/tools/depends/target/python27/no-export-path.patch
++++ b/tools/depends/target/python27/no-export-path.patch
+@@ -1,5 +1,5 @@
+---- Makefile.pre.in.orig	2015-10-09 19:10:15.042905069 +0200
+-+++ Makefile.pre.in	2015-10-09 19:11:01.513642241 +0200
++--- a/Makefile.pre.in
+++++ b/Makefile.pre.in
+ @@ -1142,8 +1142,6 @@
+  $(srcdir)/Lib/$(PLATDIR):
+  	mkdir $(srcdir)/Lib/$(PLATDIR)
+diff --git a/tools/depends/target/python27/setup.patch b/tools/depends/target/python27/setup.patch
+index e36fbc2fa801..565f63e3151a 100644
+--- a/tools/depends/target/python27/setup.patch
++++ b/tools/depends/target/python27/setup.patch
+@@ -1,5 +1,15 @@
+---- setup.py.orig	2015-10-07 16:32:16.219083585 +0200
+-+++ setup.py	2015-10-07 16:41:48.563085871 +0200
++--- a/Modules/makesetup
+++++ b/Modules/makesetup
++@@ -212,6 +212,7 @@
++ 			objs="$objs $obj"
++ 			case $src in
++ 			glmodule.c) ;;
+++                       # _*io.c) src='$(srcdir)/'"$srcdir/_io/$(echo $src| tr -d "_")";;
++ 			/*) ;;
++ 			\$*) ;;
++ 			*) src='$(srcdir)/'"$srcdir/$src";;
++--- a/setup.py
+++++ b/setup.py
+ @@ -337,6 +337,9 @@
+              self.announce('WARNING: skipping import check for Cygwin-based "%s"'
+                  % ext.name)
+@@ -62,13 +72,3 @@
+          except:
+              exc_type, why, tb = sys.exc_info()
+              self.announce('*** WARNING: importing extension "%s" '
+---- Modules/makesetup.orig	2015-10-08 09:53:38.787333151 +0200
+-+++ Modules/makesetup	2015-10-08 11:28:50.939355966 +0200
+-@@ -212,6 +212,7 @@
+- 			objs="$objs $obj"
+- 			case $src in
+- 			glmodule.c) ;;
+-+                       # _*io.c) src='$(srcdir)/'"$srcdir/_io/$(echo $src| tr -d "_")";;
+- 			/*) ;;
+- 			\$*) ;;
+- 			*) src='$(srcdir)/'"$srcdir/$src";;
+diff --git a/tools/depends/target/python27/urllib.patch b/tools/depends/target/python27/urllib.patch
+index a8c16ad92650..9e1bf4c6bcee 100644
+--- a/tools/depends/target/python27/urllib.patch
++++ b/tools/depends/target/python27/urllib.patch
+@@ -1,5 +1,5 @@
+---- Lib/urllib.py	2010-02-20 17:13:01.000000000 -0500
+-+++ Lib/urllib.py	2013-03-14 18:12:02.526251189 -0400
++--- a/Lib/urllib.py
+++++ b/Lib/urllib.py
+ @@ -1437,7 +1437,6 @@
+  
+  
+
+From 13bb2391dd483cc366bb774bf2e8ad26b6840fb7 Mon Sep 17 00:00:00 2001
+From: Rechi <Rechi@users.noreply.github.com>
+Date: Mon, 23 Jul 2018 14:00:00 +0200
+Subject: [PATCH 2/2] [depends] bump python27 to 2.7.15
+
+---
+ tools/depends/native/python27-native/Makefile           |  2 +-
+ tools/depends/target/python27/Makefile                  |  2 +-
+ tools/depends/target/python27/android-nl_langinfo.patch |  4 ++--
+ tools/depends/target/python27/android.patch             |  2 +-
+ tools/depends/target/python27/crosscompile.patch        | 12 ++++++------
+ tools/depends/target/python27/fix-ffi.patch             |  4 ++--
+ tools/depends/target/python27/make-fork-optional.patch  |  2 +-
+ tools/depends/target/python27/no-abort.patch            |  4 ++--
+ tools/depends/target/python27/no-export-path.patch      |  2 +-
+ 9 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/tools/depends/native/python27-native/Makefile b/tools/depends/native/python27-native/Makefile
+index 8f7fb37f90f7..1854dac7307a 100644
+--- a/tools/depends/native/python27-native/Makefile
++++ b/tools/depends/native/python27-native/Makefile
+@@ -4,7 +4,7 @@ DEPS= ../../Makefile.include Makefile
+ 
+ # lib name, version
+ LIBNAME=Python
+-VERSION=2.7.14
++VERSION=2.7.15
+ SOURCE=$(LIBNAME)-$(VERSION)
+ ARCHIVE=$(SOURCE).tar.xz
+ CWD=$(shell pwd)
+diff --git a/tools/depends/target/python27/Makefile b/tools/depends/target/python27/Makefile
+index 04b8ffa70084..5016342cc768 100644
+--- a/tools/depends/target/python27/Makefile
++++ b/tools/depends/target/python27/Makefile
+@@ -4,7 +4,7 @@ DEPS= ../../Makefile.include Makefile crosscompile.patch android.patch no-export
+ 
+ # lib name, version
+ LIBNAME=Python
+-VERSION=2.7.14
++VERSION=2.7.15
+ SOURCE=$(LIBNAME)-$(VERSION)
+ ARCHIVE=$(SOURCE).tar.xz
+ 
+diff --git a/tools/depends/target/python27/android-nl_langinfo.patch b/tools/depends/target/python27/android-nl_langinfo.patch
+index ddfed91a7398..e3fec4a8d7ea 100644
+--- a/tools/depends/target/python27/android-nl_langinfo.patch
++++ b/tools/depends/target/python27/android-nl_langinfo.patch
+@@ -1,6 +1,6 @@
+ --- a/Python/pythonrun.c
+ +++ b/Python/pythonrun.c
+-@@ -294,7 +294,7 @@
++@@ -301,7 +301,7 @@
+          overridden = 1;
+      }
+  
+@@ -11,7 +11,7 @@
+         Python codec, and Py_FileSystemDefaultEncoding isn't
+ --- a/configure.ac
+ +++ b/configure.ac
+-@@ -3088,7 +3088,7 @@
++@@ -3114,7 +3114,7 @@
+   getentropy \
+   getpriority getresuid getresgid getpwent getspnam getspent getsid getwd \
+   initgroups kill killpg lchmod lchown lstat mkfifo mknod mktime mmap \
+diff --git a/tools/depends/target/python27/android.patch b/tools/depends/target/python27/android.patch
+index aa80113c3db3..6c0386f5e4e9 100644
+--- a/tools/depends/target/python27/android.patch
++++ b/tools/depends/target/python27/android.patch
+@@ -1,6 +1,6 @@
+ --- a/Modules/posixmodule.c
+ +++ b/Modules/posixmodule.c
+-@@ -3985,7 +3985,7 @@
++@@ -3991,7 +3991,7 @@
+      slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
+      if (slave_fd < 0)
+          return posix_error();
+diff --git a/tools/depends/target/python27/crosscompile.patch b/tools/depends/target/python27/crosscompile.patch
+index 94caaa7fa94e..5e33c1e8290b 100644
+--- a/tools/depends/target/python27/crosscompile.patch
++++ b/tools/depends/target/python27/crosscompile.patch
+@@ -8,7 +8,7 @@
+  
+  PSRCS=		\
+  		Parser/acceler.c \
+-@@ -514,9 +515,9 @@
++@@ -523,9 +524,9 @@
+  	    *\ -s*|s*) quiet="-q";; \
+  	    *) quiet="";; \
+  	esac; \
+@@ -20,7 +20,7 @@
+  
+  # Build static library
+  # avoid long command lines, same as LIBRARY_OBJS
+-@@ -1114,12 +1115,12 @@
++@@ -1131,12 +1132,12 @@
+  		$(INSTALL_DATA) $(srcdir)/Modules/xxmodule.c \
+  			$(DESTDIR)$(LIBDEST)/distutils/tests ; \
+  	fi
+@@ -35,7 +35,7 @@
+  		$(PYTHON_FOR_BUILD) -Wi -tt -O $(DESTDIR)$(LIBDEST)/compileall.py \
+  		-d $(LIBDEST) -f \
+  		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
+-@@ -1247,11 +1248,13 @@
++@@ -1264,11 +1265,13 @@
+  # Install the dynamically loadable modules
+  # This goes into $(exec_prefix)
+  sharedinstall: sharedmods
+@@ -54,7 +54,7 @@
+  # Here are a couple of targets for MacOSX again, to install a full
+ --- a/configure.ac
+ +++ b/configure.ac
+-@@ -328,7 +328,6 @@
++@@ -343,7 +343,6 @@
+  	*)
+  		# for now, limit cross builds to known configurations
+  		MACHDEP="unknown"
+@@ -62,7 +62,7 @@
+  	esac
+  	ac_sys_release=
+      else
+-@@ -374,7 +373,6 @@
++@@ -389,7 +388,6 @@
+  	*)
+  		# for now, limit cross builds to known configurations
+  		MACHDEP="unknown"
+@@ -120,7 +120,7 @@
+          # XXX Omitted modules: gl, pure, dl, SGI-specific modules
+  
+          #
+-@@ -2051,8 +2060,13 @@
++@@ -2043,8 +2052,13 @@
+  
+                  # Pass empty CFLAGS because we'll just append the resulting
+                  # CFLAGS to Python's; -g or -O2 is to be avoided.
+diff --git a/tools/depends/target/python27/fix-ffi.patch b/tools/depends/target/python27/fix-ffi.patch
+index c0989705afd8..8fe55100e2b6 100644
+--- a/tools/depends/target/python27/fix-ffi.patch
++++ b/tools/depends/target/python27/fix-ffi.patch
+@@ -1,6 +1,6 @@
+ --- a/Modules/_ctypes/cfield.c
+ +++ b/Modules/_ctypes/cfield.c
+-@@ -1727,6 +1727,7 @@
++@@ -1735,6 +1735,7 @@
+  */
+  
+  /* align and size are bogus for void, but they must not be zero */
+@@ -8,7 +8,7 @@
+  ffi_type ffi_type_void = { 1, 1, FFI_TYPE_VOID };
+  
+  ffi_type ffi_type_uint8 = { 1, 1, FFI_TYPE_UINT8 };
+-@@ -1743,14 +1744,14 @@
++@@ -1751,14 +1752,14 @@
+  
+  ffi_type ffi_type_float = { sizeof(float), FLOAT_ALIGN, FFI_TYPE_FLOAT };
+  ffi_type ffi_type_double = { sizeof(double), DOUBLE_ALIGN, FFI_TYPE_DOUBLE };
+diff --git a/tools/depends/target/python27/make-fork-optional.patch b/tools/depends/target/python27/make-fork-optional.patch
+index 50df22d4ddfd..42b3bc9359c9 100644
+--- a/tools/depends/target/python27/make-fork-optional.patch
++++ b/tools/depends/target/python27/make-fork-optional.patch
+@@ -1,6 +1,6 @@
+ --- a/Modules/posixmodule.c
+ +++ b/Modules/posixmodule.c
+-@@ -162,6 +162,12 @@
++@@ -167,6 +167,12 @@
+  #endif  /* ! __WATCOMC__ || __QNX__ */
+  #endif /* ! __IBMC__ */
+  
+diff --git a/tools/depends/target/python27/no-abort.patch b/tools/depends/target/python27/no-abort.patch
+index 2ceb7dafbc87..72f82b8332f2 100644
+--- a/tools/depends/target/python27/no-abort.patch
++++ b/tools/depends/target/python27/no-abort.patch
+@@ -1,6 +1,6 @@
+ --- a/Modules/posixmodule.c
+ +++ b/Modules/posixmodule.c
+-@@ -8643,7 +8643,7 @@
++@@ -8649,7 +8649,7 @@
+  static PyObject *
+  posix_abort(PyObject *self, PyObject *noargs)
+  {
+@@ -11,7 +11,7 @@
+      return NULL;
+ --- a/Python/pythonrun.c
+ +++ b/Python/pythonrun.c
+-@@ -1697,7 +1697,7 @@
++@@ -1706,7 +1706,7 @@
+      DebugBreak();
+  #endif
+  #endif /* MS_WINDOWS */
+diff --git a/tools/depends/target/python27/no-export-path.patch b/tools/depends/target/python27/no-export-path.patch
+index d23b3513f53a..95e295240aec 100644
+--- a/tools/depends/target/python27/no-export-path.patch
++++ b/tools/depends/target/python27/no-export-path.patch
+@@ -1,6 +1,6 @@
+ --- a/Makefile.pre.in
+ +++ b/Makefile.pre.in
+-@@ -1142,8 +1142,6 @@
++@@ -1159,8 +1159,6 @@
+  $(srcdir)/Lib/$(PLATDIR):
+  	mkdir $(srcdir)/Lib/$(PLATDIR)
+  	cp $(srcdir)/Lib/plat-generic/regen $(srcdir)/Lib/$(PLATDIR)/regen
