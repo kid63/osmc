@@ -40,6 +40,7 @@ then
 	handle_dep "curl"
 	handle_dep "cvs"
 	handle_dep "default-jre-headless"
+	handle_dep "fstrcmp-dev"
 	handle_dep "gawk"
 	handle_dep "gdc"
 	handle_dep "gettext"
