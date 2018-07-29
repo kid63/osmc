@@ -14,8 +14,8 @@ Subject: [PATCH] Separating HRA from MA
 
 diff --git a/xbmc/cores/AudioEngine/Engine/ActiveAE/ActiveAE.cpp b/xbmc/cores/AudioEngine/Engine/ActiveAE/ActiveAE.cpp
 index 6577ed3..41552c1 100644
---- a/xbmc/cores/AudioEngine/AEFactory.cpp
-+++ b/xbmc/cores/AudioEngine/AEFactory.cpp
+--- a/xbmc/cores/AudioEngine/Engine/ActiveAE/ActiveAE.cpp
++++ b/xbmc/cores/AudioEngine/Engine/ActiveAE/ActiveAE.cpp
 @@ -197,6 +197,8 @@ bool CAEFactory::SupportsRaw(AEAudioFormat &format)
      return false;
    if (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTSHD && !m_settings.dtshdpassthrough) 
