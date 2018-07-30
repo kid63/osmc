@@ -14,11 +14,12 @@ diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngin
 index 3ff00c2..051e232 100644
 --- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 +++ b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
-@@ -35,6 +35,7 @@
+@@ -35,6 +35,8 @@
  #include "utils/MathUtils.h"
  #include "utils/SystemInfo.h"
  #include "threads/SingleLock.h"
 +#include "settings/Settings.h"
++#include "ServiceBroker.h"
  #include "settings/AdvancedSettings.h"
  #if defined(HAS_LIBAMCODEC)
  #include "utils/AMLUtils.h"
@@ -74,7 +75,7 @@ index 3ff00c2..051e232 100644
    }
  
 -  AEDeviceType devType = AEDeviceTypeFromName(device);
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_MUTEHDMI)) {
++ if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_MUTEHDMI)) {
 +    CLog::Log(LOGDEBUG, "CAESinkALSA::Initialize -- muting HDMI");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/config", "audio_off");
 + }
