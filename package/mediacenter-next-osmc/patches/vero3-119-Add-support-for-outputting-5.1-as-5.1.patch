@@ -130,9 +130,9 @@ index 3ff00c2..051e232 100644
 +
 +  }
 +
- #endif
  
    // we want it blocking
+   snd_pcm_nonblock(m_pcm, 0);
 @@ -812,7 +859,7 @@ bool CAESinkALSA::InitializeHW(const ALSAConfig &inconfig, ALSAConfig &outconfig
    bufferSize  = std::min(bufferSize, (snd_pcm_uframes_t) sampleRate / 5);
  #if defined(HAS_LIBAMCODEC)
