@@ -88,7 +88,7 @@ index 3ff00c2..051e232 100644
    std::string AESParams;
    /* digital interfaces should have AESx set, though in practice most
 @@ -655,10 +667,45 @@ bool CAESinkALSA::Initialize(AEAudioFormat &format, std::string &device)
- #ifdef SND_CHMAP_API_VERSION
+
    if (selectedChmap)
    {
 +	  /* Channel layout should match one of those offered by the sink
