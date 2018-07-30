@@ -1,0 +1,44 @@
+From 6b7929003c22228ceb7fd1ce0d8516ac63290da3 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Fri, 27 Jul 2018 23:28:37 +0200
+Subject: [PATCH] [PVR] Guide window: Only sort events item list when actually
+ necessary.
+
+---
+ xbmc/pvr/windows/GUIWindowPVRGuide.cpp | 10 ++++++++++
+ xbmc/pvr/windows/GUIWindowPVRGuide.h   |  1 +
+ 2 files changed, 11 insertions(+)
+
+diff --git a/xbmc/pvr/windows/GUIWindowPVRGuide.cpp b/xbmc/pvr/windows/GUIWindowPVRGuide.cpp
+index f022c7fc6b00..797eb5fbd582 100644
+--- a/xbmc/pvr/windows/GUIWindowPVRGuide.cpp
++++ b/xbmc/pvr/windows/GUIWindowPVRGuide.cpp
+@@ -239,6 +239,16 @@ bool CGUIWindowPVRGuideBase::GetDirectory(const std::string &strDirectory, CFile
+   return true;
+ }
+ 
++void CGUIWindowPVRGuideBase::FormatAndSort(CFileItemList &items)
++{
++  if (&items == m_vecItems)
++  {
++    // Speedup: Nothing to do here as sorting was already done in CGUIWindowPVRGuideBase::RefreshTimelineItems
++    return;
++  }
++  CGUIWindowPVRBase::FormatAndSort(items);
++}
++
+ bool CGUIWindowPVRGuideBase::ShouldNavigateToGridContainer(int iAction)
+ {
+   CGUIEPGGridContainer *epgGridContainer = GetGridControl();
+diff --git a/xbmc/pvr/windows/GUIWindowPVRGuide.h b/xbmc/pvr/windows/GUIWindowPVRGuide.h
+index 8f86c624bfa6..30583f30cbb2 100644
+--- a/xbmc/pvr/windows/GUIWindowPVRGuide.h
++++ b/xbmc/pvr/windows/GUIWindowPVRGuide.h
+@@ -49,6 +49,7 @@ namespace PVR
+     void UpdateSelectedItemPath() override;
+     std::string GetDirectoryPath(void) override { return ""; }
+     bool GetDirectory(const std::string &strDirectory, CFileItemList &items) override;
++    void FormatAndSort(CFileItemList &items) override;
+ 
+     void ClearData() override;
+ 
