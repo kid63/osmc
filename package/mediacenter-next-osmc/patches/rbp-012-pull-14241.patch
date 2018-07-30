@@ -1,0 +1,34 @@
+From d8d49a294b7fe23543d46b656580ee9099e410a0 Mon Sep 17 00:00:00 2001
+From: DaveTBlake <oak99sky@yahoo.co.uk>
+Date: Sun, 29 Jul 2018 14:20:50 +0100
+Subject: [PATCH] Fix GUI control move offset for music item lists
+
+---
+ xbmc/music/windows/GUIWindowMusicNav.cpp | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/music/windows/GUIWindowMusicNav.cpp b/xbmc/music/windows/GUIWindowMusicNav.cpp
+index 572979e89f82..cc140d45a71d 100644
+--- a/xbmc/music/windows/GUIWindowMusicNav.cpp
++++ b/xbmc/music/windows/GUIWindowMusicNav.cpp
+@@ -97,7 +97,7 @@ bool CGUIWindowMusicNav::OnMessage(CGUIMessage& message)
+     break;
+   case GUI_MSG_WINDOW_INIT:
+     {
+-/* We don't want to show Autosourced items (ie removable pendrives, memorycards) in Library mode */
++      /* We don't want to show Autosourced items (ie removable pendrives, memorycards) in Library mode */
+       m_rootDir.AllowNonLocalSources(false);
+ 
+       // is this the first time the window is opened?
+@@ -115,6 +115,11 @@ bool CGUIWindowMusicNav::OnMessage(CGUIMessage& message)
+         for (; i < m_vecItems->Size(); i++)
+         {
+           CFileItemPtr pItem = m_vecItems->Get(i);
++
++          // skip ".."
++          if (pItem->IsParentFolder())
++            continue;
++
+           if (URIUtils::PathEquals(pItem->GetPath(), message.GetStringParam(0), true, true))
+           {
+             m_viewControl.SetSelectedItem(i);
