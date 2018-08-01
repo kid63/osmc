@@ -118,7 +118,12 @@ function build_in_env()
         then
             if [ ! -f /opt/osmc-tc/swap ]
             then
-                dd if=/dev/zero of=/opt/osmc-tc/swap bs=1M count=384
+                if [ ! -f /opt/osmc-tc ] 
+		then
+			mkdir /opt/osmc-tc
+		fi
+
+		dd if=/dev/zero of=/opt/osmc-tc/swap bs=1M count=384
                 mkswap /opt/osmc-tc/swap
                 chmod 0600 /opt/osmc-tc/swap
             fi
