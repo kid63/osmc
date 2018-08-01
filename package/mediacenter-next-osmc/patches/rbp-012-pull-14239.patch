@@ -1,0 +1,195 @@
+From 556a07b86c75657bdb922df54d29d65d48319cfb Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sun, 29 Jul 2018 11:12:39 +0200
+Subject: [PATCH] [guiinfo] Fix PLAYER_(PATH|FILENAME|FILEPATH).
+
+---
+ xbmc/guilib/guiinfo/GUIInfoHelper.cpp | 21 +++++++++++++++++++++
+ xbmc/guilib/guiinfo/GUIInfoHelper.h   |  3 ++-
+ xbmc/guilib/guiinfo/MusicGUIInfo.cpp  | 31 ++++++++-----------------------
+ xbmc/guilib/guiinfo/PlayerGUIInfo.cpp | 13 +------------
+ xbmc/guilib/guiinfo/VideoGUIInfo.cpp  | 31 ++++++++-----------------------
+ 5 files changed, 40 insertions(+), 59 deletions(-)
+
+diff --git a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+index 629ced6e0744..afd07a094fd4 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
++++ b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+@@ -16,6 +16,7 @@
+ #include "guilib/LocalizeStrings.h"
+ #include "playlists/PlayList.h"
+ #include "utils/StringUtils.h"
++#include "utils/URIUtils.h"
+ #include "windows/GUIMediaWindow.h"
+ 
+ #include "guilib/guiinfo/GUIInfoLabels.h"
+@@ -175,6 +176,26 @@ CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId /* = 0 */,
+   return item;
+ }
+ 
++std::string GetFileInfoLabelValueFromPath(int info, const std::string& filenameAndPath)
++{
++  std::string value = filenameAndPath;
++
++  if (info == PLAYER_PATH)
++  {
++    // do this twice since we want the path outside the archive if this is to be of use.
++    if (URIUtils::IsInArchive(value))
++      value = URIUtils::GetParentPath(value);
++
++    value = URIUtils::GetParentPath(value);
++  }
++  else if (info == PLAYER_FILENAME)
++  {
++    value = URIUtils::GetFileName(value);
++  }
++
++  return value;
++}
++
+ } // namespace GUIINFO
+ } // namespace GUILIB
+ } // namespace KODI
+diff --git a/xbmc/guilib/guiinfo/GUIInfoHelper.h b/xbmc/guilib/guiinfo/GUIInfoHelper.h
+index 3f3860d9e38f..433d6c646d5a 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoHelper.h
++++ b/xbmc/guilib/guiinfo/GUIInfoHelper.h
+@@ -14,7 +14,6 @@
+ #include "PlayListPlayer.h"
+ 
+ class CFileItem;
+-typedef std::shared_ptr<CFileItem> CFileItemPtr;
+ 
+ class CGUIListItem;
+ typedef std::shared_ptr<CGUIListItem> CGUIListItemPtr;
+@@ -37,6 +36,8 @@ CGUIControl* GetActiveContainer(int containerId, int contextWindow);
+ CGUIMediaWindow* GetMediaWindow(int contextWindow);
+ CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId = 0, int itemOffset = 0, unsigned int itemFlags = 0);
+ 
++std::string GetFileInfoLabelValueFromPath(int info, const std::string& filenameAndPath);
++
+ } // namespace GUIINFO
+ } // namespace GUILIB
+ } // namespace KODI
+diff --git a/xbmc/guilib/guiinfo/MusicGUIInfo.cpp b/xbmc/guilib/guiinfo/MusicGUIInfo.cpp
+index 872c57aea5af..1203a7ae9120 100644
+--- a/xbmc/guilib/guiinfo/MusicGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/MusicGUIInfo.cpp
+@@ -86,6 +86,14 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       /////////////////////////////////////////////////////////////////////////////////////////////
+       // PLAYER_* / MUSICPLAYER_* / LISTITEM_*
+       /////////////////////////////////////////////////////////////////////////////////////////////
++      case PLAYER_PATH:
++      case PLAYER_FILENAME:
++      case PLAYER_FILEPATH:
++        value = tag->GetURL();
++        if (value.empty())
++          value = item->GetPath();
++        value = GUIINFO::GetFileInfoLabelValueFromPath(info.m_info, value);
++        return true;
+       case PLAYER_TITLE:
+       case MUSICPLAYER_TITLE:
+         value = tag->GetTitle();
+@@ -302,29 +310,6 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+ 
+   switch (info.m_info)
+   {
+-    ///////////////////////////////////////////////////////////////////////////////////////////////
+-    // PLAYER_*
+-    ///////////////////////////////////////////////////////////////////////////////////////////////
+-    case PLAYER_PATH:
+-    case PLAYER_FILENAME:
+-    case PLAYER_FILEPATH:
+-      if (tag)
+-        value = tag->GetURL();
+-      if (value.empty())
+-        value = item->GetPath();
+-
+-      if (info.m_info == PLAYER_PATH)
+-      {
+-        // do this twice since we want the path outside the archive if this
+-        // is to be of use.
+-        if (URIUtils::IsInArchive(value))
+-          value = URIUtils::GetParentPath(value);
+-        value = URIUtils::GetParentPath(value);
+-      }
+-      else if (info.m_info == PLAYER_FILENAME)
+-        value = URIUtils::GetFileName(value);
+-      return true;
+-
+     ///////////////////////////////////////////////////////////////////////////////////////////////
+     // MUSICPLAYER_*
+     ///////////////////////////////////////////////////////////////////////////////////////////////
+diff --git a/xbmc/guilib/guiinfo/PlayerGUIInfo.cpp b/xbmc/guilib/guiinfo/PlayerGUIInfo.cpp
+index d1914a1ded12..c721ad60d154 100644
+--- a/xbmc/guilib/guiinfo/PlayerGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/PlayerGUIInfo.cpp
+@@ -209,18 +209,7 @@ bool CPlayerGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
+     case PLAYER_PATH:
+     case PLAYER_FILENAME:
+     case PLAYER_FILEPATH:
+-      value = item->GetPath();
+-
+-      if (info.m_info == PLAYER_PATH)
+-      {
+-        // do this twice since we want the path outside the archive if this
+-        // is to be of use.
+-        if (URIUtils::IsInArchive(value))
+-          value = URIUtils::GetParentPath(value);
+-        value = URIUtils::GetParentPath(value);
+-      }
+-      else if (info.m_info == PLAYER_FILENAME)
+-        value = URIUtils::GetFileName(value);
++      value = GUIINFO::GetFileInfoLabelValueFromPath(info.m_info, item->GetPath());
+       return true;
+     case PLAYER_TITLE:
+       // use label or drop down to title from path
+diff --git a/xbmc/guilib/guiinfo/VideoGUIInfo.cpp b/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
+index d6e1687999b6..590ebf70f3f2 100644
+--- a/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
+@@ -91,6 +91,14 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       /////////////////////////////////////////////////////////////////////////////////////////////
+       // PLAYER_* / VIDEOPLAYER_* / LISTITEM_*
+       /////////////////////////////////////////////////////////////////////////////////////////////
++      case PLAYER_PATH:
++      case PLAYER_FILENAME:
++      case PLAYER_FILEPATH:
++        value = tag->m_strFileNameAndPath;
++        if (value.empty())
++          value = item->GetPath();
++        value = GUIINFO::GetFileInfoLabelValueFromPath(info.m_info, value);
++        return true;
+       case PLAYER_TITLE:
+       case VIDEOPLAYER_TITLE:
+         value = tag->m_strTitle;
+@@ -451,29 +459,6 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+ 
+   switch (info.m_info)
+   {
+-    ///////////////////////////////////////////////////////////////////////////////////////////////
+-    // PLAYER_*
+-    ///////////////////////////////////////////////////////////////////////////////////////////////
+-    case PLAYER_PATH:
+-    case PLAYER_FILENAME:
+-    case PLAYER_FILEPATH:
+-      if (tag)
+-        value = tag->m_strFileNameAndPath;
+-      if (value.empty())
+-        value = item->GetPath();
+-
+-      if (info.m_info == PLAYER_PATH)
+-      {
+-        // do this twice since we want the path outside the archive if this
+-        // is to be of use.
+-        if (URIUtils::IsInArchive(value))
+-          value = URIUtils::GetParentPath(value);
+-        value = URIUtils::GetParentPath(value);
+-      }
+-      else if (info.m_info == PLAYER_FILENAME)
+-        value = URIUtils::GetFileName(value);
+-      return true;
+-
+     ///////////////////////////////////////////////////////////////////////////////////////////////
+     // VIDEOPLAYER_*
+     ///////////////////////////////////////////////////////////////////////////////////////////////
