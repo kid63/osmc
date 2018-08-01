@@ -1,0 +1,26 @@
+From 849c7182a7fd9af511e967dc316cee4d6ca1d152 Mon Sep 17 00:00:00 2001
+From: Martijn Kaijser <mcm.kaijser@gmail.com>
+Date: Tue, 31 Jul 2018 17:33:10 +0200
+Subject: [PATCH] bump to v18 beta1
+
+---
+ version.txt | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/version.txt b/version.txt
+index 2616e2a60536..0fa323e5b051 100644
+--- a/version.txt
++++ b/version.txt
+@@ -3,9 +3,9 @@ COMPANY_NAME XBMC Foundation
+ WEBSITE http://kodi.tv
+ VERSION_MAJOR 18
+ VERSION_MINOR 0
+-VERSION_TAG ALPHA3
+-VERSION_CODE 17.99.703
+-ADDON_API 17.9.703
++VERSION_TAG BETA1
++VERSION_CODE 17.99.801
++ADDON_API 17.9.801
+ APP_PACKAGE org.xbmc.kodi
+ PACKAGE_IDENTITY XBMCFoundation.Kodi
+ PACKAGE_PUBLISHER C62BD90A-CDD8-477F-96C3-B25992247B97
