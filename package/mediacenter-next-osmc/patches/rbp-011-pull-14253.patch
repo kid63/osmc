@@ -1,0 +1,400 @@
+From cdd5417611ddce737fef6008a6a67ebad84be67a Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Tue, 31 Jul 2018 23:21:41 +0200
+Subject: [PATCH] VideoPlayer: allow saving video buffers on flush
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp             |  4 ++--
+ .../VideoPlayer/VideoRenderers/BaseRenderer.h      |  2 +-
+ .../VideoRenderers/HwDecRender/MMALRenderer.cpp    |  4 +++-
+ .../VideoRenderers/HwDecRender/MMALRenderer.h      |  2 +-
+ .../HwDecRender/RendererDRMPRIME.cpp               |  3 ++-
+ .../VideoRenderers/HwDecRender/RendererDRMPRIME.h  |  2 +-
+ .../VideoRenderers/HwDecRender/RendererVDPAU.h     |  2 ++
+ .../VideoRenderers/HwDecRender/RendererVTBGL.cpp   |  8 +++++---
+ .../VideoPlayer/VideoRenderers/LinuxRendererGL.cpp | 19 +++++++++++++++----
+ .../VideoPlayer/VideoRenderers/LinuxRendererGL.h   |  7 +++----
+ .../VideoRenderers/LinuxRendererGLES.cpp           |  4 +++-
+ .../VideoPlayer/VideoRenderers/LinuxRendererGLES.h |  2 +-
+ .../VideoPlayer/VideoRenderers/RenderManager.cpp   | 22 ++++++++++++----------
+ .../VideoPlayer/VideoRenderers/RenderManager.h     |  2 +-
+ .../VideoPlayer/VideoRenderers/WinRenderer.cpp     |  6 ++++--
+ .../cores/VideoPlayer/VideoRenderers/WinRenderer.h |  2 +-
+ 16 files changed, 57 insertions(+), 34 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index c41a36e9f5aa..e8c499e0bc70 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -2593,7 +2593,7 @@ void CVideoPlayer::HandleMessages()
+       });
+ 
+       FlushBuffers(DVD_NOPTS_VALUE, true, true);
+-      m_renderManager.Flush(false);
++      m_renderManager.Flush(false, false);
+       SAFE_DELETE(m_pDemuxer);
+       SAFE_DELETE(m_pSubtitleDemuxer);
+       SAFE_DELETE(m_pCCDemuxer);
+@@ -4840,7 +4840,7 @@ void CVideoPlayer::Render(bool clear, uint32_t alpha, bool gui)
+ 
+ void CVideoPlayer::FlushRenderer()
+ {
+-  m_renderManager.Flush(true);
++  m_renderManager.Flush(true, true);
+ }
+ 
+ void CVideoPlayer::SetRenderViewMode(int mode, float zoom, float par, float shift, bool stretch)
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.h b/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.h
+index e0a9f6715b0e..451d182e6f29 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.h
+@@ -56,7 +56,7 @@ class CBaseRenderer
+   virtual void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) = 0;
+   virtual bool IsPictureHW(const VideoPicture &picture) { return false; };
+   virtual void UnInit() = 0;
+-  virtual void Flush() {};
++  virtual bool Flush(bool saveBuffers) { return false; };
+   virtual void SetBufferSize(int numBuffers) { }
+   virtual void ReleaseBuffer(int idx) { }
+   virtual bool NeedBuffer(int idx) { return false; }
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.cpp
+index 3768e94b1716..249867b11b14 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.cpp
+@@ -967,13 +967,15 @@ void CMMALRenderer::ReleaseBuffer(int id)
+   m_buffers[id] = nullptr;
+ }
+ 
+-void CMMALRenderer::Flush()
++bool CMMALRenderer::Flush(bool saveBuffers)
+ {
+   CSingleLock lock(m_sharedSection);
+   CLog::Log(LOGDEBUG, "%s::%s", CLASSNAME, __func__);
+   if (m_vout_input)
+     mmal_port_flush(m_vout_input);
+   ReleaseBuffers();
++
++  return false;
+ }
+ 
+ void CMMALRenderer::Update()
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.h b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.h
+index b7ccbb034d7f..cd85179b2872 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.h
+@@ -142,7 +142,7 @@ class CMMALRenderer : public CBaseRenderer, public CThread, public IRunnable
+   virtual bool         Configure(const VideoPicture &picture, float fps, unsigned int orientation) override;
+   virtual void         ReleaseBuffer(int idx) override;
+   virtual void         UnInit();
+-  virtual void         Flush() override;
++  virtual bool         Flush(bool saveBuffers) override;
+   virtual bool         IsConfigured() override { return m_bConfigured; }
+   virtual void         AddVideoPicture(const VideoPicture& pic, int index, double currentClock) override;
+   virtual bool         IsPictureHW(const VideoPicture &picture) override { return false; };
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp
+index c14c964c83b5..c2966d676981 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp
+@@ -116,9 +116,10 @@ void CRendererDRMPRIME::Reset()
+   m_iLastRenderBuffer = -1;
+ }
+ 
+-void CRendererDRMPRIME::Flush()
++bool CRendererDRMPRIME::Flush(bool saveBuffers)
+ {
+   m_iLastRenderBuffer = -1;
++  return false;
+ }
+ 
+ void CRendererDRMPRIME::ReleaseBuffer(int index)
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.h b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.h
+index 7d12c4c8bc32..931e527f4a28 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.h
+@@ -28,7 +28,7 @@ class CRendererDRMPRIME
+   bool IsConfigured() override { return m_bConfigured; };
+   void AddVideoPicture(const VideoPicture& picture, int index, double currentClock) override;
+   void UnInit() override {};
+-  void Flush() override;
++  bool Flush(bool saveBuffers) override;
+   void ReleaseBuffer(int idx) override;
+   bool NeedBuffer(int idx) override;
+   bool IsGuiLayer() override { return false; };
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVDPAU.h b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVDPAU.h
+index 4544f272ec0f..77e45eea4ccf 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVDPAU.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVDPAU.h
+@@ -51,6 +51,8 @@ class CRendererVDPAU : public CLinuxRendererGL
+ 
+   EShaderFormat GetShaderFormat() override;
+ 
++  bool CanSaveBuffers() override { return false; };
++
+   bool m_isYuv = false;
+ 
+   VDPAU::CInteropState m_interopState;
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGL.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGL.cpp
+index fe5078808ba7..a708a22d7fb1 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGL.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGL.cpp
+@@ -43,6 +43,7 @@ CRendererVTB::~CRendererVTB()
+ {
+   for (int i = 0; i < NUM_BUFFERS; ++i)
+   {
++    ReleaseBuffer(i);
+     DeleteTexture(i);
+   }
+ }
+@@ -84,6 +85,7 @@ bool CRendererVTB::CreateTexture(int index)
+   YuvImage &im = buf.image;
+   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
+ 
++  ReleaseBuffer(index);
+   DeleteTexture(index);
+ 
+   memset(&im    , 0, sizeof(im));
+@@ -118,9 +120,9 @@ bool CRendererVTB::CreateTexture(int index)
+ 
+ void CRendererVTB::DeleteTexture(int index)
+ {
+-  YUVPLANE (&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[0];
+-
+-  ReleaseBuffer(index);
++  CPictureBuffer& buf = m_buffers[index];
++  YUVPLANE (&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
++  buf.loaded = false;
+ 
+   if (planes[0].id && glIsTexture(planes[0].id))
+   {
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.cpp
+index e2810b83788f..2737b8419134 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.cpp
+@@ -200,7 +200,9 @@ bool CLinuxRendererGL::ValidateRenderTarget()
+     // call to LoadShaders
+     glFinish();
+     for (int i = 0 ; i < NUM_BUFFERS ; i++)
++    {
+       DeleteTexture(i);
++    }
+ 
+     // trigger update of video filters
+     m_scalingMethodGui = (ESCALINGMETHOD)-1;
+@@ -252,9 +254,9 @@ bool CLinuxRendererGL::Configure(const VideoPicture &picture, float fps, unsigne
+   // frame is loaded after every call to Configure().
+   m_bValidated = false;
+ 
+-  m_nonLinStretch    = false;
++  m_nonLinStretch = false;
+   m_nonLinStretchGui = false;
+-  m_pixelRatio       = 1.0;
++  m_pixelRatio = 1.0;
+ 
+   m_pboSupported = CServiceBroker::GetRenderSystem()->IsExtSupported("GL_ARB_pixel_buffer_object");
+ 
+@@ -452,17 +454,24 @@ void CLinuxRendererGL::LoadPlane(YUVPLANE& plane, int type,
+     glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+ }
+ 
+-void CLinuxRendererGL::Flush()
++bool CLinuxRendererGL::Flush(bool saveBuffers)
+ {
++  bool safe = saveBuffers && CanSaveBuffers();
+   glFinish();
+ 
+   for (int i = 0 ; i < m_NumYV12Buffers ; i++)
++  {
++    if (!safe)
++      ReleaseBuffer(i);
+     DeleteTexture(i);
++  }
+ 
+   glFinish();
+   m_bValidated = false;
+   m_fbo.fbo.Cleanup();
+   m_iYV12RenderBuffer = 0;
++
++  return safe;
+ }
+ 
+ void CLinuxRendererGL::Update()
+@@ -979,6 +988,7 @@ void CLinuxRendererGL::UnInit()
+   // YV12 textures
+   for (int i = 0; i < NUM_BUFFERS; ++i)
+   {
++    ReleaseBuffer(i);
+     DeleteTexture(i);
+   }
+ 
+@@ -1757,7 +1767,8 @@ bool CLinuxRendererGL::CreateTexture(int index)
+ 
+ void CLinuxRendererGL::DeleteTexture(int index)
+ {
+-  ReleaseBuffer(index);
++  CPictureBuffer& buf = m_buffers[index];
++  buf.loaded = false;
+ 
+   if (m_format == AV_PIX_FMT_NV12)
+     DeleteNV12Texture(index);
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h
+index 266badd88c70..28f264bbc2f0 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h
+@@ -77,7 +77,7 @@ class CLinuxRendererGL : public CBaseRenderer
+   bool IsConfigured() override { return m_bConfigured; }
+   void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
+   void UnInit() override;
+-  void Flush() override;
++  bool Flush(bool saveBuffers) override;
+   void SetBufferSize(int numBuffers) override { m_NumYV12Buffers = numBuffers; }
+   void ReleaseBuffer(int idx) override;
+   void RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha) override;
+@@ -129,10 +129,11 @@ class CLinuxRendererGL : public CBaseRenderer
+   void RenderRGB(int renderBuffer, int field);      // render using vdpau/vaapi hardware
+   void RenderProgressiveWeave(int renderBuffer, int field); // render using vdpau hardware
+ 
+-  // hooks for HwDec Renderered
++  // hooks for HwDec Renderer
+   virtual bool LoadShadersHook() { return false; };
+   virtual bool RenderHook(int idx) { return false; };
+   virtual void AfterRenderHook(int idx) {};
++  virtual bool CanSaveBuffers() { return true; };
+ 
+   struct
+   {
+@@ -239,5 +240,3 @@ class CLinuxRendererGL : public CBaseRenderer
+   bool LoadCLUT();
+   void DeleteCLUT();
+ };
+-
+-
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.cpp
+index 6ae4ca7f040a..2146fc59c7d4 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.cpp
+@@ -335,7 +335,7 @@ void CLinuxRendererGLES::LoadPlane(YUVPLANE& plane, int type,
+   glBindTexture(m_textureTarget, 0);
+ }
+ 
+-void CLinuxRendererGLES::Flush()
++bool CLinuxRendererGLES::Flush(bool saveBuffers)
+ {
+   glFinish();
+ 
+@@ -346,6 +346,8 @@ void CLinuxRendererGLES::Flush()
+   m_bValidated = false;
+   m_fbo.fbo.Cleanup();
+   m_iYV12RenderBuffer = 0;
++
++  return false;
+ }
+ 
+ void CLinuxRendererGLES::Update()
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h
+index 68b134f068ff..d257e7c19906 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h
+@@ -96,7 +96,7 @@ class CLinuxRendererGLES : public CBaseRenderer
+   virtual bool IsConfigured() override { return m_bConfigured; }
+   virtual void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
+   virtual void UnInit() override;
+-  virtual void Flush() override;
++  virtual bool Flush(bool saveBuffers) override;
+   virtual void ReorderDrawPoints() override;
+   virtual void SetBufferSize(int numBuffers) override { m_NumYV12Buffers = numBuffers; }
+   virtual bool IsGuiLayer() override;
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
+index 3e8e724422d9..b47e9938e5cd 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.cpp
+@@ -404,7 +404,7 @@ void CRenderManager::UnInit()
+   m_initEvent.Set();
+ }
+ 
+-bool CRenderManager::Flush(bool wait)
++bool CRenderManager::Flush(bool wait, bool saveBuffers)
+ {
+   if (!m_pRenderer)
+     return true;
+@@ -421,18 +421,20 @@ bool CRenderManager::Flush(bool wait)
+ 
+     if (m_pRenderer)
+     {
+-      m_pRenderer->Flush();
+       m_overlays.Flush();
+       m_debugRenderer.Flush();
+ 
+-      m_queued.clear();
+-      m_discard.clear();
+-      m_free.clear();
+-      m_presentsource = 0;
+-      m_presentsourcePast = -1;
+-      m_presentstep = PRESENT_IDLE;
+-      for (int i = 1; i < m_QueueSize; i++)
+-        m_free.push_back(i);
++      if (m_pRenderer->Flush(saveBuffers))
++      {
++        m_queued.clear();
++        m_discard.clear();
++        m_free.clear();
++        m_presentsource = 0;
++        m_presentsourcePast = -1;
++        m_presentstep = PRESENT_IDLE;
++        for (int i = 1; i < m_QueueSize; i++)
++          m_free.push_back(i);
++      }
+ 
+       m_flushEvent.Set();
+     }
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h
+index 24d82926befd..cc90c6263d2e 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/RenderManager.h
+@@ -70,7 +70,7 @@ class CRenderManager
+   void SetViewMode(int iViewMode);
+   void PreInit();
+   void UnInit();
+-  bool Flush(bool wait);
++  bool Flush(bool wait, bool saveBuffers);
+   bool IsConfigured() const;
+   void ToggleDebug();
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp
+index a8a5cddb4f01..fba685617987 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp
+@@ -338,10 +338,10 @@ void CWinRenderer::UnInit()
+   m_outputShader.reset();
+ }
+ 
+-void CWinRenderer::Flush()
++bool CWinRenderer::Flush(bool saveBuffers)
+ {
+   if (!m_bConfigured)
+-    return;
++    return false;
+ 
+   for (int i = 0; i < NUM_BUFFERS; i++)
+     DeleteRenderBuffer(i);
+@@ -349,6 +349,8 @@ void CWinRenderer::Flush()
+   m_iYV12RenderBuffer = 0;
+   m_NumYV12Buffers = 0;
+   m_bFilterInitialized = false;
++
++  return false;
+ }
+ 
+ bool CWinRenderer::CreateIntermediateRenderTarget(unsigned int width, unsigned int height, bool dynamic)
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.h b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.h
+index 73ff3973b770..88deba4f9160 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.h
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.h
+@@ -50,7 +50,7 @@ class CWinRenderer : public CBaseRenderer
+   void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
+   void UnInit() override;
+   bool IsConfigured() override { return m_bConfigured; }
+-  void Flush() override;
++  bool Flush(bool saveBuffers) override;
+   CRenderInfo GetRenderInfo() override;
+   void RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha) override;
+   void SetBufferSize(int numBuffers) override { m_neededBuffers = numBuffers; }
