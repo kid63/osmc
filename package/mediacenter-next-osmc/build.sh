@@ -338,10 +338,9 @@ game.libretro.bsnes-mercury-balanced  \
 game.libretro.dosbox game.libretro.bluemsx \
 game.libretro.gambatte \
 game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
-game.libretro.quicknes \
+game.libretro.quicknes game.libretro.scummvm \
 game.libretro.snes9x game.libretro.stella \
 game.libretro.vbam game.libretro.yabause game.libretro.genplus"
-# game.libretro.scummvm
 # Remove game.libretro.mame game.libretro.bsnes-mercury-accuracy game.libretro.mupen64plus game.libretro.pcsx-rearmed
 	ADDONS_PVR="pvr.sledovanitv.cz pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.hdhomerun pvr.iptvsimple pvr.demo pvr.mediaportal.tvserver vfs.libarchive vfs.rar vfs.sftp" 
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
