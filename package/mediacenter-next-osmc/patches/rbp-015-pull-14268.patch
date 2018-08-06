@@ -1,0 +1,31 @@
+From c5addf4d24447f83134c117afcf55be1216c8d63 Mon Sep 17 00:00:00 2001
+From: DaveTBlake <oak99sky@yahoo.co.uk>
+Date: Sun, 5 Aug 2018 13:51:02 +0100
+Subject: [PATCH] [JSON] Fix for MySQL 8.0 remove brackets from query used by
+ AudioLibrary.GetArtists. Patch bump to v9.5.1
+
+---
+ xbmc/interfaces/json-rpc/schema/version.txt | 2 +-
+ xbmc/music/MusicDatabase.cpp                | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/interfaces/json-rpc/schema/version.txt b/xbmc/interfaces/json-rpc/schema/version.txt
+index ea53cf3718d0..cc75305c107b 100644
+--- a/xbmc/interfaces/json-rpc/schema/version.txt
++++ b/xbmc/interfaces/json-rpc/schema/version.txt
+@@ -1 +1 @@
+-JSONRPC_VERSION 9.5.0
++JSONRPC_VERSION 9.5.1
+diff --git a/xbmc/music/MusicDatabase.cpp b/xbmc/music/MusicDatabase.cpp
+index 59bcc76f815b..deeebe443bfc 100644
+--- a/xbmc/music/MusicDatabase.cpp
++++ b/xbmc/music/MusicDatabase.cpp
+@@ -5115,7 +5115,7 @@ bool CMusicDatabase::GetArtistsByWhereJSON(const std::set<std::string>& fields,
+           return false;
+         strSongSQL = "SELECT " + songArtistFilter.fields + " FROM song_artist " + strSongSQL;
+ 
+-        joinFilter.AppendJoin("JOIN ((" + strAlbumSQL + " UNION " + strSongSQL + ") AS albumSong) ON id = a1.idArtist");
++        joinFilter.AppendJoin("JOIN (" + strAlbumSQL + " UNION " + strSongSQL + ") AS albumSong ON id = a1.idArtist");
+       }
+       else
+       { //Only join album_artist, so move filter elements to join filter
