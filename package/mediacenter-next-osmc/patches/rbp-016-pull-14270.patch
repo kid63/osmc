@@ -1,0 +1,24 @@
+From 002ec54cc9804e5b1b1ebc1f3776e021c1ebea89 Mon Sep 17 00:00:00 2001
+From: Alan Swanson <reiver@improbability.net>
+Date: Mon, 6 Aug 2018 09:34:52 +0100
+Subject: [PATCH] [videoplayer] DVDDemux::GetStreamType(): Add Opus codec
+ string.
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.cpp
+index 2495c594eb3a..c2ac33f49650 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemux.cpp
+@@ -53,6 +53,9 @@ std::string CDemuxStreamAudio::GetStreamType()
+   case AV_CODEC_ID_FLAC:
+     strInfo = "FLAC ";
+     break;
++  case AV_CODEC_ID_OPUS:
++    strInfo = "Opus ";
++    break;
+   case AV_CODEC_ID_VORBIS:
+     strInfo = "Vorbis ";
+     break;
