@@ -22,7 +22,7 @@ index 0000000..e6b94c5
 --- /dev/null
 +++ b/depends/common/bz2/bz2.sha256
 @@ -0,0 +1 @@
-+a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd
++2492879d786a7f9c11d1296b5a31f42a12a89020f627d6fb6042ea5768d85871
 diff --git a/depends/common/libarchive/libarchive.sha256 b/depends/common/libarchive/libarchive.sha256
 new file mode 100644
 index 0000000..63e659b
