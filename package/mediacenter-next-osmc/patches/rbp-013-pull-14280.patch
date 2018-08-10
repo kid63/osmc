@@ -1,0 +1,515 @@
+From 83a1e63593fff96b47bdde78ba4c81f30fc0bd65 Mon Sep 17 00:00:00 2001
+From: xbmc <fernetmenta@online.de>
+Date: Wed, 8 Aug 2018 11:55:38 +0200
+Subject: [PATCH 1/2] X11: fix w/h for rotated modes
+
+---
+ xbmc/windowing/X11/WinSystemX11.cpp | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/xbmc/windowing/X11/WinSystemX11.cpp b/xbmc/windowing/X11/WinSystemX11.cpp
+index daa4e7cdb508..4415dfc1ff5a 100644
+--- a/xbmc/windowing/X11/WinSystemX11.cpp
++++ b/xbmc/windowing/X11/WinSystemX11.cpp
+@@ -361,20 +361,15 @@ void CWinSystemX11::UpdateResolutions()
+   XOutput *out = g_xrandr.GetOutput(m_userOutput);
+   if (out != NULL)
+   {
+-    std::vector<XMode>::iterator modeiter;
+     CLog::Log(LOGINFO, "Output '%s' has %" PRIdS" modes", out->name.c_str(), out->modes.size());
+ 
+-    for (modeiter = out->modes.begin() ; modeiter!=out->modes.end() ; modeiter++)
++    for (auto mode : out->modes)
+     {
+-      XMode mode = *modeiter;
+       CLog::Log(LOGINFO, "ID:%s Name:%s Refresh:%f Width:%d Height:%d",
+                 mode.id.c_str(), mode.name.c_str(), mode.hz, mode.w, mode.h);
+       RESOLUTION_INFO res;
+       res.dwFlags = 0;
+-      res.iWidth  = mode.w;
+-      res.iHeight = mode.h;
+-      res.iScreenWidth  = mode.w;
+-      res.iScreenHeight = mode.h;
++
+       if (mode.IsInterlaced())
+         res.dwFlags |= D3DPRESENTFLAG_INTERLACED;
+ 
+@@ -382,13 +377,18 @@ void CWinSystemX11::UpdateResolutions()
+       {
+         res.iWidth  = mode.w;
+         res.iHeight = mode.h;
++        res.iScreenWidth = mode.w;
++        res.iScreenHeight = mode.h;
+       }
+       else
+       {
+         res.iWidth  = mode.h;
+         res.iHeight = mode.w;
++        res.iScreenWidth = mode.h;
++        res.iScreenHeight = mode.w;
+       }
+-      if (mode.h>0 && mode.w>0 && out->hmm>0 && out->wmm>0)
++
++      if (mode.h > 0 && mode.w > 0 && out->hmm > 0 && out->wmm > 0)
+         res.fPixelRatio = ((float)out->wmm/(float)mode.w) / (((float)out->hmm/(float)mode.h));
+       else
+         res.fPixelRatio = 1.0f;
+
+From f445d0d1d626f93f01cd99d88ff9a12423f8973b Mon Sep 17 00:00:00 2001
+From: xbmc <fernetmenta@online.de>
+Date: Wed, 8 Aug 2018 17:29:29 +0200
+Subject: [PATCH 2/2] X11: change VideoSyncDRM to VideoSyncOML
+
+---
+ xbmc/windowing/X11/CMakeLists.txt             |   4 +-
+ xbmc/windowing/X11/GLContext.h                |   2 +-
+ xbmc/windowing/X11/GLContextEGL.cpp           |   7 +-
+ xbmc/windowing/X11/GLContextEGL.h             |   3 +-
+ xbmc/windowing/X11/VideoSyncDRM.cpp           | 169 ------------------
+ xbmc/windowing/X11/VideoSyncOML.cpp           |  71 ++++++++
+ .../X11/{VideoSyncDRM.h => VideoSyncOML.h}    |  16 +-
+ xbmc/windowing/X11/WinSystemX11GLContext.cpp  |  19 +-
+ xbmc/windowing/X11/WinSystemX11GLContext.h    |   1 +
+ 9 files changed, 101 insertions(+), 191 deletions(-)
+ delete mode 100644 xbmc/windowing/X11/VideoSyncDRM.cpp
+ create mode 100644 xbmc/windowing/X11/VideoSyncOML.cpp
+ rename xbmc/windowing/X11/{VideoSyncDRM.h => VideoSyncOML.h} (61%)
+
+diff --git a/xbmc/windowing/X11/CMakeLists.txt b/xbmc/windowing/X11/CMakeLists.txt
+index 8534cf8838eb..282e96fa3457 100644
+--- a/xbmc/windowing/X11/CMakeLists.txt
++++ b/xbmc/windowing/X11/CMakeLists.txt
+@@ -6,7 +6,7 @@ set(SOURCES GLContextEGL.cpp
+             WinSystemX11.cpp
+             WinSystemX11GLContext.cpp
+             XRandR.cpp
+-            VideoSyncDRM.cpp)
++            VideoSyncOML.cpp)
+ 
+ set(HEADERS GLContext.h
+             GLContextEGL.h
+@@ -16,7 +16,7 @@ set(HEADERS GLContext.h
+             WinSystemX11.h
+             WinSystemX11GLContext.h
+             XRandR.h
+-            VideoSyncDRM.h)
++            VideoSyncOML.h)
+ 
+ if(GLX_FOUND)
+   list(APPEND SOURCES GLContextGLX.cpp
+diff --git a/xbmc/windowing/X11/GLContext.h b/xbmc/windowing/X11/GLContext.h
+index 0de194741e41..a3df57acd708 100644
+--- a/xbmc/windowing/X11/GLContext.h
++++ b/xbmc/windowing/X11/GLContext.h
+@@ -25,7 +25,7 @@ class CGLContext
+   virtual void SetVSync(bool enable) = 0;
+   virtual void SwapBuffers() = 0;
+   virtual void QueryExtensions() = 0;
+-  virtual uint64_t GetFrameLatencyAdjustment() { return 0; };
++  virtual uint64_t GetVblankTiming(uint64_t &msc, uint64_t &interval) { return 0; };
+   bool IsExtSupported(const char* extension) const;
+ 
+   std::string ExtPrefix(){ return m_extPrefix; };
+diff --git a/xbmc/windowing/X11/GLContextEGL.cpp b/xbmc/windowing/X11/GLContextEGL.cpp
+index 74007e0f7ef6..01f94b81f255 100644
+--- a/xbmc/windowing/X11/GLContextEGL.cpp
++++ b/xbmc/windowing/X11/GLContextEGL.cpp
+@@ -391,10 +391,9 @@ void CGLContextEGL::SwapBuffers()
+   m_sync.ust2 = ust2;
+   m_sync.msc1 = msc1;
+   m_sync.msc2 = msc2;
+-  m_sync.sbc2 = sbc2;
+ }
+ 
+-uint64_t CGLContextEGL::GetFrameLatencyAdjustment()
++uint64_t CGLContextEGL::GetVblankTiming(uint64_t &msc, uint64_t &interval)
+ {
+   struct timespec nowTs;
+   uint64_t now;
+@@ -402,7 +401,9 @@ uint64_t CGLContextEGL::GetFrameLatencyAdjustment()
+   now = nowTs.tv_sec * 1000000000 + nowTs.tv_nsec;
+   now /= 1000;
+ 
+-  uint64_t interval = (m_sync.cont > 5) ? m_sync.interval : m_sync.ust2 - m_sync.ust1;
++  msc = m_sync.msc2;
++
++  interval = (m_sync.cont > 5) ? m_sync.interval : m_sync.ust2 - m_sync.ust1;
+   if (interval == 0)
+     return 0;
+ 
+diff --git a/xbmc/windowing/X11/GLContextEGL.h b/xbmc/windowing/X11/GLContextEGL.h
+index c440177e5577..3e81e7fabf5d 100644
+--- a/xbmc/windowing/X11/GLContextEGL.h
++++ b/xbmc/windowing/X11/GLContextEGL.h
+@@ -24,7 +24,7 @@ class CGLContextEGL : public CGLContext
+   void SetVSync(bool enable) override;
+   void SwapBuffers() override;
+   void QueryExtensions() override;
+-  uint64_t GetFrameLatencyAdjustment() override;
++  uint64_t GetVblankTiming(uint64_t &msc, uint64_t &interval) override;
+ 
+   EGLDisplay m_eglDisplay;
+   EGLSurface m_eglSurface;
+@@ -42,7 +42,6 @@ class CGLContextEGL : public CGLContext
+     uint64_t ust2 = 0;
+     uint64_t msc1 = 0;
+     uint64_t msc2 = 0;
+-    uint64_t sbc2 = 0;
+     uint64_t interval = 0;
+   } m_sync;
+ };
+diff --git a/xbmc/windowing/X11/VideoSyncDRM.cpp b/xbmc/windowing/X11/VideoSyncDRM.cpp
+deleted file mode 100644
+index 629702ddf24d..000000000000
+--- a/xbmc/windowing/X11/VideoSyncDRM.cpp
++++ /dev/null
+@@ -1,169 +0,0 @@
+-/*
+- *  Copyright (C) 2005-2018 Team Kodi
+- *  This file is part of Kodi - https://kodi.tv
+- *
+- *  SPDX-License-Identifier: GPL-2.0-or-later
+- *  See LICENSES/README.md for more information.
+- */
+-
+-#include "VideoSyncDRM.h"
+-#include "ServiceBroker.h"
+-#include "xf86drm.h"
+-#include <sys/poll.h>
+-#include <sys/time.h>
+-#include "utils/TimeUtils.h"
+-#include "utils/MathUtils.h"
+-#include "windowing/GraphicContext.h"
+-#include "utils/log.h"
+-#include "windowing/X11/WinSystemX11GLContext.h"
+-
+-static drmVBlankSeqType CrtcSel(void)
+-{
+-  CWinSystemX11* winSystem = dynamic_cast<CWinSystemX11*>(CServiceBroker::GetWinSystem());
+-  int crtc = winSystem->GetCrtc();
+-  int ret = 0;
+-
+-  if (crtc == 1)
+-  {
+-    ret = DRM_VBLANK_SECONDARY;
+-  }
+-  else if (crtc > 1)
+-  {
+-    ret = (crtc << DRM_VBLANK_HIGH_CRTC_SHIFT) & DRM_VBLANK_HIGH_CRTC_MASK;
+-  }
+-  return (drmVBlankSeqType)ret;
+-}
+-
+-bool CVideoSyncDRM::Setup(PUPDATECLOCK func)
+-{
+-  CLog::Log(LOGDEBUG, "CVideoSyncDRM::%s - setting up DRM", __FUNCTION__);
+-
+-  UpdateClock = func;
+-
+-  m_fd = open("/dev/dri/card0", O_RDWR, 0);
+-  if (m_fd < 0)
+-  {
+-    CLog::Log(LOGERROR, "CVideoSyncDRM::%s - can't open /dev/dri/card0", __FUNCTION__);
+-    return false;
+-  }
+-
+-  drmVBlank vbl;
+-  int ret;
+-  vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE | CrtcSel());
+-  vbl.request.sequence = 0;
+-  ret = drmWaitVBlank(m_fd, &vbl);
+-  if (ret != 0)
+-  {
+-    CLog::Log(LOGERROR, "CVideoSyncDRM::%s - drmWaitVBlank returned error", __FUNCTION__);
+-    return false;
+-  }
+-
+-  m_abort = false;
+-  m_winSystem.Register(this);
+-
+-  return true;
+-}
+-
+-void CVideoSyncDRM::Run(CEvent& stopEvent)
+-{
+-  drmVBlank vbl;
+-  VblInfo info;
+-  int ret;
+-  drmVBlankSeqType crtcSel = CrtcSel();
+-
+-  vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE | crtcSel);
+-  vbl.request.sequence = 0;
+-  ret = drmWaitVBlank(m_fd, &vbl);
+-  if (ret != 0)
+-  {
+-    CLog::Log(LOGERROR, "CVideoSyncDRM::%s - drmWaitVBlank returned error", __FUNCTION__);
+-    return;
+-  }
+-
+-  info.start = CurrentHostCounter();
+-  info.videoSync = this;
+-
+-  vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT | crtcSel);
+-  vbl.request.sequence = 1;
+-  vbl.request.signal = (unsigned long)&info;
+-  ret = drmWaitVBlank(m_fd, &vbl);
+-  if (ret != 0)
+-  {
+-    CLog::Log(LOGERROR, "CVideoSyncDRM::%s - drmWaitVBlank returned error", __FUNCTION__);
+-    return;
+-  }
+-
+-  drmEventContext evctx;
+-  memset(&evctx, 0, sizeof evctx);
+-  evctx.version = DRM_EVENT_CONTEXT_VERSION;
+-  evctx.vblank_handler = EventHandler;
+-  evctx.page_flip_handler = NULL;
+-
+-  timeval timeout;
+-  fd_set fds;
+-  FD_ZERO(&fds);
+-  FD_SET(m_fd, &fds);
+-
+-  while (!stopEvent.Signaled() && !m_abort)
+-  {
+-    timeout.tv_sec = 1;
+-    timeout.tv_usec = 0;
+-    ret = select(m_fd + 1, &fds, NULL, NULL, &timeout);
+-
+-    if (ret <= 0)
+-    {
+-      continue;
+-    }
+-
+-    ret = drmHandleEvent(m_fd, &evctx);
+-    if (ret != 0)
+-    {
+-      CLog::Log(LOGERROR, "CVideoSyncDRM::%s - drmHandleEvent returned error", __FUNCTION__);
+-      break;
+-    }
+-  }
+-}
+-
+-void CVideoSyncDRM::Cleanup()
+-{
+-  close(m_fd);
+-  m_winSystem.Unregister(this);
+-}
+-
+-void CVideoSyncDRM::EventHandler(int fd, unsigned int frame, unsigned int sec,
+-                                 unsigned int usec, void *data)
+-{
+-  drmVBlank vbl;
+-  VblInfo *info = static_cast<VblInfo*>(data);
+-  drmVBlankSeqType crtcSel = CrtcSel();
+-
+-  vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT | crtcSel);
+-  vbl.request.sequence = 1;
+-  vbl.request.signal = (unsigned long)data;
+-
+-  drmWaitVBlank(info->videoSync->m_fd, &vbl);
+-
+-  uint64_t now = CurrentHostCounter();
+-  float diff = (float)(now - info->start)/CurrentHostFrequency();
+-  int vblanks = MathUtils::round_int(diff * info->videoSync->m_fps);
+-  info->start = now;
+-
+-  info->videoSync->UpdateClock(vblanks, now, info->videoSync->m_refClock);
+-}
+-
+-void CVideoSyncDRM::OnResetDisplay()
+-{
+-  m_abort = true;
+-}
+-
+-float CVideoSyncDRM::GetFps()
+-{
+-  m_fps = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
+-  return m_fps;
+-}
+-
+-void CVideoSyncDRM::RefreshChanged()
+-{
+-  if (m_fps != CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS())
+-    m_abort = true;
+-}
+diff --git a/xbmc/windowing/X11/VideoSyncOML.cpp b/xbmc/windowing/X11/VideoSyncOML.cpp
+new file mode 100644
+index 000000000000..31bea9eccbce
+--- /dev/null
++++ b/xbmc/windowing/X11/VideoSyncOML.cpp
+@@ -0,0 +1,71 @@
++/*
++ *  Copyright (C) 2005-2018 Team Kodi
++ *  This file is part of Kodi - https://kodi.tv
++ *
++ *  SPDX-License-Identifier: GPL-2.0-or-later
++ *  See LICENSES/README.md for more information.
++ */
++
++#include "VideoSyncOML.h"
++#include "utils/TimeUtils.h"
++#include "utils/log.h"
++#include "windowing/GraphicContext.h"
++#include "windowing/X11/WinSystemX11GLContext.h"
++
++
++bool CVideoSyncOML::Setup(PUPDATECLOCK func)
++{
++  CLog::Log(LOGDEBUG, "CVideoSyncOML::%s - setting up OML", __FUNCTION__);
++
++  UpdateClock = func;
++
++  m_abort = false;
++  m_winSystem.Register(this);
++
++  return true;
++}
++
++void CVideoSyncOML::Run(CEvent& stopEvent)
++{
++  uint64_t interval, timeSinceVblank, msc;
++
++  timeSinceVblank = m_winSystem.GetVblankTiming(msc, interval);
++
++  while (!stopEvent.Signaled() && !m_abort)
++  {
++    if (interval == 0)
++    {
++      usleep(10000);
++    }
++    else
++    {
++      usleep(interval - timeSinceVblank + 1000);
++    }
++    uint64_t newMsc;
++    timeSinceVblank = m_winSystem.GetVblankTiming(newMsc, interval);
++
++    if (newMsc == msc)
++      continue;
++
++    uint64_t now = CurrentHostCounter();
++    UpdateClock(newMsc - msc, now, m_refClock);
++    msc = newMsc;
++  }
++}
++
++void CVideoSyncOML::Cleanup()
++{
++  m_winSystem.Unregister(this);
++}
++
++void CVideoSyncOML::OnResetDisplay()
++{
++  m_abort = true;
++}
++
++float CVideoSyncOML::GetFps()
++{
++  m_fps = m_winSystem.GetGfxContext().GetFPS();
++  return m_fps;
++}
++
+diff --git a/xbmc/windowing/X11/VideoSyncDRM.h b/xbmc/windowing/X11/VideoSyncOML.h
+similarity index 61%
+rename from xbmc/windowing/X11/VideoSyncDRM.h
+rename to xbmc/windowing/X11/VideoSyncOML.h
+index dff0603981a0..70586799ecd8 100644
+--- a/xbmc/windowing/X11/VideoSyncDRM.h
++++ b/xbmc/windowing/X11/VideoSyncOML.h
+@@ -10,29 +10,23 @@
+ 
+ #include "windowing/VideoSync.h"
+ #include "guilib/DispResource.h"
++#include <atomic>
+ 
+ class CWinSystemX11GLContext;
+ 
+-class CVideoSyncDRM : public CVideoSync, IDispResource
++class CVideoSyncOML : public CVideoSync, IDispResource
+ {
+ public:
+-  explicit CVideoSyncDRM(void *clock, CWinSystemX11GLContext& winSystem) :
++  explicit CVideoSyncOML(void *clock, CWinSystemX11GLContext& winSystem) :
+     CVideoSync(clock), m_winSystem(winSystem) {};
+   bool Setup(PUPDATECLOCK func) override;
+   void Run(CEvent& stopEvent) override;
+   void Cleanup() override;
+   float GetFps() override;
+   void OnResetDisplay() override;
+-  void RefreshChanged() override;
++
+ private:
+-  static void EventHandler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data);
+-  int m_fd;
+-  volatile bool m_abort;
+-  struct VblInfo
+-  {
+-    uint64_t start;
+-    CVideoSyncDRM *videoSync;
+-  };
++  std::atomic_bool m_abort;
+   CWinSystemX11GLContext &m_winSystem;
+ };
+ 
+diff --git a/xbmc/windowing/X11/WinSystemX11GLContext.cpp b/xbmc/windowing/X11/WinSystemX11GLContext.cpp
+index bd1f7f90dbcf..1980916b426d 100644
+--- a/xbmc/windowing/X11/WinSystemX11GLContext.cpp
++++ b/xbmc/windowing/X11/WinSystemX11GLContext.cpp
+@@ -18,7 +18,7 @@
+ #include "threads/SingleLock.h"
+ #include <vector>
+ #include "Application.h"
+-#include "VideoSyncDRM.h"
++#include "VideoSyncOML.h"
+ 
+ #include "cores/RetroPlayer/process/X11/RPProcessInfoX11.h"
+ #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h"
+@@ -311,7 +311,7 @@ std::unique_ptr<CVideoSync> CWinSystemX11GLContext::GetVideoSync(void *clock)
+ 
+   if (dynamic_cast<CGLContextEGL*>(m_pGLContext))
+   {
+-    pVSync.reset(new CVideoSyncDRM(clock, *this));
++    pVSync.reset(new CVideoSyncOML(clock, *this));
+   }
+   else
+   {
+@@ -325,12 +325,25 @@ float CWinSystemX11GLContext::GetFrameLatencyAdjustment()
+ {
+   if (m_pGLContext)
+   {
+-    float micros = m_pGLContext->GetFrameLatencyAdjustment();
++    uint64_t msc, interval;
++    float micros = m_pGLContext->GetVblankTiming(msc, interval);
+     return micros / 1000;
+   }
+   return 0;
+ }
+ 
++uint64_t CWinSystemX11GLContext::GetVblankTiming(uint64_t &msc, uint64_t &interval)
++{
++  if (m_pGLContext)
++  {
++    float micros = m_pGLContext->GetVblankTiming(msc, interval);
++    return micros / 1000;
++  }
++  msc = 0;
++  interval = 0;
++  return 0;
++}
++
+ void CWinSystemX11GLContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
+ {
+   X11::VaapiProxyDelete(p);
+diff --git a/xbmc/windowing/X11/WinSystemX11GLContext.h b/xbmc/windowing/X11/WinSystemX11GLContext.h
+index faa0dac5e162..679a0d26cd71 100644
+--- a/xbmc/windowing/X11/WinSystemX11GLContext.h
++++ b/xbmc/windowing/X11/WinSystemX11GLContext.h
+@@ -38,6 +38,7 @@ class CWinSystemX11GLContext : public CWinSystemX11, public CRenderSystemGL
+   // videosync
+   std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+   float GetFrameLatencyAdjustment() override;
++  uint64_t GetVblankTiming(uint64_t &msc, uint64_t &interval);
+ 
+   XID GetWindow() const;
+   void* GetGlxContext() const;
