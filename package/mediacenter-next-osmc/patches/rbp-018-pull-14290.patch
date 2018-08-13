@@ -1,0 +1,120 @@
+From 3795a9b0d9a3416722b7e7e5b5911ff1c51a04eb Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Sat, 11 Aug 2018 14:31:23 +0200
+Subject: [PATCH 1/3] [gui] Fix video stream flag description.
+
+---
+ addons/resource.language.en_gb/resources/strings.po | 2 ++
+ xbmc/video/dialogs/GUIDialogVideoSettings.cpp       | 8 ++++----
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
+index 695fc55492cb..bb6116743d96 100644
+--- a/addons/resource.language.en_gb/resources/strings.po
++++ b/addons/resource.language.en_gb/resources/strings.po
+@@ -21453,12 +21453,14 @@ msgstr ""
+ 
+ #. audio/video/subtitle flag - FLAG_HEARING_IMPAIRED
+ #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
++#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+ msgctxt "#39107"
+ msgid "captions"
+ msgstr ""
+ 
+ #. audio/video/subtitle flag - FLAG_VISUAL_IMPAIRED
+ #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
++#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+ msgctxt "#39108"
+ msgid "audio description"
+ msgstr ""
+diff --git a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+index ce4fa244b911..164f83168725 100644
+--- a/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
++++ b/xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+@@ -476,13 +476,13 @@ std::string CGUIDialogVideoSettings::FormatFlags(StreamFlags flags)
+ {
+   std::vector<std::string> localizedFlags;
+   if (flags & StreamFlags::FLAG_DEFAULT)
+-    localizedFlags.emplace_back(g_localizeStrings.Get(39104));
+-  if (flags & StreamFlags::FLAG_FORCED)
+     localizedFlags.emplace_back(g_localizeStrings.Get(39105));
+-  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
++  if (flags & StreamFlags::FLAG_FORCED)
+     localizedFlags.emplace_back(g_localizeStrings.Get(39106));
+-  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
++  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
+     localizedFlags.emplace_back(g_localizeStrings.Get(39107));
++  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
++    localizedFlags.emplace_back(g_localizeStrings.Get(39108));
+ 
+   std::string formated = StringUtils::Join(localizedFlags, ", ");
+ 
+
+From 870864d44108e79f46db5d4ad4feea7070557f08 Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Sat, 11 Aug 2018 14:54:03 +0200
+Subject: [PATCH 2/3] [gui] Add video stream index to the info dialog.
+
+---
+ xbmc/video/PlayerController.cpp | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/video/PlayerController.cpp b/xbmc/video/PlayerController.cpp
+index 8d91c7d16ca8..3f351b1cbd03 100644
+--- a/xbmc/video/PlayerController.cpp
++++ b/xbmc/video/PlayerController.cpp
+@@ -220,13 +220,16 @@ bool CPlayerController::OnAction(const CAction &action)
+           return true;
+ 
+         int currentVideo = g_application.GetAppPlayer().GetVideoStream();
++        int videoStreamCount = g_application.GetAppPlayer().GetVideoStreamCount();
+ 
+-        if (++currentVideo >= g_application.GetAppPlayer().GetVideoStreamCount())
++        if (++currentVideo >= videoStreamCount)
+           currentVideo = 0;
+         g_application.GetAppPlayer().SetVideoStream(currentVideo);
+         VideoStreamInfo info;
+         g_application.GetAppPlayer().GetVideoStreamInfo(currentVideo, info);
+-        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(38031), info.name, DisplTime, false, MsgTime);
++        std::string caption = g_localizeStrings.Get(38031);
++        caption += StringUtils::Format(" (%i/%i)", currentVideo + 1, videoStreamCount);
++        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, caption, info.name, DisplTime, false, MsgTime);
+         return true;
+       }
+ 
+
+From 66bcf71af91acad3000f514525ca3715fbb0b602 Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Sat, 11 Aug 2018 15:07:03 +0200
+Subject: [PATCH 3/3] [gui] Add audio stream index to the info dialog.
+
+---
+ xbmc/video/PlayerController.cpp | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/video/PlayerController.cpp b/xbmc/video/PlayerController.cpp
+index 3f351b1cbd03..5b37e9120799 100644
+--- a/xbmc/video/PlayerController.cpp
++++ b/xbmc/video/PlayerController.cpp
+@@ -196,8 +196,9 @@ bool CPlayerController::OnAction(const CAction &action)
+           return true;
+ 
+         int currentAudio = g_application.GetAppPlayer().GetAudioStream();
++        int audioStreamCount = g_application.GetAppPlayer().GetAudioStreamCount();
+ 
+-        if (++currentAudio >= g_application.GetAppPlayer().GetAudioStreamCount())
++        if (++currentAudio >= audioStreamCount)
+           currentAudio = 0;
+         g_application.GetAppPlayer().SetAudioStream(currentAudio);    // Set the audio stream to the one selected
+         std::string aud;
+@@ -210,7 +211,9 @@ bool CPlayerController::OnAction(const CAction &action)
+           aud = lan;
+         else
+           aud = StringUtils::Format("%s - %s", lan.c_str(), info.name.c_str());
+-        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(460), aud, DisplTime, false, MsgTime);
++        std::string caption = g_localizeStrings.Get(460);
++        caption += StringUtils::Format(" (%i/%i)", currentAudio + 1, audioStreamCount);
++        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, caption, aud, DisplTime, false, MsgTime);
+         return true;
+       }
+ 
