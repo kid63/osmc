@@ -1,0 +1,28 @@
+From cb5001779d971dbe770a73f35a399bb00552388c Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Sat, 11 Aug 2018 13:12:29 -0700
+Subject: [PATCH] Revert "Retroplayer: RenderBufferPoolOpenGLES: use internal
+ format GL_RGB565 for RGB565 format"
+
+This reverts commit 13b8f5b88ff940e0ec782c57d44cec230b49f389.
+
+This is being reverted because it isn't supported by GLES 2.0
+
+see, https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glTexImage2D.xml
+---
+ xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
+index 55239c080987..e90a55bdd264 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
+@@ -70,7 +70,7 @@ bool CRenderBufferPoolOpenGLES::ConfigureInternal()
+   case AV_PIX_FMT_RGB565:
+   {
+     m_pixeltype = GL_UNSIGNED_SHORT_5_6_5;
+-    m_internalformat = GL_RGB565;
++    m_internalformat = GL_RGB;
+     m_pixelformat = GL_RGB;
+     m_bpp = sizeof(uint16_t);
+     return true;
