@@ -1,0 +1,85 @@
+From b4e71af9f24e7d234a2689ce7c62b37c213cfbe9 Mon Sep 17 00:00:00 2001
+From: Garrett Brown <themagnificentmrb@gmail.com>
+Date: Thu, 9 Aug 2018 16:27:21 -0700
+Subject: [PATCH] Fix GUI sounds not updating when changed
+
+This broke in PR 14198.
+---
+ xbmc/guilib/GUIAudioManager.cpp | 12 ++++++++++--
+ xbmc/guilib/GUIAudioManager.h   |  7 ++++++-
+ xbmc/guilib/GUIComponent.cpp    |  2 +-
+ 3 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/guilib/GUIAudioManager.cpp b/xbmc/guilib/GUIAudioManager.cpp
+index d3132b67efce..cce9c19529cf 100644
+--- a/xbmc/guilib/GUIAudioManager.cpp
++++ b/xbmc/guilib/GUIAudioManager.cpp
+@@ -23,12 +23,20 @@
+ #include "cores/AudioEngine/Interfaces/AE.h"
+ #include "utils/log.h"
+ 
+-CGUIAudioManager::CGUIAudioManager()
++CGUIAudioManager::CGUIAudioManager(CSettings &settings) :
++  m_settings(settings)
+ {
+   m_bEnabled = false;
++
++  m_settings.RegisterCallback(this, {
++    CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN,
++  });
+ }
+ 
+-CGUIAudioManager::~CGUIAudioManager() = default;
++CGUIAudioManager::~CGUIAudioManager()
++{
++  m_settings.UnregisterCallback(this);
++}
+ 
+ void CGUIAudioManager::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+ {
+diff --git a/xbmc/guilib/GUIAudioManager.h b/xbmc/guilib/GUIAudioManager.h
+index 60b538acbdfd..6b767f411bac 100644
+--- a/xbmc/guilib/GUIAudioManager.h
++++ b/xbmc/guilib/GUIAudioManager.h
+@@ -19,6 +19,7 @@
+ 
+ // forward definitions
+ class CAction;
++class CSettings;
+ class TiXmlNode;
+ class IAESound;
+ 
+@@ -41,7 +42,7 @@ class CGUIAudioManager : public ISettingCallback
+   };
+ 
+ public:
+-  CGUIAudioManager();
++  CGUIAudioManager(CSettings &settings);
+   ~CGUIAudioManager() override;
+ 
+   void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+@@ -61,7 +62,11 @@ class CGUIAudioManager : public ISettingCallback
+   void Enable(bool bEnable);
+   void SetVolume(float level);
+   void Stop();
++
+ private:
++  // Construction parameters
++  CSettings &m_settings;
++
+   typedef std::map<const std::string, CSoundInfo> soundCache;
+   typedef std::map<int, IAESound*              > actionSoundMap;
+   typedef std::map<int, CWindowSounds          > windowSoundMap;
+diff --git a/xbmc/guilib/GUIComponent.cpp b/xbmc/guilib/GUIComponent.cpp
+index 9669d6397cf6..1c8968cd097c 100644
+--- a/xbmc/guilib/GUIComponent.cpp
++++ b/xbmc/guilib/GUIComponent.cpp
+@@ -26,7 +26,7 @@ CGUIComponent::CGUIComponent()
+   m_stereoscopicsManager.reset(new CStereoscopicsManager(CServiceBroker::GetSettings()));
+   m_guiInfoManager.reset(new CGUIInfoManager());
+   m_guiColorManager.reset(new CGUIColorManager());
+-  m_guiAudioManager.reset(new CGUIAudioManager());
++  m_guiAudioManager.reset(new CGUIAudioManager(CServiceBroker::GetSettings()));
+ }
+ 
+ CGUIComponent::~CGUIComponent()
