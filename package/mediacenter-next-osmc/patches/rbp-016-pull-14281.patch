@@ -1,0 +1,176 @@
+From 6c99fdeafea7c68daf3fb0e9a93284e60af5fdc6 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 8 Aug 2018 22:15:03 -0700
+Subject: [PATCH 1/4] Retroplayer: RenderBufferPoolGBM: render ARGB1555 as
+ RGB565
+
+this isn't exactly right but it allows us to render _something_ rather than a black screen
+---
+ xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp
+index c151f403826c..556040ae5420 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp
+@@ -47,11 +47,6 @@ bool CRenderBufferPoolGBM::ConfigureInternal()
+       return true;
+     }
+     case AV_PIX_FMT_RGB555:
+-    {
+-      m_fourcc = DRM_FORMAT_RGBA5551;
+-      m_bpp = sizeof(uint16_t);
+-      return true;
+-    }
+     case AV_PIX_FMT_RGB565:
+     {
+       m_fourcc = DRM_FORMAT_RGB565;
+
+From 1bbf5198cfa3951633e07a7695b1395693a52158 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 8 Aug 2018 22:15:38 -0700
+Subject: [PATCH 2/4] Retroplayer: RenderBufferPoolOpenGLES: render ARGB1555 as
+ RGB565
+
+this isn't exactly right but it	allows us to render _something_	rather than a black screen
+---
+ .../cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
+index 4613ea7aec07..e90a55bdd264 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
+@@ -67,13 +67,6 @@ bool CRenderBufferPoolOpenGLES::ConfigureInternal()
+     return true;
+   }
+   case AV_PIX_FMT_RGB555:
+-  {
+-    m_pixeltype = GL_UNSIGNED_SHORT_5_5_5_1;
+-    m_internalformat = GL_RGB;
+-    m_pixelformat = GL_RGB;
+-    m_bpp = sizeof(uint16_t);
+-    return true;
+-  }
+   case AV_PIX_FMT_RGB565:
+   {
+     m_pixeltype = GL_UNSIGNED_SHORT_5_6_5;
+
+From 13b8f5b88ff940e0ec782c57d44cec230b49f389 Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 8 Aug 2018 22:16:27 -0700
+Subject: [PATCH 3/4] Retroplayer: RenderBufferPoolOpenGLES: use internal
+ format GL_RGB565 for RGB565 format
+
+using the sized format is a small optimization
+---
+ xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
+index e90a55bdd264..55239c080987 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolOpenGLES.cpp
+@@ -70,7 +70,7 @@ bool CRenderBufferPoolOpenGLES::ConfigureInternal()
+   case AV_PIX_FMT_RGB565:
+   {
+     m_pixeltype = GL_UNSIGNED_SHORT_5_6_5;
+-    m_internalformat = GL_RGB;
++    m_internalformat = GL_RGB565;
+     m_pixelformat = GL_RGB;
+     m_bpp = sizeof(uint16_t);
+     return true;
+
+From af3ee37a44cea6bb6ebff90bfa78d497118d77ea Mon Sep 17 00:00:00 2001
+From: Lukas Rusak <lorusak@gmail.com>
+Date: Wed, 8 Aug 2018 22:17:05 -0700
+Subject: [PATCH 4/4] Retroplayer: RenderBufferPoolGBM: remove bpp
+
+gbm does not need to know the bpp of the format
+---
+ xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.cpp     | 4 +---
+ xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.h       | 4 +---
+ xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp | 5 +----
+ xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.h   | 1 -
+ 4 files changed, 3 insertions(+), 11 deletions(-)
+
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.cpp b/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.cpp
+index f4070eee0b72..7d0737b4bd7e 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.cpp
+@@ -16,11 +16,9 @@ using namespace KODI;
+ using namespace RETRO;
+ 
+ CRenderBufferGBM::CRenderBufferGBM(CRenderContext &context,
+-                                   int fourcc,
+-                                   int bpp) :
++                                   int fourcc) :
+   m_context(context),
+   m_fourcc(fourcc),
+-  m_bpp(bpp),
+   m_egl(new CEGLImage(static_cast<CWinSystemGbmEGLContext*>(CServiceBroker::GetWinSystem())->GetEGLDisplay())),
+   m_bo(new CGBMBufferObject(fourcc))
+ {
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.h b/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.h
+index 843aecb8ef21..dc4d50f62e92 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.h
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferGBM.h
+@@ -27,8 +27,7 @@ namespace RETRO
+   {
+   public:
+     CRenderBufferGBM(CRenderContext &context,
+-                     int fourcc,
+-                     int bpp);
++                     int fourcc);
+     ~CRenderBufferGBM() override;
+ 
+     // implementation of IRenderBuffer via CRenderBufferSysMem
+@@ -46,7 +45,6 @@ namespace RETRO
+     // Construction parameters
+     CRenderContext &m_context;
+     const int m_fourcc = 0;
+-    const int m_bpp;
+ 
+     const GLenum m_textureTarget = GL_TEXTURE_EXTERNAL_OES;
+     GLuint m_textureId = 0;
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp
+index 556040ae5420..e51c0bafc099 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.cpp
+@@ -32,8 +32,7 @@ bool CRenderBufferPoolGBM::IsCompatible(const CRenderVideoSettings &renderSettin
+ IRenderBuffer *CRenderBufferPoolGBM::CreateRenderBuffer(void *header /* = nullptr */)
+ {
+   return new CRenderBufferGBM(m_context,
+-                              m_fourcc,
+-                              m_bpp);
++                              m_fourcc);
+ }
+ 
+ bool CRenderBufferPoolGBM::ConfigureInternal()
+@@ -43,14 +42,12 @@ bool CRenderBufferPoolGBM::ConfigureInternal()
+     case AV_PIX_FMT_0RGB32:
+     {
+       m_fourcc = DRM_FORMAT_ARGB8888;
+-      m_bpp = sizeof(uint32_t);
+       return true;
+     }
+     case AV_PIX_FMT_RGB555:
+     case AV_PIX_FMT_RGB565:
+     {
+       m_fourcc = DRM_FORMAT_RGB565;
+-      m_bpp = sizeof(uint16_t);
+       return true;
+     }
+     default:
+diff --git a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.h b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.h
+index be75a9c9aff1..baf689cb0ebe 100644
+--- a/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.h
++++ b/xbmc/cores/RetroPlayer/buffers/RenderBufferPoolGBM.h
+@@ -35,7 +35,6 @@ namespace RETRO
+ 
+     // Configuration parameters
+     int m_fourcc = 0;
+-    int m_bpp = 0;
+   };
+ }
+ }
