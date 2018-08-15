@@ -1,0 +1,22 @@
+From 435c56f7631127d21d1128ae296011d594fae1dc Mon Sep 17 00:00:00 2001
+From: MilhouseVH <milhouseVH.github@nmacleod.com>
+Date: Sun, 1 Jul 2018 23:42:22 +0100
+Subject: [PATCH] addondb: avoid constraint violation
+
+---
+ xbmc/addons/AddonDatabase.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/addons/AddonDatabase.cpp b/xbmc/addons/AddonDatabase.cpp
+index 4c48cdeba673..809b484d3b16 100644
+--- a/xbmc/addons/AddonDatabase.cpp
++++ b/xbmc/addons/AddonDatabase.cpp
+@@ -1071,7 +1071,7 @@ bool CAddonDatabase::AddPackage(const std::string& addonID,
+                                 const std::string& packageFileName,
+                                 const std::string& hash)
+ {
+-  std::string sql = PrepareSQL("insert into package(id, addonID, filename, hash)"
++  std::string sql = PrepareSQL("insert or ignore into package(id, addonID, filename, hash)"
+                               "values(NULL, '%s', '%s', '%s')",
+                               addonID.c_str(), packageFileName.c_str(), hash.c_str());
+   return ExecuteQuery(sql);
