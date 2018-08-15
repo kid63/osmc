@@ -1,0 +1,23 @@
+From dbe64f159ec1d44f146c87a2750ec4cf2c6ee686 Mon Sep 17 00:00:00 2001
+From: pOpY <tobias.diendorfer@gmail.com>
+Date: Sat, 11 Aug 2018 17:09:13 +0200
+Subject: [PATCH] Fix for (external)player from playercorefactory.xml gets the
+ default player in kodi when once playing an item with it.
+
+---
+ xbmc/cores/ExternalPlayer/ExternalPlayer.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/ExternalPlayer/ExternalPlayer.cpp b/xbmc/cores/ExternalPlayer/ExternalPlayer.cpp
+index 28ad2a73f42c..818521e2377a 100644
+--- a/xbmc/cores/ExternalPlayer/ExternalPlayer.cpp
++++ b/xbmc/cores/ExternalPlayer/ExternalPlayer.cpp
+@@ -438,7 +438,7 @@ bool CExternalPlayer::ExecuteAppW32(const char* strPath, const char* strSwitches
+     CloseHandle(m_processInfo.hProcess);
+     m_processInfo.hProcess = 0;
+   }
+-  return (ret == 0);
++  return (ret == TRUE);
+ }
+ #endif
+ 
