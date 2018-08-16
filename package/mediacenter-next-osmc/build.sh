@@ -199,7 +199,9 @@ then
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
 	#Build libfmt
 	make -C tools/depends/target/libfmt PREFIX=/usr/local
-	
+
+	#Build flatbuffes
+	make -C tools/depends/target/flatbuffers PREFIX=/usr/local	
 	#Copy libjli.so  otherwise build fails
 	cp /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/jli/libjli.so /usr/lib/libjli.so
 
