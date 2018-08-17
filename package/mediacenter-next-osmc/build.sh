@@ -8,12 +8,12 @@
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/2b6422b09cd1a6c100bc02bc46ce01376a7cdcc6.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/36dc7beb58adb8816a6fb4d7d65335f9980259d1.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/a7fef8f13f6a4b8955725aaf72119ebdc976cbdb.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/5f77b6d57c5edb602318ad9140067cfe0678048e.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
@@ -200,7 +200,7 @@ then
 	#Build libfmt
 	make -C tools/depends/target/libfmt PREFIX=/usr/local
 
-	#Build flatbuffes
+	#Build flatbuffers
 	make -C tools/depends/target/flatbuffers PREFIX=/usr/local	
 	#Copy libjli.so  otherwise build fails
 	cp /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/jli/libjli.so /usr/lib/libjli.so
