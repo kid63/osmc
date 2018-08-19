@@ -1,0 +1,120 @@
+From ecc4fa58484feba003b47380ae561e23dbe9ff0a Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 18 Aug 2018 20:19:56 +0200
+Subject: [PATCH] VideoPlayer: fix player states regarding time
+
+---
+ xbmc/cores/DataCacheCore.cpp                  |  9 +++++++
+ xbmc/cores/DataCacheCore.h                    |  1 +
+ .../DVDDemuxers/DVDDemuxFFmpeg.cpp            | 25 ++-----------------
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp        | 15 ++++++++---
+ 4 files changed, 24 insertions(+), 26 deletions(-)
+
+diff --git a/xbmc/cores/DataCacheCore.cpp b/xbmc/cores/DataCacheCore.cpp
+index 24be1ef681de..3fd7cea3a2b1 100644
+--- a/xbmc/cores/DataCacheCore.cpp
++++ b/xbmc/cores/DataCacheCore.cpp
+@@ -340,6 +340,15 @@ void CDataCacheCore::SetPlayTimes(time_t start, int64_t current, int64_t min, in
+   m_timeInfo.m_timeMax = max;
+ }
+ 
++void CDataCacheCore::GetPlayTimes(time_t &start, int64_t &current, int64_t &min, int64_t &max)
++{
++  CSingleLock lock(m_stateSection);
++  start = m_timeInfo.m_startTime;
++  current = m_timeInfo.m_time;
++  min = m_timeInfo.m_timeMin;
++  max = m_timeInfo.m_timeMax;
++}
++
+ time_t CDataCacheCore::GetStartTime()
+ {
+   CSingleLock lock(m_stateSection);
+diff --git a/xbmc/cores/DataCacheCore.h b/xbmc/cores/DataCacheCore.h
+index 4eec17d0483d..852562a601a6 100644
+--- a/xbmc/cores/DataCacheCore.h
++++ b/xbmc/cores/DataCacheCore.h
+@@ -68,6 +68,7 @@ class CDataCacheCore
+   void SetVideoRender(bool video);
+   bool GetVideoRender();
+   void SetPlayTimes(time_t start, int64_t current, int64_t min, int64_t max);
++  void GetPlayTimes(time_t &start, int64_t &current, int64_t &min, int64_t &max);
+ 
+   /*!
+    * \brief Get the start time
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+index b8d2f32eaee2..997ef4e3ac03 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxFFmpeg.cpp
+@@ -1013,28 +1013,6 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
+         if (pPacket->dts != DVD_NOPTS_VALUE && (pPacket->dts > m_currentPts || m_currentPts == DVD_NOPTS_VALUE))
+           m_currentPts = pPacket->dts;
+ 
+-
+-        // check if stream has passed full duration, needed for live streams
+-        bool bAllowDurationExt = (stream->codecpar &&
+-                                  (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ||
+-                                   stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO));
+-        if(bAllowDurationExt && m_pkt.pkt.dts != (int64_t)AV_NOPTS_VALUE)
+-        {
+-          int64_t duration;
+-          duration = m_pkt.pkt.dts;
+-          if(stream->start_time != (int64_t)AV_NOPTS_VALUE)
+-            duration -= stream->start_time;
+-
+-          if(duration > stream->duration)
+-          {
+-            stream->duration = duration;
+-            duration = av_rescale_rnd(stream->duration, (int64_t)stream->time_base.num * AV_TIME_BASE, stream->time_base.den, AV_ROUND_NEAR_INF);
+-            if ((m_pFormatContext->duration == (int64_t)AV_NOPTS_VALUE)
+-                ||  (m_pFormatContext->duration != (int64_t)AV_NOPTS_VALUE && duration > m_pFormatContext->duration))
+-              m_pFormatContext->duration = duration;
+-          }
+-        }
+-
+         // store internal id until we know the continuous id presented to player
+         // the stream might not have been created yet
+         pPacket->iStreamId = m_pkt.pkt.stream_index;
+@@ -1231,7 +1209,8 @@ int CDVDDemuxFFmpeg::GetStreamLength()
+   if (!m_pFormatContext)
+     return 0;
+ 
+-  if (m_pFormatContext->duration < 0)
++  if (m_pFormatContext->duration < 0 ||
++      m_pFormatContext->duration == AV_NOPTS_VALUE)
+     return 0;
+ 
+   return (int)(m_pFormatContext->duration / (AV_TIME_BASE / 1000));
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index e8c499e0bc70..a3f8b641bf49 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -4751,9 +4751,6 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+     state.timeMax = (double) m_Edl.RemoveCutTime(llrint(state.timeMax));
+   }
+ 
+-  if (state.timeMax <= 0)
+-    state.canseek = false;
+-
+   if (m_caching > CACHESTATE_DONE && m_caching < CACHESTATE_PLAY)
+     state.caching = true;
+   else
+@@ -4785,6 +4782,18 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+ 
+   state.timestamp = m_clock.GetAbsoluteClock();
+ 
++  if (state.timeMax <= 0)
++  {
++    state.timeMax = state.time;
++    state.timeMin = state.time;
++  }
++  if (state.timeMin == state.timeMax)
++  {
++    state.canseek = false;
++    state.canpause = false;
++    state.cantempo = false;
++  }
++
+   m_processInfo->SetPlayTimes(state.startTime, state.time, state.timeMin, state.timeMax);
+ 
+   CSingleLock lock(m_StateSection);
