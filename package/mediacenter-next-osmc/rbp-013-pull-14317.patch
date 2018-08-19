@@ -1,0 +1,27 @@
+From d3b97bfd3c69aef1b50c217caeabde756421e00b Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 18 Aug 2018 18:10:23 +0200
+Subject: [PATCH] AE: fix audio after 4a8ab6af230b58162f28f5277516a8d53498a647
+
+---
+ xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp
+index c7c66009cf9b..082de2aeedf7 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp
+@@ -260,11 +260,11 @@ bool CActiveAEBufferPoolResample::ResampleBuffers(int64_t timestamp)
+       if (hasInput && !skipInput && !m_changeResampler)
+       {
+         in = m_inputSamples.front();
+-        if (in->centerMixLevel != m_centerMixLevel &&
+-            in->pkt->nb_samples > 0)
++        if (in->centerMixLevel != m_centerMixLevel)
+         {
+           m_centerMixLevel = in->centerMixLevel;
+           m_changeResampler = true;
++          in = nullptr;
+         }
+         else
+           m_inputSamples.pop_front();
