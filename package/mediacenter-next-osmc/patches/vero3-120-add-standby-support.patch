@@ -46,7 +46,7 @@ index 6925404..0a902bb 100644
 +  ToggleStandby();
 +  m_screensaverActive = true;
 +  ResetScreenSaver(); 
-+  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
++  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::GUI, "xbmc", "OnScreensaverActivated");
 +  CServiceBroker::GetGUI()->GetWindowManager().CloseDialogs(true);
 +}
 +
