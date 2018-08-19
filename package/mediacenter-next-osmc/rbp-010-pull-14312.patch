@@ -1,0 +1,874 @@
+From 4a8ab6af230b58162f28f5277516a8d53498a647 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Fri, 17 Aug 2018 15:37:58 +0200
+Subject: [PATCH] VideoPlayer / AE: pass downmix info to AE
+
+---
+ .../AudioEngine/Engines/ActiveAE/ActiveAE.cpp | 17 +---
+ .../Engines/ActiveAE/ActiveAEBuffer.cpp       | 93 +++++++------------
+ .../Engines/ActiveAE/ActiveAEBuffer.h         | 45 ++++-----
+ .../ActiveAE/ActiveAEResampleFFMPEG.cpp       | 31 ++++---
+ .../Engines/ActiveAE/ActiveAEResampleFFMPEG.h |  3 +-
+ .../Engines/ActiveAE/ActiveAEResamplePi.cpp   | 44 ++++-----
+ .../Engines/ActiveAE/ActiveAEResamplePi.h     |  3 +-
+ .../Engines/ActiveAE/ActiveAESink.cpp         | 32 ++++---
+ .../Engines/ActiveAE/ActiveAEStream.cpp       | 42 ++++++---
+ .../Engines/ActiveAE/ActiveAEStream.h         |  2 +-
+ xbmc/cores/AudioEngine/Interfaces/AE.h        | 14 +++
+ .../cores/AudioEngine/Interfaces/AEResample.h |  9 +-
+ xbmc/cores/AudioEngine/Interfaces/AEStream.h  | 10 +-
+ .../RetroPlayer/streams/RetroPlayerAudio.cpp  |  2 +-
+ xbmc/cores/VideoPlayer/AudioSinkAE.cpp        | 13 ++-
+ .../DVDCodecs/Audio/DVDAudioCodec.h           |  2 +
+ .../DVDCodecs/Audio/DVDAudioCodecFFmpeg.cpp   | 23 +++--
+ .../DVDCodecs/Audio/DVDAudioCodecFFmpeg.h     |  3 +
+ xbmc/cores/paplayer/PAPlayer.cpp              |  4 +-
+ xbmc/cores/paplayer/VideoPlayerCodec.cpp      | 30 +++---
+ 20 files changed, 227 insertions(+), 195 deletions(-)
+
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
+index cdf81b46148f..c9270445d788 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAE.cpp
+@@ -3147,21 +3147,12 @@ bool CActiveAE::ResampleSound(CActiveAESound *sound)
+   }
+ 
+   IAEResample *resampler = CAEResampleFactory::Create(AERESAMPLEFACTORY_QUICK_RESAMPLE);
+-  resampler->Init(dst_config.channel_layout,
+-                  dst_config.channels,
+-                  dst_config.sample_rate,
+-                  dst_config.fmt,
+-                  dst_config.bits_per_sample,
+-                  dst_config.dither_bits,
+-                  orig_config.channel_layout,
+-                  orig_config.channels,
+-                  orig_config.sample_rate,
+-                  orig_config.fmt,
+-                  orig_config.bits_per_sample,
+-                  orig_config.dither_bits,
++
++  resampler->Init(dst_config, orig_config,
+                   false,
+                   true,
+-                  outChannels.Count() > 0 ? &outChannels : NULL,
++                  M_SQRT1_2,
++                  outChannels.Count() > 0 ? &outChannels : nullptr,
+                   m_settings.resampleQuality,
+                   false);
+ 
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp
+index 36698878e5c0..c7c66009cf9b 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.cpp
+@@ -29,11 +29,8 @@ CSoundPacket::~CSoundPacket()
+     CActiveAE::FreeSoundSample(data);
+ }
+ 
+-CSampleBuffer::CSampleBuffer() : pkt(NULL), pool(NULL)
++CSampleBuffer::CSampleBuffer()
+ {
+-  refCount = 0;
+-  timestamp = 0;
+-  pkt_start_offset = 0;
+ }
+ 
+ CSampleBuffer::~CSampleBuffer()
+@@ -86,6 +83,7 @@ CSampleBuffer* CActiveAEBufferPool::GetFreeBuffer()
+     buf = m_freeSamples.front();
+     m_freeSamples.pop_front();
+     buf->refCount = 1;
++    buf->centerMixLevel = M_SQRT1_2;
+   }
+   return buf;
+ }
+@@ -145,18 +143,7 @@ CActiveAEBufferPoolResample::CActiveAEBufferPoolResample(const AEAudioFormat& in
+     m_inputFormat.m_channelLayout.Reset();
+     m_inputFormat.m_channelLayout += AE_CH_FC;
+   }
+-  m_resampler = nullptr;
+-  m_fillPackets = false;
+-  m_drain = false;
+-  m_empty = true;
+-  m_procSample = nullptr;
+-  m_resampleRatio = 1.0;
+   m_resampleQuality = quality;
+-  m_forceResampler = false;
+-  m_stereoUpmix = false;
+-  m_normalize = true;
+-  m_changeResampler = false;
+-  m_lastSamplePts = 0;
+ }
+ 
+ CActiveAEBufferPoolResample::~CActiveAEBufferPoolResample()
+@@ -182,30 +169,7 @@ bool CActiveAEBufferPoolResample::Create(unsigned int totaltime, bool remap, boo
+       m_inputFormat.m_dataFormat != m_format.m_dataFormat ||
+       m_changeResampler)
+   {
+-    if (!m_resampler)
+-    {
+-      m_resampler = CAEResampleFactory::Create();
+-    }
+-
+-    m_resampler->Init(CAEUtil::GetAVChannelLayout(m_format.m_channelLayout),
+-                                m_format.m_channelLayout.Count(),
+-                                m_format.m_sampleRate,
+-                                CAEUtil::GetAVSampleFormat(m_format.m_dataFormat),
+-                                CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat),
+-                                CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat),
+-                                CAEUtil::GetAVChannelLayout(m_inputFormat.m_channelLayout),
+-                                m_inputFormat.m_channelLayout.Count(),
+-                                m_inputFormat.m_sampleRate,
+-                                CAEUtil::GetAVSampleFormat(m_inputFormat.m_dataFormat),
+-                                CAEUtil::DataFormatToUsedBits(m_inputFormat.m_dataFormat),
+-                                CAEUtil::DataFormatToDitherBits(m_inputFormat.m_dataFormat),
+-                                upmix,
+-                                m_normalize,
+-                                remap ? &m_format.m_channelLayout : NULL,
+-                                m_resampleQuality,
+-                                m_forceResampler);
+-
+-    m_changeResampler = false;
++    ChangeResampler();
+   }
+   return true;
+ }
+@@ -219,23 +183,29 @@ void CActiveAEBufferPoolResample::ChangeResampler()
+   }
+ 
+   m_resampler = CAEResampleFactory::Create();
+-  m_resampler->Init(CAEUtil::GetAVChannelLayout(m_format.m_channelLayout),
+-                                m_format.m_channelLayout.Count(),
+-                                m_format.m_sampleRate,
+-                                CAEUtil::GetAVSampleFormat(m_format.m_dataFormat),
+-                                CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat),
+-                                CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat),
+-                                CAEUtil::GetAVChannelLayout(m_inputFormat.m_channelLayout),
+-                                m_inputFormat.m_channelLayout.Count(),
+-                                m_inputFormat.m_sampleRate,
+-                                CAEUtil::GetAVSampleFormat(m_inputFormat.m_dataFormat),
+-                                CAEUtil::DataFormatToUsedBits(m_inputFormat.m_dataFormat),
+-                                CAEUtil::DataFormatToDitherBits(m_inputFormat.m_dataFormat),
+-                                m_stereoUpmix,
+-                                m_normalize,
+-                                m_remap ? &m_format.m_channelLayout : NULL,
+-                                m_resampleQuality,
+-                                m_forceResampler);
++
++  SampleConfig dstConfig, srcConfig;
++  dstConfig.channel_layout = CAEUtil::GetAVChannelLayout(m_format.m_channelLayout);
++  dstConfig.channels = m_format.m_channelLayout.Count();
++  dstConfig.sample_rate = m_format.m_sampleRate;
++  dstConfig.fmt = CAEUtil::GetAVSampleFormat(m_format.m_dataFormat);
++  dstConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat);
++  dstConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat);
++
++  srcConfig.channel_layout = CAEUtil::GetAVChannelLayout(m_inputFormat.m_channelLayout);
++  srcConfig.channels = m_inputFormat.m_channelLayout.Count();
++  srcConfig.sample_rate = m_inputFormat.m_sampleRate;
++  srcConfig.fmt = CAEUtil::GetAVSampleFormat(m_inputFormat.m_dataFormat);
++  srcConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_inputFormat.m_dataFormat);
++  srcConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_inputFormat.m_dataFormat);
++
++  m_resampler->Init(dstConfig, srcConfig,
++                    m_stereoUpmix,
++                    m_normalize,
++                    m_centerMixLevel,
++                    m_remap ? &m_format.m_channelLayout : nullptr,
++                    m_resampleQuality,
++                    m_forceResampler);
+ 
+   m_changeResampler = false;
+ }
+@@ -290,10 +260,17 @@ bool CActiveAEBufferPoolResample::ResampleBuffers(int64_t timestamp)
+       if (hasInput && !skipInput && !m_changeResampler)
+       {
+         in = m_inputSamples.front();
+-        m_inputSamples.pop_front();
++        if (in->centerMixLevel != m_centerMixLevel &&
++            in->pkt->nb_samples > 0)
++        {
++          m_centerMixLevel = in->centerMixLevel;
++          m_changeResampler = true;
++        }
++        else
++          m_inputSamples.pop_front();
+       }
+       else
+-        in = NULL;
++        in = nullptr;
+ 
+       int start = m_procSample->pkt->nb_samples *
+                   m_procSample->pkt->bytes_per_sample *
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h
+index d3acf2209faa..20fbac5e4565 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEBuffer.h
+@@ -10,6 +10,7 @@
+ 
+ #include "cores/AudioEngine/Utils/AEAudioFormat.h"
+ #include "cores/AudioEngine/Interfaces/AE.h"
++#include <cmath>
+ #include <deque>
+ #include <memory>
+ 
+@@ -21,16 +22,6 @@ extern "C" {
+ namespace ActiveAE
+ {
+ 
+-struct SampleConfig
+-{
+-  AVSampleFormat fmt;
+-  uint64_t channel_layout;
+-  int channels;
+-  int sample_rate;
+-  int bits_per_sample;
+-  int dither_bits;
+-};
+-
+ /**
+  * the variables here follow ffmpeg naming
+  */
+@@ -58,11 +49,12 @@ class CSampleBuffer
+   ~CSampleBuffer();
+   CSampleBuffer *Acquire();
+   void Return();
+-  CSoundPacket *pkt;
+-  CActiveAEBufferPool *pool;
++  CSoundPacket *pkt = nullptr;
++  CActiveAEBufferPool *pool = nullptr;
+   int64_t timestamp;
+-  int pkt_start_offset;
+-  int refCount;
++  int pkt_start_offset = 0;
++  int refCount = 0;
++  double centerMixLevel;
+ };
+ 
+ class CActiveAEBufferPool
+@@ -105,19 +97,20 @@ class CActiveAEBufferPoolResample : public CActiveAEBufferPool
+   void ChangeResampler();
+ 
+   uint8_t *m_planes[16];
+-  bool m_empty;
+-  bool m_drain;
+-  int64_t m_lastSamplePts;
+-  bool m_remap;
+-  CSampleBuffer *m_procSample;
+-  IAEResample *m_resampler;
+-  double m_resampleRatio;
+-  bool m_fillPackets;
+-  bool m_normalize;
+-  bool m_changeResampler;
+-  bool m_forceResampler;
++  bool m_empty = true;
++  bool m_drain = false;
++  int64_t m_lastSamplePts = 0;
++  bool m_remap = false;
++  CSampleBuffer *m_procSample = nullptr;
++  IAEResample *m_resampler = nullptr;
++  double m_resampleRatio = 1.0f;
++  double m_centerMixLevel = M_SQRT1_2;
++  bool m_fillPackets = false;
++  bool m_normalize = true;
++  bool m_changeResampler = false;
++  bool m_forceResampler = false;
+   AEQuality m_resampleQuality;
+-  bool m_stereoUpmix;
++  bool m_stereoUpmix = false;
+ };
+ 
+ class CActiveAEFilter;
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
+index 3ff977f56864..fda623e01694 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
+@@ -29,20 +29,21 @@ CActiveAEResampleFFMPEG::~CActiveAEResampleFFMPEG()
+   swr_free(&m_pContext);
+ }
+ 
+-bool CActiveAEResampleFFMPEG::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample)
++bool CActiveAEResampleFFMPEG::Init(SampleConfig dstConfig, SampleConfig srcConfig, bool upmix, bool normalize, double centerMix,
++                                   CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample)
+ {
+-  m_dst_chan_layout = dst_chan_layout;
+-  m_dst_channels = dst_channels;
+-  m_dst_rate = dst_rate;
+-  m_dst_fmt = dst_fmt;
+-  m_dst_bits = dst_bits;
+-  m_dst_dither_bits = dst_dither;
+-  m_src_chan_layout = src_chan_layout;
+-  m_src_channels = src_channels;
+-  m_src_rate = src_rate;
+-  m_src_fmt = src_fmt;
+-  m_src_bits = src_bits;
+-  m_src_dither_bits = src_dither;
++  m_dst_chan_layout = dstConfig.channel_layout;
++  m_dst_channels = dstConfig.channels;
++  m_dst_rate = dstConfig.sample_rate;
++  m_dst_fmt = dstConfig.fmt;
++  m_dst_bits = dstConfig.bits_per_sample;
++  m_dst_dither_bits = dstConfig.dither_bits;
++  m_src_chan_layout = srcConfig.channel_layout;
++  m_src_channels = srcConfig.channels;
++  m_src_rate = srcConfig.sample_rate;
++  m_src_fmt = srcConfig.fmt;
++  m_src_bits = srcConfig.bits_per_sample;
++  m_src_dither_bits = srcConfig.dither_bits;
+ 
+   if (m_src_rate != m_dst_rate)
+     m_doesResample = true;
+@@ -56,7 +57,7 @@ bool CActiveAEResampleFFMPEG::Init(uint64_t dst_chan_layout, int dst_channels, i
+                                                         m_src_chan_layout, m_src_fmt, m_src_rate,
+                                                         0, NULL);
+ 
+-  if(!m_pContext)
++  if (!m_pContext)
+   {
+     CLog::Log(LOGERROR, "CActiveAEResampleFFMPEG::Init - create context failed");
+     return false;
+@@ -93,6 +94,8 @@ bool CActiveAEResampleFFMPEG::Init(uint64_t dst_chan_layout, int dst_channels, i
+      av_opt_set_double(m_pContext, "rematrix_maxval", 1.0, 0);
+   }
+ 
++  av_opt_set_double(m_pContext, "center_mix_level", centerMix, 0);
++
+   if (remapLayout)
+   {
+     // one-to-one mapping of channels
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.h b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.h
+index 828fca1d722e..aebd2f191734 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.h
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.h
+@@ -28,7 +28,8 @@ class CActiveAEResampleFFMPEG : public IAEResample
+   const char *GetName() override { return "ActiveAEResampleFFMPEG"; }
+   CActiveAEResampleFFMPEG();
+   ~CActiveAEResampleFFMPEG() override;
+-  bool Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample) override;
++  bool Init(SampleConfig dstConfig, SampleConfig srcConfig, bool upmix, bool normalize, double centerMix,
++            CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample) override;
+   int Resample(uint8_t **dst_buffer, int dst_samples, uint8_t **src_buffer, int src_samples, double ratio) override;
+   int64_t GetDelay(int64_t base) override;
+   int GetBufferedSamples() override;
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.cpp
+index 72a4c8bcf682..331fac2129d9 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.cpp
+@@ -95,29 +95,31 @@ static int format_to_bits(AVSampleFormat fmt)
+   return 0;
+ }
+ 
+-bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample)
++bool CActiveAEResamplePi::Init(SampleConfig dstConfig, SampleConfig srcConfig, bool upmix, bool normalize, double centerMix,
++                               CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample)
+ {
+   LOGTIMEINIT("x");
+ 
+   CLog::Log(LOGINFO,
+             "%s::%s remap:%p chan:%d->%d rate:%d->%d format:%d->%d bits:%d->%d dither:%d->%d "
+             "norm:%d upmix:%d",
+-            CLASSNAME, __func__, static_cast<void*>(remapLayout), src_channels, dst_channels,
+-            src_rate, dst_rate, src_fmt, dst_fmt, src_bits, dst_bits, src_dither, dst_dither,
++            CLASSNAME, __func__, static_cast<void*>(remapLayout), srcConfig.channels, dstConfig.channels,
++            srcConfig.sample_rate, dstConfig.sample_rate, srcConfig.fmt, dstConfig.fmt,
++            srcConfig.bits_per_sample, dstConfig.bits_per_sample, srcConfig.dither_bits, dstConfig.dither_bits,
+             normalize, upmix);
+ 
+-  m_dst_chan_layout = dst_chan_layout;
+-  m_dst_channels = dst_channels;
+-  m_dst_rate = dst_rate;
+-  m_dst_fmt = dst_fmt;
+-  m_dst_bits = dst_bits;
+-  m_dst_dither_bits = dst_dither;
+-  m_src_chan_layout = src_chan_layout;
+-  m_src_channels = src_channels;
+-  m_src_rate = src_rate;
+-  m_src_fmt = src_fmt;
+-  m_src_bits = src_bits;
+-  m_src_dither_bits = src_dither;
++  m_dst_chan_layout = dstConfig.channel_layout;
++  m_dst_channels = dstConfig.channels;
++  m_dst_rate = dstConfig.sample_rate;
++  m_dst_fmt = dstConfig.fmt;
++  m_dst_bits = dstConfig.bits_per_sample;
++  m_dst_dither_bits = dstConfig.dither_bits;
++  m_src_chan_layout = srcConfig.channel_layout;
++  m_src_channels = srcConfig.channels;
++  m_src_rate = srcConfig.sample_rate;
++  m_src_fmt = srcConfig.fmt;
++  m_src_bits = srcConfig.bits_per_sample;
++  m_src_dither_bits = srcConfig.dither_bits;
+   m_offset = 0;
+   m_src_pitch = format_to_bits(m_src_fmt) >> 3;
+   m_dst_pitch = format_to_bits(m_dst_fmt) >> 3;
+@@ -284,8 +286,8 @@ bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int d
+     m_ratio = 1.0;
+   }
+   // audio_mixer only supports up to 192kHz, however as long as ratio of samplerates remains the same we can lie
+-  while (src_rate > 192000 || dst_rate > 192000)
+-    src_rate >>= 1, dst_rate >>= 1;
++  while (srcConfig.sample_rate > 192000 || dstConfig.sample_rate > 192000)
++    srcConfig.sample_rate >>= 1, dstConfig.sample_rate >>= 1;
+ 
+   OMX_INIT_STRUCTURE(m_pcm_input);
+   m_pcm_input.nPortIndex            = m_omx_mixer.GetInputPort();
+@@ -300,8 +302,8 @@ bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int d
+   if (m_src_fmt >= AV_SAMPLE_FMT_U8P)
+    flags |= 0x10000;
+   m_pcm_input.ePCMMode              = flags == 0 ? OMX_AUDIO_PCMModeLinear : (OMX_AUDIO_PCMMODETYPE)flags;
+-  m_pcm_input.nChannels             = src_channels;
+-  m_pcm_input.nSamplingRate         = src_rate;
++  m_pcm_input.nChannels             = srcConfig.channels;
++  m_pcm_input.nSamplingRate         = srcConfig.sample_rate;
+ 
+   omx_err = m_omx_mixer.SetParameter(OMX_IndexParamAudioPcm, &m_pcm_input);
+   if (omx_err != OMX_ErrorNone)
+@@ -323,8 +325,8 @@ bool CActiveAEResamplePi::Init(uint64_t dst_chan_layout, int dst_channels, int d
+     flags |= (32 - m_dst_bits - m_dst_dither_bits) << 8;
+ 
+   m_pcm_output.ePCMMode              = flags == 0 ? OMX_AUDIO_PCMModeLinear : (OMX_AUDIO_PCMMODETYPE)flags;
+-  m_pcm_output.nChannels             = dst_channels;
+-  m_pcm_output.nSamplingRate         = dst_rate;
++  m_pcm_output.nChannels             = dstConfig.channels;
++  m_pcm_output.nSamplingRate         = dstConfig.sample_rate;
+ 
+   omx_err = m_omx_mixer.SetParameter(OMX_IndexParamAudioPcm, &m_pcm_output);
+   if (omx_err != OMX_ErrorNone)
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.h b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.h
+index 60d9d7fc9887..bd9936c94c36 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.h
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResamplePi.h
+@@ -20,7 +20,8 @@ class CActiveAEResamplePi : public IAEResample
+   const char *GetName() { return "ActiveAEResamplePi"; }
+   CActiveAEResamplePi();
+   virtual ~CActiveAEResamplePi();
+-  bool Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample);
++  bool Init(SampleConfig dstConfig, SampleConfig srcConfig, bool upmix, bool normalize, double centerMix,
++            CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample);
+   int Resample(uint8_t **dst_buffer, int dst_samples, uint8_t **src_buffer, int src_samples, double ratio);
+   int64_t GetDelay(int64_t base);
+   int GetBufferedSamples();
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
+index c08a60108941..940cc5e74dae 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAESink.cpp
+@@ -1084,19 +1084,25 @@ void CActiveAESink::GenerateNoise()
+ 
+   SampleConfig config = m_sampleOfSilence.pkt->config;
+   IAEResample *resampler = CAEResampleFactory::Create(AERESAMPLEFACTORY_QUICK_RESAMPLE);
+-  resampler->Init(config.channel_layout,
+-                 config.channels,
+-                 config.sample_rate,
+-                 config.fmt,
+-                 config.bits_per_sample,
+-                 config.dither_bits,
+-                 config.channel_layout,
+-                 config.channels,
+-                 config.sample_rate,
+-                 AV_SAMPLE_FMT_FLT,
+-                 CAEUtil::DataFormatToUsedBits(m_sinkFormat.m_dataFormat),
+-                 CAEUtil::DataFormatToDitherBits(m_sinkFormat.m_dataFormat),
+-                 false, false, nullptr, AE_QUALITY_UNKNOWN, false);
++
++  SampleConfig dstConfig, srcConfig;
++  dstConfig.channel_layout = config.channel_layout;
++  dstConfig.channels = config.channels;
++  dstConfig.sample_rate = config.sample_rate;
++  dstConfig.fmt = config.fmt;
++  dstConfig.bits_per_sample = config.bits_per_sample;
++  dstConfig.dither_bits = config.dither_bits;
++
++  srcConfig.channel_layout = config.channel_layout;
++  srcConfig.channels = config.channels;
++  srcConfig.sample_rate = config.sample_rate;
++  srcConfig.fmt = AV_SAMPLE_FMT_FLT;
++  srcConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_sinkFormat.m_dataFormat);
++  srcConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_sinkFormat.m_dataFormat);
++
++  resampler->Init(dstConfig, srcConfig,
++                  false, false, M_SQRT1_2, nullptr, AE_QUALITY_UNKNOWN, false);
++
+   resampler->Resample(m_sampleOfSilence.pkt->data, m_sampleOfSilence.pkt->max_nb_samples,
+                      (uint8_t**)&noise, m_sampleOfSilence.pkt->max_nb_samples, 1.0);
+ 
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.cpp b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.cpp
+index 4d76e55c50c1..652f04ca0e48 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.cpp
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.cpp
+@@ -137,20 +137,25 @@ void CActiveAEStream::InitRemapper()
+     }
+ 
+     // initialize resampler for only doing remapping
+-    m_remapper->Init(avLayout,
+-                     m_format.m_channelLayout.Count(),
+-                     m_format.m_sampleRate,
+-                     CAEUtil::GetAVSampleFormat(m_format.m_dataFormat),
+-                     CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat),
+-                     CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat),
+-                     avLayout,
+-                     m_format.m_channelLayout.Count(),
+-                     m_format.m_sampleRate,
+-                     CAEUtil::GetAVSampleFormat(m_format.m_dataFormat),
+-                     CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat),
+-                     CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat),
++    SampleConfig dstConfig, srcConfig;
++    dstConfig.channel_layout = avLayout;
++    dstConfig.channels = m_format.m_channelLayout.Count();
++    dstConfig.sample_rate = m_format.m_sampleRate;
++    dstConfig.fmt = CAEUtil::GetAVSampleFormat(m_format.m_dataFormat);
++    dstConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat);
++    dstConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat);
++
++    srcConfig.channel_layout = avLayout;
++    srcConfig.channels = m_format.m_channelLayout.Count();
++    srcConfig.sample_rate = m_format.m_sampleRate;
++    srcConfig.fmt = CAEUtil::GetAVSampleFormat(m_format.m_dataFormat);
++    srcConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_format.m_dataFormat);
++    srcConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_format.m_dataFormat);
++
++    m_remapper->Init(dstConfig, srcConfig,
+                      false,
+                      false,
++                     M_SQRT1_2,
+                      &remapLayout,
+                      AE_QUALITY_LOW, // not used for remapping
+                      false);
+@@ -226,12 +231,18 @@ unsigned int CActiveAEStream::GetSpace()
+     return m_streamFreeBuffers * m_streamSpace;
+ }
+ 
+-unsigned int CActiveAEStream::AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, double pts)
++unsigned int CActiveAEStream::AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, ExtData *extData)
+ {
+   Message *msg;
+   unsigned int copied = 0;
+   int sourceFrames = frames;
+   const uint8_t* const *buf = data;
++  double pts = 0;
++
++  if (extData)
++  {
++    pts = extData->pts;
++  }
+ 
+   m_streamIsFlushed = false;
+ 
+@@ -279,6 +290,9 @@ unsigned int CActiveAEStream::AddData(const uint8_t* const *data, unsigned int o
+       }
+       copied += minFrames;
+ 
++      if (extData && extData->hasDownmix)
++        m_currentBuffer->centerMixLevel = extData->centerMixLevel;
++
+       bool rawPktComplete = false;
+       {
+         CSingleLock lock(m_statsLock);
+@@ -302,7 +316,7 @@ unsigned int CActiveAEStream::AddData(const uint8_t* const *data, unsigned int o
+         msgData.stream = this;
+         RemapBuffer();
+         m_streamPort->SendOutMessage(CActiveAEDataProtocol::STREAMSAMPLE, &msgData, sizeof(MsgStreamSample));
+-        m_currentBuffer = NULL;
++        m_currentBuffer = nullptr;
+       }
+       continue;
+     }
+diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.h b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.h
+index f5ae61525be7..1c9db008c895 100644
+--- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.h
++++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEStream.h
+@@ -140,7 +140,7 @@ class CActiveAEStream : public IAEStream
+ 
+ public:
+   unsigned int GetSpace() override;
+-  unsigned int AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, double pts = 0.0) override;
++  unsigned int AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, ExtData *extData) override;
+   double GetDelay() override;
+   CAESyncInfo GetSyncInfo() override;
+   bool IsBuffering() override;
+diff --git a/xbmc/cores/AudioEngine/Interfaces/AE.h b/xbmc/cores/AudioEngine/Interfaces/AE.h
+index e4620aa4394f..0c4a015a5fff 100644
+--- a/xbmc/cores/AudioEngine/Interfaces/AE.h
++++ b/xbmc/cores/AudioEngine/Interfaces/AE.h
+@@ -15,6 +15,10 @@
+ 
+ #include "cores/AudioEngine/Utils/AEAudioFormat.h"
+ 
++extern "C" {
++#include "libavutil/samplefmt.h"
++}
++
+ typedef std::pair<std::string, std::string> AEDevice;
+ typedef std::vector<AEDevice> AEDeviceList;
+ 
+@@ -52,6 +56,16 @@ enum AEQuality
+   AE_QUALITY_GPU        = 101, /* GPU acceleration */
+ };
+ 
++struct SampleConfig
++{
++  AVSampleFormat fmt;
++  uint64_t channel_layout;
++  int channels;
++  int sample_rate;
++  int bits_per_sample;
++  int dither_bits;
++};
++
+ /**
+  * IAE Interface
+  */
+diff --git a/xbmc/cores/AudioEngine/Interfaces/AEResample.h b/xbmc/cores/AudioEngine/Interfaces/AEResample.h
+index 087230cebaa5..8b27b32b8629 100644
+--- a/xbmc/cores/AudioEngine/Interfaces/AEResample.h
++++ b/xbmc/cores/AudioEngine/Interfaces/AEResample.h
+@@ -10,21 +10,18 @@
+ 
+ #include "cores/AudioEngine/Interfaces/AE.h"
+ 
+-extern "C" {
+-#include "libavutil/samplefmt.h"
+-}
+-
+ namespace ActiveAE
+ {
+ 
+ class IAEResample
+ {
+ public:
+-  /* return the name of this sync for logging */
++  // return the name of this sync for logging
+   virtual const char *GetName() = 0;
+   IAEResample() = default;
+   virtual ~IAEResample() = default;
+-  virtual bool Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, int dst_dither, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, int src_dither, bool upmix, bool normalize, CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample) = 0;
++  virtual bool Init(SampleConfig dstConfig, SampleConfig srcConfig, bool upmix, bool normalize, double centerMix,
++                    CAEChannelInfo *remapLayout, AEQuality quality, bool force_resample) = 0;
+   virtual int Resample(uint8_t **dst_buffer, int dst_samples, uint8_t **src_buffer, int src_samples, double ratio) = 0;
+   virtual int64_t GetDelay(int64_t base) = 0;
+   virtual int GetBufferedSamples() = 0;
+diff --git a/xbmc/cores/AudioEngine/Interfaces/AEStream.h b/xbmc/cores/AudioEngine/Interfaces/AEStream.h
+index 4055aca13b3d..e6e2e261e798 100644
+--- a/xbmc/cores/AudioEngine/Interfaces/AEStream.h
++++ b/xbmc/cores/AudioEngine/Interfaces/AEStream.h
+@@ -56,6 +56,14 @@ class IAEStream
+   IAEStream() = default;
+   virtual ~IAEStream() = default;
+ 
++public:
++  struct ExtData
++  {
++    double pts = 0;
++    bool hasDownmix = false;
++    double centerMixLevel = 1;
++  };
++
+ public:
+   /**
+    * Returns the amount of space available in the stream
+@@ -71,7 +79,7 @@ class IAEStream
+    * @param pts timestamp
+    * @return The number of frames consumed
+    */
+-  virtual unsigned int AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, double pts = 0.0) = 0;
++  virtual unsigned int AddData(const uint8_t* const *data, unsigned int offset, unsigned int frames, ExtData *extData) = 0;
+ 
+   /**
+    * Returns the time in seconds that it will take
+diff --git a/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+index ce65f713e973..6e280f1597e3 100644
+--- a/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
++++ b/xbmc/cores/RetroPlayer/streams/RetroPlayerAudio.cpp
+@@ -124,7 +124,7 @@ void CRetroPlayerAudio::AddStreamData(const StreamPacket &packet)
+         CLog::Log(LOGDEBUG, "RetroPlayer[AUDIO]: Audio delay (%0.2f ms) is too high - flushing", delaySecs * 1000);
+       }
+ 
+-      m_pAudioStream->AddData(&audioPacket.data, 0, frameCount);
++      m_pAudioStream->AddData(&audioPacket.data, 0, frameCount, nullptr);
+     }
+   }
+ }
+diff --git a/xbmc/cores/VideoPlayer/AudioSinkAE.cpp b/xbmc/cores/VideoPlayer/AudioSinkAE.cpp
+index 8646ee74731e..acd7f6566e9e 100644
+--- a/xbmc/cores/VideoPlayer/AudioSinkAE.cpp
++++ b/xbmc/cores/VideoPlayer/AudioSinkAE.cpp
+@@ -124,8 +124,17 @@ unsigned int CAudioSinkAE::AddPackets(const DVDAudioFrame &audioframe)
+   unsigned int offset = audioframe.framesOut;
+   do
+   {
+-    double pts = (offset == 0) ? audioframe.pts / DVD_TIME_BASE * 1000 : 0.0;
+-    unsigned int copied = m_pAudioStream->AddData(audioframe.data, offset, frames, pts);
++    IAEStream::ExtData ext;
++    if (offset == 0)
++    {
++      ext.pts = audioframe.pts / DVD_TIME_BASE * 1000;
++    }
++    if (audioframe.hasDownmix)
++    {
++      ext.hasDownmix = true;
++      ext.centerMixLevel = audioframe.centerMixLevel;
++    }
++    unsigned int copied = m_pAudioStream->AddData(audioframe.data, offset, frames, &ext);
+     offset += copied;
+     frames -= copied;
+     if (frames <= 0)
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodec.h b/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodec.h
+index 8462902769a7..3bf5e57e6134 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodec.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodec.h
+@@ -44,6 +44,8 @@ typedef struct stDVDAudioFrame
+   enum AVAudioServiceType audio_service_type;
+   enum AVMatrixEncoding matrix_encoding;
+   int profile;
++  bool hasDownmix;
++  double centerMixLevel;
+ } DVDAudioFrame;
+ 
+ class CDVDAudioCodec
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.cpp
+index 12e19a83ef0d..d47cd43da014 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.cpp
+@@ -7,23 +7,16 @@
+  */
+ 
+ #include "DVDAudioCodecFFmpeg.h"
+-#ifdef TARGET_POSIX
+-#include "XMemUtils.h"
+-#include "platform/linux/XTimeUtils.h"
+-#endif
+ #include "../../DVDStreamInfo.h"
+ #include "utils/log.h"
+ #include "settings/AdvancedSettings.h"
++#include "settings/Settings.h"
+ #include "DVDCodecs/DVDCodecs.h"
++
+ extern "C" {
+ #include "libavutil/opt.h"
+ }
+ 
+-#include "settings/Settings.h"
+-#if defined(TARGET_DARWIN)
+-#include "cores/AudioEngine/Utils/AEUtil.h"
+-#endif
+-
+ CDVDAudioCodecFFmpeg::CDVDAudioCodecFFmpeg(CProcessInfo &processInfo) : CDVDAudioCodec(processInfo)
+ {
+   m_pCodecContext = NULL;
+@@ -120,6 +113,7 @@ bool CDVDAudioCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
+ 
+   m_iSampleFormat = AV_SAMPLE_FMT_NONE;
+   m_matrixEncoding = AV_MATRIX_ENCODING_NONE;
++  m_hasDownmix = false;
+ 
+   m_codecName = "ff-" + std::string(m_pCodecContext->codec->name);
+ 
+@@ -205,6 +199,12 @@ void CDVDAudioCodecFFmpeg::GetData(DVDAudioFrame &frame)
+     frame.pts = (double)bpts * DVD_TIME_BASE / AV_TIME_BASE;
+   else
+     frame.pts = DVD_NOPTS_VALUE;
++
++  frame.hasDownmix = m_hasDownmix;
++  if (frame.hasDownmix)
++  {
++    frame.centerMixLevel = m_downmixInfo.center_mix_level;
++  }
+ }
+ 
+ int CDVDAudioCodecFFmpeg::GetData(uint8_t** dst)
+@@ -223,6 +223,11 @@ int CDVDAudioCodecFFmpeg::GetData(uint8_t** dst)
+           {
+             m_matrixEncoding = *(enum AVMatrixEncoding*)sd->data;
+           }
++          else if (sd->type == AV_FRAME_DATA_DOWNMIX_INFO)
++          {
++            m_downmixInfo = *(AVDownmixInfo*)sd->data;
++            m_hasDownmix = true;
++          }
+         }
+       }
+     }
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.h b/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.h
+index b2b71a077410..c49257fcbe87 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.h
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecFFmpeg.h
+@@ -16,6 +16,7 @@ extern "C" {
+ #include "libavutil/avutil.h"
+ #include "libavutil/channel_layout.h"
+ #include "libswresample/swresample.h"
++#include "libavutil/downmix_info.h"
+ }
+ 
+ class CProcessInfo;
+@@ -52,6 +53,8 @@ class CDVDAudioCodecFFmpeg : public CDVDAudioCodec
+   CAEChannelInfo m_channelLayout;
+   enum AVMatrixEncoding m_matrixEncoding = AV_MATRIX_ENCODING_NONE;
+   AVFrame* m_pFrame;
++  AVDownmixInfo m_downmixInfo;
++  bool m_hasDownmix = false;
+   bool m_eof;
+   int m_channels;
+   uint64_t m_layout;
+diff --git a/xbmc/cores/paplayer/PAPlayer.cpp b/xbmc/cores/paplayer/PAPlayer.cpp
+index 47ed9c0e3f56..ce854df1833e 100644
+--- a/xbmc/cores/paplayer/PAPlayer.cpp
++++ b/xbmc/cores/paplayer/PAPlayer.cpp
+@@ -849,7 +849,7 @@ bool PAPlayer::QueueData(StreamInfo *si)
+     }
+ 
+     unsigned int frames = samples/si->m_audioFormat.m_channelLayout.Count();
+-    unsigned int added = si->m_stream->AddData(&data, 0, frames, 0);
++    unsigned int added = si->m_stream->AddData(&data, 0, frames, nullptr);
+     si->m_framesSent += added;
+   }
+   else
+@@ -861,7 +861,7 @@ bool PAPlayer::QueueData(StreamInfo *si)
+     uint8_t *data = si->m_decoder.GetRawData(size);
+     if (data && size)
+     {
+-      int added = si->m_stream->AddData(&data, 0, size, 0);
++      int added = si->m_stream->AddData(&data, 0, size, nullptr);
+       if (added != size)
+       {
+         CLog::Log(LOGERROR, "PAPlayer::QueueData - unknown error");
+diff --git a/xbmc/cores/paplayer/VideoPlayerCodec.cpp b/xbmc/cores/paplayer/VideoPlayerCodec.cpp
+index e48011fc6ec5..4edadf0454cf 100644
+--- a/xbmc/cores/paplayer/VideoPlayerCodec.cpp
++++ b/xbmc/cores/paplayer/VideoPlayerCodec.cpp
+@@ -249,20 +249,26 @@ bool VideoPlayerCodec::Init(const CFileItem &file, unsigned int filecache)
+   {
+     m_needConvert = true;
+     m_pResampler = ActiveAE::CAEResampleFactory::Create();
+-    m_pResampler->Init(CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout),
+-                       m_channels,
+-                       m_srcFormat.m_sampleRate,
+-                       CAEUtil::GetAVSampleFormat(AE_FMT_FLOAT),
+-                       CAEUtil::DataFormatToUsedBits(AE_FMT_FLOAT),
+-                       CAEUtil::DataFormatToDitherBits(AE_FMT_FLOAT),
+-                       CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout),
+-                       m_channels,
+-                       m_srcFormat.m_sampleRate,
+-                       CAEUtil::GetAVSampleFormat(m_srcFormat.m_dataFormat),
+-                       CAEUtil::DataFormatToUsedBits(m_srcFormat.m_dataFormat),
+-                       CAEUtil::DataFormatToDitherBits(m_srcFormat.m_dataFormat),
++
++    SampleConfig dstConfig, srcConfig;
++    dstConfig.channel_layout = CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout);
++    dstConfig.channels = m_channels;
++    dstConfig.sample_rate = m_srcFormat.m_sampleRate;
++    dstConfig.fmt = CAEUtil::GetAVSampleFormat(AE_FMT_FLOAT);
++    dstConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(AE_FMT_FLOAT);
++    dstConfig.dither_bits = CAEUtil::DataFormatToDitherBits(AE_FMT_FLOAT);
++
++    srcConfig.channel_layout = CAEUtil::GetAVChannelLayout(m_srcFormat.m_channelLayout);
++    srcConfig.channels = m_channels;
++    srcConfig.sample_rate = m_srcFormat.m_sampleRate;
++    srcConfig.fmt = CAEUtil::GetAVSampleFormat(m_srcFormat.m_dataFormat);
++    srcConfig.bits_per_sample = CAEUtil::DataFormatToUsedBits(m_srcFormat.m_dataFormat);
++    srcConfig.dither_bits = CAEUtil::DataFormatToDitherBits(m_srcFormat.m_dataFormat);
++
++    m_pResampler->Init(dstConfig, srcConfig,
+                        false,
+                        false,
++                       M_SQRT1_2,
+                        NULL,
+                        AE_QUALITY_UNKNOWN,
+                        false);
