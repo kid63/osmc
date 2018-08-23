@@ -57,7 +57,6 @@ then
 	handle_dep "libgif-dev"
 	handle_dep "libinput-dev"
 	handle_dep "libiso9660-dev"
-	#handle_dep "libjasper-dev"
 	handle_dep "libjpeg62-turbo-dev"
         handle_dep "liblirc-dev"
 	handle_dep "liblzo2-dev"
