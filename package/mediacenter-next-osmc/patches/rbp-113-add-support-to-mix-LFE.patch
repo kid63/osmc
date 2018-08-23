@@ -60,11 +60,12 @@ diff --git a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp 
 index 5cf994be26..355356eeb0 100644
 --- a/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
 +++ b/xbmc/cores/AudioEngine/Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp
-@@ -21,6 +21,7 @@
+@@ -9,6 +9,8 @@
  #include "cores/AudioEngine/Utils/AEUtil.h"
  #include "ActiveAEResampleFFMPEG.h"
  #include "utils/log.h"
 +#include "ServiceBroker.h"
++#include "settings/Settings.h"
 
  extern "C" {
  #include "libavutil/channel_layout.h"
