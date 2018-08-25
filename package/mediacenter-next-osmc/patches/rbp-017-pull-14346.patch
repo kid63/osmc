@@ -1,0 +1,23 @@
+From e9495d192b41148242b86c4afdc5195c0b206895 Mon Sep 17 00:00:00 2001
+From: xbmc <fernetmenta@online.de>
+Date: Fri, 24 Aug 2018 12:22:15 +0200
+Subject: [PATCH] VideoPlayer: VDPAU - whitelist AV_PIX_FMT_YUVJ420P
+
+---
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/VDPAU.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/VDPAU.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/VDPAU.cpp
+index 893d276c05d3..ff55df564268 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/VDPAU.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/VDPAU.cpp
+@@ -490,7 +490,8 @@ bool CDecoder::Open(AVCodecContext* avctx, AVCodecContext* mainctx, const enum A
+ {
+   // this could be done better by querying actual hw capabilities
+   // but since vdpau will be dropped anyway in v19, this should do
+-  if (avctx->sw_pix_fmt != AV_PIX_FMT_YUV420P)
++  if (avctx->sw_pix_fmt != AV_PIX_FMT_YUV420P &&
++      avctx->sw_pix_fmt != AV_PIX_FMT_YUVJ420P)
+     return false;
+ 
+   // check if user wants to decode this format with VDPAU
