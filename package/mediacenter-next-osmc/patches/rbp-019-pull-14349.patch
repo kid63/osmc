@@ -1,0 +1,269 @@
+From d6513fd137cb2df04bd7d9366f0076188481b429 Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Fri, 24 Aug 2018 13:06:23 +0200
+Subject: [PATCH 1/3] [vp] Add a dedicated method to count stream types.
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 13 +++++++------
+ xbmc/cores/VideoPlayer/VideoPlayer.h   |  2 +-
+ 2 files changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 9c924ffb734d..c5989e2809aa 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -423,7 +423,7 @@ void CSelectionStreams::Update(SelectionStream& s)
+   }
+   else
+   {
+-    s.type_index = Count(s.type);
++    s.type_index = CountType(s.type);
+     m_Streams.push_back(s);
+   }
+ }
+@@ -568,9 +568,10 @@ int CSelectionStreams::CountSource(StreamType type, StreamSource source) const
+   return count;
+ }
+ 
+-int CSelectionStreams::Count(StreamType type) const
++int CSelectionStreams::CountType(StreamType type) const
+ {
+-  return IndexOf(type, STREAM_SOURCE_NONE, -1, -1) + 1;
++  return std::count_if(m_Streams.begin(), m_Streams.end(), 
++    [&](const SelectionStream& stream) {return stream.type == type;});
+ }
+ 
+ //------------------------------------------------------------------------------
+@@ -5063,7 +5064,7 @@ void CVideoPlayer::GetVideoStreamInfo(int streamId, VideoStreamInfo &info)
+ int CVideoPlayer::GetVideoStreamCount() const
+ {
+   CSingleLock lock(m_content.m_section);
+-  return m_content.m_selectionStreams.Count(STREAM_VIDEO);
++  return m_content.m_selectionStreams.CountType(STREAM_VIDEO);
+ }
+ 
+ int CVideoPlayer::GetVideoStream() const
+@@ -5112,7 +5113,7 @@ void CVideoPlayer::GetAudioStreamInfo(int index, AudioStreamInfo &info)
+ int CVideoPlayer::GetAudioStreamCount()
+ {
+   CSingleLock lock(m_content.m_section);
+-  return m_content.m_selectionStreams.Count(STREAM_AUDIO);
++  return m_content.m_selectionStreams.CountType(STREAM_AUDIO);
+ }
+ 
+ int CVideoPlayer::GetAudioStream()
+@@ -5155,7 +5156,7 @@ void CVideoPlayer::SetSubtitle(int iStream)
+ int CVideoPlayer::GetSubtitleCount()
+ {
+   CSingleLock lock(m_content.m_section);
+-  return m_content.m_selectionStreams.Count(STREAM_SUBTITLE);
++  return m_content.m_selectionStreams.CountType(STREAM_SUBTITLE);
+ }
+ 
+ int CVideoPlayer::GetSubtitle()
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.h b/xbmc/cores/VideoPlayer/VideoPlayer.h
+index ff1e554cf675..8886f228b677 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.h
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.h
+@@ -245,8 +245,8 @@ class CSelectionStreams
+   CSelectionStreams() = default;
+ 
+   int IndexOf(StreamType type, int source, int64_t demuxerId, int id) const;
+-  int Count(StreamType type) const;
+   int CountSource(StreamType type, StreamSource source) const;
++  int CountType(StreamType type) const;
+   SelectionStream& Get(StreamType type, int index);
+   bool Get(StreamType type, StreamFlags flag, SelectionStream& out);
+   void Clear(StreamType type, StreamSource source);
+
+From bcbb41d85dfeae1c4ede54d57ce442b87b35405b Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Fri, 24 Aug 2018 13:22:26 +0200
+Subject: [PATCH 2/3] [vp] Rename and simplify CountSource(...).
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 16 ++++------------
+ xbmc/cores/VideoPlayer/VideoPlayer.h   |  2 +-
+ 2 files changed, 5 insertions(+), 13 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index c5989e2809aa..43fff9b1bf64 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -554,18 +554,10 @@ void CSelectionStreams::Update(std::shared_ptr<CDVDInputStream> input, CDVDDemux
+   Update(input, demuxer, "");
+ }
+ 
+-int CSelectionStreams::CountSource(StreamType type, StreamSource source) const
++int CSelectionStreams::CountTypeOfSource(StreamType type, StreamSource source) const
+ {
+-  int count = 0;
+-  for(size_t i=0;i<m_Streams.size();i++)
+-  {
+-    if(type && m_Streams[i].type != type)
+-      continue;
+-    if (source && m_Streams[i].source != source)
+-      continue;
+-    count++;
+-  }
+-  return count;
++  return std::count_if(m_Streams.begin(), m_Streams.end(),
++    [&](const SelectionStream& stream) {return (stream.type == type) && (stream.source == source);});
+ }
+ 
+ int CSelectionStreams::CountType(StreamType type) const
+@@ -1613,7 +1605,7 @@ void CVideoPlayer::Process()
+             break;
+ 
+           first = false;
+-          if (m_pCCDemuxer->GetNrOfStreams() != m_SelectionStreams.CountSource(STREAM_SUBTITLE, STREAM_SOURCE_VIDEOMUX))
++          if (m_pCCDemuxer->GetNrOfStreams() != m_SelectionStreams.CountTypeOfSource(STREAM_SUBTITLE, STREAM_SOURCE_VIDEOMUX))
+           {
+             m_SelectionStreams.Clear(STREAM_SUBTITLE, STREAM_SOURCE_VIDEOMUX);
+             m_SelectionStreams.Update(NULL, m_pCCDemuxer, "");
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.h b/xbmc/cores/VideoPlayer/VideoPlayer.h
+index 8886f228b677..e8631d441744 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.h
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.h
+@@ -245,7 +245,7 @@ class CSelectionStreams
+   CSelectionStreams() = default;
+ 
+   int IndexOf(StreamType type, int source, int64_t demuxerId, int id) const;
+-  int CountSource(StreamType type, StreamSource source) const;
++  int CountTypeOfSource(StreamType type, StreamSource source) const;
+   int CountType(StreamType type) const;
+   SelectionStream& Get(StreamType type, int index);
+   bool Get(StreamType type, StreamFlags flag, SelectionStream& out);
+
+From 6b29174f36a5f8e5d0a5fe3a06fe9ecff95c4432 Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Fri, 24 Aug 2018 15:04:32 +0200
+Subject: [PATCH 3/3] [vp] Refactor and rename CSelectionStreams::IndexOf(...)
+ to better reflect its purpose. The ability of counting is removed.
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 45 ++++++++++++--------------
+ xbmc/cores/VideoPlayer/VideoPlayer.h   |  2 +-
+ 2 files changed, 21 insertions(+), 26 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 43fff9b1bf64..7385c023f3a3 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -373,23 +373,18 @@ bool CSelectionStreams::Get(StreamType type, StreamFlags flag, SelectionStream&
+   return false;
+ }
+ 
+-int CSelectionStreams::IndexOf(StreamType type, int source, int64_t demuxerId, int id) const
++int CSelectionStreams::TypeIndexOf(StreamType type, int source, int64_t demuxerId, int id) const
+ {
+-  int count = -1;
+-  for(size_t i=0;i<m_Streams.size();i++)
+-  {
+-    if(type && m_Streams[i].type != type)
+-      continue;
+-    count++;
+-    if(source && m_Streams[i].source != source)
+-      continue;
+-    if(id < 0)
+-      continue;
+-    if(m_Streams[i].id == id && m_Streams[i].demuxerId == demuxerId)
+-      return count;
+-  }
+-  if(id < 0)
+-    return count;
++  if (id < 0)
++    return -1;
++
++  auto it = std::find_if(m_Streams.begin(), m_Streams.end(),
++    [&](const SelectionStream& stream) {return stream.type == type
++    && stream.source == source && stream.id == id
++    && stream.demuxerId == demuxerId;});
++
++  if (it != m_Streams.end())
++    return it->type_index;
+   else
+     return -1;
+ }
+@@ -414,7 +409,7 @@ int CSelectionStreams::Source(StreamSource source, std::string filename)
+ 
+ void CSelectionStreams::Update(SelectionStream& s)
+ {
+-  int index = IndexOf(s.type, s.source, s.demuxerId, s.id);
++  int index = TypeIndexOf(s.type, s.source, s.demuxerId, s.id);
+   if(index >= 0)
+   {
+     SelectionStream& o = Get(s.type, index);
+@@ -3528,7 +3523,7 @@ bool CVideoPlayer::OpenStream(CCurrentStream& current, int64_t demuxerId, int iS
+ 
+   if(STREAM_SOURCE_MASK(source) == STREAM_SOURCE_DEMUX_SUB)
+   {
+-    int index = m_SelectionStreams.IndexOf(current.type, source, demuxerId, iStream);
++    int index = m_SelectionStreams.TypeIndexOf(current.type, source, demuxerId, iStream);
+     if(index < 0)
+       return false;
+     SelectionStream st = m_SelectionStreams.Get(current.type, index);
+@@ -3561,7 +3556,7 @@ bool CVideoPlayer::OpenStream(CCurrentStream& current, int64_t demuxerId, int iS
+   }
+   else if(STREAM_SOURCE_MASK(source) == STREAM_SOURCE_TEXT)
+   {
+-    int index = m_SelectionStreams.IndexOf(current.type, source, demuxerId, iStream);
++    int index = m_SelectionStreams.TypeIndexOf(current.type, source, demuxerId, iStream);
+     if(index < 0)
+       return false;
+ 
+@@ -4589,7 +4584,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
+       if (sub->type != STREAM_SUBTITLE)
+         continue;
+ 
+-      int index = m_SelectionStreams.IndexOf(STREAM_SUBTITLE,
++      int index = m_SelectionStreams.TypeIndexOf(STREAM_SUBTITLE,
+         m_SelectionStreams.Source(STREAM_SOURCE_DEMUX_SUB, filename),
+         sub->demuxerId, sub->uniqueId);
+       SelectionStream& stream = m_SelectionStreams.Get(STREAM_SUBTITLE, index);
+@@ -4604,7 +4599,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
+         stream.flags = static_cast<StreamFlags>(info.flag);
+     }
+ 
+-    return m_SelectionStreams.IndexOf(STREAM_SUBTITLE,
++    return m_SelectionStreams.TypeIndexOf(STREAM_SUBTITLE,
+       m_SelectionStreams.Source(STREAM_SOURCE_DEMUX_SUB, filename), -1, 0);
+   }
+   if(ext == ".sub")
+@@ -4627,7 +4622,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
+ 
+   m_SelectionStreams.Update(s);
+   UpdateContent();
+-  return m_SelectionStreams.IndexOf(STREAM_SUBTITLE, s.source, s.demuxerId, s.id);
++  return m_SelectionStreams.TypeIndexOf(STREAM_SUBTITLE, s.source, s.demuxerId, s.id);
+ }
+ 
+ void CVideoPlayer::UpdatePlayState(double timeout)
+@@ -5013,11 +5008,11 @@ void CVideoPlayer::UpdateContent()
+ void CVideoPlayer::UpdateContentState()
+ {
+   CSingleLock lock(m_content.m_section);
+-  m_content.m_videoIndex = m_SelectionStreams.IndexOf(STREAM_VIDEO, m_CurrentVideo.source,
++  m_content.m_videoIndex = m_SelectionStreams.TypeIndexOf(STREAM_VIDEO, m_CurrentVideo.source,
+                                                       m_CurrentVideo.demuxerId, m_CurrentVideo.id);
+-  m_content.m_audioIndex = m_SelectionStreams.IndexOf(STREAM_AUDIO, m_CurrentAudio.source,
++  m_content.m_audioIndex = m_SelectionStreams.TypeIndexOf(STREAM_AUDIO, m_CurrentAudio.source,
+                                                       m_CurrentAudio.demuxerId, m_CurrentAudio.id);
+-  m_content.m_subtitleIndex = m_SelectionStreams.IndexOf(STREAM_SUBTITLE, m_CurrentSubtitle.source,
++  m_content.m_subtitleIndex = m_SelectionStreams.TypeIndexOf(STREAM_SUBTITLE, m_CurrentSubtitle.source,
+                                                          m_CurrentSubtitle.demuxerId, m_CurrentSubtitle.id);
+ }
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.h b/xbmc/cores/VideoPlayer/VideoPlayer.h
+index e8631d441744..1661fc3a6a75 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.h
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.h
+@@ -244,7 +244,7 @@ class CSelectionStreams
+ public:
+   CSelectionStreams() = default;
+ 
+-  int IndexOf(StreamType type, int source, int64_t demuxerId, int id) const;
++  int TypeIndexOf(StreamType type, int source, int64_t demuxerId, int id) const;
+   int CountTypeOfSource(StreamType type, StreamSource source) const;
+   int CountType(StreamType type) const;
+   SelectionStream& Get(StreamType type, int index);
