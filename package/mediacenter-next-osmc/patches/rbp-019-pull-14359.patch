@@ -1,0 +1,24 @@
+From ba59c77b4923df9fa2b874c7d74e041cee8e201e Mon Sep 17 00:00:00 2001
+From: ace20022 <ace20022@ymail.com>
+Date: Sun, 26 Aug 2018 21:05:44 +0200
+Subject: [PATCH] [videoplayer] Fix subtitle info in
+ UpdateFileItemStreamDetails(...)
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index e5cbd2d637e0..b5b583191d8b 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -5120,6 +5120,9 @@ void CVideoPlayer::GetSubtitleStreamInfo(int index, SubtitleStreamInfo &info)
+ {
+   CSingleLock lock(m_content.m_section);
+ 
++  if (index == CURRENT_STREAM)
++    index = m_content.m_subtitleIndex;
++
+   if (index < 0 || index > GetSubtitleCount() - 1)
+     return;
+ 
