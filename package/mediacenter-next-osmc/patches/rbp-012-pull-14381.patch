@@ -1,0 +1,23 @@
+From c634b93c3f0dfe6e9b92f0fb759fd3fab2d73b30 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sat, 1 Sep 2018 22:25:12 +0200
+Subject: [PATCH] [Estuary] Music OSD: Remove 'Previous' button for
+ non-seekable streams and if player has no previous item.
+
+---
+ addons/skin.estuary/xml/MusicOSD.xml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/addons/skin.estuary/xml/MusicOSD.xml b/addons/skin.estuary/xml/MusicOSD.xml
+index de1b1a6d1de9..55f1bf5e8138 100644
+--- a/addons/skin.estuary/xml/MusicOSD.xml
++++ b/addons/skin.estuary/xml/MusicOSD.xml
+@@ -44,7 +44,7 @@
+ 						<param name="texture" value="osd/fullscreen/buttons/previous.png"/>
+ 					</include>
+ 					<onclick>PlayerControl(Previous)</onclick>
+-					<visible>!MusicPlayer.Content(livetv)</visible>
++					<visible>[MusicPlayer.HasPrevious | Player.SeekEnabled] + !MusicPlayer.Content(livetv)</visible>
+ 				</control>
+ 				<control type="radiobutton" id="602">
+ 					<textureradioonfocus colordiffuse="white">osd/fullscreen/buttons/play.png</textureradioonfocus>
