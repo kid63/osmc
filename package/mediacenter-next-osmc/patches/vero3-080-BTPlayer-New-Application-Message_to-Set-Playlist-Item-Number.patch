@@ -35,9 +35,10 @@ index b54b1c8..00a52f5 100644
  #define TMSG_MEDIA_SEEK_TIME              TMSG_MASK_PLAYLISTPLAYER + 18
 -
 +#define TMSG_PLAYLISTPLAYER_SET_SONG_NO   TMSG_MASK_PLAYLISTPLAYER + 19
- 
- 
  #define TMSG_SHUTDOWN                     TMSG_MASK_APPLICATION + 0
+ #define TMSG_POWERDOWN                    TMSG_MASK_APPLICATION + 1
+ #define TMSG_QUIT                         TMSG_MASK_APPLICATION + 2
+
 -- 
 2.7.4
 
