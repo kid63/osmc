@@ -13,15 +13,17 @@ diff --git a/xbmc/PlayListPlayer.cpp b/xbmc/PlayListPlayer.cpp
 index 577409c..0c7907a 100644
 --- a/xbmc/PlayListPlayer.cpp
 +++ b/xbmc/PlayListPlayer.cpp
-@@ -937,6 +937,11 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
-       g_application.m_pPlayer->Pause();
-     }
+@@ -964,6 +964,13 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
+
      break;
+   }
++
 +  case TMSG_PLAYLISTPLAYER_SET_SONG_NO:
 +    if (pMsg->param1 != -1)
 +    {
 +      m_iCurrentSong =  pMsg->param1 - 1;
-+    }
++    }  
++
    default:
      break;
    }
