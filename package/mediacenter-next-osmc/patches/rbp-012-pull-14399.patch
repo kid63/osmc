@@ -1,0 +1,157 @@
+From 643b150a0af3037f6cdd946b31544b6a2dfa0cfc Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Fri, 7 Sep 2018 15:20:15 +0200
+Subject: [PATCH] VideoPlayer: fix timeshift on demand, allow pause if no
+ buffer exists
+
+---
+ .../VideoPlayer/DVDInputStreams/DVDInputStream.h   |  4 ++--
+ .../DVDInputStreams/DVDInputStreamFFmpeg.cpp       | 14 +-------------
+ .../DVDInputStreams/DVDInputStreamFFmpeg.h         |  7 +------
+ .../VideoPlayer/DVDInputStreams/InputStreamAddon.h |  2 +-
+ .../DVDInputStreams/InputStreamPVRBase.h           |  2 +-
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp             | 12 ++++++++----
+ 6 files changed, 14 insertions(+), 27 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h
+index 4e2343b090e0..8dc39442c959 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h
+@@ -155,8 +155,8 @@ class CDVDInputStream
+   virtual ENextStream NextStream() { return NEXTSTREAM_NONE; }
+   virtual void Abort() {}
+   virtual int GetBlockSize() { return 0; }
+-  virtual bool CanSeek() { return true; }
+-  virtual bool CanPause() { return true; }
++  virtual bool CanSeek() { return true; } //! @todo drop this
++  virtual bool CanPause() { return false; }
+ 
+   /*! \brief Indicate expected read rate in bytes per second.
+    *  This could be used to throttle caching rate. Should
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.cpp
+index 21fa6f5f235d..26e1824fedca 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.cpp
+@@ -22,9 +22,6 @@ using PLAYLIST::CPlayListM3U;
+ 
+ CDVDInputStreamFFmpeg::CDVDInputStreamFFmpeg(const CFileItem& fileitem)
+   : CDVDInputStream(DVDSTREAM_TYPE_FFMPEG, fileitem)
+-  , m_can_pause(false)
+-  , m_can_seek(false)
+-  , m_aborted(false)
+ {
+ 
+ }
+@@ -47,23 +44,14 @@ bool CDVDInputStreamFFmpeg::Open()
+   if (!CDVDInputStream::Open())
+     return false;
+ 
+-  m_can_pause = true;
+-  m_can_seek  = true;
+-  m_aborted   = false;
++  m_aborted = false;
+ 
+   if(strnicmp(m_item.GetDynPath().c_str(), "udp://", 6) == 0 ||
+      strnicmp(m_item.GetDynPath().c_str(), "rtp://", 6) == 0)
+   {
+-    m_can_pause = false;
+-    m_can_seek = false;
+     m_realtime = true;
+   }
+ 
+-  if(strnicmp(m_item.GetDynPath().c_str(), "tcp://", 6) == 0)
+-  {
+-    m_can_pause = true;
+-    m_can_seek  = false;
+-  }
+   return true;
+ }
+ 
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.h b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.h
+index 6e7a299f0789..e34855ebb069 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.h
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreamFFmpeg.h
+@@ -30,9 +30,6 @@ class CDVDInputStreamFFmpeg
+ 
+   const CFileItem& GetItem() const { return m_item; }
+ 
+-  bool CanSeek() override { return m_can_seek; }
+-  bool CanPause() override { return m_can_pause; }
+-
+   std::string GetProxyType() const;
+   std::string GetProxyHost() const;
+   uint16_t GetProxyPort() const;
+@@ -40,7 +37,5 @@ class CDVDInputStreamFFmpeg
+   std::string GetProxyPassword() const;
+ 
+ protected:
+-  bool m_can_pause;
+-  bool m_can_seek;
+-  bool m_aborted;
++  bool m_aborted = false;
+ };
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.h b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.h
+index bf800938ac2b..e215953ab23b 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.h
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamAddon.h
+@@ -53,7 +53,7 @@ class CInputStreamAddon
+   bool Pause(double dTime) override;
+   int64_t GetLength() override;
+   bool IsEOF() override;
+-  bool CanSeek() override;
++  bool CanSeek() override; //! @todo drop this
+   bool CanPause() override;
+ 
+   // IDisplayTime
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.h b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.h
+index ee48c9e63fda..c339599ccdd4 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.h
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/InputStreamPVRBase.h
+@@ -46,7 +46,7 @@ class CInputStreamPVRBase
+   CDVDInputStream::ITimes* GetITimes() override { return this; }
+   bool GetTimes(Times &times) override;
+ 
+-  bool CanSeek() override;
++  bool CanSeek() override; //! @todo drop this
+   bool CanPause() override;
+   void Pause(bool bPaused);
+ 
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 3ea56800360e..2fa9d0288cf7 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -4672,8 +4672,9 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+     state.timeMax = m_pDemuxer->GetStreamLength();
+   }
+ 
+-  state.canpause = true;
+-  state.canseek = true;
++  state.canpause = false;
++  state.canseek = false;
++  state.cantempo = false;
+   state.isInMenu = false;
+   state.hasMenu = false;
+ 
+@@ -4732,7 +4733,6 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+     }
+ 
+     state.canpause = m_pInputStream->CanPause();
+-    state.canseek = m_pInputStream->CanSeek();
+ 
+     bool realtime = m_pInputStream->IsRealtime();
+ 
+@@ -4794,9 +4794,13 @@ void CVideoPlayer::UpdatePlayState(double timeout)
+   if (state.timeMin == state.timeMax)
+   {
+     state.canseek = false;
+-    state.canpause = false;
+     state.cantempo = false;
+   }
++  else
++  {
++    state.canseek = true;
++    state.canpause = true;
++  }
+ 
+   m_processInfo->SetPlayTimes(state.startTime, state.time, state.timeMin, state.timeMax);
+ 
