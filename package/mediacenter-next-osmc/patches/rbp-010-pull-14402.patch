@@ -1,0 +1,23 @@
+From 329c9db465bc0ebe2f1e6de1459db86ca08d3e18 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Fri, 7 Sep 2018 20:05:46 +0200
+Subject: [PATCH] [messaging] CID 1439117:  Uninitialized members 
+ (UNINIT_CTOR) : Non-static class member param3 is not initialized in this
+ constructor nor in any functions that it calls.
+
+---
+ xbmc/messaging/ThreadMessage.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xbmc/messaging/ThreadMessage.h b/xbmc/messaging/ThreadMessage.h
+index 538007df9e14..e79237a25c67 100644
+--- a/xbmc/messaging/ThreadMessage.h
++++ b/xbmc/messaging/ThreadMessage.h
+@@ -53,6 +53,7 @@ class ThreadMessage
+     : dwMessage{ messageId }
+     , param1{ p1 }
+     , param2{ p2 }
++    , param3{ 0 }
+     , lpVoid{ payload }
+     , strParam( param )
+     , params( vecParams )
