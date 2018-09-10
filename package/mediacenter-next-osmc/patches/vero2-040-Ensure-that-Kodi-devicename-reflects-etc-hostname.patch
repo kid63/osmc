@@ -67,7 +67,7 @@ index 393dabc..27c6074 100644
 +
 +  if (settingId == "services.devicename")
 +  {
-+     std::string newHostName = CServiceBroker::GetSettings().GetString("services.devicename"); 
++     std::string newHostName = CServiceBroker::GetSettings()->GetString("services.devicename"); 
 +     FILE *fp;
 +     fp = fopen("/tmp/hostname", "w");
 +     if (fp)
