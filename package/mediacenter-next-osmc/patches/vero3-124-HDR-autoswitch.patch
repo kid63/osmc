@@ -79,7 +79,7 @@ index 56bcc6b..feaf5d2 100644
  {
    m_amlVideoFile.reset();
    SetVfmMap("default", m_defaultVfmMap);
-+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_HDRAUTO))
++  if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_HDRAUTO))
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/attr", "reset");
  }
  
