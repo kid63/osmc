@@ -55,7 +55,7 @@ index 34ff2df2d2..b27fe31900 100644
 +    }
      case SYSTEM_STEREOSCOPIC_MODE:
      {
-       int iStereoMode = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE);
+       int iStereoMode = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE);
 diff --git a/xbmc/network/NetworkServices.cpp b/xbmc/network/NetworkServices.cpp
 index 393dabc..27c6074 100644
 --- a/xbmc/network/NetworkServices.cpp
