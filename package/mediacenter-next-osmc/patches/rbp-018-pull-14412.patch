@@ -1,0 +1,1502 @@
+From 2b27e98bf4dcbabb9e5ca7c4332f8486e801011a Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sat, 8 Sep 2018 13:04:16 +0200
+Subject: [PATCH 1/4] [PVR] CGUIDialogPVRChannelGuide: Add context menu
+ support.
+
+---
+ system/keymaps/remote.xml                     |  3 -
+ xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp | 79 +++++++++++++------
+ xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h   |  5 +-
+ 3 files changed, 60 insertions(+), 27 deletions(-)
+
+diff --git a/system/keymaps/remote.xml b/system/keymaps/remote.xml
+index 34da9da9ed04..b139af0a9df1 100644
+--- a/system/keymaps/remote.xml
++++ b/system/keymaps/remote.xml
+@@ -632,9 +632,6 @@
+   <PVRChannelGuide>
+     <remote>
+       <back>Close</back>
+-      <menu>Close</menu>
+-      <contentsmenu>Close</contentsmenu>
+-      <rootmenu>Close</rootmenu>
+       <start>Close</start>
+       <guide>Close</guide>
+       <zero>Number0</zero>
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
+index 94204b012fb9..f94c5c10c4b7 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
+@@ -8,8 +8,10 @@
+ 
+ #include "GUIDialogPVRChannelGuide.h"
+ 
++#include "ContextMenuManager.h"
+ #include "FileItem.h"
+ #include "ServiceBroker.h"
++#include "dialogs/GUIDialogContextMenu.h"
+ #include "guilib/GUIWindowManager.h"
+ #include "input/Key.h"
+ #include "view/ViewState.h"
+@@ -28,32 +30,25 @@ CGUIDialogPVRChannelGuide::CGUIDialogPVRChannelGuide()
+   m_vecItems.reset(new CFileItemList);
+ }
+ 
+-CGUIDialogPVRChannelGuide::~CGUIDialogPVRChannelGuide() = default;
+-
+-bool CGUIDialogPVRChannelGuide::OnMessage(CGUIMessage& message)
++bool CGUIDialogPVRChannelGuide::OnAction(const CAction &action)
+ {
+-  switch (message.GetMessage())
++  switch (action.GetID())
+   {
+-  case GUI_MSG_CLICKED:
+-    {
+-      int iControl = message.GetSenderId();
+-
+-      if (m_viewControl.HasControl(iControl))   // list/thumb control
+-      {
+-        int iItem = m_viewControl.GetSelectedItem();
+-        int iAction = message.GetParam1();
+-
+-        if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK || iAction == ACTION_SHOW_INFO)
+-        {
+-          ShowInfo(iItem);
+-          return true;
+-        }
+-      }
+-    }
+-    break;
++    case ACTION_SHOW_INFO:
++    case ACTION_SELECT_ITEM:
++    case ACTION_MOUSE_LEFT_CLICK:
++      ShowInfo(m_viewControl.GetSelectedItem());
++      return true;
++
++    case ACTION_CONTEXT_MENU:
++    case ACTION_MOUSE_RIGHT_CLICK:
++      return OnContextMenu(m_viewControl.GetSelectedItem());
++
++    default:
++      break;
+   }
+ 
+-  return CGUIDialog::OnMessage(message);
++  return CGUIDialog::OnAction(action);
+ }
+ 
+ void CGUIDialogPVRChannelGuide::Open(const CPVRChannelPtr &channel)
+@@ -121,6 +116,46 @@ void CGUIDialogPVRChannelGuide::ShowInfo(int item)
+   CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(m_vecItems->Get(item));
+ }
+ 
++bool CGUIDialogPVRChannelGuide::OnContextMenu(int itemIdx)
++{
++  auto InRange = [](size_t i, std::pair<size_t, size_t> range){ return i >= range.first && i < range.second; };
++
++  if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
++    return false;
++
++  const CFileItemPtr item = m_vecItems->Get(itemIdx);
++  if (!item)
++    return false;
++
++  CContextButtons buttons;
++
++  // Add the global menu
++  const ContextMenuView globalMenu = CServiceBroker::GetContextMenuManager().GetItems(*item, CContextMenuManager::MAIN);
++  auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
++  for (const auto& menu : globalMenu)
++    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
++
++  // Add addon menus
++  const ContextMenuView addonMenu = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MAIN);
++  auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
++  for (const auto& menu : addonMenu)
++    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
++
++  if (buttons.empty())
++    return true;
++
++  int idx = CGUIDialogContextMenu::Show(buttons);
++  if (idx < 0 || idx >= static_cast<int>(buttons.size()))
++    return false;
++
++  Close();
++
++  if (InRange(idx, globalMenuRange))
++    return CONTEXTMENU::LoopFrom(*globalMenu[idx - globalMenuRange.first], item);
++
++  return CONTEXTMENU::LoopFrom(*addonMenu[idx - addonMenuRange.first], item);
++}
++
+ void CGUIDialogPVRChannelGuide::OnWindowLoaded()
+ {
+   CGUIDialog::OnWindowLoaded();
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h
+index b2fb053fb944..d539785245a4 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h
+@@ -21,8 +21,8 @@ namespace PVR
+   {
+   public:
+     CGUIDialogPVRChannelGuide(void);
+-    ~CGUIDialogPVRChannelGuide(void) override;
+-    bool OnMessage(CGUIMessage& message) override;
++    ~CGUIDialogPVRChannelGuide(void) override = default;
++    bool OnAction(const CAction &action) override;
+     void OnWindowLoaded() override;
+     void OnWindowUnload() override;
+ 
+@@ -39,6 +39,7 @@ namespace PVR
+ 
+   private:
+     void ShowInfo(int iItem);
++    bool OnContextMenu(int iItem);
+     void Clear();
+ 
+     CPVRChannelPtr m_channel;
+
+From e0d2368600852b63d7851f6da3cde3a21c595295 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sat, 8 Sep 2018 14:25:57 +0200
+Subject: [PATCH 2/4] [PVR] CGUIDialogPVRChannelsOSD: Add context menu support.
+
+---
+ system/keymaps/keyboard.xml                  |  1 -
+ system/keymaps/remote.xml                    |  3 -
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp | 91 +++++++++++++-------
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h   |  1 +
+ 4 files changed, 63 insertions(+), 33 deletions(-)
+
+diff --git a/system/keymaps/keyboard.xml b/system/keymaps/keyboard.xml
+index b7488f4cba3c..d6dac8bbf784 100644
+--- a/system/keymaps/keyboard.xml
++++ b/system/keymaps/keyboard.xml
+@@ -729,7 +729,6 @@
+       <backspace>Close</backspace>
+       <escape>Close</escape>
+       <browser_back>Close</browser_back>
+-      <c>Close</c>
+     </keyboard>
+   </PVROSDChannels>
+   <PVRChannelGuide>
+diff --git a/system/keymaps/remote.xml b/system/keymaps/remote.xml
+index b139af0a9df1..c122b99188a6 100644
+--- a/system/keymaps/remote.xml
++++ b/system/keymaps/remote.xml
+@@ -612,9 +612,6 @@
+   <PVROSDChannels>
+     <remote>
+       <back>Close</back>
+-      <menu>Close</menu>
+-      <contentsmenu>Close</contentsmenu>
+-      <rootmenu>Close</rootmenu>
+       <start>Close</start>
+       <playlist>Close</playlist>
+       <zero>Number0</zero>
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+index 87a810e0bc1e..2ef6ca0b3433 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+@@ -8,8 +8,10 @@
+ 
+ #include "GUIDialogPVRChannelsOSD.h"
+ 
++#include "ContextMenuManager.h"
+ #include "FileItem.h"
+ #include "ServiceBroker.h"
++#include "dialogs/GUIDialogContextMenu.h"
+ #include "GUIInfoManager.h"
+ #include "guilib/GUIComponent.h"
+ #include "guilib/GUIWindowManager.h"
+@@ -47,34 +49,6 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
+ {
+   switch (message.GetMessage())
+   {
+-  case GUI_MSG_CLICKED:
+-    {
+-      int iControl = message.GetSenderId();
+-
+-      if (m_viewControl.HasControl(iControl))   // list/thumb control
+-      {
+-        int iItem = m_viewControl.GetSelectedItem();
+-        int iAction = message.GetParam1();
+-
+-        if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK)
+-        {
+-          // If direct channel number input is active, select the entered channel.
+-          if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().CheckInputAndExecuteAction())
+-            return true;
+-
+-          /* Switch to channel */
+-          GotoChannel(iItem);
+-          return true;
+-        }
+-        else if (iAction == ACTION_SHOW_INFO || iAction == ACTION_MOUSE_RIGHT_CLICK)
+-        {
+-          /* Show information Dialog */
+-          ShowInfo(iItem);
+-          return true;
+-        }
+-      }
+-    }
+-    break;
+   case GUI_MSG_REFRESH_LIST:
+     {
+       switch(message.GetParam1())
+@@ -129,6 +103,25 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+ {
+   switch (action.GetID())
+   {
++  case ACTION_SELECT_ITEM:
++  case ACTION_MOUSE_LEFT_CLICK:
++    {
++      // If direct channel number input is active, select the entered channel.
++      if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().CheckInputAndExecuteAction())
++        return true;
++
++      /* Switch to channel */
++      GotoChannel(m_viewControl.GetSelectedItem());
++      return true;
++    }
++  case ACTION_SHOW_INFO:
++    ShowInfo(m_viewControl.GetSelectedItem());
++    return true;
++
++  case ACTION_CONTEXT_MENU:
++  case ACTION_MOUSE_RIGHT_CLICK:
++    return OnContextMenu(m_viewControl.GetSelectedItem());
++
+   case ACTION_PREVIOUS_CHANNELGROUP:
+   case ACTION_NEXT_CHANNELGROUP:
+     {
+@@ -156,7 +149,7 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+   case REMOTE_8:
+   case REMOTE_9:
+     {
+-      AppendChannelNumberCharacter((action.GetID() - REMOTE_0) +'0');
++      AppendChannelNumberCharacter((action.GetID() - REMOTE_0) + '0');
+       return true;
+     }
+   case ACTION_CHANNEL_NUMBER_SEP:
+@@ -257,6 +250,46 @@ void CGUIDialogPVRChannelsOSD::ShowInfo(int item)
+   CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(m_vecItems->Get(item));
+ }
+ 
++bool CGUIDialogPVRChannelsOSD::OnContextMenu(int itemIdx)
++{
++  auto InRange = [](size_t i, std::pair<size_t, size_t> range){ return i >= range.first && i < range.second; };
++
++  if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
++    return false;
++
++  const CFileItemPtr item = m_vecItems->Get(itemIdx);
++  if (!item)
++    return false;
++
++  CContextButtons buttons;
++
++  // Add the global menu
++  const ContextMenuView globalMenu = CServiceBroker::GetContextMenuManager().GetItems(*item, CContextMenuManager::MAIN);
++  auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
++  for (const auto& menu : globalMenu)
++    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
++
++  // Add addon menus
++  const ContextMenuView addonMenu = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MAIN);
++  auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
++  for (const auto& menu : addonMenu)
++    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
++
++  if (buttons.empty())
++    return true;
++
++  int idx = CGUIDialogContextMenu::Show(buttons);
++  if (idx < 0 || idx >= static_cast<int>(buttons.size()))
++    return false;
++
++  Close();
++
++  if (InRange(idx, globalMenuRange))
++    return CONTEXTMENU::LoopFrom(*globalMenu[idx - globalMenuRange.first], item);
++
++  return CONTEXTMENU::LoopFrom(*addonMenu[idx - addonMenuRange.first], item);
++}
++
+ void CGUIDialogPVRChannelsOSD::OnWindowLoaded()
+ {
+   CGUIDialog::OnWindowLoaded();
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h
+index 959d5ced0e51..1afb5fdd4e48 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h
+@@ -47,6 +47,7 @@ namespace PVR
+   private:
+     void GotoChannel(int iItem);
+     void ShowInfo(int item);
++    bool OnContextMenu(int iItem);
+     void Clear();
+     void Update();
+     void SaveSelectedItemPath(int iGroupID);
+
+From 59d4cafcdd24c75f7c0eaf19cceaa0f88b3ebc35 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sat, 8 Sep 2018 16:54:20 +0200
+Subject: [PATCH 3/4] [PVR] Refactor CGUIDialogPVRChannelGuide and
+ CGUIDialogPVRChannelsOSD -> introduce base class CGUIDialogPVRItemsViewBase.
+
+---
+ xbmc/pvr/dialogs/CMakeLists.txt               |   6 +-
+ xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp | 129 ++--------------
+ xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h   |  18 +--
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp  | 125 ++-------------
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h    |  17 +-
+ .../pvr/dialogs/GUIDialogPVRItemsViewBase.cpp | 146 ++++++++++++++++++
+ xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.h  |  47 ++++++
+ 7 files changed, 226 insertions(+), 262 deletions(-)
+ create mode 100644 xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.cpp
+ create mode 100644 xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.h
+
+diff --git a/xbmc/pvr/dialogs/CMakeLists.txt b/xbmc/pvr/dialogs/CMakeLists.txt
+index 4c342ad8db18..c746a07299fb 100644
+--- a/xbmc/pvr/dialogs/CMakeLists.txt
++++ b/xbmc/pvr/dialogs/CMakeLists.txt
+@@ -8,7 +8,8 @@ set(SOURCES GUIDialogPVRChannelManager.cpp
+             GUIDialogPVRRecordingInfo.cpp
+             GUIDialogPVRRecordingSettings.cpp
+             GUIDialogPVRTimerSettings.cpp
+-            GUIDialogPVRClientPriorities.cpp)
++            GUIDialogPVRClientPriorities.cpp
++            GUIDialogPVRItemsViewBase.cpp)
+ 
+ set(HEADERS GUIDialogPVRChannelManager.h
+             GUIDialogPVRChannelsOSD.h
+@@ -20,6 +21,7 @@ set(HEADERS GUIDialogPVRChannelManager.h
+             GUIDialogPVRRecordingInfo.h
+             GUIDialogPVRRecordingSettings.h
+             GUIDialogPVRTimerSettings.h
+-            GUIDialogPVRClientPriorities.h)
++            GUIDialogPVRClientPriorities.h
++            GUIDialogPVRItemsViewBase.h)
+ 
+ core_add_library(pvr_dialogs)
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
+index f94c5c10c4b7..c0adbce456ef 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.cpp
+@@ -8,84 +8,50 @@
+ 
+ #include "GUIDialogPVRChannelGuide.h"
+ 
+-#include "ContextMenuManager.h"
+ #include "FileItem.h"
+ #include "ServiceBroker.h"
+-#include "dialogs/GUIDialogContextMenu.h"
+-#include "guilib/GUIWindowManager.h"
+-#include "input/Key.h"
+-#include "view/ViewState.h"
+ 
+-#include "pvr/PVRGUIActions.h"
+ #include "pvr/PVRManager.h"
+-#include "pvr/epg/Epg.h"
++#include "pvr/channels/PVRChannel.h"
++#include "pvr/epg/EpgInfoTag.h"
+ 
+ using namespace PVR;
+ 
+-#define CONTROL_LIST  11
+-
+ CGUIDialogPVRChannelGuide::CGUIDialogPVRChannelGuide()
+-    : CGUIDialog(WINDOW_DIALOG_PVR_CHANNEL_GUIDE, "DialogPVRChannelGuide.xml")
++  : CGUIDialogPVRItemsViewBase(WINDOW_DIALOG_PVR_CHANNEL_GUIDE, "DialogPVRChannelGuide.xml")
+ {
+-  m_vecItems.reset(new CFileItemList);
+-}
+-
+-bool CGUIDialogPVRChannelGuide::OnAction(const CAction &action)
+-{
+-  switch (action.GetID())
+-  {
+-    case ACTION_SHOW_INFO:
+-    case ACTION_SELECT_ITEM:
+-    case ACTION_MOUSE_LEFT_CLICK:
+-      ShowInfo(m_viewControl.GetSelectedItem());
+-      return true;
+-
+-    case ACTION_CONTEXT_MENU:
+-    case ACTION_MOUSE_RIGHT_CLICK:
+-      return OnContextMenu(m_viewControl.GetSelectedItem());
+-
+-    default:
+-      break;
+-  }
+-
+-  return CGUIDialog::OnAction(action);
+ }
+ 
+ void CGUIDialogPVRChannelGuide::Open(const CPVRChannelPtr &channel)
+ {
+   m_channel = channel;
+-  CGUIDialog::Open();
++  CGUIDialogPVRItemsViewBase::Open();
+ }
+ 
+ void CGUIDialogPVRChannelGuide::OnInitWindow()
+ {
+-  // no user-specific channel is set use current playing channel
++  // no user-specific channel is set; use current playing channel
+   if (!m_channel)
+     m_channel = CServiceBroker::GetPVRManager().GetPlayingChannel();
+ 
+-  // no channel at all, close the dialog
+   if (!m_channel)
+   {
+     Close();
+     return;
+   }
+ 
+-  m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
+-
+-  // empty the list ready for population
+-  Clear();
++  Init();
+ 
+   m_channel->GetEPG(*m_vecItems);
+   m_viewControl.SetItems(*m_vecItems);
+ 
+-  // call init
+-  CGUIDialog::OnInitWindow();
++  CGUIDialogPVRItemsViewBase::OnInitWindow();
+ 
+   // select the active entry
+   unsigned int iSelectedItem = 0;
+   for (int iEpgPtr = 0; iEpgPtr < m_vecItems->Size(); ++iEpgPtr)
+   {
+-    CFileItemPtr entry = m_vecItems->Get(iEpgPtr);
++    const CFileItemPtr entry = m_vecItems->Get(iEpgPtr);
+     if (entry->HasEPGInfoTag() && entry->GetEPGInfoTag()->IsActive())
+     {
+       iSelectedItem = iEpgPtr;
+@@ -97,83 +63,6 @@ void CGUIDialogPVRChannelGuide::OnInitWindow()
+ 
+ void CGUIDialogPVRChannelGuide::OnDeinitWindow(int nextWindowID)
+ {
+-  CGUIDialog::OnDeinitWindow(nextWindowID);
++  CGUIDialogPVRItemsViewBase::OnDeinitWindow(nextWindowID);
+   m_channel.reset();
+-  Clear();
+-}
+-
+-void CGUIDialogPVRChannelGuide::Clear()
+-{
+-  m_viewControl.Clear();
+-  m_vecItems->Clear();
+-}
+-
+-void CGUIDialogPVRChannelGuide::ShowInfo(int item)
+-{
+-  if (item < 0 || item >= m_vecItems->Size())
+-    return;
+-
+-  CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(m_vecItems->Get(item));
+-}
+-
+-bool CGUIDialogPVRChannelGuide::OnContextMenu(int itemIdx)
+-{
+-  auto InRange = [](size_t i, std::pair<size_t, size_t> range){ return i >= range.first && i < range.second; };
+-
+-  if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
+-    return false;
+-
+-  const CFileItemPtr item = m_vecItems->Get(itemIdx);
+-  if (!item)
+-    return false;
+-
+-  CContextButtons buttons;
+-
+-  // Add the global menu
+-  const ContextMenuView globalMenu = CServiceBroker::GetContextMenuManager().GetItems(*item, CContextMenuManager::MAIN);
+-  auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
+-  for (const auto& menu : globalMenu)
+-    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
+-
+-  // Add addon menus
+-  const ContextMenuView addonMenu = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MAIN);
+-  auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
+-  for (const auto& menu : addonMenu)
+-    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
+-
+-  if (buttons.empty())
+-    return true;
+-
+-  int idx = CGUIDialogContextMenu::Show(buttons);
+-  if (idx < 0 || idx >= static_cast<int>(buttons.size()))
+-    return false;
+-
+-  Close();
+-
+-  if (InRange(idx, globalMenuRange))
+-    return CONTEXTMENU::LoopFrom(*globalMenu[idx - globalMenuRange.first], item);
+-
+-  return CONTEXTMENU::LoopFrom(*addonMenu[idx - addonMenuRange.first], item);
+-}
+-
+-void CGUIDialogPVRChannelGuide::OnWindowLoaded()
+-{
+-  CGUIDialog::OnWindowLoaded();
+-  m_viewControl.Reset();
+-  m_viewControl.SetParentWindow(GetID());
+-  m_viewControl.AddView(GetControl(CONTROL_LIST));
+-}
+-
+-void CGUIDialogPVRChannelGuide::OnWindowUnload()
+-{
+-  CGUIDialog::OnWindowUnload();
+-  m_viewControl.Reset();
+-}
+-
+-CGUIControl *CGUIDialogPVRChannelGuide::GetFirstFocusableControl(int id)
+-{
+-  if (m_viewControl.HasControl(id))
+-    id = m_viewControl.GetCurrentControl();
+-
+-  return CGUIWindow::GetFirstFocusableControl(id);
+ }
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h
+index d539785245a4..2909a9c0685f 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelGuide.h
+@@ -8,23 +8,18 @@
+ 
+ #pragma once
+ 
+-#include "guilib/GUIDialog.h"
+-#include "view/GUIViewControl.h"
+-
+ #include "pvr/PVRTypes.h"
++#include "pvr/dialogs/GUIDialogPVRItemsViewBase.h"
+ 
+ class CFileItemList;
+ 
+ namespace PVR
+ {
+-  class CGUIDialogPVRChannelGuide : public CGUIDialog
++  class CGUIDialogPVRChannelGuide : public CGUIDialogPVRItemsViewBase
+   {
+   public:
+     CGUIDialogPVRChannelGuide(void);
+     ~CGUIDialogPVRChannelGuide(void) override = default;
+-    bool OnAction(const CAction &action) override;
+-    void OnWindowLoaded() override;
+-    void OnWindowUnload() override;
+ 
+     void Open(const CPVRChannelPtr &channel);
+ 
+@@ -32,16 +27,7 @@ namespace PVR
+     void OnInitWindow() override;
+     void OnDeinitWindow(int nextWindowID) override;
+ 
+-    CGUIControl *GetFirstFocusableControl(int id) override;
+-
+-    std::unique_ptr<CFileItemList> m_vecItems;
+-    CGUIViewControl m_viewControl;
+-
+   private:
+-    void ShowInfo(int iItem);
+-    bool OnContextMenu(int iItem);
+-    void Clear();
+-
+     CPVRChannelPtr m_channel;
+   };
+ }
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+index 2ef6ca0b3433..9d5f12cae726 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+@@ -8,20 +8,17 @@
+ 
+ #include "GUIDialogPVRChannelsOSD.h"
+ 
+-#include "ContextMenuManager.h"
+ #include "FileItem.h"
+ #include "ServiceBroker.h"
+-#include "dialogs/GUIDialogContextMenu.h"
+ #include "GUIInfoManager.h"
+ #include "guilib/GUIComponent.h"
+-#include "guilib/GUIWindowManager.h"
++#include "guilib/GUIMessage.h"
+ #include "input/Key.h"
+ #include "messaging/ApplicationMessenger.h"
+-#include "view/ViewState.h"
+ 
+ #include "pvr/PVRGUIActions.h"
+ #include "pvr/PVRManager.h"
+-#include "pvr/channels/PVRChannelGroupsContainer.h"
++#include "pvr/channels/PVRChannelGroup.h"
+ #include "pvr/epg/EpgContainer.h"
+ 
+ using namespace PVR;
+@@ -29,18 +26,13 @@ using namespace KODI::MESSAGING;
+ 
+ #define MAX_INVALIDATION_FREQUENCY 2000 // limit to one invalidation per X milliseconds
+ 
+-#define CONTROL_LIST                  11
+-
+-CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD() :
+-    CGUIDialog(WINDOW_DIALOG_PVR_OSD_CHANNELS, "DialogPVRChannelsOSD.xml")
++CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD()
++: CGUIDialogPVRItemsViewBase(WINDOW_DIALOG_PVR_OSD_CHANNELS, "DialogPVRChannelsOSD.xml")
+ {
+-  m_vecItems = new CFileItemList;
+ }
+ 
+ CGUIDialogPVRChannelsOSD::~CGUIDialogPVRChannelsOSD()
+ {
+-  delete m_vecItems;
+-
+   CServiceBroker::GetGUI()->GetInfoManager().UnregisterObserver(this);
+   CServiceBroker::GetPVRManager().EpgContainer().UnregisterObserver(this);
+ }
+@@ -67,21 +59,20 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
+     break;
+   }
+ 
+-  return CGUIDialog::OnMessage(message);
++  return CGUIDialogPVRItemsViewBase::OnMessage(message);
+ }
+ 
+ void CGUIDialogPVRChannelsOSD::OnInitWindow()
+ {
+-  /* Close dialog immediately if neither a TV nor a radio channel is playing */
+   if (!CServiceBroker::GetPVRManager().IsPlayingTV() && !CServiceBroker::GetPVRManager().IsPlayingRadio())
+   {
+     Close();
+     return;
+   }
+ 
++  Init();
+   Update();
+-
+-  CGUIDialog::OnInitWindow();
++  CGUIDialogPVRItemsViewBase::OnInitWindow();
+ }
+ 
+ void CGUIDialogPVRChannelsOSD::OnDeinitWindow(int nextWindowID)
+@@ -94,9 +85,7 @@ void CGUIDialogPVRChannelsOSD::OnDeinitWindow(int nextWindowID)
+     m_group.reset();
+   }
+ 
+-  CGUIDialog::OnDeinitWindow(nextWindowID);
+-
+-  Clear();
++  CGUIDialogPVRItemsViewBase::OnDeinitWindow(nextWindowID);
+ }
+ 
+ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+@@ -114,14 +103,6 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+       GotoChannel(m_viewControl.GetSelectedItem());
+       return true;
+     }
+-  case ACTION_SHOW_INFO:
+-    ShowInfo(m_viewControl.GetSelectedItem());
+-    return true;
+-
+-  case ACTION_CONTEXT_MENU:
+-  case ACTION_MOUSE_RIGHT_CLICK:
+-    return OnContextMenu(m_viewControl.GetSelectedItem());
+-
+   case ACTION_PREVIOUS_CHANNELGROUP:
+   case ACTION_NEXT_CHANNELGROUP:
+     {
+@@ -132,6 +113,7 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+       const CPVRChannelGroupPtr nextGroup = action.GetID() == ACTION_NEXT_CHANNELGROUP ? m_group->GetNextGroup() : m_group->GetPreviousGroup();
+       CServiceBroker::GetPVRManager().SetPlayingGroup(nextGroup);
+       m_group = nextGroup;
++      Init();
+       Update();
+ 
+       // restore control states and previously selected item of group
+@@ -159,7 +141,7 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+     }
+   }
+ 
+-  return CGUIDialog::OnAction(action);
++  return CGUIDialogPVRItemsViewBase::OnAction(action);
+ }
+ 
+ void CGUIDialogPVRChannelsOSD::Update()
+@@ -167,11 +149,6 @@ void CGUIDialogPVRChannelsOSD::Update()
+   CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
+   CServiceBroker::GetPVRManager().EpgContainer().RegisterObserver(this);
+ 
+-  m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
+-
+-  // empty the list ready for population
+-  Clear();
+-
+   CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetPlayingChannel());
+   if (channel)
+   {
+@@ -198,14 +175,14 @@ void CGUIDialogPVRChannelsOSD::SetInvalid()
+     VECFILEITEMS items = m_vecItems->GetList();
+     for (VECFILEITEMS::iterator it = items.begin(); it != items.end(); ++it)
+       (*it)->SetInvalid();
+-    CGUIDialog::SetInvalid();
++    CGUIDialogPVRItemsViewBase::SetInvalid();
+     m_refreshTimeout.Set(MAX_INVALIDATION_FREQUENCY);
+   }
+ }
+ 
+ void CGUIDialogPVRChannelsOSD::SaveControlStates()
+ {
+-  CGUIDialog::SaveControlStates();
++  CGUIDialogPVRItemsViewBase::SaveControlStates();
+ 
+   if (m_group)
+     SaveSelectedItemPath(m_group->GroupID());
+@@ -213,7 +190,7 @@ void CGUIDialogPVRChannelsOSD::SaveControlStates()
+ 
+ void CGUIDialogPVRChannelsOSD::RestoreControlStates()
+ {
+-  CGUIDialog::RestoreControlStates();
++  CGUIDialogPVRItemsViewBase::RestoreControlStates();
+ 
+   if (m_group)
+   {
+@@ -225,12 +202,6 @@ void CGUIDialogPVRChannelsOSD::RestoreControlStates()
+   }
+ }
+ 
+-void CGUIDialogPVRChannelsOSD::Clear()
+-{
+-  m_viewControl.Clear();
+-  m_vecItems->Clear();
+-}
+-
+ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
+ {
+   if (item < 0 || item >= m_vecItems->Size())
+@@ -242,76 +213,6 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
+   CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(itemptr, true /* bCheckResume */);
+ }
+ 
+-void CGUIDialogPVRChannelsOSD::ShowInfo(int item)
+-{
+-  if (item < 0 || item >= m_vecItems->Size())
+-    return;
+-
+-  CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(m_vecItems->Get(item));
+-}
+-
+-bool CGUIDialogPVRChannelsOSD::OnContextMenu(int itemIdx)
+-{
+-  auto InRange = [](size_t i, std::pair<size_t, size_t> range){ return i >= range.first && i < range.second; };
+-
+-  if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
+-    return false;
+-
+-  const CFileItemPtr item = m_vecItems->Get(itemIdx);
+-  if (!item)
+-    return false;
+-
+-  CContextButtons buttons;
+-
+-  // Add the global menu
+-  const ContextMenuView globalMenu = CServiceBroker::GetContextMenuManager().GetItems(*item, CContextMenuManager::MAIN);
+-  auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
+-  for (const auto& menu : globalMenu)
+-    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
+-
+-  // Add addon menus
+-  const ContextMenuView addonMenu = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MAIN);
+-  auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
+-  for (const auto& menu : addonMenu)
+-    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
+-
+-  if (buttons.empty())
+-    return true;
+-
+-  int idx = CGUIDialogContextMenu::Show(buttons);
+-  if (idx < 0 || idx >= static_cast<int>(buttons.size()))
+-    return false;
+-
+-  Close();
+-
+-  if (InRange(idx, globalMenuRange))
+-    return CONTEXTMENU::LoopFrom(*globalMenu[idx - globalMenuRange.first], item);
+-
+-  return CONTEXTMENU::LoopFrom(*addonMenu[idx - addonMenuRange.first], item);
+-}
+-
+-void CGUIDialogPVRChannelsOSD::OnWindowLoaded()
+-{
+-  CGUIDialog::OnWindowLoaded();
+-  m_viewControl.Reset();
+-  m_viewControl.SetParentWindow(GetID());
+-  m_viewControl.AddView(GetControl(CONTROL_LIST));
+-}
+-
+-void CGUIDialogPVRChannelsOSD::OnWindowUnload()
+-{
+-  CGUIDialog::OnWindowUnload();
+-  m_viewControl.Reset();
+-}
+-
+-CGUIControl *CGUIDialogPVRChannelsOSD::GetFirstFocusableControl(int id)
+-{
+-  if (m_viewControl.HasControl(id))
+-    id = m_viewControl.GetCurrentControl();
+-
+-  return CGUIWindow::GetFirstFocusableControl(id);
+-}
+-
+ void CGUIDialogPVRChannelsOSD::Notify(const Observable &obs, const ObservableMessage msg)
+ {
+   CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h
+index 1afb5fdd4e48..574257bab86b 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.h
+@@ -10,26 +10,25 @@
+ 
+ #include <map>
+ 
+-#include "guilib/GUIDialog.h"
+ #include "utils/Observer.h"
+-#include "view/GUIViewControl.h"
+ 
++#include "pvr/PVRTypes.h"
+ #include "pvr/PVRChannelNumberInputHandler.h"
+-#include "pvr/channels/PVRChannelGroupsContainer.h"
++#include "pvr/dialogs/GUIDialogPVRItemsViewBase.h"
+ 
+ class CFileItemList;
+ 
+ namespace PVR
+ {
+-  class CGUIDialogPVRChannelsOSD : public CGUIDialog, public Observer, public CPVRChannelNumberInputHandler
++  class CGUIDialogPVRChannelsOSD : public CGUIDialogPVRItemsViewBase, public Observer, public CPVRChannelNumberInputHandler
+   {
+   public:
+     CGUIDialogPVRChannelsOSD(void);
+     ~CGUIDialogPVRChannelsOSD(void) override;
+     bool OnMessage(CGUIMessage& message) override;
+     bool OnAction(const CAction &action) override;
+-    void OnWindowLoaded() override;
+-    void OnWindowUnload() override;
++
++    // Observer implementation
+     void Notify(const Observable &obs, const ObservableMessage msg) override;
+ 
+     // CPVRChannelNumberInputHandler implementation
+@@ -42,19 +41,13 @@ namespace PVR
+     void RestoreControlStates() override;
+     void SaveControlStates() override;
+     void SetInvalid() override;
+-    CGUIControl *GetFirstFocusableControl(int id) override;
+ 
+   private:
+     void GotoChannel(int iItem);
+-    void ShowInfo(int item);
+-    bool OnContextMenu(int iItem);
+-    void Clear();
+     void Update();
+     void SaveSelectedItemPath(int iGroupID);
+     std::string GetLastSelectedItemPath(int iGroupID) const;
+ 
+-    CFileItemList *m_vecItems;
+-    CGUIViewControl m_viewControl;
+     CPVRChannelGroupPtr m_group;
+     std::map<int, std::string> m_groupSelectedItemPaths;
+     XbmcThreads::EndTime m_refreshTimeout;
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.cpp b/xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.cpp
+new file mode 100644
+index 000000000000..5c2b84d53b48
+--- /dev/null
++++ b/xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.cpp
+@@ -0,0 +1,146 @@
++/*
++ *  Copyright (C) 2012-2018 Team Kodi
++ *  This file is part of Kodi - https://kodi.tv
++ *
++ *  SPDX-License-Identifier: GPL-2.0-or-later
++ *  See LICENSES/README.md for more information.
++ */
++
++#include "GUIDialogPVRItemsViewBase.h"
++
++#include "ContextMenuManager.h"
++#include "FileItem.h"
++#include "ServiceBroker.h"
++#include "dialogs/GUIDialogContextMenu.h"
++#include "input/Action.h"
++#include "input/ActionIDs.h"
++#include "view/ViewState.h"
++
++#include "pvr/PVRGUIActions.h"
++#include "pvr/PVRManager.h"
++
++#define CONTROL_LIST 11
++
++using namespace PVR;
++
++CGUIDialogPVRItemsViewBase::CGUIDialogPVRItemsViewBase(int id, const std::string &xmlFile)
++: CGUIDialog(id, xmlFile),
++  m_vecItems(new CFileItemList)
++{
++}
++
++void CGUIDialogPVRItemsViewBase::OnWindowLoaded()
++{
++  CGUIDialog::OnWindowLoaded();
++  m_viewControl.Reset();
++  m_viewControl.SetParentWindow(GetID());
++  m_viewControl.AddView(GetControl(CONTROL_LIST));
++}
++
++void CGUIDialogPVRItemsViewBase::OnWindowUnload()
++{
++  CGUIDialog::OnWindowUnload();
++  m_viewControl.Reset();
++}
++
++void CGUIDialogPVRItemsViewBase::OnInitWindow()
++{
++  CGUIDialog::OnInitWindow();
++}
++
++void CGUIDialogPVRItemsViewBase::OnDeinitWindow(int nextWindowID)
++{
++  CGUIDialog::OnDeinitWindow(nextWindowID);
++  Clear();
++}
++
++bool CGUIDialogPVRItemsViewBase::OnAction(const CAction &action)
++{
++  switch (action.GetID())
++  {
++    case ACTION_SHOW_INFO:
++    case ACTION_SELECT_ITEM:
++    case ACTION_MOUSE_LEFT_CLICK:
++      ShowInfo(m_viewControl.GetSelectedItem());
++      return true;
++
++    case ACTION_CONTEXT_MENU:
++    case ACTION_MOUSE_RIGHT_CLICK:
++      return ContextMenu(m_viewControl.GetSelectedItem());
++
++    default:
++      break;
++  }
++  return CGUIDialog::OnAction(action);
++}
++
++CGUIControl *CGUIDialogPVRItemsViewBase::GetFirstFocusableControl(int id)
++{
++  if (m_viewControl.HasControl(id))
++    id = m_viewControl.GetCurrentControl();
++
++  return CGUIDialog::GetFirstFocusableControl(id);
++}
++
++void CGUIDialogPVRItemsViewBase::ShowInfo(int itemIdx)
++{
++  if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
++    return;
++
++  // Preserve the item before closing self, because this will clear m_vecItems
++  const CFileItemPtr itemptr = m_vecItems->Get(itemIdx);
++  Close();
++  CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(itemptr);
++}
++
++bool CGUIDialogPVRItemsViewBase::ContextMenu(int itemIdx)
++{
++  auto InRange = [](size_t i, std::pair<size_t, size_t> range){ return i >= range.first && i < range.second; };
++
++  if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
++    return false;
++
++  const CFileItemPtr item = m_vecItems->Get(itemIdx);
++  if (!item)
++    return false;
++
++  CContextButtons buttons;
++
++  // Add the global menu
++  const ContextMenuView globalMenu = CServiceBroker::GetContextMenuManager().GetItems(*item, CContextMenuManager::MAIN);
++  auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
++  for (const auto& menu : globalMenu)
++    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
++
++  // Add addon menus
++  const ContextMenuView addonMenu = CServiceBroker::GetContextMenuManager().GetAddonItems(*item, CContextMenuManager::MAIN);
++  auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
++  for (const auto& menu : addonMenu)
++    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
++
++  if (buttons.empty())
++    return true;
++
++  int idx = CGUIDialogContextMenu::Show(buttons);
++  if (idx < 0 || idx >= static_cast<int>(buttons.size()))
++    return false;
++
++  Close();
++
++  if (InRange(idx, globalMenuRange))
++    return CONTEXTMENU::LoopFrom(*globalMenu[idx - globalMenuRange.first], item);
++
++  return CONTEXTMENU::LoopFrom(*addonMenu[idx - addonMenuRange.first], item);
++}
++
++void CGUIDialogPVRItemsViewBase::Init()
++{
++  m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
++  Clear();
++}
++
++void CGUIDialogPVRItemsViewBase::Clear()
++{
++  m_viewControl.Clear();
++  m_vecItems->Clear();
++}
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.h b/xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.h
+new file mode 100644
+index 000000000000..6a4a7af60c92
+--- /dev/null
++++ b/xbmc/pvr/dialogs/GUIDialogPVRItemsViewBase.h
+@@ -0,0 +1,47 @@
++/*
++ *  Copyright (C) 2012-2018 Team Kodi
++ *  This file is part of Kodi - https://kodi.tv
++ *
++ *  SPDX-License-Identifier: GPL-2.0-or-later
++ *  See LICENSES/README.md for more information.
++ */
++
++#pragma once
++
++#include <memory>
++#include <string>
++
++#include "guilib/GUIDialog.h"
++#include "view/GUIViewControl.h"
++
++class CFileItemList;
++
++namespace PVR
++{
++  class CGUIDialogPVRItemsViewBase : public CGUIDialog
++  {
++  public:
++    CGUIDialogPVRItemsViewBase() = delete;
++    CGUIDialogPVRItemsViewBase(int id, const std::string &xmlFile);
++    ~CGUIDialogPVRItemsViewBase() override = default;
++
++    void OnWindowLoaded() override;
++    void OnWindowUnload() override;
++    bool OnAction(const CAction &action) override;
++
++  protected:
++    void Init();
++
++    void OnInitWindow() override;
++    void OnDeinitWindow(int nextWindowID) override;
++    CGUIControl *GetFirstFocusableControl(int id) override;
++
++    std::unique_ptr<CFileItemList> m_vecItems;
++    CGUIViewControl m_viewControl;
++
++  private:
++    void Clear();
++    void ShowInfo(int itemIdx);
++    bool ContextMenu(int iItemIdx);
++  };
++}
+
+From 3270f6242735b39a63b0eb85f71e2621929c8fc8 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sun, 9 Sep 2018 20:33:55 +0200
+Subject: [PATCH 4/4] [PVR] Some code cleanup along the way.
+
+---
+ xbmc/Application.cpp                          |  2 +-
+ xbmc/FileItem.h                               |  2 +-
+ xbmc/pvr/PVRManager.cpp                       |  2 +-
+ xbmc/pvr/PVRManager.h                         |  2 +-
+ xbmc/pvr/channels/PVRChannelGroup.cpp         |  7 +-
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp  | 96 ++++++++++---------
+ xbmc/pvr/recordings/PVRRecordings.cpp         |  8 +-
+ xbmc/pvr/windows/GUIWindowPVRBase.cpp         |  6 +-
+ xbmc/pvr/windows/GUIWindowPVRChannels.cpp     |  2 +-
+ xbmc/pvr/windows/GUIWindowPVRGuide.cpp        |  2 +-
+ xbmc/pvr/windows/GUIWindowPVRRecordings.cpp   |  7 +-
+ .../video/dialogs/GUIDialogVideoBookmarks.cpp |  2 +-
+ 12 files changed, 67 insertions(+), 71 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 95c79295d8a5..74fb49edef9e 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -1673,7 +1673,7 @@ bool CApplication::LoadCustomWindows()
+     CFileItemList items;
+     if (CDirectory::GetDirectory(skinPath, items, ".xml", DIR_FLAG_NO_FILE_DIRS))
+     {
+-      for (const auto &item : items.GetList())
++      for (const auto &item : items)
+       {
+         if (item->m_bIsFolder)
+           continue;
+diff --git a/xbmc/FileItem.h b/xbmc/FileItem.h
+index 67c2b1b871cd..e92f0fc0e1b4 100644
+--- a/xbmc/FileItem.h
++++ b/xbmc/FileItem.h
+@@ -657,7 +657,7 @@ class CFileItemList : public CFileItem
+   void Remove(int iItem);
+   CFileItemPtr Get(int iItem);
+   const CFileItemPtr Get(int iItem) const;
+-  const VECFILEITEMS GetList() const { return m_items; }
++  const VECFILEITEMS& GetList() const { return m_items; }
+   CFileItemPtr Get(const std::string& strPath);
+   const CFileItemPtr Get(const std::string& strPath) const;
+   int Size() const;
+diff --git a/xbmc/pvr/PVRManager.cpp b/xbmc/pvr/PVRManager.cpp
+index a26c0e0e1fb7..4e33da932e4e 100644
+--- a/xbmc/pvr/PVRManager.cpp
++++ b/xbmc/pvr/PVRManager.cpp
+@@ -722,7 +722,7 @@ void CPVRManager::SetPlayingGroup(const CPVRChannelPtr &channel)
+   }
+ }
+ 
+-CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */)
++CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */) const
+ {
+   if (m_channelGroups)
+     return m_channelGroups->GetSelectedGroup(bRadio);
+diff --git a/xbmc/pvr/PVRManager.h b/xbmc/pvr/PVRManager.h
+index a1c7094db231..533b265c09d2 100644
+--- a/xbmc/pvr/PVRManager.h
++++ b/xbmc/pvr/PVRManager.h
+@@ -309,7 +309,7 @@ namespace PVR
+      * @param bRadio True to get the current radio group, false to get the current TV group.
+      * @return The current group or the group containing all channels if it's not set.
+      */
+-    CPVRChannelGroupPtr GetPlayingGroup(bool bRadio = false);
++    CPVRChannelGroupPtr GetPlayingGroup(bool bRadio = false) const;
+ 
+     /*!
+      * @brief Fill the file item for a recording, a channel or an epg tag with the properties required for playback. Values are obtained from the PVR backend.
+diff --git a/xbmc/pvr/channels/PVRChannelGroup.cpp b/xbmc/pvr/channels/PVRChannelGroup.cpp
+index 74332fc04e53..ba936a3746aa 100644
+--- a/xbmc/pvr/channels/PVRChannelGroup.cpp
++++ b/xbmc/pvr/channels/PVRChannelGroup.cpp
+@@ -202,13 +202,12 @@ void CPVRChannelGroup::SearchAndSetChannelIcons(bool bUpdateDb /* = false */)
+ 
+   /* create a map for fast lookup of normalized file base name */
+   std::map<std::string, std::string> fileItemMap;
+-  const VECFILEITEMS &items = fileItemList.GetList();
+-  for(VECFILEITEMS::const_iterator it = items.begin(); it != items.end(); ++it)
++  for (const auto& item : fileItemList)
+   {
+-    std::string baseName = URIUtils::GetFileName((*it)->GetPath());
++    std::string baseName = URIUtils::GetFileName(item->GetPath());
+     URIUtils::RemoveExtension(baseName);
+     StringUtils::ToLower(baseName);
+-    fileItemMap.insert(std::make_pair(baseName, (*it)->GetPath()));
++    fileItemMap.insert(std::make_pair(baseName, item->GetPath()));
+   }
+ 
+   CPVRGUIProgressHandler* progressHandler = new CPVRGUIProgressHandler(g_localizeStrings.Get(19286)); // Searching for channel icons
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+index 9d5f12cae726..c184f20e2521 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+@@ -39,26 +39,23 @@ CGUIDialogPVRChannelsOSD::~CGUIDialogPVRChannelsOSD()
+ 
+ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
+ {
+-  switch (message.GetMessage())
++  if (message.GetMessage() == GUI_MSG_REFRESH_LIST)
+   {
+-  case GUI_MSG_REFRESH_LIST:
++    switch (message.GetParam1())
+     {
+-      switch(message.GetParam1())
+-      {
+-        case ObservableMessageCurrentItem:
+-          m_viewControl.SetItems(*m_vecItems);
+-          return true;
+-        case ObservableMessageEpg:
+-        case ObservableMessageEpgContainer:
+-        case ObservableMessageEpgActiveItem:
+-          if (IsActive())
+-            SetInvalid();
+-          return true;
+-      }
++      case ObservableMessageCurrentItem:
++        m_viewControl.SetItems(*m_vecItems);
++        return true;
++      case ObservableMessageEpg:
++      case ObservableMessageEpgContainer:
++      case ObservableMessageEpgActiveItem:
++        if (IsActive())
++          SetInvalid();
++        return true;
++      default:
++        break;
+     }
+-    break;
+   }
+-
+   return CGUIDialogPVRItemsViewBase::OnMessage(message);
+ }
+ 
+@@ -92,19 +89,19 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+ {
+   switch (action.GetID())
+   {
+-  case ACTION_SELECT_ITEM:
+-  case ACTION_MOUSE_LEFT_CLICK:
++    case ACTION_SELECT_ITEM:
++    case ACTION_MOUSE_LEFT_CLICK:
+     {
+       // If direct channel number input is active, select the entered channel.
+       if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().CheckInputAndExecuteAction())
+         return true;
+ 
+-      /* Switch to channel */
++      // Switch to channel
+       GotoChannel(m_viewControl.GetSelectedItem());
+       return true;
+     }
+-  case ACTION_PREVIOUS_CHANNELGROUP:
+-  case ACTION_NEXT_CHANNELGROUP:
++    case ACTION_PREVIOUS_CHANNELGROUP:
++    case ACTION_NEXT_CHANNELGROUP:
+     {
+       // save control states and currently selected item of group
+       SaveControlStates();
+@@ -120,25 +117,27 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+       RestoreControlStates();
+       return true;
+     }
+-  case REMOTE_0:
+-  case REMOTE_1:
+-  case REMOTE_2:
+-  case REMOTE_3:
+-  case REMOTE_4:
+-  case REMOTE_5:
+-  case REMOTE_6:
+-  case REMOTE_7:
+-  case REMOTE_8:
+-  case REMOTE_9:
++    case REMOTE_0:
++    case REMOTE_1:
++    case REMOTE_2:
++    case REMOTE_3:
++    case REMOTE_4:
++    case REMOTE_5:
++    case REMOTE_6:
++    case REMOTE_7:
++    case REMOTE_8:
++    case REMOTE_9:
+     {
+       AppendChannelNumberCharacter((action.GetID() - REMOTE_0) + '0');
+       return true;
+     }
+-  case ACTION_CHANNEL_NUMBER_SEP:
++    case ACTION_CHANNEL_NUMBER_SEP:
+     {
+       AppendChannelNumberCharacter(CPVRChannelNumber::SEPARATOR);
+       return true;
+     }
++    default:
++      break;
+   }
+ 
+   return CGUIDialogPVRItemsViewBase::OnAction(action);
+@@ -147,12 +146,14 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+ void CGUIDialogPVRChannelsOSD::Update()
+ {
+   CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
+-  CServiceBroker::GetPVRManager().EpgContainer().RegisterObserver(this);
+ 
+-  CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetPlayingChannel());
++  CPVRManager& pvrMgr = CServiceBroker::GetPVRManager();
++  pvrMgr.EpgContainer().RegisterObserver(this);
++
++  const CPVRChannelPtr channel = pvrMgr.GetPlayingChannel();
+   if (channel)
+   {
+-    CPVRChannelGroupPtr group = CServiceBroker::GetPVRManager().GetPlayingGroup(channel->IsRadio());
++    const CPVRChannelGroupPtr group = pvrMgr.GetPlayingGroup(channel->IsRadio());
+     if (group)
+     {
+       group->GetMembers(*m_vecItems);
+@@ -161,7 +162,7 @@ void CGUIDialogPVRChannelsOSD::Update()
+       if (!m_group)
+       {
+         m_group = group;
+-        m_viewControl.SetSelectedItem(CServiceBroker::GetPVRManager().GUIActions()->GetSelectedItemPath(channel->IsRadio()));
++        m_viewControl.SetSelectedItem(pvrMgr.GUIActions()->GetSelectedItemPath(channel->IsRadio()));
+         SaveSelectedItemPath(group->GroupID());
+       }
+     }
+@@ -172,9 +173,9 @@ void CGUIDialogPVRChannelsOSD::SetInvalid()
+ {
+   if (m_refreshTimeout.IsTimePast())
+   {
+-    VECFILEITEMS items = m_vecItems->GetList();
+-    for (VECFILEITEMS::iterator it = items.begin(); it != items.end(); ++it)
+-      (*it)->SetInvalid();
++    for (const auto& item : *m_vecItems)
++      item->SetInvalid();
++
+     CGUIDialogPVRItemsViewBase::SetInvalid();
+     m_refreshTimeout.Set(MAX_INVALIDATION_FREQUENCY);
+   }
+@@ -194,11 +195,11 @@ void CGUIDialogPVRChannelsOSD::RestoreControlStates()
+ 
+   if (m_group)
+   {
+-    std::string path = GetLastSelectedItemPath(m_group->GroupID());
+-    if (!path.empty())
+-      m_viewControl.SetSelectedItem(path);
+-    else
++    const std::string path = GetLastSelectedItemPath(m_group->GroupID());
++    if (path.empty())
+       m_viewControl.SetSelectedItem(0);
++    else
++      m_viewControl.SetSelectedItem(path);
+   }
+ }
+ 
+@@ -215,7 +216,7 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
+ 
+ void CGUIDialogPVRChannelsOSD::Notify(const Observable &obs, const ObservableMessage msg)
+ {
+-  CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
++  const CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
+   CApplicationMessenger::GetInstance().SendGUIMessage(m);
+ }
+ 
+@@ -226,10 +227,11 @@ void CGUIDialogPVRChannelsOSD::SaveSelectedItemPath(int iGroupID)
+ 
+ std::string CGUIDialogPVRChannelsOSD::GetLastSelectedItemPath(int iGroupID) const
+ {
+-  std::map<int, std::string>::const_iterator it = m_groupSelectedItemPaths.find(iGroupID);
++  const auto it = m_groupSelectedItemPaths.find(iGroupID);
+   if (it != m_groupSelectedItemPaths.end())
+     return it->second;
+-  return "";
++
++  return std::string();
+ }
+ 
+ void CGUIDialogPVRChannelsOSD::GetChannelNumbers(std::vector<std::string>& channelNumbers)
+@@ -244,7 +246,7 @@ void CGUIDialogPVRChannelsOSD::OnInputDone()
+   if (channelNumber.IsValid())
+   {
+     int itemIndex = 0;
+-    for (const CFileItemPtr channel : m_vecItems->GetList())
++    for (const CFileItemPtr channel : *m_vecItems)
+     {
+       if (channel->GetPVRChannelInfoTag()->ChannelNumber() == channelNumber)
+       {
+diff --git a/xbmc/pvr/recordings/PVRRecordings.cpp b/xbmc/pvr/recordings/PVRRecordings.cpp
+index 477d9f9086a4..2cccc3d5baee 100644
+--- a/xbmc/pvr/recordings/PVRRecordings.cpp
++++ b/xbmc/pvr/recordings/PVRRecordings.cpp
+@@ -194,12 +194,8 @@ bool CPVRRecordings::DeleteDirectory(const CFileItem& directory)
+   XFILE::CDirectory::GetDirectory(directory.GetPath(), items, "", XFILE::DIR_FLAG_DEFAULTS);
+ 
+   bool allDeleted = true;
+-
+-  VECFILEITEMS itemList = items.GetList();
+-  CFileItem item;
+-
+-  for (const auto item : itemList)
+-    allDeleted &= Delete(*(item.get()));
++  for (const auto& item : items)
++    allDeleted &= Delete(*item);
+ 
+   return allDeleted;
+ }
+diff --git a/xbmc/pvr/windows/GUIWindowPVRBase.cpp b/xbmc/pvr/windows/GUIWindowPVRBase.cpp
+index 56322cc8d3d9..7aa89b21616b 100644
+--- a/xbmc/pvr/windows/GUIWindowPVRBase.cpp
++++ b/xbmc/pvr/windows/GUIWindowPVRBase.cpp
+@@ -333,9 +333,9 @@ void CGUIWindowPVRBase::SetInvalid()
+ {
+   if (m_refreshTimeout.IsTimePast())
+   {
+-    VECFILEITEMS items = m_vecItems->GetList();
+-    for (VECFILEITEMS::iterator it = items.begin(); it != items.end(); ++it)
+-      (*it)->SetInvalid();
++    for (const auto& item : *m_vecItems)
++      item->SetInvalid();
++
+     CGUIMediaWindow::SetInvalid();
+     m_refreshTimeout.Set(MAX_INVALIDATION_FREQUENCY);
+   }
+diff --git a/xbmc/pvr/windows/GUIWindowPVRChannels.cpp b/xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+index 66409c871ea0..8fd0a25a852d 100644
+--- a/xbmc/pvr/windows/GUIWindowPVRChannels.cpp
++++ b/xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+@@ -314,7 +314,7 @@ void CGUIWindowPVRChannelsBase::OnInputDone()
+   if (channelNumber.IsValid())
+   {
+     int itemIndex = 0;
+-    for (const CFileItemPtr channel : m_vecItems->GetList())
++    for (const CFileItemPtr channel : *m_vecItems)
+     {
+       if (channel->GetPVRChannelInfoTag()->ChannelNumber() == channelNumber)
+       {
+diff --git a/xbmc/pvr/windows/GUIWindowPVRGuide.cpp b/xbmc/pvr/windows/GUIWindowPVRGuide.cpp
+index 383ba9ba9498..81dd05c24c0a 100644
+--- a/xbmc/pvr/windows/GUIWindowPVRGuide.cpp
++++ b/xbmc/pvr/windows/GUIWindowPVRGuide.cpp
+@@ -679,7 +679,7 @@ void CGUIWindowPVRGuideBase::OnInputDone()
+   const CPVRChannelNumber channelNumber = GetChannelNumber();
+   if (channelNumber.IsValid())
+   {
+-    for (const CFileItemPtr event : m_vecItems->GetList())
++    for (const CFileItemPtr event : *m_vecItems)
+     {
+       const CPVREpgInfoTagPtr tag(event->GetEPGInfoTag());
+       if (tag->HasChannel() && tag->Channel()->ChannelNumber() == channelNumber)
+diff --git a/xbmc/pvr/windows/GUIWindowPVRRecordings.cpp b/xbmc/pvr/windows/GUIWindowPVRRecordings.cpp
+index e17db851f068..e5391ddcbece 100644
+--- a/xbmc/pvr/windows/GUIWindowPVRRecordings.cpp
++++ b/xbmc/pvr/windows/GUIWindowPVRRecordings.cpp
+@@ -331,11 +331,10 @@ void CGUIWindowPVRRecordingsBase::OnPrepareFileItems(CFileItemList& items)
+     return;
+ 
+   CFileItemList files;
+-  VECFILEITEMS vecItems = items.GetList();
+-  for (VECFILEITEMS::const_iterator it = vecItems.begin(); it != vecItems.end(); ++it)
++  for (const auto& item : items)
+   {
+-    if (!(*it)->m_bIsFolder)
+-      files.Add((*it));
++    if (!item->m_bIsFolder)
++      files.Add(item);
+   }
+ 
+   if (!files.IsEmpty())
+diff --git a/xbmc/video/dialogs/GUIDialogVideoBookmarks.cpp b/xbmc/video/dialogs/GUIDialogVideoBookmarks.cpp
+index 5a30daef74bb..b505a10f40ef 100644
+--- a/xbmc/video/dialogs/GUIDialogVideoBookmarks.cpp
++++ b/xbmc/video/dialogs/GUIDialogVideoBookmarks.cpp
+@@ -201,7 +201,7 @@ void CGUIDialogVideoBookmarks::UpdateItem(unsigned int chapterIdx)
+   CSingleLock lock(m_refreshSection);
+ 
+   int itemPos = 0;
+-  for (auto& item : m_vecItems->GetList())
++  for (const auto& item : *m_vecItems)
+   {
+     if (chapterIdx == item->GetProperty("chapter").asInteger())
+       break;
