@@ -1,0 +1,68 @@
+From b93599b1aee026a97d314906b99dc81fd3a78d92 Mon Sep 17 00:00:00 2001
+From: Rainer Hochecker <fernetmenta@online.de>
+Date: Sat, 8 Sep 2018 15:37:58 +0200
+Subject: [PATCH] VideoPlayer: demuxClient, wait until video has extradata
+
+---
+ .../DVDDemuxers/DVDDemuxClient.cpp            | 21 +++++++++++++++++++
+ .../VideoPlayer/DVDDemuxers/DVDDemuxClient.h  |  1 +
+ 2 files changed, 22 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+index 8c5ea252232e..fde83a051fdb 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+@@ -292,6 +292,15 @@ DemuxPacket* CDVDDemuxClient::Read()
+     }
+   }
+ 
++  if (!IsVideoReady())
++  {
++    m_packet.reset();
++    DemuxPacket *pPacket = CDVDDemuxUtils::AllocateDemuxPacket(0);
++    pPacket->demuxerId = m_demuxerId;
++    return pPacket;
++  }
++
++  //! @todo drop this block
+   CDVDInputStream::IDisplayTime *inputStream = m_pInput->GetIDisplayTime();
+   if (inputStream)
+   {
+@@ -310,6 +319,7 @@ DemuxPacket* CDVDDemuxClient::Read()
+       m_packet->dispTime += DVD_TIME_TO_MSEC(m_packet->dts - m_dtsAtDisplayTime);
+     }
+   }
++
+   return m_packet.release();
+ }
+ 
+@@ -554,6 +564,17 @@ int CDVDDemuxClient::GetNrOfStreams() const
+   return m_streams.size();
+ }
+ 
++bool CDVDDemuxClient::IsVideoReady()
++{
++  for (const auto& stream : m_streams)
++  {
++    if (stream.second->type == STREAM_VIDEO &&
++        stream.second->ExtraData == nullptr)
++      return false;
++  }
++  return true;
++}
++
+ std::string CDVDDemuxClient::GetFileName()
+ {
+   if (m_pInput)
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h
+index 692fe1dd4347..d41f354a445c 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h
+@@ -47,6 +47,7 @@ class CDVDDemuxClient : public CDVDDemux
+   bool ParsePacket(DemuxPacket* pPacket);
+   void DisposeStreams();
+   std::shared_ptr<CDemuxStream> GetStreamInternal(int iStreamId);
++  bool IsVideoReady();
+ 
+   std::shared_ptr<CDVDInputStream> m_pInput;
+   std::shared_ptr<CDVDInputStream::IDemux> m_IDemux;
