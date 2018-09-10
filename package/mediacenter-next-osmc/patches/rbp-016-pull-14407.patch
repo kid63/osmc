@@ -1,0 +1,27 @@
+From d0a61f86b2a71db74c477e8922125368fd6a6ac8 Mon Sep 17 00:00:00 2001
+From: xbmc <fernetmenta@online.de>
+Date: Sat, 8 Sep 2018 14:40:22 +0200
+Subject: [PATCH] VideoPlayer: handle dying streams during sync
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 3ea56800360e..d759dc19adec 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -1989,9 +1989,11 @@ void CVideoPlayer::HandlePlaySpeed()
+       threshold = 40;
+ 
+     bool video = m_CurrentVideo.id < 0 || (m_CurrentVideo.syncState == IDVDStreamPlayer::SYNC_WAITSYNC) ||
+-                 (m_CurrentVideo.packets == 0 && m_CurrentAudio.packets > threshold);
++                 (m_CurrentVideo.packets == 0 && m_CurrentAudio.packets > threshold) ||
++                 (!m_VideoPlayerAudio->AcceptsData() && m_processInfo->GetLevelVQ() < 10);
+     bool audio = m_CurrentAudio.id < 0 || (m_CurrentAudio.syncState == IDVDStreamPlayer::SYNC_WAITSYNC) ||
+-                 (m_CurrentAudio.packets == 0 && m_CurrentVideo.packets > threshold);
++                 (m_CurrentAudio.packets == 0 && m_CurrentVideo.packets > threshold) ||
++                 (!m_VideoPlayerVideo->AcceptsData() && m_VideoPlayerAudio->GetLevel() < 10);
+ 
+     if (m_CurrentAudio.syncState == IDVDStreamPlayer::SYNC_WAITSYNC &&
+         (m_CurrentAudio.avsync == CCurrentStream::AV_SYNC_CONT ||
