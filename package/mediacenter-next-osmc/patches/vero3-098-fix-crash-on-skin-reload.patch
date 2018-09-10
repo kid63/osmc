@@ -26,7 +26,7 @@ index 5c401219d7..08a7529334 100644
    CGUIMessage msg(GUI_MSG_LOAD_SKIN, -1, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow()); 
    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg); 
  
-   std::string newSkin = m_ServiceManager->GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN);
+   std::string newSkin = CServiceBroker::GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKIN);
 -  if (LoadSkin(newSkin))
 +  m_SkinReloading = true;
 +  bool skinLoaded = LoadSkin(newSkin);
