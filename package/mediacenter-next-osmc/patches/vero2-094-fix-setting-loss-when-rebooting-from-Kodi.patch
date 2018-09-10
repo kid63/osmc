@@ -11,18 +11,18 @@ diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
 index 627402d48c..5c401219d7 100644
 --- a/xbmc/Application.cpp
 +++ b/xbmc/Application.cpp
-@@ -2822,25 +2822,6 @@ void CApplication::Stop(int exitCode)
- 
+@@ -2802,25 +2802,6 @@ void CApplication::Stop(int exitCode)
+
      g_alarmClock.StopThread();
- 
+
 -    CLog::Log(LOGNOTICE, "Storing total System Uptime");
 -    g_sysinfo.SetTotalUptime(g_sysinfo.GetTotalUptime() + (int)(CTimeUtils::GetFrameTime() / 60000));
 -
 -    // Update the settings information (volume, uptime etc. need saving)
--    if (CFile::Exists(m_ServiceManager->GetProfileManager().GetSettingsFile())) 
+-    if (CFile::Exists(m_ServiceManager->GetProfileManager().GetSettingsFile()))
 -    {
 -      CLog::Log(LOGNOTICE, "Saving settings");
--      m_ServiceManager->GetSettings().Save();
+-      CServiceBroker::GetSettings()->Save();
 -    }
 -    else
 -      CLog::Log(LOGNOTICE, "Not saving settings (settings.xml is not present)");
