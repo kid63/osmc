@@ -35,9 +35,9 @@ index 84d56db..1adfa76 100644
  
                case CAEStreamInfo::STREAM_TYPE_DTSHD:
 +              case CAEStreamInfo::STREAM_TYPE_DTSHD_XLL:
+               case CAEStreamInfo::STREAM_TYPE_DTSHD_MA:
                  samplerate = 192000;
                  break;
- 
 diff --git a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp b/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
 index 051e232..705fcbf 100644
 --- a/xbmc/cores/AudioEngine/Sinks/AESinkALSA.cpp
