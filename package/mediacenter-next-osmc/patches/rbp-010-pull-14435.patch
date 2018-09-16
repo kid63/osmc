@@ -1,0 +1,72 @@
+From 8a6b124af7856b08cb3cbd9261e99aaad147caad Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Sat, 15 Sep 2018 16:39:41 +0200
+Subject: [PATCH 1/2] [depends] bump libCURL version to 7.61.1
+
+---
+ tools/depends/target/curl/01-pkg-config-openssl.patch | 2 +-
+ tools/depends/target/curl/Makefile                    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tools/depends/target/curl/01-pkg-config-openssl.patch b/tools/depends/target/curl/01-pkg-config-openssl.patch
+index 93dc6dbad0af..f0fc314464f3 100644
+--- a/tools/depends/target/curl/01-pkg-config-openssl.patch
++++ b/tools/depends/target/curl/01-pkg-config-openssl.patch
+@@ -1,6 +1,6 @@
+ --- a/configure.ac
+ +++ b/configure.ac
+-@@ -1517,7 +1517,7 @@
++@@ -1623,7 +1623,7 @@
+  
+      if test "$PKGCONFIG" != "no" ; then
+        SSL_LIBS=`CURL_EXPORT_PCDIR([$OPENSSL_PCDIR]) dnl
+diff --git a/tools/depends/target/curl/Makefile b/tools/depends/target/curl/Makefile
+index 02156ddd7746..0cc2a931c68c 100644
+--- a/tools/depends/target/curl/Makefile
++++ b/tools/depends/target/curl/Makefile
+@@ -3,7 +3,7 @@ DEPS= ../../Makefile.include Makefile 01-pkg-config-openssl.patch
+ 
+ # lib name, version
+ LIBNAME=curl
+-VERSION=7.56.1
++VERSION=7.61.1
+ SOURCE=$(LIBNAME)-$(VERSION)
+ ARCHIVE=$(SOURCE).tar.bz2
+ # configuration settings
+
+From ff5b816b186930e82c289f398ac7a69e61565455 Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Sat, 15 Sep 2018 16:41:09 +0200
+Subject: [PATCH 2/2] [CURL] calculate download speed for libCurl version <
+ 7.58.0
+
+---
+ xbmc/filesystem/CurlFile.cpp | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/filesystem/CurlFile.cpp b/xbmc/filesystem/CurlFile.cpp
+index 3f87c42c98d5..1cbd879363ef 100644
+--- a/xbmc/filesystem/CurlFile.cpp
++++ b/xbmc/filesystem/CurlFile.cpp
+@@ -1975,7 +1975,18 @@ const std::vector<std::string> CCurlFile::GetPropertyValues(XFILE::FileProperty
+ 
+ double CCurlFile::GetDownloadSpeed()
+ {
+-  double res = 0.0f;
+-  g_curlInterface.easy_getinfo(m_state->m_easyHandle, CURLINFO_SPEED_DOWNLOAD, &res);
+-  return res;
++#if LIBCURL_VERSION_NUM >= 0x073a00 // 0.7.58.0
++  double speed = 0.0;
++  if (g_curlInterface.easy_getinfo(m_state->m_easyHandle, CURLINFO_SPEED_DOWNLOAD, &speed) == CURLE_OK)
++    return speed;
++#else
++  double time = 0.0, size = 0.0;
++  if (g_curlInterface.easy_getinfo(m_state->m_easyHandle, CURLINFO_TOTAL_TIME, &time) == CURLE_OK
++    && g_curlInterface.easy_getinfo(m_state->m_easyHandle, CURLINFO_SIZE_DOWNLOAD, &size) == CURLE_OK
++    && time > 0.0)
++  {
++    return size / time;
++  }
++#endif
++  return 0.0;
+ }
