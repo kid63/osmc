@@ -1,0 +1,84 @@
+From a3b997c11ce2b56319df4f1c86ab7370efd96a74 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Sat, 15 Sep 2018 19:58:14 +0200
+Subject: [PATCH] [keymaps] Map key 'numpad period' to action 'channel number
+ separator'.
+
+---
+ system/keymaps/keyboard.xml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/system/keymaps/keyboard.xml b/system/keymaps/keyboard.xml
+index d6dac8bbf784..99b30207adfc 100644
+--- a/system/keymaps/keyboard.xml
++++ b/system/keymaps/keyboard.xml
+@@ -207,6 +207,7 @@
+       <m mod="ctrl">Move</m>
+       <h>PreviousMenu</h>
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </TVChannels>
+   <TVRecordings>
+@@ -251,6 +252,7 @@
+       <backspace mod="longpress">Number0</backspace> <!-- 0 key goes to "now" on EPG timeline -->
+       <browser_back mod="longpress">Number0</browser_back> <!-- 0 key goes to "now" on EPG timeline -->
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </TVGuide>
+   <RadioChannels>
+@@ -259,6 +261,7 @@
+       <m mod="ctrl">Move</m>
+       <j>PreviousMenu</j>
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </RadioChannels>
+   <RadioRecordings>
+@@ -298,6 +301,7 @@
+       <backspace mod="longpress">Number0</backspace> <!-- 0 key goes to "now" on EPG timeline -->
+       <browser_back mod="longpress">Number0</browser_back> <!-- 0 key goes to "now" on EPG timeline -->
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </RadioGuide>
+   <FileManager>
+@@ -678,6 +682,7 @@
+       <pageup>ChannelUp</pageup>
+       <pagedown>ChannelDown</pagedown>
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </FullscreenLiveTV>
+   <FullscreenRadio>
+@@ -695,6 +700,7 @@
+       <pageup>ChannelUp</pageup>
+       <pagedown>ChannelDown</pagedown>
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </FullscreenRadio>
+   <FullscreenLiveTvPreview>
+@@ -714,6 +720,7 @@
+       <return>Select</return>
+       <enter>Select</enter>
+       <period>ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </FullscreenLiveTvInput>
+   <FullscreenRadioInput>
+@@ -721,11 +728,13 @@
+       <return>Select</return>
+       <enter>Select</enter>
+       <period>ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+     </keyboard>
+   </FullscreenRadioInput>
+   <PVROSDChannels>
+     <keyboard>
+       <period mod="longpress">ChannelNumberSeparator</period>
++      <numpadperiod>ChannelNumberSeparator</numpadperiod>
+       <backspace>Close</backspace>
+       <escape>Close</escape>
+       <browser_back>Close</browser_back>
