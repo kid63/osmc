@@ -1,0 +1,151 @@
+From 325ac11d87b10fca570e2a870f644fda7617a11d Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Thu, 13 Sep 2018 15:30:16 +0200
+Subject: [PATCH] [guiinfo] Fix Listitem.DBType not working for music videos.
+
+---
+ xbmc/guilib/guiinfo/GUIInfoProviders.cpp |  6 ++++--
+ xbmc/guilib/guiinfo/MusicGUIInfo.cpp     | 14 ++++++++------
+ xbmc/guilib/guiinfo/VideoGUIInfo.cpp     | 18 +++++++++++-------
+ 3 files changed, 23 insertions(+), 15 deletions(-)
+
+diff --git a/xbmc/guilib/guiinfo/GUIInfoProviders.cpp b/xbmc/guilib/guiinfo/GUIInfoProviders.cpp
+index ece7936b3ea5..ef10b3676aa7 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoProviders.cpp
++++ b/xbmc/guilib/guiinfo/GUIInfoProviders.cpp
+@@ -16,8 +16,10 @@ using namespace KODI::GUILIB::GUIINFO;
+ CGUIInfoProviders::CGUIInfoProviders()
+ {
+   RegisterProvider(&m_guiControlsGUIInfo);
++  RegisterProvider(&m_videoGUIInfo); // Note: video info provider must be registered before music info provider,
++                                     // because of music videos having both a video info tag and a music info tag
++                                     // and video info tag always has to be evaluated first.
+   RegisterProvider(&m_musicGUIInfo);
+-  RegisterProvider(&m_videoGUIInfo);
+   RegisterProvider(&m_picturesGUIInfo);
+   RegisterProvider(&m_playerGUIInfo);
+   RegisterProvider(&m_libraryGUIInfo);
+@@ -40,8 +42,8 @@ CGUIInfoProviders::~CGUIInfoProviders()
+   UnregisterProvider(&m_libraryGUIInfo);
+   UnregisterProvider(&m_playerGUIInfo);
+   UnregisterProvider(&m_picturesGUIInfo);
+-  UnregisterProvider(&m_videoGUIInfo);
+   UnregisterProvider(&m_musicGUIInfo);
++  UnregisterProvider(&m_videoGUIInfo);
+   UnregisterProvider(&m_guiControlsGUIInfo);
+ }
+ 
+diff --git a/xbmc/guilib/guiinfo/MusicGUIInfo.cpp b/xbmc/guilib/guiinfo/MusicGUIInfo.cpp
+index 1203a7ae9120..6aa9f895e2d0 100644
+--- a/xbmc/guilib/guiinfo/MusicGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/MusicGUIInfo.cpp
+@@ -97,14 +97,10 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case PLAYER_TITLE:
+       case MUSICPLAYER_TITLE:
+         value = tag->GetTitle();
+-        if (value.empty())
+-          value = item->GetLabel();
+-        if (value.empty())
+-          value = CUtil::GetTitleFromPath(item->GetPath());
+-        return true;
++        return !value.empty();
+       case LISTITEM_TITLE:
+         value = tag->GetTitle();
+-        return !value.empty();
++        return true;
+       case MUSICPLAYER_PLAYCOUNT:
+       case LISTITEM_PLAYCOUNT:
+         if (tag->GetPlayCount() > 0)
+@@ -273,6 +269,8 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case LISTITEM_FILE_EXTENSION:
+         if (item->IsMusicDb())
+           value = URIUtils::GetFileName(tag->GetURL());
++        else if (item->HasVideoInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
+         else
+           value = URIUtils::GetFileName(item->GetPath());
+ 
+@@ -286,6 +284,8 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case LISTITEM_PATH:
+         if (item->IsMusicDb())
+           value = URIUtils::GetDirectory(tag->GetURL());
++        else if (item->HasVideoInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
+         else
+           URIUtils::GetParentPath(item->GetPath(), value);
+ 
+@@ -300,6 +300,8 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case LISTITEM_FILENAME_AND_PATH:
+         if (item->IsMusicDb())
+           value = tag->GetURL();
++        else if (item->HasVideoInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
+         else
+           value = item->GetPath();
+ 
+diff --git a/xbmc/guilib/guiinfo/VideoGUIInfo.cpp b/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
+index 14c7f5635440..0f82ec9f889b 100644
+--- a/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/VideoGUIInfo.cpp
+@@ -14,7 +14,6 @@
+ #include "FileItem.h"
+ #include "ServiceBroker.h"
+ #include "URL.h"
+-#include "Util.h"
+ #include "cores/DataCacheCore.h"
+ #include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
+ #include "guilib/GUIComponent.h"
+@@ -94,6 +93,9 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case PLAYER_PATH:
+       case PLAYER_FILENAME:
+       case PLAYER_FILEPATH:
++        if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
++
+         value = tag->m_strFileNameAndPath;
+         if (value.empty())
+           value = item->GetPath();
+@@ -102,14 +104,10 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case PLAYER_TITLE:
+       case VIDEOPLAYER_TITLE:
+         value = tag->m_strTitle;
+-        if (value.empty())
+-          value = item->GetLabel();
+-        if (value.empty())
+-          value = CUtil::GetTitleFromPath(item->GetPath());
+-        return true;
++        return !value.empty();
+       case LISTITEM_TITLE:
+         value = tag->m_strTitle;
+-        return !value.empty();
++        return true;
+       case VIDEOPLAYER_ORIGINALTITLE:
+       case LISTITEM_ORIGINALTITLE:
+         value = tag->m_strOriginalTitle;
+@@ -417,6 +415,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case LISTITEM_FILE_EXTENSION:
+         if (item->IsVideoDb())
+           value = URIUtils::GetFileName(tag->m_strFileNameAndPath);
++        else if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
+         else
+           value = URIUtils::GetFileName(item->GetPath());
+ 
+@@ -435,6 +435,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+           else
+             URIUtils::GetParentPath(tag->m_strFileNameAndPath, value);
+         }
++        else if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
+         else
+           URIUtils::GetParentPath(item->GetPath(), value);
+ 
+@@ -449,6 +451,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
+       case LISTITEM_FILENAME_AND_PATH:
+         if (item->IsVideoDb())
+           value = tag->m_strFileNameAndPath;
++        else if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
++          break;
+         else
+           value = item->GetPath();
+ 
