@@ -1,5 +1,5 @@
 Origin: OSMC
-Version: 0.9.2-1
+Version: 1.2.0-1
 Section: libs
 Essential: No
 Priority: optional
@@ -7,4 +7,3 @@ Maintainer: Sam G Nazarko <email@samnazarko.co.uk>
 Description: libbluray library for OSMC
 Package: armv7-libbluray-osmc
 Architecture: armhf
-Installed-Size: 539

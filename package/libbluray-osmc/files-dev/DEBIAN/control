@@ -4,8 +4,3 @@ Essential: No
 Priority: optional
 Maintainer: Sam G Nazarko <email@samnazarko.co.uk>
 Description: libbluray library headers
-Version: 0.9.2-1
-Depends: armv7-libbluray-osmc (=0.9.2-1), libfreetype6, libxml2, liblzma5, libpng12-0, libfontconfig1
-Package: armv7-libbluray-dev-osmc
-Architecture: armhf
-Installed-Size: 101
