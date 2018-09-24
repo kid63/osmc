@@ -23,9 +23,9 @@ index a8da2ba..aed48d3 100644
 -    SET_CONTROL_LABEL(i++, g_sysinfo.GetCPUSerial());
 -#endif
 -    SetControlLabel(i++, "%s %s", 22011, SYSTEM_CPU_TEMPERATURE);
- #if (!defined(__arm__) && !defined(__aarch64__)) || defined(TARGET_RASPBERRY_PI)
-     SetControlLabel(i++, "%s %s", 13284, SYSTEM_CPUFREQUENCY);
- #endif
+ #if defined(__arm__) && defined(TARGET_LINUX)
+     SET_CONTROL_LABEL(i++, g_sysinfo.GetCPUBogoMips());
+     if (!g_sysinfo.GetCPUSoC().empty())
 -- 
 2.7.4
 
