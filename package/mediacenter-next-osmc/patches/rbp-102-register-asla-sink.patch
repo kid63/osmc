@@ -22,12 +22,12 @@ index 9e7f8bd..ac1618c 100644
  
  #include <EGL/egl.h>
 @@ -55,6 +56,7 @@ CWinSystemRpi::CWinSystemRpi()
-   m_winEvents.reset(new CWinEventsLinux());
    AE::CAESinkFactory::ClearSinks();
+
    CAESinkPi::Register();
 +  CAESinkALSA::Register();
-   CLinuxPowerSyscall::Register();
- }
- 
+   std::string envSink;
+   if (getenv("KODI_AE_SINK"))
+     envSink = getenv("KODI_AE_SINK");
 -- 
 2.7.4a
