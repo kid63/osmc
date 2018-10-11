@@ -23,12 +23,12 @@ index af16cab..469a612 100644
 +++ b/xbmc/Application.cpp
 @@ -627,6 +627,7 @@ bool CApplication::Create()
      return false;
-   }
-   CServiceBroker::GetSettings()->SetLoaded();
-+  CServiceBroker::GetSettings()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
- 
+
    CLog::Log(LOGINFO, "creating subdirectories");
-   CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(CProfilesManager::GetInstance().GetProfileUserDataFolder()).c_str());
++  CServiceBroker::GetSettings()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
+   const std::shared_ptr<CProfileManager> profileManager = m_pSettingsComponent->GetProfileManager();
+   const std::shared_ptr<CSettings> settings = m_pSettingsComponent->GetSettings();
+   CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(profileManager->GetProfileUserDataFolder()).c_str());
 diff --git a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
 index 34ff2df2d2..b27fe31900 100644
 --- a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
