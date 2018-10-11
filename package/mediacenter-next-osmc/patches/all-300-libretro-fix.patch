@@ -17,9 +17,9 @@ index 3729d39729..78d64b2ca7 100644
  #include "utils/SystemInfo.h"
  #include "utils/StringUtils.h"
 +#include "input/InputManager.h"
- #ifdef TARGET_WINDOWS
- #include "WIN32Util.h"
- #endif
+ #include <stdlib.h>
+
+ CAppParamParser::CAppParamParser()
 @@ -45,7 +46,24 @@ void CAppParamParser::Parse(const char* const* argv, int nArgs)
    if (nArgs > 1)
    {
@@ -43,9 +43,9 @@ index 3729d39729..78d64b2ca7 100644
 +      // else if (strnicmp(argv[i], "-n", 2) == 0 || strnicmp(argv[i], "--nolirc", 8) == 0)
 +      //   m_remoteControlEnabled = false;
 +      }
-   }
- }
- 
+
+    // testmode is only valid if at least one item to play was given
+    if (m_playlist->IsEmpty())
 diff --git a/xbmc/AppParamParser.h b/xbmc/AppParamParser.h
 index df06e45d9b..1a6db3352b 100644
 --- a/xbmc/AppParamParser.h
