@@ -12,7 +12,7 @@ diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
 index 5c401219d7..08a7529334 100644
 --- a/xbmc/Application.cpp
 +++ b/xbmc/Application.cpp
-@@ -1486,13 +1486,22 @@ void CApplication::ReloadSkin(bool confirm/*=false*/)
+@@ -1486,14 +1486,22 @@ void CApplication::ReloadSkin(bool confirm/*=false*/)
    if (!g_SkinInfo || m_bInitializing)
      return; // Don't allow reload before skin is loaded by system
  
@@ -26,6 +26,7 @@ index 5c401219d7..08a7529334 100644
    CGUIMessage msg(GUI_MSG_LOAD_SKIN, -1, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow()); 
    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg); 
  
+   const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
    std::string newSkin = CServiceBroker::GetSettings()->GetString(CSettings::SETTING_LOOKANDFEEL_SKIN);
 -  if (LoadSkin(newSkin))
 +  m_SkinReloading = true;
