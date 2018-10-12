@@ -25,7 +25,7 @@ index af16cab..469a612 100644
      return false;
 
    CLog::Log(LOGINFO, "creating subdirectories");
-+  CServiceBroker::GetSettingsComponent()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
++  CServiceBroker::GetSettingsComponent()->GetSettings()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
    const std::shared_ptr<CProfileManager> profileManager = m_pSettingsComponent->GetProfileManager();
    const std::shared_ptr<CSettings> settings = m_pSettingsComponent->GetSettings();
    CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(profileManager->GetProfileUserDataFolder()).c_str());
@@ -67,7 +67,7 @@ index 393dabc..27c6074 100644
 +
 +  if (settingId == "services.devicename")
 +  {
-+     std::string newHostName = CServiceBroker::GetSettingsComponent()->GetString("services.devicename"); 
++     std::string newHostName = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString("services.devicename"); 
 +     FILE *fp;
 +     fp = fopen("/tmp/hostname", "w");
 +     if (fp)
