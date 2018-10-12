@@ -73,7 +73,7 @@ index 5cf994be26..355356eeb0 100644
      return false;
    }
 
-+  double mix_lfe = (float) CServiceBroker::GetSettingsComponent()->GetInt("audiooutput.mixlfe") / (float) 100;
++  double mix_lfe = (float) CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("audiooutput.mixlfe") / (float) 100;
 +  if (mix_lfe)
 +  {
 +    av_opt_set_double(m_pContext, "lfe_mix_level", mix_lfe, 0);
