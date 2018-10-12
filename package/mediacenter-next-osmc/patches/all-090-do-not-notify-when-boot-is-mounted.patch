@@ -18,8 +18,8 @@ index 27a28cd68c..4b9333b064 100644
 +if (path== "/boot")
 +  return;
  #ifdef HAS_DVD_DRIVE
-   if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) != AUTOCD_NONE || CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DVDS_AUTORUN))
-     if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) == AUTOCD_RIP)
+   if (CServiceBroker::GetSettingsComponent().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) != AUTOCD_NONE || CServiceBroker::GetSettingsComponent().GetBool(CSettings::SETTING_DVDS_AUTORUN))
+     if (CServiceBroker::GetSettingsComponent().GetInt(CSettings::SETTING_AUDIOCDS_AUTOACTION) == AUTOCD_RIP)
 -- 
 2.12.3
 

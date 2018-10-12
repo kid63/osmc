@@ -75,7 +75,7 @@ index 3ff00c2..051e232 100644
    }
  
 -  AEDeviceType devType = AEDeviceTypeFromName(device);
-+ if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_MUTEHDMI)) {
++ if (CServiceBroker::GetSettingsComponent()->GetBool(CSettings::SETTING_VIDEOSCREEN_MUTEHDMI)) {
 +    CLog::Log(LOGDEBUG, "CAESinkALSA::Initialize -- muting HDMI");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/config", "audio_off");
 + }

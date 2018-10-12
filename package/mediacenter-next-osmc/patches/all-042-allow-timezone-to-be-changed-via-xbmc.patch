@@ -22,7 +22,7 @@ index 8587c9b..bb0968d 100644
 +      XBMC_TRACE;
 +      if (! timezone)
 +      return;
-+      CServiceBroker::GetSettings()->SetString(CSettings::SETTING_LOCALE_TIMEZONE, timezone);
++      CServiceBroker::GetSettingsComponent()->SetString(CSettings::SETTING_LOCALE_TIMEZONE, timezone);
 +    }
 +
  

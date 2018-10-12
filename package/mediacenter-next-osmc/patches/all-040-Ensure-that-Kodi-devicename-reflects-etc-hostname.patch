@@ -25,7 +25,7 @@ index af16cab..469a612 100644
      return false;
 
    CLog::Log(LOGINFO, "creating subdirectories");
-+  CServiceBroker::GetSettings()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
++  CServiceBroker::GetSettingsComponent()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
    const std::shared_ptr<CProfileManager> profileManager = m_pSettingsComponent->GetProfileManager();
    const std::shared_ptr<CSettings> settings = m_pSettingsComponent->GetSettings();
    CLog::Log(LOGINFO, "userdata folder: %s", CURL::GetRedacted(profileManager->GetProfileUserDataFolder()).c_str());
@@ -55,7 +55,7 @@ index 34ff2df2d2..b27fe31900 100644
 +    }
      case SYSTEM_STEREOSCOPIC_MODE:
      {
-       int iStereoMode = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE);
+       int iStereoMode = CServiceBroker::GetSettingsComponent()->GetInt(CSettings::SETTING_VIDEOSCREEN_STEREOSCOPICMODE);
 diff --git a/xbmc/network/NetworkServices.cpp b/xbmc/network/NetworkServices.cpp
 index 393dabc..27c6074 100644
 --- a/xbmc/network/NetworkServices.cpp
@@ -67,7 +67,7 @@ index 393dabc..27c6074 100644
 +
 +  if (settingId == "services.devicename")
 +  {
-+     std::string newHostName = CServiceBroker::GetSettings()->GetString("services.devicename"); 
++     std::string newHostName = CServiceBroker::GetSettingsComponent()->GetString("services.devicename"); 
 +     FILE *fp;
 +     fp = fopen("/tmp/hostname", "w");
 +     if (fp)
