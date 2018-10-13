@@ -22,7 +22,7 @@ index 1c9b1c6..8587c9b 100644
 +      XBMC_TRACE;
 +      if (! hostname)
 +      return;
-+      CServiceBroker::GetSettingsComponent()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
++      CServiceBroker::GetSettingsComponent()->GetSettings()->SetString(CSettings::SETTING_SERVICES_DEVICENAME, hostname);
 +    }
 +
 +
