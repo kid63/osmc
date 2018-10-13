@@ -63,6 +63,14 @@ diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp b/xbmc/cores/Vi
 index 56bcc6b..feaf5d2 100644
 --- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
 +++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/AMLCodec.cpp
+@@ -19,6 +19,7 @@
+ #include "settings/DisplaySettings.h"
+ #include "settings/MediaSettings.h"
+ #include "settings/Settings.h"
++#include "settings/SettingsComponent.h"
+ #include "threads/Atomics.h"
+ #include "utils/AMLUtils.h"
+ #include "utils/log.h"
 @@ -1746,6 +1746,11 @@ bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
        am_private->gcodec.param  = (void*)EXTERNAL_PTS;
        if (m_hints.ptsinvalid)
