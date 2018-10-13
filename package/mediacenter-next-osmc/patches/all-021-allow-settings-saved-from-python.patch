@@ -19,7 +19,7 @@ index 0b921a8..a599e4c 100644
  
 +   void saveSettings()
 +   {
-+      CServiceBroker::GetSettingsComponent()->Save();
++      CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
 +   }
 +
      String convertLanguage(const char* language, int format)
