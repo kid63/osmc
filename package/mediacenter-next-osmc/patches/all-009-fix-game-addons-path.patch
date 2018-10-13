@@ -12,11 +12,11 @@ index 3b94e5a..0cd38dc 100644
 --- a/xbmc/addons/Addon.cpp
 +++ b/xbmc/addons/Addon.cpp
 @@ -30,6 +30,7 @@
- #include "addons/Service.h" 
+ #include "AddonManager.h"
+ #include "addons/settings/AddonSettings.h"
  #include "filesystem/Directory.h"
- #include "filesystem/File.h"
 +#include "filesystem/SpecialProtocol.h"
- #include "guilib/LocalizeStrings.h" 
+ #include "filesystem/File.h"
  #include "RepositoryUpdater.h"
  #include "settings/Settings.h"
 @@ -332,7 +333,19 @@ std::string CAddon::LibPath() const
