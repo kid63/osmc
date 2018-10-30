@@ -217,6 +217,7 @@ then
 	export LDFLAGS="" && \
 	cmake -DCMAKE_INSTALL_PREFIX=/usr \
             -DCMAKE_INSTALL_LIBDIR=/usr/lib \
+            -DGBM_RENDER_SYSTEM=gl \
             -DCMAKE_PREFIX_PATH=/opt/vc \
             -DCMAKE_INCLUDE_PATH=/usr/osmc/include \
             -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
