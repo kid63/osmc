@@ -134,9 +134,9 @@ index fcdb253..ae187a7 100644
 +#ifdef DOXYGEN_SHOULD_USE_THIS
 +    ///
 +    /// \ingroup python_xbmc
-     /// @brief \python_func{ executehttpapi(httpcommand) }
+     /// @brief \python_func{ xbmc.convertLanguage(language, format) }
      ///-----------------------------------------------------------------------
-     /// @python_v12 Completely removed.
+     /// @brief Returns the given language converted to the given format as a
 -- 
 2.7.4
 
