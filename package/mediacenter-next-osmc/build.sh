@@ -10,7 +10,8 @@
 #Purge toolchain before each build otherwise thumbnails crash
 
 sudo apt-get remove --purge armv7-toolchain-osmc -y
-sudo apt-get remove --purge arm6l-toolchain-osmc -y
+sudo apt-get remove --purge armv6l-toolchain-osmc -y
+
 
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
