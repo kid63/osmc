@@ -40,9 +40,9 @@ index dd051b7..e04ee65 100644
  
  #: xbmc/network/NetworkServices.cpp
 @@ -19817,3 +19832,19 @@ msgstr ""
- msgctxt "#39113"
  msgid "Center Mix Level in dB relative to metadata or default (-3 dB)"
  msgstr ""
+
 +
 +#: Description of display setting with label # 13133
 +msgctxt "#39011"
