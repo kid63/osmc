@@ -20,4 +20,7 @@
     <gamesgeneral>
        <enable>true</enable>
     </gamesgeneral>
+    <gui>
+       <smartredraw>true</smartredraw>
+    </gui>
 </advancedsettings>
