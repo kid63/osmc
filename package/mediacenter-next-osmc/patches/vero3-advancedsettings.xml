@@ -21,6 +21,6 @@
        <enable>true</enable>
     </gamesgeneral>
     <gui>
-       <smartredraw>true</smartredraw>
+       <smartredraw>false</smartredraw>
     </gui>
 </advancedsettings>
