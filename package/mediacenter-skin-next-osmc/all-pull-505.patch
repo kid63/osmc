@@ -1,0 +1,316 @@
+From 683a1140b244c6be1a7bb0cf4b42bc48ee85396f Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Wed, 28 Nov 2018 18:20:19 +0100
+Subject: [PATCH 1/3] Add no dimming of cover art option
+
+SkinSettings.xml:
+- add "0" state of "Adjust non-focus dim opacity" skin setting
+
+Variables.xml:
+- add "0" condition to DiffusePosterNF variable
+---
+ 16x9/SkinSettings.xml | 3 ++-
+ 16x9/Variables.xml    | 1 +
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/16x9/SkinSettings.xml b/16x9/SkinSettings.xml
+index dfc7a61..5ad247b 100755
+--- a/16x9/SkinSettings.xml
++++ b/16x9/SkinSettings.xml
+@@ -412,7 +412,8 @@
+ 					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),133)">Skin.SetString(NFDimOpac,100)</onclick>
+ 					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),100)">Skin.SetString(NFDimOpac,66)</onclick>
+ 					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),66)">Skin.SetString(NFDimOpac,33)</onclick>
+-					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),33)">Skin.SetString(NFDimOpac,133)</onclick>
++					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),33)">Skin.SetString(NFDimOpac,0)</onclick>
++					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),0)">Skin.SetString(NFDimOpac,133)</onclick>
+ 					<onclick condition="String.IsEqual(Skin.String(NFDimOpac),133)">Skin.SetString(NFDimOpac,100)</onclick>
+ 					<focusedcolor>TextColor1</focusedcolor>
+ 					<textcolor>TextColor2</textcolor>
+diff --git a/16x9/Variables.xml b/16x9/Variables.xml
+index 01df52b..ed3b18e 100755
+--- a/16x9/Variables.xml
++++ b/16x9/Variables.xml
+@@ -56,6 +56,7 @@
+ 		<value condition="String.IsEqual(Skin.String(NFDimOpac),100)">FF666666</value>
+ 		<value condition="String.IsEqual(Skin.String(NFDimOpac),66)">FF999999</value>
+ 		<value condition="String.IsEqual(Skin.String(NFDimOpac),33)">FFCCCCCC</value>
++		<value condition="String.IsEqual(Skin.String(NFDimOpac),0)">FFFFFFFF</value>
+ 	</variable>
+ 
+ 	<!-- Highlighting -->
+
+From d917590043b386d56ca77b57deacc7f63e59c137 Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Wed, 28 Nov 2018 21:12:56 +0100
+Subject: [PATCH 2/3] Bug fix
+
+DialogVideoInfo.xml:
+- change label of motion picture ratings to "MPAA rating"
+
+Textures.xbt:
+- repack content of media folder after updating incorrect progress icon
+---
+ 16x9/DialogVideoInfo.xml             |   2 +-
+ media/Textures.xbt                   | Bin 8970334 -> 8971082 bytes
+ media/views/OverlayProgressWide1.png | Bin 2113 -> 3052 bytes
+ 3 files changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/16x9/DialogVideoInfo.xml b/16x9/DialogVideoInfo.xml
+index d8ebfb6..7386c0d 100755
+--- a/16x9/DialogVideoInfo.xml
++++ b/16x9/DialogVideoInfo.xml
+@@ -243,7 +243,7 @@
+ 							<height>36</height>
+ 							<align>right</align>
+ 							<font>Font36</font>
+-							<label>563</label>
++							<label>20074</label>
+ 							<textcolor>DialogColor2</textcolor>
+ 						</control>
+ 						<control type="label">
+diff --git a/media/Textures.xbt b/media/Textures.xbt
+index ccace28685a2f73b417439ae80f2ddb1ababd8cf..fd22517db12142f2a8ffcaa1189eabfb2c100a75 100644
+GIT binary patch
+delta 1784
+zcmW;Ndu&rx90%~<IqTY4x<@x)gKgdEMmKtQ@7-Eput(`00)zDq5Ok<3FahP!@e+B+
+zEgc{*<G?@sgFgggvc$h2G0|8PHU%GOqyr&7KvtaLEnATHkaqK1Z}K_!`^WE`bI&g)
+zxmQkh8-6<7ZRq%%X&rpJAw0i>)ieHaIQ+qGrZWELiSW035~1y6_`%*pDEuy5v@a1#
+ze+)0$p9uTUg!djugrsxf&pH#~lk?%L?<RudLOAQaL|_-g4P6M9#TPp%@oZbOa@FDY
+z+t|qAorhR4k4F!5A7a2E2@H@7MleANJO^eN0~SbyG)RXGutFwe!B`jv;~^VzU;<2p
+zT*!lbut5O`utOmf!6a}%F_ge$aDoJ-AcF!bltDSTzztJiDole4m<}_b5~`pYYQO_C
+z!3(ue2ldbZ&%-R34RfFo=E6K^0v~A54D(?DEQA+e5iEum;U#E+CGax50<S_V_+cq5
+zgXPc$ufYmf39I0Bcmr0$8dwYKAOP*K9yY*6*aVy5P1pi&!B*G?+hGU14Ld=HAnbw=
+zbii)d1AE~e*a!RJK)Cx*=jlnIOcGW`c8%&Znx~OZBP~MhtWhJ6MmAxZ!bV3&ODrUe
+zj0!cXkEi{?>FOg+PvV?LMo&=;uYWi_>SJ`-8RRt@<w-rP%0eEZVD8MIxu4UuQIW>z
+z2S&g5Wh%m^a4A@Rfm8pe2-%3D);SuLh)jhmy2)QYtoqqgPR}kfy6Vg~Y9h(Q|7LWr
+z&nF49%#UV_)RH7Ky`e9?sjtP}pDYYze0X>`m@}+fn;HE@)J2up!=29~_^82&t|6`o
+z(=lVvT*|0LGtSnixKif9#q*Sq-#8MnR~<?7%3KQ!OCElU(Oun&`7_lc=E3EjW2w~&
+zf5z$Y9!A@@XGlFpx1Q>ZXJ{_J(Ifbvb-Kd;<@9hTqb-9Aqz!cQ=FPY@M^Sja6wA=3
+zMjLD*Tjom_-`~t=qd#eK)Z)=|rGxY(qdtF#&p@T-YBx&4sEyZLXDxTvG77{p`YrK=
+zPveF=j7IxSLk7E4!~9Y#x|Kwh!XI-QYGbrUUn$8ct?K&ZQW+;x`;(jsuhY*AC0%B8
+zEpkp|$h_HhdkLde8h5C9S-v&x$;kn$kEy9fIbsbKhn^_yR4CFF{*cqn1&mhs*(CS;
+zaW`(<D3Q7EQw*(q(^y}h)hG4jN33EDr@H&N0kat`(^yf3o-N5-tr;JiI<4O<ES@4S
+zBfn09=h@0+zPd+Xg}xM%Fdr;b+z}><x{ShP;Ytm!Q21PbsQIzT9yE*0JYL$BtsF9X
+ze`PcvvVG}^szA$?mbyzgiqn%Bcjl)Gk$WslWU5@dO;qAb(S>doMV1_4!X`&c17lpr
+zvjke;wfBlEA}f$5(mqOQdcx>wr6s403e<MPIot?`rCbP^*U^MPXhC3M;KKpZ3u03g
+z)lu~gqhCb2><~s9ul$<R`RhdPV0nQ{;knJ!c#qK|*FmQ@QX(uekGkvi45_tbIq5dN
+zpmIoY>g#+>rBOQ1C|WV7R4RrUdV~GAxUT9&dcLE#I#+O?yR3%$JBFQ_yFniap?h_d
+z6HT8LH1#t2S!;Oe%2!7mLmp@A4q-Z8;VaZ@Txq4T0Y<l^V--Wx!|0sWdB@(X#MCGa
+zF}m+etyM&trFz%2#uJRrisIDjMk(SHnE~&Js-0nUNu;Op?-~6jiUVGWQNBZWcex5<
+zwVGP>K=Y!rDRI5r8Ds5Kt?Fh`D05WhIsCI4rzwrq{d>i9xlzm@65C`h{{Phw@x!iD
+TohQTPUv;Ll@UAa92b})_?CgQH
+
+delta 1008
+zcmWmDT})1K9KiA4|No>OdhsL)DSwrh^qdePdZEWl$|>YsPl+P$c}XaW&|_L`F5297
+zWwW`^b}ZSvjG2iWF3jeFTX%+yl<)s+pPldTfBxs<oSpOLRe#i%r~Of#1Iq2x70RpX
+zRHaG}40v}gt6ZgjJn~*#vC;Cx`_W}1|CyJ0%|^*full-;yRW^jZW}3Yy@wGSgYUd=
+zH*6HV_mXbfNdD-BdWg8Dj}fs)>!F6mzFYNbw6CpK&C!XUyZd_;G<=A{I7A}`evHQi
+z#3ByyNWeq{kcdf0!ek_43Q{l?(=Z*Wn1M8;V<rq{Ap@Dn!fedJT+Bl@<|79|ILO5U
+zEW{$@VKJ6qDe|!l%Ta(8ScyUup%^7th1DoU2y3tw>#!bW*no0WU?W^qq6(X^8Cy_|
+zt=NX`*nyqch27YL8iY}cI_yO~_F+F7(1-&#h$bAuVI09x9K&&(Kr>F_6i(v|T5uMv
+zIEVANfHt(_A}*l=ow$rE=)zT8!*z6f{k@S_SslrIH;yZ=NspImlRhfWm=Zar#!QBi
+zQ7vPCF(P6D-{oz<%nNFh%GAX<X(+}dI58t8fgzSfe^A$M__b6?jj1C8KP#2&%Nr6?
+zVW;2aO6uKl*=CQU|7iJHrlc|45j8*mew+z8`k$7+bxNAsXEnu|-MM<SRmr8WFJ~lR
+zb~rks<i_{M_SU;f`toLIQ|0IfO77*86^?$cWGJjEUGdvJACwHcYLhDgd$}}M7kyRo
+zDJ)xDnYzNRI6BRht?g1=#8eX0!+xLfks<peaboP>BtC{hJD9>EQ|oBQgnIlYI#_0E
+QcxOHFrpdeQMFw;J1NHcc9{>OV
+
+diff --git a/media/views/OverlayProgressWide1.png b/media/views/OverlayProgressWide1.png
+index 79aa1f1ada88742955918bd65490f5e2c30a6745..97602b7caab6c74ec332ba7bc9bd4c14ec2d15dd 100644
+GIT binary patch
+delta 1418
+zcmX>o@J4)s1rz&;jaI!(ToxgQmR1IaR)!{%FES}3bN?|_su-9XB^xAJnCm8)8kp-E
+znV2N$S|(d2=^C0@8XG2?SXvmHrcIvB+>=|7kzbNuoRME(<&vLVnwy$e;+U75T3nJ}
+zRBWeUQ<Rcs<&>BXW#werRpb`vrDUd9Sy-f`r6d~xjZQI2)HO~sG1W~nPd3&~HMKN1
+zNli00Pct&K(FbV<YJ!*pWK3SqtW%FE3^O#@Fww%;*dSRq#l*l+*T~W&QP(2b&_dVD
+zB+1-3&D6-u)WQHsH`sWH>-6z^189M-ua!q8$XlC@S*|d85EDL13dJR^WhGYS8L4@;
+zN=61imly(_g$Q_U1H;J&S!^bEv*p*b3F!W0U|>Gw>Eaj?aro_wyWY}{0tY?^{nFoZ
+z<JVRH&mZ%$O^;kMxhnHxnf_9bm(EN1U4I39IJ@5~K#=95<7Jbe=;TX67iSz1Fv+w#
+zd%V=G>~P85In~oS>{1dwoVok<Us+mN*|Qw8&qfTd80Rv4ZO-!fc#GYN>(*+k8S7sA
+zhSpDYyijQO@!!9Hi3<ZXuD<@-c5X@7YSVM)&T%z5C^#|1H{4q+EcG(9Nn7S{<Kl}i
+zCgug1nVZ)eYJ~4LC@VR7?wnspez3%a><j8)2{9H7I~M8i#jFfjRb5@(enfN@*M*ZO
+zJ*OR=d6(x5s|RxnUz_0}wfQNGHV5W~H)&2ky<>t=J=4LhZy!8(;MAM&#%RLZw{JP(
+zr?SKamx}kjF0fekP*(p%va$rvHO_;kylK3P-&U#eyxC&J>ZLY$IY$bMu^OB9ea`SV
+z7S1!WwnoLo#Qf=!xstjm*6nkLTH)ChPJCIM#dUS_;v*t{9C|$Ap0|pS%!@t_W53TF
+zySk2gtPhpoxK@AX&!0c(JN{4cHR<ABa$ZMQm-WH-L_xR7JC3iLG1v6uIm@}TXa7Fp
+zc*Dg;P5aNz605bFzt1*cE^#o(?ahs!EjlA<<BXYe=l<>3-Fl2ULT-Mk#oTk5g%3rJ
+zHK+6Lm+W-uyJ49k#TGVq*36kd8TQ)>2}`}vsQD&#=)l$&tm^HKm+Pmt%x+Fg{PeRX
+zDJ$!h?VtYv(_;Jk`)3<W=$&ow!8+)dWzYP1`*@D^R21#Jv+(-sTK4PwQA?}1l+)7Q
+ztqMDsy=q_K?z{OP*B@G0!^t+e_ISb#h3&pqbo6e{ku998)xvN^=ov3d{KYJWXojEq
+zx4ZL--oJZyY)xKnC<jl1*pYb!^%gZQpMvJTTlTMP(mYlP-Kk!thnaXA*<PL~T)=gB
+z(mdwl(^U4>aXoJP^ss+w^QDwEKGVFGc3muNxTGGXF2Um#k$%C9=R|CebC0`EQOpH~
+zJFZEEUu$Y>|F++J<R$pz=B-;%8gl)oceU9``tX;v+|1dgplN;gOx3c4iqGu|TQ1c*
+zA8cLB*u(Wn@lM(e*-PTi3opD6W8K+k+GgmsproVwE1%wst%q#2)}B&TIKiHJY1N)1
+z&JzzM{5-)B_we`X)vNC-+G$OCwCCWjPl`9Lo${R{U!Cq58{K_0$@A8c!q~`2PA5H2
+zXTdn(`=?WkEI&0KNZq#Ab^6a~)2Ht*U9tD;MWfs+UXRcFuFuWQZ9VIhlaur3O~_;a
+zr*_%VdUqP*#SgrxKlr~?h`Y3emC->~uz8EHLCCv}@AdYH$#=U&%-XT7-}Snhx%e@!
+rrDd_VT3;S2N!(=+J45e`Z}U&~jYcNVT(qBOFaUw4tDnm{r-UW|;|XSZ
+
+delta 500
+zcmaDOeo$b71rytzjaI!(TxKDLCRWBqR>l^SFES}3bN?|_s+b#_8(CNw8tSH+q?zfO
+zr<j=NS|+BY>6)6FrC25<nHnUeB~PBs+_Tx3^#P*?F{+gmic4I}O03E=QuAz;j0_Ad
+zbb-bjA)KLYU^w|KtIg!;?D_R~V_pg}FfeL+x;TbJ9DaLauh$U=fde1yZ$w1hy2CtY
+zlF`z?f;$wlG+9`ycb8oI$l0=|F*NRg*4|jD+j|acrc7GnyKbVjuTS20zO;m0e}5c&
+zqj!d>;y_VKT>qT+lF1Aavp5&!Mk^~VTle~4vGw7S8HR-tGyY$xNw9pqaE9VV>3U_Q
+z`TO4Aw>sW&LW}3{Z{NpjlU$x?b2M2eyb}oyy_&T#!iFLJZd;y#?`01W*Zu={B$~Z_
+zq>q0TF4)&*aahIk)1JC#bCWKa)ZS#-*mrW%n^Nf`T59J%n=7#N%}wfBRKc#-I5}59
+zdPesq9s36D2VcxPc+c?cU`(rbEbDtIX8FpKd1I60q^`i8B$354G-vPF=sW-0E%x@0
+zIddlOoA2uP__*(F<uez`lcukfII7`h*cEtYU*bN-KhFa$_AC^2V*mnAS3j3^P6<r_
+DFuTkL
+
+
+From abd7b2b18788a69fc1702eafca12383d94a8fa67 Mon Sep 17 00:00:00 2001
+From: Unknown <36623079+Ch1llb0@users.noreply.github.com>
+Date: Fri, 30 Nov 2018 22:34:23 +0100
+Subject: [PATCH 3/3] Update selected color + change wide widgets size
+
+Includes_Widgets.xml:
+- increase wide widget size
+- change widget label to fadelabel
+
+Variables.xml:
+- change SelectedColor
+
+Viewtype51.xml:
+- update some labels to fadelabels
+
+defaults.xml:
+- change SelectedColor
+
+template.xml:
+- increase wide widget size
+---
+ 16x9/Includes_Widgets.xml | 16 ++++++++--------
+ 16x9/Variables.xml        |  2 +-
+ 16x9/Viewtype51.xml       |  8 ++++----
+ colors/defaults.xml       |  2 +-
+ shortcuts/template.xml    | 12 ++++++------
+ 5 files changed, 20 insertions(+), 20 deletions(-)
+
+diff --git a/16x9/Includes_Widgets.xml b/16x9/Includes_Widgets.xml
+index 0b9e909..9fff968 100755
+--- a/16x9/Includes_Widgets.xml
++++ b/16x9/Includes_Widgets.xml
+@@ -479,10 +479,10 @@
+ 	</include>
+ 
+ 	<include name="widgetLayout-wide-OSMC">
+-		<left>2788</left>
+-		<top>458</top>
+-		<width>1035</width>
+-		<height>236</height>
++		<left>2743</left>
++		<top>483</top>
++		<width>1080</width>
++		<height>215</height>
+ 	</include>
+ 
+ 	<!-- Widget on control -->
+@@ -637,7 +637,7 @@
+ 				<top>0</top>
+ 				<left>80</left>
+ 				<width>auto</width>
+-				<height>280</height>
++				<height>132</height>
+ 				<font>Font33</font>
+ 				<align>left</align>
+ 				<aligny>top</aligny>
+@@ -648,11 +648,11 @@
+ 			</control>
+ 
+ 			<!-- Widget details -->
+-			<control type="label">
++			<control type="fadelabel">
+ 				<top>0</top>
+ 				<right>0</right>
+-				<width>1000</width>
+-				<height>280</height>
++				<width>1080</width>
++				<height>132</height>
+ 				<font>Font33</font>
+ 				<align>right</align>
+ 				<aligny>top</aligny>
+diff --git a/16x9/Variables.xml b/16x9/Variables.xml
+index ed3b18e..b67a650 100755
+--- a/16x9/Variables.xml
++++ b/16x9/Variables.xml
+@@ -4,7 +4,7 @@
+ 	<variable name="SelectedColor">
+ 		<value>SelectedColor</value>
+ 		<value condition="!String.IsEmpty(Skin.String(color.selected)) + !String.IsEqual(Skin.String(color.selected),None)">$INFO[Skin.String(color.selected)]</value>
+-		<value>ff46C85A</value>
++		<value>ff00C8FF</value>
+ 	</variable>
+ 
+ 	<variable name="DisabledColor">
+diff --git a/16x9/Viewtype51.xml b/16x9/Viewtype51.xml
+index afd3677..3cfdc09 100755
+--- a/16x9/Viewtype51.xml
++++ b/16x9/Viewtype51.xml
+@@ -47,16 +47,16 @@
+ 				</control>
+ 
+ 				<!-- Season & Episode Info -->
+-				<control type="label">
++				<control type="fadelabel">
+ 					<left>0</left>
+ 					<top>314</top>
+-					<width>500</width>
++					<width>450</width>
+ 					<height>45</height>
+ 					<font>Font42</font>
+ 					<label>$INFO[ListItem.TVShowTitle]</label>
+ 					<textcolor>TextColor1</textcolor>
+ 				</control>
+-				<control type="label">
++				<control type="fadelabel">
+ 					<left>0</left>
+ 					<top>366</top>
+ 					<width>450</width>
+@@ -65,7 +65,7 @@
+ 					<textcolor>TextColor1</textcolor>
+ 					<label>$INFO[ListItem.Title]</label>
+ 				</control>
+-				<control type="label">
++				<control type="fadelabel">
+ 					<left>0</left>
+ 					<top>420</top>
+ 					<width>450</width>
+diff --git a/colors/defaults.xml b/colors/defaults.xml
+index 3db4c4d..707418d 100644
+--- a/colors/defaults.xml
++++ b/colors/defaults.xml
+@@ -8,7 +8,7 @@
+ 	<color name="DarkenColor">66000000</color>
+ 	<color name="OverlayColorFO">ffffffff</color>
+ 	<color name="OverlayColorNF">55f1f1f1</color>
+-	<color name="SelectedColor">FF46C85A</color>
++	<color name="SelectedColor">FF00C8FF</color>
+ 	<color name="FanartDiffuse">33f1f1f1</color>
+ 	<color name="HomeNF">44777777</color>
+ 	<color name="OSDCache">33FFFFFF</color>
+diff --git a/shortcuts/template.xml b/shortcuts/template.xml
+index 681c5d0..21a2cbf 100644
+--- a/shortcuts/template.xml
++++ b/shortcuts/template.xml
+@@ -554,13 +554,13 @@
+ 	<propertyGroup name="LumosLayout">
+ 		<!-- Layout - wide -->
+ 		<property name="layoutTop" tag="property" attribute="name|layout" value="wide">-177</property>
+-		<property name="layoutWidth" tag="property" attribute="name|layout" value="wide">345</property>
+-		<property name="layoutHeight" tag="property" attribute="name|layout" value="wide">236</property>
++		<property name="layoutWidth" tag="property" attribute="name|layout" value="wide">360</property>
++		<property name="layoutHeight" tag="property" attribute="name|layout" value="wide">215</property>
+ 		
+-		<property name="imageWidthNoFocus" tag="property" attribute="name|layout" value="wide">325</property>
+-		<property name="imageHeightNoFocus" tag="property" attribute="name|layout" value="wide">216</property>
+-		<property name="imageWidthFocus" tag="property" attribute="name|layout" value="wide">345</property>
+-		<property name="imageHeightFocus" tag="property" attribute="name|layout" value="wide">236</property>
++		<property name="imageWidthNoFocus" tag="property" attribute="name|layout" value="wide">306</property>
++		<property name="imageHeightNoFocus" tag="property" attribute="name|layout" value="wide">183</property>
++		<property name="imageWidthFocus" tag="property" attribute="name|layout" value="wide">360</property>
++		<property name="imageHeightFocus" tag="property" attribute="name|layout" value="wide">215</property>
+ 		
+ 		<property name="imageEmpty" tag="property" attribute="name|layout" value="wide">wide-empty.png</property>
+ 		<property name="layoutFocus" tag="property" attribute="name|layout" value="wide">4</property>
