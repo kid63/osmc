@@ -1,0 +1,22 @@
+From 9fb0268b7b407b7fdcb9812f70e1181e5f6becb3 Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Fri, 7 Dec 2018 09:47:16 +0100
+Subject: [PATCH] Default DVDInputStream::OpenStream to true
+
+---
+ xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h
+index 8dc39442c959..03da2a160c0e 100644
+--- a/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h
++++ b/xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStream.h
+@@ -125,7 +125,7 @@ class CDVDInputStream
+     virtual CDemuxStream* GetStream(int iStreamId) const = 0;
+     virtual std::vector<CDemuxStream*> GetStreams() const = 0;
+     virtual void EnableStream(int iStreamId, bool enable) {};
+-    virtual bool OpenStream(int iStreamId) { return false; };
++    virtual bool OpenStream(int iStreamId) { return true; };
+     virtual int GetNrOfStreams() const = 0;
+     virtual void SetSpeed(int iSpeed) = 0;
+     virtual bool SeekTime(double time, bool backward = false, double* startpts = NULL) = 0;
