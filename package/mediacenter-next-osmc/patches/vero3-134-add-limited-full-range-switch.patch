@@ -32,6 +32,14 @@ diff --git a/xbmc/settings/DisplaySettings.cpp b/xbmc/settings/DisplaySettings.c
 index 55985f5f56..1f4bf454ea 100644
 --- a/xbmc/settings/DisplaySettings.cpp
 +++ b/xbmc/settings/DisplaySettings.cpp
+@@ -42,6 +42,7 @@
+ #include "threads/SingleLock.h"
+ #include "utils/log.h"
+ #include "utils/StringUtils.h"
++#include "utils/SysfsUtils.h"
+ #include "utils/Variant.h"
+ #include "utils/XMLUtils.h"
+ #include "windowing/WindowingFactory.h"
 @@ -329,6 +329,17 @@ bool CDisplaySettings::OnSettingChanging(std::shared_ptr<const CSetting> setting
  
      return true;
