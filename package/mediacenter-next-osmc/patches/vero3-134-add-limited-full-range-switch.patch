@@ -66,9 +66,9 @@ diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogi
 index 0637f83fc0..834380a981 100644
 --- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 +++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
-@@ -64,6 +64,16 @@ CWinSystemAmlogic::CWinSystemAmlogic() :
-    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/output_rgb", "1");
- }
+@@ -71,6 +71,16 @@ CWinSystemAmlogic::CWinSystemAmlogic() :
+     SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/output_rgb", "1");
+  }
 
 + int range_control;
 +  SysfsUtils::GetInt("/sys/module/am_vecm/parameters/range_control", range_control);
@@ -80,9 +80,9 @@ index 0637f83fc0..834380a981 100644
 +      range_control & 2 ? "full" : "limited");
 +  SysfsUtils::SetInt("/sys/module/am_vecm/parameters/range_control", range_control);
 +
- if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
-    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing HPD to be locked");
-    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
+     CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing HPD to be locked");
+     SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
 -- 
 2.16.4
 
