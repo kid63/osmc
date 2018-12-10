@@ -1,49 +1,38 @@
-From 5617daf43051dec296991d6e38a63a4b067d9207 Mon Sep 17 00:00:00 2001
-From: Graham Horner <graham@hornercs.co.uk>
-Date: Mon, 10 Dec 2018 08:46:01 +0000
-Subject: [PATCH] add range switch
+From dfd3c07466d89badc65145cfa391af286f571c2d Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Mon, 10 Dec 2018 11:33:28 +0000
+Subject: [PATCH] add quantisation range switch
 
 ---
- system/settings/settings.xml                |  3 ++-
- xbmc/settings/DisplaySettings.cpp           | 12 ++++++++++++
+ system/settings/wayland.xml                 |  4 ++--
+ xbmc/settings/DisplaySettings.cpp           | 11 +++++++++++
  xbmc/settings/Settings.cpp                  |  1 +
- xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp | 10 ++++++++++
- 4 files changed, 25 insertions(+), 1 deletion(-)
- mode change 100644 => 100755 system/settings/settings.xml
- mode change 100644 => 100755 xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp | 21 +++++++++++++++++++++
+ 4 files changed, 35 insertions(+), 2 deletions(-)
 
-diff --git a/system/settings/settings.xml b/system/settings/settings.xml
-old mode 100644
-new mode 100755
-index e2379f9..b1a9e58
---- a/system/settings/settings.xml
-+++ b/system/settings/settings.xml
-@@ -2098,10 +2098,11 @@
-             <or>
-               <condition>HAS_GL</condition>
-               <condition>HAS_DX</condition>
-+              <condition>true</condition>
-             </or>
-           </requirement>
+diff --git a/system/settings/wayland.xml b/system/settings/wayland.xml
+index 2e214fc5ea..6fe15109ef 100644
+--- a/system/settings/wayland.xml
++++ b/system/settings/wayland.xml
+@@ -5,10 +5,10 @@
+       <group id="1">
+         <setting id="videoscreen.limitedrange" type="boolean" label="36042" help="36359">
            <level>3</level>
 -          <default>false</default>
 +          <default>true</default>
-           <updates>
-             <update type="rename">videoplayer.vdpaustudiolevel</update>
-           </updates>
+           <control type="toggle" />
+         </setting>
+       </group>
+     </category>
+   </section>
+-</settings>
+\ No newline at end of file
++</settings>
 diff --git a/xbmc/settings/DisplaySettings.cpp b/xbmc/settings/DisplaySettings.cpp
-index e3592fa..8c7cbf5 100644
+index 55985f5f56..1f4bf454ea 100644
 --- a/xbmc/settings/DisplaySettings.cpp
 +++ b/xbmc/settings/DisplaySettings.cpp
-@@ -42,6 +42,7 @@
- #include "threads/SingleLock.h"
- #include "utils/log.h"
- #include "utils/StringUtils.h"
-+#include "utils/SysfsUtils.h"
- #include "utils/Variant.h"
- #include "utils/XMLUtils.h"
- #include "windowing/WindowingFactory.h"
-@@ -326,6 +327,17 @@ bool CDisplaySettings::OnSettingChanging(const CSetting *setting)
+@@ -329,6 +329,17 @@ bool CDisplaySettings::OnSettingChanging(std::shared_ptr<const CSetting> setting
  
      return true;
    }
@@ -58,14 +47,14 @@ index e3592fa..8c7cbf5 100644
 +    CLog::Log(LOGDEBUG, "CDisplaySettings::OnSettingChanging -- setting quantization range to %s", range_control & 2 ? "full" : "limited");
 +    SysfsUtils::SetInt("/sys/module/am_vecm/parameters/range_control", range_control);
 +  }
- #if defined(HAS_GLX)
+ #if defined(HAVE_X11)
    else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
    {
 diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
-index 72098b5..ab585dc 100644
+index 432aa53550..8898206a19 100644
 --- a/xbmc/settings/Settings.cpp
 +++ b/xbmc/settings/Settings.cpp
-@@ -1061,6 +1061,7 @@ void CSettings::InitializeISettingCallbacks()
+@@ -839,6 +839,7 @@ void CSettings::InitializeISettingCallbacks()
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_SCREEN);
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_RESOLUTION);
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_SCREENMODE);
@@ -73,29 +62,38 @@ index 72098b5..ab585dc 100644
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_MONITOR);
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE);
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_3DLUT);
-diff --git a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-old mode 100644
-new mode 100755
-index 4a8da2c..2628ae8
---- a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-+++ b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-@@ -85,6 +85,16 @@ void CEGLNativeTypeAmlogic::Initialize()
-     SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/output_rgb", "1");
-  }
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+index 0637f83fc0..834380a981 100644
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
+@@ -64,6 +64,27 @@ CWinSystemAmlogic::CWinSystemAmlogic() :
+   aml_permissions();
+   aml_disable_freeScale();
  
-+  int range_control;
++ /* Take in to account custom OSMC parameters */
++ if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FORCERGB)) {
++    CLog::Log(LOGDEBUG, "WinSystemAmlogic -- forcing RGB");
++    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/output_rgb", "1");
++ }
++
++ int range_control;
 +  SysfsUtils::GetInt("/sys/module/am_vecm/parameters/range_control", range_control);
-+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE))
++  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE))
 +    range_control &= 1;
 +  else
 +    range_control |= 2;
-+  CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- setting quantization range to %s",
++  CLog::Log(LOGDEBUG, "WinSystemAmlogic -- setting quantization range to %s",
 +      range_control & 2 ? "full" : "limited");
 +  SysfsUtils::SetInt("/sys/module/am_vecm/parameters/range_control", range_control);
 +
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
-     CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing HPD to be locked");
-     SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
++ if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
++    CLog::Log(LOGDEBUG, "WinSystemAmlogic -- forcing HPD to be locked");
++    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
++ }
++
+   // Register sink
+   AE::CAESinkFactory::ClearSinks();
+   CAESinkALSA::Register();
 -- 
-2.11.0
+2.16.4
 
