@@ -1,0 +1,23 @@
+From a100d791b9db76430ce0474025cbb19fc87f6417 Mon Sep 17 00:00:00 2001
+From: chewitt <github@chrishewitt.net>
+Date: Thu, 6 Dec 2018 19:35:19 +0000
+Subject: [PATCH] cmake: add freetype2 PATH_SUFFIX to FindFreeType.cmake
+
+---
+ cmake/modules/FindFreeType.cmake | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/modules/FindFreeType.cmake b/cmake/modules/FindFreeType.cmake
+index 8a3955552d1b..771819e90240 100644
+--- a/cmake/modules/FindFreeType.cmake
++++ b/cmake/modules/FindFreeType.cmake
+@@ -19,7 +19,8 @@ endif()
+ 
+ find_path(FREETYPE_INCLUDE_DIR NAMES freetype/freetype.h freetype.h
+                                PATHS ${PC_FREETYPE_INCLUDEDIR}
+-                                     ${PC_FREETYPE_INCLUDE_DIRS})
++                                     ${PC_FREETYPE_INCLUDE_DIRS}
++                               PATH_SUFFIXES freetype2)
+ find_library(FREETYPE_LIBRARY NAMES freetype freetype246MT
+                               PATHS ${PC_FREETYPE_LIBDIR})
+ 
