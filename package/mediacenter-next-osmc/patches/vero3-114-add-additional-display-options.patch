@@ -45,17 +45,17 @@ index dd051b7..e04ee65 100644
  msgstr ""
 +
 +#: Description of display setting with label # 13133
-+msgctxt "#39011"
++msgctxt "#39032"
 +msgid "Enable this to force RGB output for some legacy TVs such as Philips 2009 era TVs. Fixes blue / green screen flashes. Requires reboot."
 +msgstr ""
 +
 +#: Description of display setting with label # 13134
-+msgctxt "#39012"
++msgctxt "#39033"
 +msgid "Disables HPD events. Can fix sound issues. Requires reboot."
 +msgstr ""
 +
 +#: Description of display setting with label # 13135
-+msgctxt "#39013"
++msgctxt "#39034"
 +msgid "Turns off HDMI audio. Useful if you're using SPDIF audio and don't want audio on HDMI. Requires reboot."
 +msgstr ""
 +
@@ -67,17 +67,17 @@ index 1f744f1..344cdb8 100644
            </dependencies>
            <control type="toggle" />
          </setting>
-+        <setting id="videoscreen.forcergb" type="boolean" parent="videoscreen.screen" label="13133" help="39011">
++        <setting id="videoscreen.forcergb" type="boolean" parent="videoscreen.screen" label="13133" help="39032">
 +          <level>1</level>
 +          <default>false</default>
 +          <control type="toggle" />
 +        </setting>
-+        <setting id="videoscreen.lockhpd" type="boolean" parent="videoscreen.screen" label="13134" help="39012">
++        <setting id="videoscreen.lockhpd" type="boolean" parent="videoscreen.screen" label="13134" help="39033">
 +          <level>1</level>
 +          <default>false</default>
 +          <control type="toggle" />
 +        </setting>
-+        <setting id="videoscreen.mutehdmi" type="boolean" parent="videoscreen.screen" label="13135" help="39013">
++        <setting id="videoscreen.mutehdmi" type="boolean" parent="videoscreen.screen" label="13135" help="39034">
 +          <level>1</level>
 +          <default>false</default>
 +          <control type="toggle" />
@@ -117,7 +117,7 @@ diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogi
 index 42b6ff551e..8968074496 100644
 --- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 +++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
-@@ -43,6 +43,7 @@
+@@ -43,6 +43,7 @
  #include "utils/log.h"
  #include "utils/SysfsUtils.h"
  #include "threads/SingleLock.h"
