@@ -1,0 +1,25 @@
+From cef2b56482562d1d854e75fceed8fecf1791669c Mon Sep 17 00:00:00 2001
+From: Greg McCarthy <greg@gjmccarthy.co.uk>
+Date: Fri, 14 Dec 2018 09:48:45 +0000
+Subject: [PATCH] Point to new mirror as kodi mirror is down
+
+---
+ tools/depends/target/libfmt/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/depends/target/libfmt/Makefile b/tools/depends/target/libfmt/Makefile
+index 6c61bceaa9..92eaa5a246 100644
+--- a/tools/depends/target/libfmt/Makefile
++++ b/tools/depends/target/libfmt/Makefile
+@@ -18,7 +18,7 @@ else
+   ifeq ($(PLATFORM),)
+     PLATFORM = native
+     TARBALLS_LOCATION = $(ROOT_DIR)
+-    BASE_URL := http://mirrors.kodi.tv/build-deps/sources
++    BASE_URL := http://www.mirrorservice.org/sites/mirrors.kodi.tv/build-deps/sources
+     RETRIEVE_TOOL := curl
+     RETRIEVE_TOOL_FLAGS := -Ls --create-dirs -f -O
+     ARCHIVE_TOOL := tar
+-- 
+2.16.4
+
