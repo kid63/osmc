@@ -1,0 +1,2033 @@
+From 9cdc13b4c471bb949d40f36940f2d8d570fa6dbc Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Mon, 17 Dec 2018 14:53:28 +0100
+Subject: [PATCH] Bug fixes
+
+Addon.Browser.xml:
+- fix highlighting in focusedlayout of grouplists
+
+Defaults.xml:
+- fix alttexture of togglebutton
+
+DialogButtonMenu.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogFavourites.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogKeyboard.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogMediaSource.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogPVRChannelGuide.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogPVRChannelManager.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogPVRChannelsOSD.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogPVRGroupManager.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogSelect.xml:
+- fix highlighting in focusedlayout of grouplists
+
+DialogSubtitles.xml:
+- fix highlighting in focusedlayout of grouplists
+
+EventLog.xml:
+- fix highlighting in focusedlayout of grouplists
+
+FileBrowser.xml:
+- fix highlighting in focusedlayout of grouplists
+
+FileManager.xml:
+- fix highlighting in focusedlayout of grouplists
+
+Home.xml:
+- add new onloads
+
+Include_Home_OSMC.xml:
+- fix highlighting in focusedlayout of grouplists
+
+LoginScreen.xml:
+- fix highlighting in focusedlayout of grouplists
+
+MyMusicPlaylistEditor.xml:
+- fix highlighting in focusedlayout of grouplists
+
+MyPVRChannels.xml:
+- fix highlighting in focusedlayout of grouplists
+
+MyPVRRecordings.xml:
+- fix highlighting in focusedlayout of grouplists
+
+MyPVRSearch.xml:
+- fix highlighting in focusedlayout of grouplists
+
+MyPVRTimers.xml:
+- fix highlighting in focusedlayout of grouplists
+
+SettingsProfile.xml:
+- fix highlighting in focusedlayout of grouplists
+
+SkinSettings.xml:
+- add new onloads
+- fix reset skin settings option
+
+SmartPlaylistEditor.xml:
+- fix highlighting in focusedlayout of grouplists
+
+VideoOSDBookmarks.xml:
+- fix highlighting in focusedlayout of grouplists
+
+Viewtype50.xml:
+- fix highlighting in focusedlayout of grouplists
+
+Viewtype51.xml:
+- fix highlighting in focusedlayout of grouplists
+
+Viewtype54.xml:
+- fix highlighting in focusedlayout of grouplists
+---
+ 16x9/AddonBrowser.xml            |  55 +---------------
+ 16x9/Defaults.xml                |   2 +-
+ 16x9/DialogButtonMenu.xml        |  18 +-----
+ 16x9/DialogFavourites.xml        |  18 ------
+ 16x9/DialogKeyboard.xml          |  23 +------
+ 16x9/DialogMediaSource.xml       |  22 +------
+ 16x9/DialogPVRChannelGuide.xml   |  31 +--------
+ 16x9/DialogPVRChannelManager.xml |  36 ++---------
+ 16x9/DialogPVRChannelsOSD.xml    |  71 +-------------------
+ 16x9/DialogPVRGroupManager.xml   |  18 +-----
+ 16x9/DialogSelect.xml            | 107 +++++++++----------------------
+ 16x9/DialogSubtitles.xml         |  15 -----
+ 16x9/EventLog.xml                |  19 ------
+ 16x9/FileBrowser.xml             |  26 ++------
+ 16x9/FileManager.xml             |  62 ++++++------------
+ 16x9/Home.xml                    |   4 +-
+ 16x9/Include_Home_OSMC.xml       |  20 ------
+ 16x9/LoginScreen.xml             |  21 +-----
+ 16x9/MyMusicPlaylistEditor.xml   |  15 -----
+ 16x9/MyPVRChannels.xml           |  89 ++-----------------------
+ 16x9/MyPVRRecordings.xml         |  64 ++----------------
+ 16x9/MyPVRSearch.xml             |  67 +++----------------
+ 16x9/MyPVRTimers.xml             |  84 +++---------------------
+ 16x9/SettingsProfile.xml         |  31 +--------
+ 16x9/SkinSettings.xml            |   5 +-
+ 16x9/SmartPlaylistEditor.xml     |  19 +-----
+ 16x9/VideoOSDBookmarks.xml       |  27 +-------
+ 16x9/Viewtype50.xml              |  36 +----------
+ 16x9/Viewtype51.xml              |  48 +-------------
+ 16x9/Viewtype54.xml              |  19 +-----
+ 30 files changed, 123 insertions(+), 949 deletions(-)
+
+diff --git a/16x9/AddonBrowser.xml b/16x9/AddonBrowser.xml
+index 05cc61c..0a700e0 100755
+--- a/16x9/AddonBrowser.xml
++++ b/16x9/AddonBrowser.xml
+@@ -65,7 +65,7 @@
+ 						<label>[B]$INFO[ListItem.Label][/B]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(500)">Conditional</animation>
+-						<visible>String.IsEmpty(ListItem.Label2) + Control.HasFocus(500)</visible>
++						<visible>String.IsEmpty(ListItem.Label2)</visible>
+ 					</control>
+ 					<control type="image">
+ 						<left>32</left>
+@@ -73,26 +73,8 @@
+ 						<width>1018</width>
+ 						<height>144</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus144]</texture>
+-						<visible>String.IsEmpty(ListItem.Label2) + !ListItem.IsParentFolder + Control.HasFocus(500)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>0</top>
+-						<width>1018</width>
+-						<height>144</height>
+-						<font>Font72</font>
+-						<label>[B]$INFO[ListItem.Label][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(500)">Conditional</animation>
+-						<visible>String.IsEmpty(ListItem.Label2) + !Control.HasFocus(500)</visible>
+-					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>0</top>
+-						<width>1018</width>
+-						<height>144</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus144]</texture>
+-						<visible>String.IsEmpty(ListItem.Label2) + !ListItem.IsParentFolder + !Control.HasFocus(500)</visible>
++						<visible>String.IsEmpty(ListItem.Label2) + !ListItem.IsParentFolder</visible>
+ 					</control>
+ 					<control type="group">
+ 						<visible>!String.IsEmpty(ListItem.Label2)</visible>
+@@ -105,7 +87,6 @@
+ 							<label>[B]$VAR[Label1][/B]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(500)">Conditional</animation>
+-							<visible>Control.HasFocus(500)</visible>
+ 						</control>
+ 						<control type="label">
+ 							<left>32</left>
+@@ -116,7 +97,6 @@
+ 							<label>$INFO[ListItem.Label2]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(500)">Conditional</animation>
+-							<visible>Control.HasFocus(500)</visible>
+ 						</control>
+ 						<control type="image">
+ 							<left>32</left>
+@@ -124,37 +104,8 @@
+ 							<width>1018</width>
+ 							<height>58</height>
+ 							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-							<visible>!ListItem.IsParentFolder + Control.HasFocus(500)</visible>
+-						</control>
+-						<control type="label">
+-							<left>32</left>
+-							<top>25</top>
+-							<width>1018</width>
+-							<height>48</height>
+-							<font>Font48</font>
+-							<label>[B]$VAR[Label1][/B]</label>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(500)">Conditional</animation>
+-							<visible>!Control.HasFocus(500)</visible>
+-						</control>
+-						<control type="label">
+-							<left>32</left>
+-							<top>82</top>
+-							<width>1018</width>
+-							<height>27</height>
+-							<font>Font27</font>
+-							<label>$INFO[ListItem.Label2]</label>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(500)">Conditional</animation>
+-							<visible>!Control.HasFocus(500)</visible>
+-						</control>
+-						<control type="image">
+-							<left>32</left>
+-							<top>25</top>
+-							<width>1018</width>
+-							<height>58</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-							<visible>!ListItem.IsParentFolder + !Control.HasFocus(500)</visible>
++							<visible>!ListItem.IsParentFolder</visible>
+ 						</control>
+ 					</control>
+ 				</focusedlayout>
+diff --git a/16x9/Defaults.xml b/16x9/Defaults.xml
+index 8d86e98..90d996d 100755
+--- a/16x9/Defaults.xml
++++ b/16x9/Defaults.xml
+@@ -54,7 +54,7 @@
+ 		<texturenofocus></texturenofocus>
+ 		<texturefocus colordiffuse="$VAR[buttonfocus]">common/focus.png</texturefocus>
+ 		<alttexturenofocus></alttexturenofocus>
+-		<alttexturefocus colordiffuse="$VAR[TextColor1]">common/focus.png</alttexturefocus>
++		<alttexturefocus colordiffuse="$VAR[buttonfocus]">common/focus.png</alttexturefocus>
+ 		<pulseonselect>false</pulseonselect>
+ 	</default>
+ 
+diff --git a/16x9/DialogButtonMenu.xml b/16x9/DialogButtonMenu.xml
+index 2a3e5bd..c7d9070 100755
+--- a/16x9/DialogButtonMenu.xml
++++ b/16x9/DialogButtonMenu.xml
+@@ -49,27 +49,13 @@
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<align>center</align>
+-						<visible>Control.HasFocus(7000)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(7000)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<width>410</width>
+ 						<height>52</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52center]</texture>
+-						<visible>Control.HasFocus(7000)</visible>
+-					</control>
+-					<control type="label">
+-						<width>410</width>
+-						<height>52</height>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<align>center</align>
+-						<visible>!Control.HasFocus(7000)</visible>
+-					</control>
+-					<control type="image">
+-						<width>410</width>
+-						<height>52</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus52center]</texture>
+-						<visible>!Control.HasFocus(7000)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(7000)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 				<content>
+diff --git a/16x9/DialogFavourites.xml b/16x9/DialogFavourites.xml
+index bc0c3ae..9f184ed 100755
+--- a/16x9/DialogFavourites.xml
++++ b/16x9/DialogFavourites.xml
+@@ -72,30 +72,12 @@
+ 						<label>$VAR[Label1]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+-						<visible>Control.HasFocus(450)</visible>
+ 					</control>
+ 					<control type="image">
+ 						<width>1050</width>
+ 						<height>90</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus90]</texture>
+-						<visible>Control.HasFocus(450)</visible>
+-					</control>
+-					<control type="label">
+-						<left>0</left>
+-						<top>0</top>
+-						<width>1050</width>
+-						<height>90</height>
+-						<font>Font48</font>
+-						<label>$VAR[Label1]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+-						<visible>!Control.HasFocus(450)</visible>
+-					</control>
+-					<control type="image">
+-						<width>1050</width>
+-						<height>90</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus90]</texture>
+-						<visible>!Control.HasFocus(450)</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/DialogKeyboard.xml b/16x9/DialogKeyboard.xml
+index ddb7c39..c4f1afb 100755
+--- a/16x9/DialogKeyboard.xml
++++ b/16x9/DialogKeyboard.xml
+@@ -528,7 +528,7 @@
+ 						<align>center</align>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>$INFO[ListItem.Label]</label>
+-						<visible>Control.HasFocus(6000)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(6000)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<posx>0</posx>
+@@ -537,26 +537,7 @@
+ 						<height>50</height>
+ 						<align>center</align>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52center]</texture>
+-						<visible>Control.HasFocus(6000)</visible>
+-					</control>
+-					<control type="label">
+-						<posx>0</posx>
+-						<posy>0</posy>
+-						<width>405</width>
+-						<height>50</height>
+-						<align>center</align>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.Label]</label>
+-						<visible>!Control.HasFocus(6000)</visible>
+-					</control>
+-					<control type="image">
+-						<posx>0</posx>
+-						<posy>0</posy>
+-						<width>405</width>
+-						<height>50</height>
+-						<align>center</align>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus52center]</texture>
+-						<visible>!Control.HasFocus(6000)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(6000)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 				<content>$VAR[keyboard-autocompletion]</content>
+diff --git a/16x9/DialogMediaSource.xml b/16x9/DialogMediaSource.xml
+index 845096a..711b221 100755
+--- a/16x9/DialogMediaSource.xml
++++ b/16x9/DialogMediaSource.xml
+@@ -84,32 +84,14 @@
+ 						<scroll>true</scroll>
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<animation effect="fade" start="100" end="75" time="0" condition="!Control.HasFocus(10)">Conditional</animation>
+-						<visible>Control.HasFocus(10)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(10)">Conditional</animation>
+ 					</control>
+ 						<control type="image">
+ 						<left>25</left>
+ 						<width>1200</width>
+ 						<height>66</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-						<visible>Control.HasFocus(10)</visible>
+-					</control>
+-					<control type="label">
+-						<left>25</left>
+-						<width>1200</width>
+-						<height>66</height>
+-						<scroll>true</scroll>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<animation effect="fade" start="100" end="75" time="0" condition="!Control.HasFocus(10)">Conditional</animation>
+-						<visible>!Control.HasFocus(10)</visible>
+-					</control>
+-					<control type="image">
+-						<left>25</left>
+-						<width>1200</width>
+-						<height>66</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
+-						<visible>!Control.HasFocus(10)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(10)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/DialogPVRChannelGuide.xml b/16x9/DialogPVRChannelGuide.xml
+index 7a964d6..b56c798 100644
+--- a/16x9/DialogPVRChannelGuide.xml
++++ b/16x9/DialogPVRChannelGuide.xml
+@@ -118,17 +118,7 @@
+ 						<align>right</align>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>$INFO[ListItem.StartTime]</label>
+-						<visible>Control.HasFocus(11)</visible>
+-					</control>
+-					<control type="label">
+-						<top>2</top>
+-						<width>140</width>
+-						<height>51</height>
+-						<font>Font27</font>
+-						<align>right</align>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.StartTime]</label>
+-						<visible>!Control.HasFocus(11)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 
+ 					<!-- Program name -->
+@@ -138,15 +128,7 @@
+ 						<height>51</height>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>$INFO[ListItem.Label]</label>
+-						<visible>Control.HasFocus(11)</visible>
+-					</control>
+-					<control type="label">
+-						<left>160</left>
+-						<width>520</width>
+-						<height>51</height>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.Label]</label>
+-						<visible>!Control.HasFocus(11)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 
+ 					<!-- Highlighting -->
+@@ -155,14 +137,7 @@
+ 						<width>680</width>
+ 						<height>51</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
+-						<visible>Control.HasFocus(11)</visible>
+-					</control>
+-					<control type="image">
+-						<top>2</top>
+-						<width>680</width>
+-						<height>51</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus52]</texture>
+-						<visible>!Control.HasFocus(11)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					
+ 					<!-- Recording image -->
+diff --git a/16x9/DialogPVRChannelManager.xml b/16x9/DialogPVRChannelManager.xml
+index 54984a8..7594d54 100755
+--- a/16x9/DialogPVRChannelManager.xml
++++ b/16x9/DialogPVRChannelManager.xml
+@@ -66,8 +66,8 @@
+ 				<focusedlayout width="800" height="132">
+ 
+ 					<control type="group">
+-						<animation effect="fade" start="100" end="50" condition="!ListItem.Property(ActiveChannel)">Conditional</animation>
+-						<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(20)">Conditional</animation>
++						<animation effect="fade" start="100" end="50" tween="cubic" easing="out" reversible="true" condition="!ListItem.Property(ActiveChannel)">Conditional</animation>
++						<animation effect="fade" start="100" end="75" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(20)">Conditional</animation>
+ 						<control type="image">
+ 							<left>3</left>
+ 							<top>3</top>
+@@ -83,7 +83,7 @@
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<selectedcolor>$VAR[TextColor1]</selectedcolor>
+ 							<label>$INFO[ListItem.Property(Number),(,) ]$INFO[ListItem.Property(Name)]</label>
+-							<visible>!ListItem.Property(Changed) + Control.HasFocus(20)</visible>
++							<visible>!ListItem.Property(Changed)</visible>
+ 						</control>
+ 						<control type="label">
+ 							<top>80</top>
+@@ -94,41 +94,13 @@
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<selectedcolor>$VAR[TextColor1]</selectedcolor>
+ 							<label>$LOCALIZE[19210]: $INFO[ListItem.Property(ClientName)]</label>
+-							<visible>!ListItem.Property(Changed) + Control.HasFocus(20)</visible>
++							<visible>!ListItem.Property(Changed)</visible>
+ 						</control>
+ 						<control type="image">
+ 							<left>80</left>
+ 							<width>720</width>
+ 							<height>66</height>
+ 							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-							<visible>Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="label">
+-							<left>80</left>
+-							<width>720</width>
+-							<height>66</height>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<selectedcolor>$VAR[TextColor2]</selectedcolor>
+-							<label>$INFO[ListItem.Property(Number),(,) ]$INFO[ListItem.Property(Name)]</label>
+-							<visible>!ListItem.Property(Changed) + !Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="label">
+-							<top>80</top>
+-							<left>20</left>
+-							<width>860</width>
+-							<height>27</height>
+-							<font>Font27</font>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<selectedcolor>$VAR[TextColor2]</selectedcolor>
+-							<label>$LOCALIZE[19210]: $INFO[ListItem.Property(ClientName)]</label>
+-							<visible>!ListItem.Property(Changed) + !Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="image">
+-							<left>80</left>
+-							<width>720</width>
+-							<height>66</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
+-							<visible>!Control.HasFocus(20)</visible>
+ 						</control>
+ 						<control type="label">
+ 							<left>80</left>
+diff --git a/16x9/DialogPVRChannelsOSD.xml b/16x9/DialogPVRChannelsOSD.xml
+index 289085f..13d823e 100755
+--- a/16x9/DialogPVRChannelsOSD.xml
++++ b/16x9/DialogPVRChannelsOSD.xml
+@@ -102,7 +102,6 @@
+ 						<font>Font48</font>
+ 						<label>$INFO[ListItem.ChannelName]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(11)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+@@ -113,7 +112,6 @@
+ 						<font>Font27</font>
+ 						<label>[LIGHT]$INFO[ListItem.StartTime]:[/LIGHT] $INFO[ListItem.Title]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(11)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+@@ -124,7 +122,6 @@
+ 						<font>Font27</font>
+ 						<label>[LIGHT]$INFO[ListItem.NextStartTime]:[/LIGHT] $INFO[ListItem.NextTitle]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(11)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+@@ -133,49 +130,8 @@
+ 						<width>1018</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(11)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>48</height>
+-						<font>Font48</font>
+-						<label>$INFO[ListItem.ChannelName]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(11)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>100</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>[LIGHT]$INFO[ListItem.StartTime]:[/LIGHT] $INFO[ListItem.Title]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(11)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>127</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>[LIGHT]$INFO[ListItem.NextStartTime]:[/LIGHT] $INFO[ListItem.NextTitle]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(11)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(11)</visible>
+-					</control>
+ 					<!-- Watched status -->
+ 					<control type="image">
+ 						<left>0</left>
+@@ -183,21 +139,9 @@
+ 						<width>14</width>
+ 						<height>14</height>
+ 						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorFO]</colordiffuse>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+-						<visible>Control.HasFocus(11)</visible>
+-					</control>
+-					<control type="image">
+-						<left>0</left>
+-						<top>61</top>
+-						<width>14</width>
+-						<height>14</height>
+-						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++						<colordiffuse>$VAR[TextColor1]</colordiffuse>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+-						<visible>!Control.HasFocus(11)</visible>
+ 					</control>
+-
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>43</top>
+@@ -207,18 +151,7 @@
+ 						<label>$INFO[ListItem.ChannelNumberLabel]</label>
+ 						<align>right</align>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(11)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>746</width>
+-						<height>48</height>
+-						<font>Font36</font>
+-						<label>$INFO[ListItem.ChannelNumberLabel]</label>
+-						<align>right</align>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(11)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/DialogPVRGroupManager.xml b/16x9/DialogPVRGroupManager.xml
+index a00dca2..e762812 100755
+--- a/16x9/DialogPVRGroupManager.xml
++++ b/16x9/DialogPVRGroupManager.xml
+@@ -65,27 +65,13 @@
+ 						<width>526</width>
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(13)">Conditional</animation>
+-						<visible>Control.HasFocus(13)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(13)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<width>526</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(13)</visible>
+-					</control>
+-					<control type="label">
+-						<width>526</width>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(13)">Conditional</animation>
+-						<visible>!Control.HasFocus(13)</visible>
+-					</control>
+-					<control type="image">
+-						<width>526</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(13)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(13)">Conditional</animation>
+ 					</control>
+ 
+ 				</focusedlayout>
+diff --git a/16x9/DialogSelect.xml b/16x9/DialogSelect.xml
+index 8722e88..9538faa 100755
+--- a/16x9/DialogSelect.xml
++++ b/16x9/DialogSelect.xml
+@@ -101,27 +101,13 @@
+ 						<font>Font37</font>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>$INFO[ListItem.Label]</label>
+-						<visible>Control.HasFocus(3)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(3)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<width>1050</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(3)</visible>
+-					</control>
+-					<control type="label">
+-						<width>1050</width>
+-						<height>58</height>
+-						<font>Font37</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.Label]</label>
+-						<visible>!Control.HasFocus(3)</visible>
+-					</control>
+-					<control type="image">
+-						<width>1050</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[DialogColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(3)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(3)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 
+@@ -202,67 +188,36 @@
+ 						<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(6)">Conditional</animation>
+ 						<visible>String.Contains(ListItem.Icon,Default)</visible>
+ 					</control>
+-					<control type="group">
+-						<visible>Control.HasFocus(6)</visible>
+-						<control type="label">
+-							<left>140</left>
+-							<top>10</top>
+-							<width>910</width>
+-							<height>36</height>
+-							<font>Font37</font>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>$INFO[ListItem.Label]</label>
+-							<animation effect="slide" end="0,20" time="0" condition="String.IsEmpty(ListItem.Label2)">Conditional</animation>
+-						</control>
+-						<control type="image">
+-							<left>140</left>
+-							<top>10</top>
+-							<width>910</width>
+-							<height>44</height>
+-							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus44]</texture>
+-							<animation effect="slide" end="0,20" time="0" condition="String.IsEmpty(ListItem.Label2)">Conditional</animation>
+-							<visible>!ListItem.IsParentFolder</visible>
+-						</control>
+-						<control type="label">
+-							<left>140</left>
+-							<top>54</top>
+-							<width>910</width>
+-							<height>27</height>
+-							<font>Font27</font>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>[B]$INFO[ListItem.Label2][/B]</label>
+-						</control>
++					<control type="label">
++						<left>140</left>
++						<top>10</top>
++						<width>910</width>
++						<height>36</height>
++						<font>Font37</font>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<label>$INFO[ListItem.Label]</label>
++						<animation effect="slide" end="0,20" time="0" condition="String.IsEmpty(ListItem.Label2)">Conditional</animation>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(6)">Conditional</animation>
+ 					</control>
+-					<control type="group">
+-						<visible>!Control.HasFocus(6)</visible>
+-						<control type="label">
+-							<left>140</left>
+-							<top>10</top>
+-							<width>910</width>
+-							<height>36</height>
+-							<font>Font37</font>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>$INFO[ListItem.Label]</label>
+-							<animation effect="slide" end="0,20" time="0" condition="String.IsEmpty(ListItem.Label2)">Conditional</animation>
+-						</control>
+-						<control type="image">
+-							<left>140</left>
+-							<top>10</top>
+-							<width>910</width>
+-							<height>44</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus44]</texture>
+-							<animation effect="slide" end="0,20" time="0" condition="String.IsEmpty(ListItem.Label2)">Conditional</animation>
+-							<visible>!ListItem.IsParentFolder</visible>
+-						</control>
+-						<control type="label">
+-							<left>140</left>
+-							<top>54</top>
+-							<width>910</width>
+-							<height>27</height>
+-							<font>Font27</font>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>[B]$INFO[ListItem.Label2][/B]</label>
+-						</control>
++					<control type="image">
++						<left>140</left>
++						<top>10</top>
++						<width>910</width>
++						<height>44</height>
++						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus44]</texture>
++						<animation effect="slide" end="0,20" time="0" condition="String.IsEmpty(ListItem.Label2)">Conditional</animation>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(6)">Conditional</animation>
++						<visible>!ListItem.IsParentFolder</visible>
++					</control>
++					<control type="label">
++						<left>140</left>
++						<top>54</top>
++						<width>910</width>
++						<height>27</height>
++						<font>Font27</font>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<label>[B]$INFO[ListItem.Label2][/B]</label>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(6)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/DialogSubtitles.xml b/16x9/DialogSubtitles.xml
+index 6a79f73..8ba78e8 100755
+--- a/16x9/DialogSubtitles.xml
++++ b/16x9/DialogSubtitles.xml
+@@ -70,27 +70,12 @@
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(150)">Conditional</animation>
+-						<visible>Control.HasFocus(150)</visible>
+ 					</control>
+ 					<control type="image">
+ 						<width>360</width>
+ 						<height>66</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-						<visible>Control.HasFocus(150)</visible>
+-					</control>
+-					<control type="label">
+-						<width>360</width>
+-						<height>66</height>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(150)">Conditional</animation>
+-						<visible>!Control.HasFocus(150)</visible>
+-					</control>
+-					<control type="image">
+-						<width>360</width>
+-						<height>66</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
+-						<visible>!Control.HasFocus(150)</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/EventLog.xml b/16x9/EventLog.xml
+index 5e27beb..135061c 100644
+--- a/16x9/EventLog.xml
++++ b/16x9/EventLog.xml
+@@ -63,27 +63,8 @@
+ 					<width>1018</width>
+ 					<height>52</height>
+ 					<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
+-					<visible>Control.HasFocus(570)</visible>
+-				</control>
+-				<control type="label">
+-					<left>32</left>
+-					<top>86</top>
+-					<width>1018</width>
+-					<height>54</height>
+-					<font>Font27</font>
+-					<label>$INFO[ListItem.Property(Event.Description)][CR]$INFO[ListItem.Label2]</label>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+ 					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(570)">Conditional</animation>
+ 				</control>
+-				<control type="image">
+-					<left>32</left>
+-					<top>29</top>
+-					<width>1018</width>
+-					<height>52</height>
+-					<texture colordiffuse="$VAR[TextColor2]">$VAR[focus52]</texture>
+-					<visible>!Control.HasFocus(570)</visible>
+-				</control>
+-
+ 			</focusedlayout>
+ 
+ 		</control>
+diff --git a/16x9/FileBrowser.xml b/16x9/FileBrowser.xml
+index 4459579..5b73beb 100755
+--- a/16x9/FileBrowser.xml
++++ b/16x9/FileBrowser.xml
+@@ -138,7 +138,7 @@
+ 						<bordersize>6</bordersize>
+ 						<aspectratio>scale</aspectratio>
+ 						<texture>$INFO[ListItem.Icon]</texture>
+-						<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(450)">Conditional</animation>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+ 						<visible>!String.Contains(ListItem.Icon,Default)</visible>
+ 					</control>
+ 					<control type="image">
+@@ -148,7 +148,7 @@
+ 						<aspectratio>scale</aspectratio>
+ 						<colordiffuse>$VAR[OverlayColorFO]</colordiffuse>
+ 						<texture>$INFO[ListItem.Icon]</texture>
+-						<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(450)">Conditional</animation>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+ 						<visible>String.Contains(ListItem.Icon,Default)</visible>
+ 					</control>
+ 					<control type="label">
+@@ -158,7 +158,7 @@
+ 						<font>Font36</font>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>[B]$INFO[ListItem.Label][/B]</label>
+-						<visible>Control.HasFocus(450)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<centertop>50%</centertop>
+@@ -166,24 +166,8 @@
+ 						<width>910</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>!ListItem.IsParentFolder + Control.HasFocus(450)</visible>
+-					</control>
+-					<control type="label">
+-						<left>140</left>
+-						<width>910</width>
+-						<height>96</height>
+-						<font>Font36</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>[B]$INFO[ListItem.Label][/B]</label>
+-						<visible>!Control.HasFocus(450)</visible>
+-					</control>
+-					<control type="image">
+-						<centertop>50%</centertop>
+-						<left>140</left>
+-						<width>910</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!ListItem.IsParentFolder + !Control.HasFocus(450)</visible>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
++						<visible>!ListItem.IsParentFolder</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/FileManager.xml b/16x9/FileManager.xml
+index f6b3dea..a4ffa5d 100755
+--- a/16x9/FileManager.xml
++++ b/16x9/FileManager.xml
+@@ -59,48 +59,26 @@
+ 				</itemlayout>
+ 
+ 				<focusedlayout height="66" width="770">
+-					<control type="group">
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(20)">Conditional</animation>
+-						<control type="label">
+-							<width>770</width>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>[B]$INFO[ListItem.Label][/B]</label>
+-							<visible>Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="label">
+-							<width>770</width>
+-							<align>right</align>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>$INFO[ListItem.Label2]</label>
+-							<visible>Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="image">
+-							<top>2</top>
+-							<width>770</width>
+-							<height>44</height>
+-							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus44]</texture>
+-							<visible>!ListItem.IsParentFolder + Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="label">
+-							<width>770</width>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>[B]$INFO[ListItem.Label][/B]</label>
+-							<visible>!Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="label">
+-							<width>770</width>
+-							<align>right</align>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>$INFO[ListItem.Label2]</label>
+-							<visible>!Control.HasFocus(20)</visible>
+-						</control>
+-						<control type="image">
+-							<top>2</top>
+-							<width>770</width>
+-							<height>44</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus44]</texture>
+-							<visible>!ListItem.IsParentFolder + !Control.HasFocus(20)</visible>
+-						</control>
++					<control type="label">
++						<width>770</width>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<label>[B]$INFO[ListItem.Label][/B]</label>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(20)">Conditional</animation>
++					</control>
++					<control type="label">
++						<width>770</width>
++						<align>right</align>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<label>$INFO[ListItem.Label2]</label>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(20)">Conditional</animation>
++					</control>
++					<control type="image">
++						<top>2</top>
++						<width>770</width>
++						<height>44</height>
++						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus44]</texture>
++						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(20)">Conditional</animation>
++						<visible>!ListItem.IsParentFolder</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/Home.xml b/16x9/Home.xml
+index 51d0863..557ff5b 100755
+--- a/16x9/Home.xml
++++ b/16x9/Home.xml
+@@ -22,6 +22,8 @@
+ 	
+ 	<!-- Skin settings background + colors -->
+ 	<onload condition="String.IsEqual(Skin.String(BackgroundImage),custom)">Skin.SetString(BackgroundImage,1)</onload>
++	<onload condition="String.IsEmpty(Skin.String(BackgroundImage))">Skin.SetString(BackgroundImage,1)</onload>
++	<onload condition="String.IsEmpty(Skin.String(BackgroundDefaultImage))">Skin.SetString(BackgroundDefaultImage,yes)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(color.text1))">Skin.SetString(color.text1,None)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(color.text2))">Skin.SetString(color.text2,None)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(color.text3))">Skin.SetString(color.text3,None)</onload>
+@@ -42,7 +44,7 @@
+ 	<onload condition="String.IsEmpty(Skin.String(color.overlay))">Skin.SetString(color.overlay,None)</onload>
+ 	<onload condition="String.IsEqual(Skin.String(DefaultColorSet),Default)">Skin.SetString(DefaultColorSet,OSMC Blue)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(DefaultColorSet))">Skin.SetString(DefaultColorSet,OSMC Blue)</onload>
+-	<onload condition="String.IsEmpty(Skin.String(DefaultColors))">Skin.SetString(DefaultColors,no)</onload>
++	<onload condition="String.IsEmpty(Skin.String(DefaultColors))">Skin.SetString(DefaultColors,yes)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(DefaultBackgroundOpacity))">Skin.SetString(DefaultBackgroundOpacity,High)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(DefaultOverlayOpacity))">Skin.SetString(DefaultOverlayOpacity,High)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(OSMCBackgroundOverlay))">Skin.SetString(OSMCBackgroundOverlay,1)</onload>
+diff --git a/16x9/Include_Home_OSMC.xml b/16x9/Include_Home_OSMC.xml
+index ac32079..0660d81 100644
+--- a/16x9/Include_Home_OSMC.xml
++++ b/16x9/Include_Home_OSMC.xml
+@@ -42,7 +42,6 @@
+ 					<font>Font50</font>
+ 					<textcolor>$VAR[TextColor1]</textcolor>
+ 					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(9000)">Conditional</animation>
+-					<visible>Control.HasFocus(9000)</visible>
+ 				</control>
+ 				<control type="image">
+ 					<left>0</left>
+@@ -50,26 +49,7 @@
+ 					<width>400</width>
+ 					<height>97</height>
+ 					<texture colordiffuse="$VAR[TextColor1]">$VAR[focus97]</texture>
+-					<visible>Control.HasFocus(9000)</visible>
+-				</control>
+-				<control type="label">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>400</width>
+-					<height>97</height>
+-					<label>[B]$INFO[ListItem.Label][/B]</label>
+-					<font>Font50</font>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+ 					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(9000)">Conditional</animation>
+-					<visible>!Control.HasFocus(9000)</visible>
+-				</control>
+-				<control type="image">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>400</width>
+-					<height>97</height>
+-					<texture colordiffuse="$VAR[TextColor2]">$VAR[focus97]</texture>
+-					<visible>!Control.HasFocus(9000)</visible>
+ 				</control>
+ 			</focusedlayout>
+ 
+diff --git a/16x9/LoginScreen.xml b/16x9/LoginScreen.xml
+index 5d69564..0d6f42f 100755
+--- a/16x9/LoginScreen.xml
++++ b/16x9/LoginScreen.xml
+@@ -84,7 +84,7 @@
+ 						<label>[B]$INFO[ListItem.Label][/B]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(52)">Conditional</animation>
+-						<visible>Control.HasFocus(52)</visible>
++
+ 					</control>
+ 					<control type="image">
+ 						<left>32</left>
+@@ -92,26 +92,7 @@
+ 						<width>1018</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(52)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>48</height>
+-						<font>Font48</font>
+-						<label>[B]$INFO[ListItem.Label][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(52)">Conditional</animation>
+-						<visible>!Control.HasFocus(52)</visible>
+-					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(52)</visible>
+ 					</control>
+ 					<control type="label">
+ 						<left>32</left>
+diff --git a/16x9/MyMusicPlaylistEditor.xml b/16x9/MyMusicPlaylistEditor.xml
+index 6b6f31a..9798e5a 100755
+--- a/16x9/MyMusicPlaylistEditor.xml
++++ b/16x9/MyMusicPlaylistEditor.xml
+@@ -67,27 +67,12 @@
+ 							<label>$INFO[ListItem.Label]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-							<visible>Control.HasFocus(50)</visible>
+ 						</control>
+ 						<control type="image">
+ 							<width>610</width>
+ 							<height>66</height>
+ 							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-							<visible>Control.HasFocus(50)</visible>
+-						</control>
+-							<control type="label">
+-							<width>610</width>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>$INFO[ListItem.Label]</label>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-							<visible>!Control.HasFocus(50)</visible>
+-						</control>
+-						<control type="image">
+-							<width>610</width>
+-							<height>66</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
+-							<visible>!Control.HasFocus(50)</visible>
+ 						</control>
+ 					</focusedlayout>
+ 
+diff --git a/16x9/MyPVRChannels.xml b/16x9/MyPVRChannels.xml
+index 02fd307..eda2b23 100755
+--- a/16x9/MyPVRChannels.xml
++++ b/16x9/MyPVRChannels.xml
+@@ -79,7 +79,6 @@
+ 						<font>Font27</font>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$INFO[ListItem.StartTime,,: ]$INFO[ListItem.Title][/LIGHT]</label>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+ 						<left>32</left>
+@@ -89,7 +88,6 @@
+ 						<font>Font27</font>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$LOCALIZE[19055]</label>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						<visible>String.IsEmpty(ListItem.StartTime) + String.IsEmpty(ListItem.Title)</visible>
+ 					</control>
+ 					<control type="label">
+@@ -109,8 +107,7 @@
+ 						<width>14</width>
+ 						<height>14</height>
+ 						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-						<animation effect="fade" start="50" end="50" condition="true">Conditional</animation>
++						<colordiffuse>$VAR[TextColor2]</colordiffuse>
+ 					</control>
+ 				</itemlayout>
+ 
+@@ -123,7 +120,6 @@
+ 						<font>Font48</font>
+ 						<label>[B]$INFO[ListItem.ChannelName][/B]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+@@ -132,7 +128,7 @@
+ 						<width>1018</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+ 						<left>32</left>
+@@ -142,7 +138,6 @@
+ 						<font>Font27</font>
+ 						<label>[LIGHT]$INFO[ListItem.StartTime,,: ][/LIGHT]$INFO[ListItem.Title]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+@@ -153,7 +148,7 @@
+ 						<font>Font27</font>
+ 						<label>$LOCALIZE[19055]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>String.IsEmpty(ListItem.StartTime) + String.IsEmpty(ListItem.Title) + Control.HasFocus(50)</visible>
++						<visible>String.IsEmpty(ListItem.StartTime) + String.IsEmpty(ListItem.Title)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+@@ -164,7 +159,6 @@
+ 						<font>Font27</font>
+ 						<label>[LIGHT]$INFO[ListItem.NextStartTime,,: ][/LIGHT]$INFO[ListItem.NextTitle]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+@@ -176,71 +170,6 @@
+ 						<align>right</align>
+ 						<label>$INFO[ListItem.ChannelNumberLabel]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>48</height>
+-						<font>Font48</font>
+-						<label>[B]$INFO[ListItem.ChannelName][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>100</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>[LIGHT]$INFO[ListItem.StartTime,,: ][/LIGHT]$INFO[ListItem.Title]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>100</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>$LOCALIZE[19055]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>String.IsEmpty(ListItem.StartTime) + String.IsEmpty(ListItem.Title) + !Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>127</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>[LIGHT]$INFO[ListItem.NextStartTime,,: ][/LIGHT]$INFO[ListItem.NextTitle]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>48</height>
+-						<font>Font48</font>
+-						<align>right</align>
+-						<label>$INFO[ListItem.ChannelNumberLabel]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<!-- Watched status -->
+@@ -250,20 +179,10 @@
+ 						<width>14</width>
+ 						<height>14</height>
+ 						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorFO]</colordiffuse>
++						<colordiffuse>$VAR[TextColor1]</colordiffuse>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						<visible>Control.HasFocus(50)</visible>
+ 					</control>
+-					<control type="image">
+-						<left>0</left>
+-						<top>38</top>
+-						<width>14</width>
+-						<height>14</height>
+-						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-						<animation effect="fade" start="50" end="50" condition="true">Conditional</animation>
+-						<visible>!Control.HasFocus(50)</visible>
+-					</control>
+ 				</focusedlayout>
+ 
+ 			</control>
+diff --git a/16x9/MyPVRRecordings.xml b/16x9/MyPVRRecordings.xml
+index 78b89d1..8cd7bb2 100755
+--- a/16x9/MyPVRRecordings.xml
++++ b/16x9/MyPVRRecordings.xml
+@@ -102,8 +102,7 @@
+ 						<width>14</width>
+ 						<height>14</height>
+ 						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-						<animation effect="fade" start="50" end="50" condition="true">Conditional</animation>
++						<colordiffuse>$VAR[TextColor2]</colordiffuse>
+ 					</control>
+ 				</itemlayout>
+ 
+@@ -117,7 +116,6 @@
+ 						<label>[B]$VAR[Label1][/B]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<scroll>True</scroll>
+-						<visible>Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+@@ -126,7 +124,8 @@
+ 						<width>1018</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(50) + !ListItem.IsParentFolder</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
++						<visible>!ListItem.IsParentFolder</visible>
+ 					</control>
+ 					<control type="label">
+ 						<left>32</left>
+@@ -136,7 +135,6 @@
+ 						<font>Font27</font>
+ 						<label>$INFO[ListItem.StartDate] [LIGHT]$INFO[ListItem.StartTime]$INFO[ListItem.Duration, (,)][/LIGHT]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+@@ -147,49 +145,6 @@
+ 						<font>Font27</font>
+ 						<label>$INFO[ListItem.ChannelName]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>48</height>
+-						<font>Font48</font>
+-						<label>[B]$VAR[Label1][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<scroll>True</scroll>
+-						<visible>!Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>43</top>
+-						<width>1018</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(50) + !ListItem.IsParentFolder</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>100</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>$INFO[ListItem.StartDate] [LIGHT]$INFO[ListItem.StartTime]$INFO[ListItem.Duration, (,)][/LIGHT]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>127</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>$INFO[ListItem.ChannelName]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					<!-- Watched status -->
+@@ -199,19 +154,8 @@
+ 						<width>14</width>
+ 						<height>14</height>
+ 						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorFO]</colordiffuse>
++						<colordiffuse>$VAR[TextColor1]</colordiffuse>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="image">
+-						<left>0</left>
+-						<top>38</top>
+-						<width>14</width>
+-						<height>14</height>
+-						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-						<animation effect="fade" start="50" end="50" condition="true">Conditional</animation>
+-						<visible>!Control.HasFocus(50)</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/MyPVRSearch.xml b/16x9/MyPVRSearch.xml
+index 6fea967..ec9bcb3 100755
+--- a/16x9/MyPVRSearch.xml
++++ b/16x9/MyPVRSearch.xml
+@@ -113,6 +113,7 @@
+ 				</itemlayout>
+ 
+ 				<focusedlayout width="1020" height="108">
++				
+ 					<!-- Start time -->
+ 					<control type="label">
+ 						<top>12</top>
+@@ -120,15 +121,7 @@
+ 						<align>right</align>
+ 						<label>$INFO[ListItem.StartTime]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="label">
+-						<top>12</top>
+-						<width>200</width>
+-						<align>right</align>
+-						<label>$INFO[ListItem.StartTime]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 
+ 					<!-- End time -->
+@@ -139,16 +132,7 @@
+ 						<align>right</align>
+ 						<label>$INFO[ListItem.EndTime]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="label">
+-						<top>62</top>
+-						<width>200</width>
+-						<height>27</height>
+-						<align>right</align>
+-						<label>$INFO[ListItem.EndTime]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 
+ 					<!-- Recording image -->
+@@ -158,6 +142,7 @@
+ 						<width>30</width>
+ 						<height>30</height>
+ 						<texture>pvr/Recording.png</texture>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						<visible>ListItem.IsRecording</visible>
+ 					</control>
+ 					
+@@ -168,6 +153,7 @@
+ 						<width>38</width>
+ 						<height>40</height>
+ 						<texture>pvr/Timer.png</texture>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						<visible>[ListItem.HasTimer | ListItem.HasTimerSchedule] + !ListItem.IsRecording</visible>
+ 					</control>
+ 
+@@ -178,15 +164,7 @@
+ 						<width>500</width>
+ 						<label>[B]$INFO[ListItem.Label][/B]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="label">
+-						<left>280</left>
+-						<top>12</top>
+-						<width>500</width>
+-						<label>[B]$INFO[ListItem.Label][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 					
+ 					<!-- Highlighting -->
+@@ -196,15 +174,7 @@
+ 						<width>500</width>
+ 						<height>51</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="image">
+-						<left>280</left>
+-						<top>12</top>
+-						<width>500</width>
+-						<height>51</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus52]</texture>
+-						<visible>!Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 
+ 					<!-- Channel name -->
+@@ -216,17 +186,7 @@
+ 						<font>Font27</font>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>$INFO[ListItem.ChannelName]</label>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="label">
+-						<left>280</left>
+-						<top>62</top>
+-						<width>740</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.ChannelName]</label>
+-						<visible>!Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+ 
+ 					<!-- Duration -->
+@@ -236,17 +196,8 @@
+ 						<width>200</width>
+ 						<label>$INFO[ListItem.Duration]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<visible>Control.HasFocus(50)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+-					<control type="label">
+-						<left>800</left>
+-						<top>12</top>
+-						<width>200</width>
+-						<label>$INFO[ListItem.Duration]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Control.HasFocus(50)</visible>
+-					</control>
+-
+ 
+ 				</focusedlayout>
+ 
+diff --git a/16x9/MyPVRTimers.xml b/16x9/MyPVRTimers.xml
+index 22c9467..6e22474 100755
+--- a/16x9/MyPVRTimers.xml
++++ b/16x9/MyPVRTimers.xml
+@@ -95,8 +95,7 @@
+ 				</itemlayout>
+ 
+ 				<focusedlayout width="1440" height="108">
+-					<control type="group">
+-						<visible>Control.HasFocus(50)</visible>
++
+ 						<!-- Start date -->
+ 						<control type="label">
+ 							<left>20</left>
+@@ -105,6 +104,7 @@
+ 							<align>right</align>
+ 							<label>$INFO[ListItem.StartDate]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+ 
+ 						<!-- Start time - End time -->
+@@ -117,6 +117,7 @@
+ 							<align>right</align>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<label>$INFO[ListItem.StartTime]$INFO[ListItem.EndTime, - ,]</label>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+ 
+ 						<!-- Thumb -->
+@@ -127,6 +128,7 @@
+ 							<height>102</height>
+ 							<aspectratio>scale</aspectratio>
+ 							<texture fallback="pvr/NoImage.png">$INFO[ListItem.Thumb]</texture>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+ 
+ 						<!-- Program name -->
+@@ -136,6 +138,7 @@
+ 							<width>634</width>
+ 							<label>[B]$INFO[ListItem.Label][/B]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+ 						
+ 						<!-- Highlighting -->
+@@ -145,6 +148,7 @@
+ 							<width>634</width>
+ 							<height>51</height>
+ 							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+ 
+ 						<!-- Channel name -->
+@@ -156,6 +160,7 @@
+ 							<font>Font27</font>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<label>$INFO[ListItem.ChannelName]</label>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+ 
+ 						<!-- Program comment -->
+@@ -166,81 +171,8 @@
+ 							<align>right</align>
+ 							<label>$INFO[ListItem.Comment]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 						</control>
+-					</control>
+-					<control type="group">
+-						<visible>!Control.HasFocus(50)</visible>
+-						<!-- Start date -->
+-						<control type="label">
+-							<left>20</left>
+-							<top>12</top>
+-							<width>280</width>
+-							<align>right</align>
+-							<label>$INFO[ListItem.StartDate]</label>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-						</control>
+-
+-						<!-- Start time - End time -->
+-						<control type="label">
+-							<left>20</left>
+-							<top>62</top>
+-							<width>280</width>
+-							<height>27</height>
+-							<font>Font27</font>
+-							<align>right</align>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>$INFO[ListItem.StartTime]$INFO[ListItem.EndTime, - ,]</label>
+-						</control>
+-
+-						<!-- Thumb -->
+-						<control type="image">
+-							<left>266</left>
+-							<top>3</top>
+-							<width>181</width>
+-							<height>102</height>
+-							<aspectratio>scale</aspectratio>
+-							<texture fallback="pvr/NoImage.png">$INFO[ListItem.Thumb]</texture>
+-						</control>
+-
+-						<!-- Program name -->
+-						<control type="label">
+-							<left>489</left>
+-							<top>12</top>
+-							<width>634</width>
+-							<label>[B]$INFO[ListItem.Label][/B]</label>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-						</control>
+-						
+-						<!-- Highlighting -->
+-						<control type="image">
+-							<left>489</left>
+-							<top>12</top>
+-							<width>634</width>
+-							<height>51</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus52]</texture>
+-						</control>
+-
+-						<!-- Channel name -->
+-						<control type="label">
+-							<left>489</left>
+-							<top>62</top>
+-							<width>634</width>
+-							<height>27</height>
+-							<font>Font27</font>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>$INFO[ListItem.ChannelName]</label>
+-						</control>
+-
+-						<!-- Program comment -->
+-						<control type="label">
+-							<left>1020</left>
+-							<top>12</top>
+-							<width>400</width>
+-							<align>right</align>
+-							<label>$INFO[ListItem.Comment]</label>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-						</control>
+-					</control>
+ 
+ 				</focusedlayout>
+ 
+diff --git a/16x9/SettingsProfile.xml b/16x9/SettingsProfile.xml
+index dd6ad8b..be8a5db 100755
+--- a/16x9/SettingsProfile.xml
++++ b/16x9/SettingsProfile.xml
+@@ -99,14 +99,13 @@
+ 						<font>Font33</font>
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<animation effect="fade" start="100" end="50" time="0" condition="!Control.HasFocus(2)">Conditional</animation>
+-						<visible>Control.HasFocus(2)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(2)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<width>1090</width>
+ 						<height>76</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus76]</texture>
+-						<visible>Control.HasFocus(2)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(2)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<right>0</right>
+@@ -114,31 +113,7 @@
+ 						<width>72</width>
+ 						<height>72</height>
+ 						<texture fallback="DefaultUser.png">$INFO[ListItem.Icon]</texture>
+-						<visible>Control.HasFocus(2)</visible>
+-					</control>
+-					<control type="label">
+-						<width>1150</width>
+-						<height>76</height>
+-						<font>Font33</font>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<animation effect="fade" start="100" end="50" time="0" condition="!Control.HasFocus(2)">Conditional</animation>
+-						<visible>!Control.HasFocus(2)</visible>
+-					</control>
+-					<control type="image">
+-						<width>1090</width>
+-						<height>76</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus76]</texture>
+-						<visible>!Control.HasFocus(2)</visible>
+-					</control>
+-					<control type="image">
+-						<right>0</right>
+-						<top>2</top>
+-						<width>72</width>
+-						<height>72</height>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-						<texture fallback="DefaultUser.png">$INFO[ListItem.Icon]</texture>
+-						<visible>!Control.HasFocus(2)</visible>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(2)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/SkinSettings.xml b/16x9/SkinSettings.xml
+index 2c3231a..6b26039 100755
+--- a/16x9/SkinSettings.xml
++++ b/16x9/SkinSettings.xml
+@@ -8,6 +8,8 @@
+ 	<onload condition="String.IsEqual(Skin.String(HideOSD),Off)">Skin.SetString(HideOSD,Always)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(NFDimOpac))">Skin.SetString(NFDimOpac,100)</onload>
+ 	<onload condition="String.IsEqual(Skin.String(BackgroundImage),custom)">Skin.SetString(BackgroundImage,1)</onload>
++	<onload condition="String.IsEmpty(Skin.String(BackgroundImage))">Skin.SetString(BackgroundImage,1)</onload>
++	<onload condition="String.IsEmpty(Skin.String(BackgroundDefaultImage))">Skin.SetString(BackgroundDefaultImage,yes)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(color.text1))">Skin.SetString(color.text1,None)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(color.text2))">Skin.SetString(color.text2,None)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(color.text3))">Skin.SetString(color.text3,None)</onload>
+@@ -28,7 +30,7 @@
+ 	<onload condition="String.IsEmpty(Skin.String(color.overlay))">Skin.SetString(color.overlay,None)</onload>
+ 	<onload condition="String.IsEqual(Skin.String(DefaultColorSet),Default)">Skin.SetString(DefaultColorSet,OSMC Blue)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(DefaultColorSet))">Skin.SetString(DefaultColorSet,OSMC Blue)</onload>
+-	<onload condition="String.IsEmpty(Skin.String(DefaultColors))">Skin.SetString(DefaultColors,no)</onload>
++	<onload condition="String.IsEmpty(Skin.String(DefaultColors))">Skin.SetString(DefaultColors,yes)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(DefaultBackgroundOpacity))">Skin.SetString(DefaultBackgroundOpacity,High)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(DefaultOverlayOpacity))">Skin.SetString(DefaultOverlayOpacity,High)</onload>
+ 	<onload condition="String.IsEmpty(Skin.String(OSMCBackgroundOverlay))">Skin.SetString(OSMCBackgroundOverlay,1)</onload>
+@@ -840,6 +842,7 @@
+ 					<textwidth>1120</textwidth>
+ 					<label>31058</label>
+ 					<onclick>Skin.ResetSettings</onclick>
++					<onclick>ReloadSkin()</onclick>
+ 					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
+ 				</control>
+diff --git a/16x9/SmartPlaylistEditor.xml b/16x9/SmartPlaylistEditor.xml
+index e2dfebd..ef3a676 100755
+--- a/16x9/SmartPlaylistEditor.xml
++++ b/16x9/SmartPlaylistEditor.xml
+@@ -117,28 +117,13 @@
+ 							<height>66</height>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 							<label>$INFO[ListItem.Label]</label>
+-							<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(10)">Conditional</animation>
+-							<visible>Control.HasFocus(10)</visible>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(10)">Conditional</animation>
+ 						</control>
+ 						<control type="image">
+ 							<width>880</width>
+ 							<height>66</height>
+ 							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-							<visible>Control.HasFocus(10)</visible>
+-						</control>
+-						<control type="label">
+-							<width>880</width>
+-							<height>66</height>
+-							<textcolor>$VAR[TextColor2]</textcolor>
+-							<label>$INFO[ListItem.Label]</label>
+-							<animation effect="fade" start="100" end="75" condition="!Control.HasFocus(10)">Conditional</animation>
+-							<visible>!Control.HasFocus(10)</visible>
+-						</control>
+-						<control type="image">
+-							<width>880</width>
+-							<height>66</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
+-							<visible>!Control.HasFocus(10)</visible>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(10)">Conditional</animation>
+ 						</control>
+ 					</focusedlayout>
+ 
+diff --git a/16x9/VideoOSDBookmarks.xml b/16x9/VideoOSDBookmarks.xml
+index cc4a14e..85eddbb 100755
+--- a/16x9/VideoOSDBookmarks.xml
++++ b/16x9/VideoOSDBookmarks.xml
+@@ -43,12 +43,6 @@
+ 			</itemlayout>
+ 
+ 			<focusedlayout height="290" width="324">
+-				<control type="image">
+-					<width>324</width>
+-					<height>242</height>
+-					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-					<visible>Control.HasFocus(11)</visible>
+-				</control>
+ 				<control type="image">
+ 					<width>324</width>
+ 					<height>242</height>
+@@ -69,7 +63,7 @@
+ 					<height>44</height>
+ 					<textcolor>$VAR[TextColor1]</textcolor>
+ 					<label>($INFO[ListItem.Label2]) - $INFO[ListItem.Label]</label>
+-					<visible>Control.HasFocus(11)</visible>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 				</control>
+ 				<control type="image">
+ 					<left>10</left>
+@@ -77,24 +71,7 @@
+ 					<width>304</width>
+ 					<height>44</height>
+ 					<texture colordiffuse="$VAR[TextColor1]">$VAR[focus44]</texture>
+-					<visible>Control.HasFocus(11)</visible>
+-				</control>
+-				<control type="label">
+-					<left>10</left>
+-					<top>190</top>
+-					<width>304</width>
+-					<height>44</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>($INFO[ListItem.Label2]) - $INFO[ListItem.Label]</label>
+-					<visible>!Control.HasFocus(11)</visible>
+-				</control>
+-				<control type="image">
+-					<left>10</left>
+-					<top>190</top>
+-					<width>304</width>
+-					<height>44</height>
+-					<texture colordiffuse="$VAR[TextColor2]">$VAR[focus44]</texture>
+-					<visible>!Control.HasFocus(11)</visible>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 				</control>
+ 			</focusedlayout>
+ 
+diff --git a/16x9/Viewtype50.xml b/16x9/Viewtype50.xml
+index 1b26e3b..c5f1b56 100755
+--- a/16x9/Viewtype50.xml
++++ b/16x9/Viewtype50.xml
+@@ -77,7 +77,6 @@
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-						<visible>Control.HasFocus(50)</visible>
+ 					</control>
+ 					<control type="image">
+ 						<left>32</left>
+@@ -85,38 +84,8 @@
+ 						<width>1018</width>
+ 						<height>120</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus120]</texture>
+-						<visible>Control.HasFocus(50) + !ListItem.IsParentFolder</visible>
+-					</control>
+-					<!-- Watched status -->
+-					<control type="image">
+-						<left>0</left>
+-						<top>53</top>
+-						<width>14</width>
+-						<height>14</height>
+-						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[TextColor1]</colordiffuse>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-						<visible>Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>0</top>
+-						<width>1018</width>
+-						<height>120</height>
+-						<font>Font73</font>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-						<visible>!Control.HasFocus(50)</visible>
+-					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>0</top>
+-						<width>1018</width>
+-						<height>120</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus120]</texture>
+-						<visible>!Control.HasFocus(50) + !ListItem.IsParentFolder</visible>
++						<visible>!ListItem.IsParentFolder</visible>
+ 					</control>
+ 					<!-- Watched status -->
+ 					<control type="image">
+@@ -125,9 +94,8 @@
+ 						<width>14</width>
+ 						<height>14</height>
+ 						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[TextColor2]</colordiffuse>
++						<colordiffuse>$VAR[TextColor1]</colordiffuse>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-						<visible>!Control.HasFocus(50)</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/Viewtype51.xml b/16x9/Viewtype51.xml
+index f4c15f1..067812d 100755
+--- a/16x9/Viewtype51.xml
++++ b/16x9/Viewtype51.xml
+@@ -164,7 +164,6 @@
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(51)">Conditional</animation>
+-						<visible>Control.HasFocus(51)</visible>
+ 					</control>
+ 					<control type="image">
+ 						<left>32</left>
+@@ -172,38 +171,8 @@
+ 						<width>1018</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>!ListItem.IsParentFolder + Control.HasFocus(51)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>82</top>
+-						<width>1018</width>
+-						<height>27</height>
+-						<font>Font27</font>
+-						<label>$VAR[Label2]</label>
+-						<textcolor>$VAR[TextColor1]</textcolor>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(51)">Conditional</animation>
+-						<visible>Control.HasFocus(51)</visible>
+-					</control>
+-					<control type="label">
+-						<left>32</left>
+-						<top>25</top>
+-						<width>1018</width>
+-						<height>48</height>
+-						<font>Font49</font>
+-						<label>$VAR[Label1]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(51)">Conditional</animation>
+-						<visible>!Control.HasFocus(51)</visible>
+-					</control>
+-					<control type="image">
+-						<left>32</left>
+-						<top>25</top>
+-						<width>1018</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!ListItem.IsParentFolder + !Control.HasFocus(51)</visible>
++						<visible>!ListItem.IsParentFolder</visible>
+ 					</control>
+ 					<control type="label">
+ 						<left>32</left>
+@@ -212,9 +181,8 @@
+ 						<height>27</height>
+ 						<font>Font27</font>
+ 						<label>$VAR[Label2]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
++						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(51)">Conditional</animation>
+-						<visible>!Control.HasFocus(51)</visible>
+ 					</control>
+ 					<!-- Watched status -->
+ 					<control type="image">
+@@ -225,17 +193,7 @@
+ 						<texture>$VAR[StatusOverlay]</texture>
+ 						<colordiffuse>$VAR[TextColor1]</colordiffuse>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(51)">Conditional</animation>
+-						<visible>!ListItem.IsCollection + Control.HasFocus(51)</visible>
+-					</control>
+-					<control type="image">
+-						<left>0</left>
+-						<top>43</top>
+-						<width>14</width>
+-						<height>14</height>
+-						<texture>$VAR[StatusOverlay]</texture>
+-						<colordiffuse>$VAR[TextColor2]</colordiffuse>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(51)">Conditional</animation>
+-						<visible>!ListItem.IsCollection + !Control.HasFocus(51)</visible>
++						<visible>!ListItem.IsCollection</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
+diff --git a/16x9/Viewtype54.xml b/16x9/Viewtype54.xml
+index 89cf836..a48a0e6 100755
+--- a/16x9/Viewtype54.xml
++++ b/16x9/Viewtype54.xml
+@@ -81,31 +81,14 @@
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(54)">Conditional</animation>
+-						<visible>Control.HasFocus(54)</visible>
+ 					</control>
+ 					<control type="image">
+ 						<top>25</top>
+ 						<width>1018</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+-						<visible>Control.HasFocus(54) + !ListItem.IsParentFolder</visible>
+-					</control>
+-					<control type="label">
+-						<width>1018</width>
+-						<height>80</height>
+-						<font>Font48</font>
+-						<label>[B]$VAR[SongLabel][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(54)">Conditional</animation>
+-						<visible>!Control.HasFocus(54)</visible>
+-					</control>
+-					<control type="image">
+-						<top>25</top>
+-						<width>1018</width>
+-						<height>58</height>
+-						<texture colordiffuse="$VAR[TextColor2]">$VAR[focus58]</texture>
+-						<visible>!Control.HasFocus(54) + !ListItem.IsParentFolder</visible>
++						<visible>!ListItem.IsParentFolder</visible>
+ 					</control>
+ 				</focusedlayout>
+ 
