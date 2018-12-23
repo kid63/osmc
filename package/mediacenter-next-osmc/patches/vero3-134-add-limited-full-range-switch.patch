@@ -55,7 +55,7 @@ index 55985f5f56..1f4bf454ea 100644
 +    CLog::Log(LOGDEBUG, "CDisplaySettings::OnSettingChanging -- setting quantization range to %s", range_control & 2 ? "full" : "limited");
 +    SysfsUtils::SetInt("/sys/module/am_vecm/parameters/range_control", range_control);
 +  }
- #if defined(HAVE_X11)
+ #if defined(HAVE_X11) || defined(TARGET_WINDOWS_DESKTOP)
    else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
    {
 diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
