@@ -1,0 +1,61 @@
+From be46ffdc2c99379da09ae6857e67b8aea8031864 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Thu, 20 Dec 2018 15:35:36 +0100
+Subject: [PATCH] [addons] Do not list non-repo add-ons as "unavailable" in
+ info dialog
+
+Current GUIDialogAddonInfo logic only displays a detailed entry in the
+add-on dependency list if the add-on in question can be found in a
+repository. Add-ons that are only available locally (pre-shipped with
+Kodi or by distributor) such as script.module.pil in the default
+installation are wrongly listed as "unavailable" even though they are
+correctly found and enabled (if necessary) when installing the add-on.
+
+In fact a locally available version is already looked up, but
+completely disregarded if no repository version is found. This commit
+fixes that situation by falling back to local add-on data if none
+is found in the repositories.
+
+Fixes #14697
+---
+ xbmc/addons/GUIDialogAddonInfo.cpp | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/addons/GUIDialogAddonInfo.cpp b/xbmc/addons/GUIDialogAddonInfo.cpp
+index 00c44ec16c8f..fceabd9201c0 100644
+--- a/xbmc/addons/GUIDialogAddonInfo.cpp
++++ b/xbmc/addons/GUIDialogAddonInfo.cpp
+@@ -471,12 +471,21 @@ bool CGUIDialogAddonInfo::ShowDependencyList(const std::vector<ADDON::Dependency
+   CFileItemList items;
+   for (auto& it : deps)
+   {
+-    AddonPtr dep_addon, local_addon;
++    AddonPtr dep_addon, local_addon, info_addon;
++    // Find add-on in repositories
+     CServiceBroker::GetAddonMgr().FindInstallableById(it.id, dep_addon);
++    // Find add-on in local installation
+     CServiceBroker::GetAddonMgr().GetAddon(it.id, local_addon);
+-    if (dep_addon)
++
++    // All combinations of dep_addon and local_addon validity are possible and information
++    // must be displayed even when there is no dep_addon.
++    // info_addon is the add-on to take the information to display (name, icon) from. The
++    // version in the repository is preferred because it might contain more recent data.
++    info_addon = dep_addon ? dep_addon : local_addon;
++
++    if (info_addon)
+     {
+-      CFileItemPtr item(new CFileItem(dep_addon->Name()));
++      CFileItemPtr item(new CFileItem(info_addon->Name()));
+       std::stringstream str;
+       str << it.id << " " << it.requiredVersion.asString();
+       if ((it.optional && !local_addon) || (!it.optional && local_addon))
+@@ -489,7 +498,7 @@ bool CGUIDialogAddonInfo::ShowDependencyList(const std::vector<ADDON::Dependency
+                                           g_localizeStrings.Get(39018).c_str());
+ 
+       item->SetLabel2(str.str());
+-      item->SetIconImage(dep_addon->Icon());
++      item->SetIconImage(info_addon->Icon());
+       item->SetProperty("addon_id", it.id);
+       items.Add(item);
+     }
