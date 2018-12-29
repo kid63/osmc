@@ -1,0 +1,68 @@
+From ac502da5eeb38014caed0d4be1634fa2634eb163 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Fri, 21 Dec 2018 19:00:22 +0100
+Subject: [PATCH] [addons] Workaround file copying bug decoding "+" to space in
+ file names
+
+Installation of add-ons with "+" in their name or version currently
+fails because the downloaded file cannot be found. This is due to path
+decoding applied in the course of calling CFileOperationJob for
+performing the download which replaces "+" with space.
+
+Actually, decoding "+" to space is an error for URLs (only to be
+performed for the query part and not other parts), but changing this
+in the RC phase could lead to too many regressions in other parts of the
+application.
+
+There is also a design flaw with CFileOperationJob in general because
+(to my knowledge) it does not tell you the resulting download location,
+so without using special functions it is always possible that the final
+file name is not what the calling code expects.
+
+Fixes #14779
+---
+ xbmc/addons/AddonInstaller.cpp | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/addons/AddonInstaller.cpp b/xbmc/addons/AddonInstaller.cpp
+index 4077c10f4ce8..e97cc22e5bd3 100644
+--- a/xbmc/addons/AddonInstaller.cpp
++++ b/xbmc/addons/AddonInstaller.cpp
+@@ -509,9 +509,6 @@ bool CAddonInstallJob::DoWork()
+     // packages folder, then extracting from the local .zip package into the addons folder
+     // Both these functions are achieved by "copying" using the vfs.
+ 
+-    std::string dest = "special://home/addons/packages/";
+-    std::string package = URIUtils::AddFileToFolder("special://home/addons/packages/",
+-                                                    URIUtils::GetFileName(m_addon->Path()));
+     if (!m_repo && URIUtils::HasSlashAtEnd(m_addon->Path()))
+     { // passed in a folder - all we need do is copy it across
+       installFrom = m_addon->Path();
+@@ -541,6 +538,18 @@ bool CAddonInstallJob::DoWork()
+         return false;
+       }
+ 
++      std::string packageOriginalPath, packageFileName;
++      URIUtils::Split(path, packageOriginalPath, packageFileName);
++      // Use ChangeBasePath so the URL is decoded if necessary
++      const std::string packagePath = "special://home/addons/packages/";
++      //!@todo fix design flaw in file copying: We use CFileOperationJob to download the package from the internet
++      // to the local cache. It tries to be "smart" and decode the URL. But it never tells us what the result is,
++      // so if we try for example to download "http://localhost/a+b.zip" the result ends up in "a b.zip".
++      // First bug is that it actually decodes "+", which is not necessary except in query parts. Second bug
++      // is that we cannot know that it does this and what the result is so the package will not be found without
++      // using ChangeBasePath here (which is the same function the copying code uses and performs the translation).
++      std::string package = URIUtils::ChangeBasePath(packageOriginalPath, packageFileName, packagePath);
++
+       // check that we don't already have a valid copy
+       if (!hash.Empty())
+       {
+@@ -558,7 +567,7 @@ bool CAddonInstallJob::DoWork()
+       // zip passed in - download + extract
+       if (!CFile::Exists(package))
+       {
+-        if (!DownloadPackage(path, dest))
++        if (!DownloadPackage(path, packagePath))
+         {
+           CFile::Delete(package);
+ 
