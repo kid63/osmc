@@ -41,8 +41,8 @@ index 368010d..634a53a 100644
 +void CApplication::ActivateScreenSaverStandby()
 +{
 +  CLog::Log(LOGINFO, "Activating Vero standby mode");
-+    if (g_application.m_pPlayer->IsPlayingVideo())
-+      g_application.StopPlaying();
++    if (m_pPlayer->IsPlayingVideo())
++      StopPlaying();
 +  ToggleStandby();
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
 +  g_windowManager.CloseDialogs(true);
