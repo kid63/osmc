@@ -116,7 +116,7 @@ index 4a8da2c..3cf9974
  
 +  int range_control;
 +  SysfsUtils::GetInt("/sys/module/am_vecm/parameters/range_control", range_control);
-+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE))
++  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGEAML))
 +    range_control &= 1;
 +  else
 +    range_control |= 2;
