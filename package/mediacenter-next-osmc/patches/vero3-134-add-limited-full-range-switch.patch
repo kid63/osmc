@@ -52,7 +52,7 @@ index e3592fa..fe17f54 100644
 +#include "utils/SysfsUtils.h"
  #include "utils/Variant.h"
  #include "utils/XMLUtils.h"
- #include "windowing/WindowingFactory.h"
+ #include "rendering/RenderSystem.h" 
 @@ -326,6 +327,17 @@ bool CDisplaySettings::OnSettingChanging(const CSetting *setting)
  
      return true;
@@ -61,16 +61,16 @@ index e3592fa..fe17f54 100644
 +  {
 +    int range_control;
 +    SysfsUtils::GetInt("/sys/module/am_vecm/parameters/range_control", range_control);
-+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGEAML))
++    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGEAML))
 +      range_control &= 1;
 +    else
 +      range_control |= 2;
 +    CLog::Log(LOGDEBUG, "CDisplaySettings::OnSettingChanging -- setting quantization range to %s", range_control & 2 ? "full" : "limited");
 +    SysfsUtils::SetInt("/sys/module/am_vecm/parameters/range_control", range_control);
 +  }
- #if defined(HAS_GLX)
-   else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
-   {
+ #if defined(HAVE_X11) || defined(TARGET_WINDOWS_DESKTOP)
+  else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
+  {
 diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
 index 72098b5..a9395a9 100644
 --- a/xbmc/settings/Settings.cpp
