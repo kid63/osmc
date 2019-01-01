@@ -46,6 +46,7 @@ index 368010d..634a53a 100644
 +  ToggleStandby();
 +  CAnnouncementManager::GetInstance().Announce(GUI, "xbmc", "OnScreensaverActivated");
 +  g_windowManager.CloseDialogs(true);
++  CServiceBroker::GetGUI()->GetWindowManager().CloseDialogs(true);
 +}
 +
 +void CApplication::ToggleStandby()
@@ -66,7 +67,7 @@ index 368010d..634a53a 100644
 +	SysfsUtils::SetString(ss_govpath.str(), cpu_governor);
 +  }
 +  std::string hpdlock = "hpd_lock1";
-+  if (m_bVeroStandby && ! CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD))
++  if (m_bVeroStandby && ! CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD))
 +	hpdlock = "hpd_lock0";
 +  CLog::Log(LOGINFO, "CApplication::ToggleStandby -- HPD locking will now be %s", hpdlock.c_str());
 +  SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", hpdlock);
