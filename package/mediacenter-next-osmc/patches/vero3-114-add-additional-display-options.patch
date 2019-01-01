@@ -1,5 +1,3 @@
-From 6bc252396f9b1907f4c6152fc01b87ffc8a715cc Mon Sep 17 00:00:00 2001
-From: Sam Nazarko <email@samnazarko.co.uk>
 Date: Mon, 15 Jan 2018 02:34:41 +0000
 Subject: [PATCH] Add option to force RGB output, lock HPD and disable HDMI
  audio out
@@ -10,7 +8,7 @@ Signed-off-by: Sam Nazarko <email@samnazarko.co.uk>
  system/settings/settings.xml                       | 20 +++++++++++
  xbmc/settings/Settings.cpp                         |  4 +++
  xbmc/settings/Settings.h                           |  4 +++
- xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp        | 18 ++++++++++
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp        | 18 ++++++++++
  5 files changed, 87 insertions(+)
 
 diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
@@ -134,38 +132,30 @@ diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogi
 index 3a5e8f7..e87d381 100644
 --- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 +++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
-@@ -25,6 +25,7 @@
- #include "utils/StringUtils.h"
- #include "utils/SysfsUtils.h"
- #include "utils/log.h"
-+#include "settings/Settings.h"
- 
- #include <stdio.h>
- #include <stdlib.h>
 @@ -67,6 +68,23 @@ void CEGLNativeTypeAmlogic::Initialize()
- {
+
    aml_permissions();
-   DisableFreeScale();
+   aml_disable_freeScale();
 +
 + /* Take in to account custom OSMC parameters */
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCERGB)) {
++  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FORCERGB)) {
 +    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing RGB");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/output_rgb", "1");
 + }
 +
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
++ if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LOCKHPD)) {
 +    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic::Initialize -- forcing HPD to be locked");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
 + }
 +
-+ if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCE422)) {
++ if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FORCE422)) {
 +    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic:: Initialize -- forcing 422 output");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/attr", "422now");
 + }
 +
- }
- void CEGLNativeTypeAmlogic::Destroy()
- {
+
+  // Register sink
+  AE::CAESinkFactory::ClearSinks();
 -- 
 2.7.4
 
