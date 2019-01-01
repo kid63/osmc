@@ -130,10 +130,10 @@ index ab67709..3b46960 100644
    static const std::string SETTING_VIDEOSCREEN_STEREOSCOPICMODE;
    static const std::string SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE;
    static const std::string SETTING_VIDEOSCREEN_NOOFBUFFERS;
-diff --git a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 index 3a5e8f7..e87d381 100644
---- a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-+++ b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 @@ -25,6 +25,7 @@
  #include "utils/StringUtils.h"
  #include "utils/SysfsUtils.h"
