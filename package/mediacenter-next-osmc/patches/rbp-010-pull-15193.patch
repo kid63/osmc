@@ -1,0 +1,53 @@
+From 33de212e6c338b8beadd3af57be82f5dac69eafe Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Thu, 3 Jan 2019 17:43:43 +0100
+Subject: [PATCH] [wayland] Request new frame cb only when previous one was
+ signaled
+
+Continuously requesting new frame callbacks even when the last one has
+not been signaled generates a lot of unnecessary traffic on the Wayland
+connection and has the potential to exhaust the object ID space (since
+every callback is a separate object) when the surface is not visible for
+a very long time. Also, already for short time spans the compositor
+might have problems buffering all delete_id() messages being sent at
+once at the moment the surface becomes visible again.
+---
+ xbmc/windowing/wayland/WinSystemWayland.cpp | 22 ++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/windowing/wayland/WinSystemWayland.cpp b/xbmc/windowing/wayland/WinSystemWayland.cpp
+index 23f34906af2c..72337ffccf1c 100644
+--- a/xbmc/windowing/wayland/WinSystemWayland.cpp
++++ b/xbmc/windowing/wayland/WinSystemWayland.cpp
+@@ -1385,16 +1385,24 @@ void CWinSystemWayland::PrepareFramePresentation()
+     // while it is minimized (since the wait needs to be interrupted for that).
+     // -> Use Wait with timeout here so we can maintain a reasonable frame rate
+     //    even when the window is not visible and we do not get any frame callbacks.
+-    m_frameCallbackEvent.WaitMSec(50);
+-    m_frameCallbackEvent.Reset();
++    if (m_frameCallbackEvent.WaitMSec(50))
++    {
++      // Only reset frame callback object a callback was received so a
++      // new one is not requested continuously
++      m_frameCallback = {};
++      m_frameCallbackEvent.Reset();
++    }
+   }
+ 
+-  // Get frame callback event for checking in the next call to this function
+-  m_frameCallback = m_surface.frame();
+-  m_frameCallback.on_done() = [this](std::uint32_t)
++  if (!m_frameCallback)
+   {
+-    m_frameCallbackEvent.Set();
+-  };
++    // Get frame callback event for checking in the next call to this function
++    m_frameCallback = m_surface.frame();
++    m_frameCallback.on_done() = [this](std::uint32_t)
++    {
++      m_frameCallbackEvent.Set();
++    };
++  }
+ }
+ 
+ void CWinSystemWayland::FinishFramePresentation()
