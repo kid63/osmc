@@ -1,0 +1,114 @@
+From 182ad9d51990a9f10b272d0766b945b98cc35351 Mon Sep 17 00:00:00 2001
+From: enen92 <92enen@gmail.com>
+Date: Tue, 25 Dec 2018 19:29:59 +0000
+Subject: [PATCH 1/3] [VideoPlayer] Use DynPath in
+ GetExternalStreamDetailsFromFilename calls
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index 200b53c10017..eb84f45af867 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -4619,7 +4619,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
+       return -1;
+     m_SelectionStreams.Update(NULL, v.get(), vobsubfile);
+ 
+-    ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetPath(), vobsubfile);
++    ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetDynPath(), vobsubfile);
+ 
+     for (auto sub : v->GetStreams())
+     {
+@@ -4658,7 +4658,7 @@ int CVideoPlayer::AddSubtitleFile(const std::string& filename, const std::string
+   s.type     = STREAM_SUBTITLE;
+   s.id       = 0;
+   s.filename = filename;
+-  ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetPath(), filename);
++  ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(m_item.GetDynPath(), filename);
+   s.name = info.name;
+   s.language = info.language;
+   if (static_cast<StreamFlags>(info.flag) != StreamFlags::FLAG_NONE)
+
+From 4621220312a0fa04cdc5e36e5a0718208908da79 Mon Sep 17 00:00:00 2001
+From: enen92 <92enen@gmail.com>
+Date: Tue, 25 Dec 2018 18:31:40 +0000
+Subject: [PATCH 2/3] [SmartPlaylists] Define DynPath for items retrieved from
+ library (movies and episodes)
+
+---
+ xbmc/video/VideoDatabase.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/xbmc/video/VideoDatabase.cpp b/xbmc/video/VideoDatabase.cpp
+index 8c5a6c60a3d7..65032fbb1bc8 100644
+--- a/xbmc/video/VideoDatabase.cpp
++++ b/xbmc/video/VideoDatabase.cpp
+@@ -7013,6 +7013,7 @@ bool CVideoDatabase::GetMoviesByWhere(const std::string& strBaseDir, const Filte
+         std::string path = StringUtils::Format("%i", movie.m_iDbId);
+         itemUrl.AppendPath(path);
+         pItem->SetPath(itemUrl.ToString());
++        pItem->SetDynPath(movie.m_strFileNameAndPath);
+ 
+         pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED,movie.GetPlayCount() > 0);
+         items.Add(pItem);
+@@ -7255,6 +7256,7 @@ bool CVideoDatabase::GetEpisodesByWhere(const std::string& strBaseDir, const Fil
+           path = StringUtils::Format("%i", idEpisode);
+         itemUrl.AppendPath(path);
+         pItem->SetPath(itemUrl.ToString());
++        pItem->SetDynPath(movie.m_strFileNameAndPath);
+ 
+         pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, movie.GetPlayCount() > 0);
+         pItem->m_dateTime = movie.m_firstAired;
+
+From 64a4fc766f24f05fd5c781ee86ecda48c5ec288a Mon Sep 17 00:00:00 2001
+From: enen92 <92enen@gmail.com>
+Date: Tue, 25 Dec 2018 20:53:37 +0000
+Subject: [PATCH 3/3] [cosmetics] Rename movie to episode in
+ CVideoDatabase::GetEpisodesByWhere
+
+---
+ xbmc/video/VideoDatabase.cpp | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/video/VideoDatabase.cpp b/xbmc/video/VideoDatabase.cpp
+index 65032fbb1bc8..16b598350b15 100644
+--- a/xbmc/video/VideoDatabase.cpp
++++ b/xbmc/video/VideoDatabase.cpp
+@@ -7238,12 +7238,12 @@ bool CVideoDatabase::GetEpisodesByWhere(const std::string& strBaseDir, const Fil
+       unsigned int targetRow = (unsigned int)i.at(FieldRow).asInteger();
+       const dbiplus::sql_record* const record = data.at(targetRow);
+ 
+-      CVideoInfoTag movie = GetDetailsForEpisode(record, getDetails);
++      CVideoInfoTag episode = GetDetailsForEpisode(record, getDetails);
+       if (m_profileManager.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE ||
+           g_passwordManager.bMasterUser                                     ||
+-          g_passwordManager.IsDatabasePathUnlocked(movie.m_strPath, *CMediaSourceSettings::GetInstance().GetSources("video")))
++          g_passwordManager.IsDatabasePathUnlocked(episode.m_strPath, *CMediaSourceSettings::GetInstance().GetSources("video")))
+       {
+-        CFileItemPtr pItem(new CFileItem(movie));
++        CFileItemPtr pItem(new CFileItem(episode));
+         formatter.FormatLabel(pItem.get());
+ 
+         int idEpisode = record->at(0).get_asInt();
+@@ -7251,15 +7251,15 @@ bool CVideoDatabase::GetEpisodesByWhere(const std::string& strBaseDir, const Fil
+         CVideoDbUrl itemUrl = videoUrl;
+         std::string path;
+         if (appendFullShowPath && videoUrl.GetItemType() != "episodes")
+-          path = StringUtils::Format("%i/%i/%i", record->at(VIDEODB_DETAILS_EPISODE_TVSHOW_ID).get_asInt(), movie.m_iSeason, idEpisode);
++          path = StringUtils::Format("%i/%i/%i", record->at(VIDEODB_DETAILS_EPISODE_TVSHOW_ID).get_asInt(), episode.m_iSeason, idEpisode);
+         else
+           path = StringUtils::Format("%i", idEpisode);
+         itemUrl.AppendPath(path);
+         pItem->SetPath(itemUrl.ToString());
+-        pItem->SetDynPath(movie.m_strFileNameAndPath);
++        pItem->SetDynPath(episode.m_strFileNameAndPath);
+ 
+-        pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, movie.GetPlayCount() > 0);
+-        pItem->m_dateTime = movie.m_firstAired;
++        pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, episode.GetPlayCount() > 0);
++        pItem->m_dateTime = episode.m_firstAired;
+         items.Add(pItem);
+       }
+     }
