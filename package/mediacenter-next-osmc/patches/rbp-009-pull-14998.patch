@@ -1,0 +1,74 @@
+From 65b2f9b442d6bc18c6ea07badea4d1e6801a5c17 Mon Sep 17 00:00:00 2001
+From: XODIDOX <xodidox@gmail.com>
+Date: Wed, 5 Dec 2018 03:46:06 -0800
+Subject: [PATCH] Add force flag to enable update file item in inactive window
+ Update m_strDynpath
+
+---
+ xbmc/FileItem.cpp                | 1 +
+ xbmc/GUIUserMessages.h           | 4 ++++
+ xbmc/network/upnp/UPnPServer.cpp | 2 +-
+ xbmc/windows/GUIMediaWindow.cpp  | 8 ++++++--
+ 4 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/FileItem.cpp b/xbmc/FileItem.cpp
+index cef49b864171..dd092f512d39 100644
+--- a/xbmc/FileItem.cpp
++++ b/xbmc/FileItem.cpp
+@@ -1599,6 +1599,7 @@ void CFileItem::UpdateInfo(const CFileItem &item, bool replaceLabels /*=true*/)
+     *GetGameInfoTag() = *item.GetGameInfoTag();
+     SetInvalid();
+   }
++  SetDynPath(item.GetDynPath());
+   if (replaceLabels && !item.GetLabel().empty())
+     SetLabel(item.GetLabel());
+   if (replaceLabels && !item.GetLabel2().empty())
+diff --git a/xbmc/GUIUserMessages.h b/xbmc/GUIUserMessages.h
+index 3d1e8ee7c544..a3335eaff9fd 100644
+--- a/xbmc/GUIUserMessages.h
++++ b/xbmc/GUIUserMessages.h
+@@ -103,6 +103,10 @@
+ // Message sent to tell the GUI to update a single item
+ #define GUI_MSG_UPDATE_ITEM           GUI_MSG_USER + 29
+ 
++// Flags for GUI_MSG_UPDATE_ITEM message
++constexpr int GUI_MSG_FLAG_UPDATE_LIST = 0x00000001;
++constexpr int GUI_MSG_FLAG_FORCE_UPDATE = 0x00000002;
++
+ // Message sent to tell the GUI to change view mode
+ #define GUI_MSG_CHANGE_VIEW_MODE      GUI_MSG_USER + 30
+ 
+diff --git a/xbmc/network/upnp/UPnPServer.cpp b/xbmc/network/upnp/UPnPServer.cpp
+index 39712ccdedba..d31adec553e3 100644
+--- a/xbmc/network/upnp/UPnPServer.cpp
++++ b/xbmc/network/upnp/UPnPServer.cpp
+@@ -1113,7 +1113,7 @@ CUPnPServer::OnUpdateObject(PLT_ActionReference&             action,
+              CUtil::DeleteMusicDatabaseDirectoryCache();
+ 
+         CFileItemPtr msgItem(new CFileItem(updated));
+-        CGUIMessage message(GUI_MSG_NOTIFY_ALL, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 1, msgItem);
++        CGUIMessage message(GUI_MSG_NOTIFY_ALL, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, GUI_MSG_FLAG_UPDATE_LIST, msgItem);
+         CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(message);
+     }
+ 
+diff --git a/xbmc/windows/GUIMediaWindow.cpp b/xbmc/windows/GUIMediaWindow.cpp
+index 01f4e2e883d8..45e935cd9fbd 100644
+--- a/xbmc/windows/GUIMediaWindow.cpp
++++ b/xbmc/windows/GUIMediaWindow.cpp
+@@ -411,10 +411,14 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
+       }
+       else if (message.GetParam1()==GUI_MSG_UPDATE_ITEM && message.GetItem())
+       {
++        int flag = message.GetParam2();
+         CFileItemPtr newItem = std::static_pointer_cast<CFileItem>(message.GetItem());
+-        if (IsActive())
++
++        if (IsActive() || (flag & GUI_MSG_FLAG_FORCE_UPDATE))
+         {
+-          if (m_vecItems->UpdateItem(newItem.get()) && message.GetParam2() == 1)
++          m_vecItems->UpdateItem(newItem.get());
++
++          if (flag & GUI_MSG_FLAG_UPDATE_LIST)
+           { // need the list updated as well
+             UpdateFileList();
+           }
