@@ -7,7 +7,7 @@ Subject: [PATCH] fix422
  addons/resource.language.en_gb/resources/strings.po |  2 +-
  xbmc/settings/DisplaySettings.cpp                   | 20 ++++++++++++++++++++
  xbmc/settings/Settings.cpp                          |  1 +
- xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp         | 18 ++++++++++++++++--
+ xbmc/windowing/amlogic/WinSystemAmlogic.cpp         | 18 ++++++++++++++++--
  4 files changed, 38 insertions(+), 3 deletions(-)
 
 diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
@@ -65,10 +65,10 @@ index 8c3a9f9..2792710 100644
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_MONITOR);
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE);
    settingSet.insert(CSettings::SETTING_VIDEOSCREEN_3DLUT);
-diff --git a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
+diff --git a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 index 0e27e86..9797260 100755
---- a/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
-+++ b/xbmc/windowing/egl/EGLNativeTypeAmlogic.cpp
+--- a/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
++++ b/xbmc/windowing/amlogic/WinSystemAmlogic.cpp
 @@ -100,10 +100,24 @@ void CEGLNativeTypeAmlogic::Initialize()
      SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/debug", "hpd_lock1");
   }
@@ -76,7 +76,7 @@ index 0e27e86..9797260 100755
 + std::string attr = "";
 + SysfsUtils::GetString("/sys/class/amhdmitx/amhdmitx0/attr", attr);
 +
-  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCE422)) {
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FORCE422)) {
 -    CLog::Log(LOGDEBUG, "CEGLNativeTypeAmlogic:: Initialize -- forcing 422 output");
 -    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/attr", "422now");
 +   if (attr.find("444") != std::string::npos ||
