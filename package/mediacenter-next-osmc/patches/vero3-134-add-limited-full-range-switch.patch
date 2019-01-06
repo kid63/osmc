@@ -65,7 +65,7 @@ index e3592faf..b901a3d9
 +    std::string attr = "";
 +
 +    SysfsUtils::GetInt("/sys/module/am_vecm/parameters/range_control", range_control);
-+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGEAML))
++    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGEAML)) 
 +      range_control &= 1;
 +    else
 +      range_control |= 2;
@@ -75,9 +75,9 @@ index e3592faf..b901a3d9
 +    attr.append("now");
 +    SysfsUtils::SetString("/sys/class/amhdmitx/amhdmitx0/attr", attr.c_str());
 +  }
- #if defined(HAS_GLX)
-   else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
-   {
+ #if defined(HAVE_X11) || defined(TARGET_WINDOWS_DESKTOP)
+  else if (settingId == CSettings::SETTING_VIDEOSCREEN_BLANKDISPLAYS)
+  {
 diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
 index 01826a40..8c3a9f95 100644
 --- a/xbmc/settings/Settings.cpp
