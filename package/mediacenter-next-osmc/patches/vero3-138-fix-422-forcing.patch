@@ -34,7 +34,7 @@ index fe17f54..f957c31 100644
 +    std::string attr = "";
 +    SysfsUtils::GetString("/sys/class/amhdmitx/amhdmitx0/attr", attr);
 +
-+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOSCREEN_FORCE422)) {
++    if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_FORCE422)) {
 +      if (attr.find("444") != std::string::npos ||
 +          attr.find("422") != std::string::npos ||
 +          attr.find("420") != std::string::npos)
