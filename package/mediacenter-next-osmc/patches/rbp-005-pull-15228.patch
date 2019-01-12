@@ -1,0 +1,50 @@
+From d4d01d73dc8265a8c71c489226e9e58c4b83f365 Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Thu, 10 Jan 2019 10:33:49 +0100
+Subject: [PATCH] VideoInfoScanner: Correctly redact URLs
+
+CURL::GetRedacted does not work on decoded URLs since e.g. the password
+part may include an encoded @ (%40) that in decoded form will confuse
+the redaction and expose part of the password. Also, there is no
+particularly strong reason to decode URLs for log messages here.
+When matching the regular expressions, however, the URL must be decoded,
+but the username/password details are not important, so redact them
+before matching. Otherwise, they might get exposed during further
+logging done on the decoded URLs.
+---
+ xbmc/video/VideoInfoScanner.cpp | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/xbmc/video/VideoInfoScanner.cpp b/xbmc/video/VideoInfoScanner.cpp
+index 470e97f8031a..49e9b1899e25 100644
+--- a/xbmc/video/VideoInfoScanner.cpp
++++ b/xbmc/video/VideoInfoScanner.cpp
+@@ -985,7 +985,7 @@ namespace VIDEO
+         continue;
+ 
+       if (!EnumerateEpisodeItem(items[i].get(), episodeList))
+-        CLog::Log(LOGDEBUG, "VideoInfoScanner: Could not enumerate file %s", CURL::GetRedacted(CURL::Decode(items[i]->GetPath())).c_str());
++        CLog::Log(LOGDEBUG, "VideoInfoScanner: Could not enumerate file {}", CURL::GetRedacted(items[i]->GetPath()));
+     }
+     return true;
+   }
+@@ -1102,7 +1102,7 @@ namespace VIDEO
+       strLabel = item->GetPath();
+ 
+     // URLDecode in case an episode is on a http/https/dav/davs:// source and URL-encoded like foo%201x01%20bar.avi
+-    strLabel = CURL::Decode(strLabel);
++    strLabel = CURL::Decode(CURL::GetRedacted(strLabel));
+ 
+     for (unsigned int i=0;i<expression.size();++i)
+     {
+@@ -1308,9 +1308,7 @@ namespace VIDEO
+       strTitle = StringUtils::Format("%s - %ix%i - %s", showInfo->m_strTitle.c_str(), movieDetails.m_iSeason, movieDetails.m_iEpisode, strTitle.c_str());
+     }
+ 
+-    std::string redactPath(CURL::GetRedacted(CURL::Decode(pItem->GetPath())));
+-
+-    CLog::Log(LOGDEBUG, "VideoInfoScanner: Adding new item to %s:%s", TranslateContent(content).c_str(), redactPath.c_str());
++    CLog::Log(LOGDEBUG, "VideoInfoScanner: Adding new item to {}:{}", TranslateContent(content), CURL::GetRedacted(pItem->GetPath()));
+     long lResult = -1;
+ 
+     if (content == CONTENT_MOVIES)
