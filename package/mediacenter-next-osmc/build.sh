@@ -16,12 +16,12 @@ sudo apt-get remove --purge armv6l-toolchain-osmc -y
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/a54492d35305a81095481abf0baf104ed363e214.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/40c4ab5bcffeefee7addfb5cb4d91f5aa2647977.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/7d27c5e2d8b428ef132123184e7310153e079396.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/5a4a93948ccc18f5ed448d53191928839f4aa492.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
