@@ -1,0 +1,88 @@
+From 2673d57965b0f4121629b22a7cb2536878bf4f3b Mon Sep 17 00:00:00 2001
+From: DaVukovic <dvukovic@gmx.de>
+Date: Wed, 9 Jan 2019 10:31:18 +0100
+Subject: [PATCH] Improve detection of audio CDs using an infobool
+
+---
+ addons/skin.estuary/xml/Home.xml      |  2 +-
+ xbmc/GUIInfoManager.cpp               |  9 +++++++++
+ xbmc/guilib/guiinfo/GUIInfoLabels.h   |  1 +
+ xbmc/guilib/guiinfo/SystemGUIInfo.cpp | 13 +++++++++++++
+ 4 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/addons/skin.estuary/xml/Home.xml b/addons/skin.estuary/xml/Home.xml
+index 164b02aa82f9..410eceb59bdb 100644
+--- a/addons/skin.estuary/xml/Home.xml
++++ b/addons/skin.estuary/xml/Home.xml
+@@ -793,7 +793,7 @@
+ 						<param name="button2_onclick" value="EjectTray()"/>
+ 						<param name="button3_label" value="$LOCALIZE[600]"/>
+ 						<param name="button3_onclick" value="RipCD"/>
+-						<param name="visible_3" value="String.IsEqual(System.DVDLabel,Audio-CD)"/>
++						<param name="visible_3" value="System.HasMediaAudioCD"/>
+ 					</include>
+ 				</control>
+ 			</control>
+diff --git a/xbmc/GUIInfoManager.cpp b/xbmc/GUIInfoManager.cpp
+index a56b0832ec44..0b51e8f1d3b5 100644
+--- a/xbmc/GUIInfoManager.cpp
++++ b/xbmc/GUIInfoManager.cpp
+@@ -1000,6 +1000,14 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
+ ///     @return **True** if there is a CD or DVD in the DVD-ROM drive.
+ ///     <p>
+ ///   }
++///   \table_row3{   <b>`System.HasMediaAudioCD`</b>,
++///                  \anchor System_HasMediaAudioCD
++///                  _boolean_,
++///     @return **True** if there is an audio CD in the optical drive. **False** if no drive available\, empty drive or other medium.
++///   <p><hr>
++///   @skinning_v18 **[New Boolean Condition]** \link System_HasMediaAudioCD `System.HasMediaAudioCD` \endlink
++///   <p>
++///   }
+ ///   \table_row3{   <b>`System.DVDReady`</b>,
+ ///                  \anchor System_DVDReady
+ ///                  _boolean_,
+@@ -1581,6 +1589,7 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
+ ///   }
+ const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACTIVE },
+                                   { "hasmediadvd",      SYSTEM_MEDIA_DVD },
++                                  { "hasmediaaudiocd",  SYSTEM_MEDIA_AUDIO_CD },
+                                   { "dvdready",         SYSTEM_DVDREADY },
+                                   { "trayopen",         SYSTEM_TRAYOPEN },
+                                   { "haslocks",         SYSTEM_HASLOCKS },
+diff --git a/xbmc/guilib/guiinfo/GUIInfoLabels.h b/xbmc/guilib/guiinfo/GUIInfoLabels.h
+index 4930662cda14..d9a572e9a4b2 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoLabels.h
++++ b/xbmc/guilib/guiinfo/GUIInfoLabels.h
+@@ -422,6 +422,7 @@
+ #define SYSTEM_CAN_SUSPEND          751
+ #define SYSTEM_CAN_HIBERNATE        752
+ #define SYSTEM_CAN_REBOOT           753
++#define SYSTEM_MEDIA_AUDIO_CD       754
+ 
+ #define SLIDESHOW_ISPAUSED          800
+ #define SLIDESHOW_ISRANDOM          801
+diff --git a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
+index e68aca1ba4cc..a27bda486802 100644
+--- a/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
++++ b/xbmc/guilib/guiinfo/SystemGUIInfo.cpp
+@@ -488,6 +488,19 @@ bool CSystemGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int context
+     case SYSTEM_MEDIA_DVD:
+       value = g_mediaManager.IsDiscInDrive();
+       return true;
++    case SYSTEM_MEDIA_AUDIO_CD:
++    #ifdef HAS_DVD_DRIVE
++      if (g_mediaManager.IsDiscInDrive())
++      {
++        MEDIA_DETECT::CCdInfo *pCdInfo = g_mediaManager.GetCdInfo();
++        value = pCdInfo && (pCdInfo->IsAudio(1) || pCdInfo->IsCDExtra(1) || pCdInfo->IsMixedMode(1));
++      }
++      else
++    #endif
++      {
++        value = false;
++      }
++      return true;
+ #ifdef HAS_DVD_DRIVE
+     case SYSTEM_DVDREADY:
+       value = g_mediaManager.GetDriveStatus() != DRIVE_NOT_READY;

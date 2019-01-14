@@ -1,0 +1,29 @@
+From 215333ceed22312550cb91e5f291d7040079a0ea Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Sat, 12 Jan 2019 17:50:51 +0100
+Subject: [PATCH] GLContextEGL: Remove logging
+
+---
+ xbmc/windowing/X11/GLContextEGL.cpp | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/xbmc/windowing/X11/GLContextEGL.cpp b/xbmc/windowing/X11/GLContextEGL.cpp
+index 272cd9621496..2b6b5d35e3dd 100644
+--- a/xbmc/windowing/X11/GLContextEGL.cpp
++++ b/xbmc/windowing/X11/GLContextEGL.cpp
+@@ -433,7 +433,6 @@ void CGLContextEGL::SwapBuffers()
+   if ((msc1 - m_sync.msc1) > 2)
+   {
+     m_sync.cont = 0;
+-    CLog::Log(LOGDEBUG, "CGLContextEGL::SwapBuffers: sync reset");
+   }
+ 
+   // we want to block in SwapBuffers
+@@ -449,7 +448,6 @@ void CGLContextEGL::SwapBuffers()
+     {
+       m_sync.interval = (ust1 - m_sync.ust1) / (msc1 - m_sync.msc1);
+       m_sync.cont++;
+-      CLog::Log(LOGDEBUG, "CGLContextEGL::SwapBuffers: sync interval: %ld", m_sync.interval);
+     }
+   }
+   else if (m_sync.cont == 5 && m_omlSync)
