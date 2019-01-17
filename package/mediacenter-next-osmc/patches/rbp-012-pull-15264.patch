@@ -1,0 +1,40 @@
+From 7b617a56f9f147671e2bd30583b4ea919c87afcf Mon Sep 17 00:00:00 2001
+From: ronie <ronie@kodi.tv>
+Date: Tue, 15 Jan 2019 23:09:08 +0100
+Subject: [PATCH] [py-docs] fix version info for getDbId
+
+---
+ xbmc/interfaces/legacy/InfoTagMusic.h | 2 +-
+ xbmc/interfaces/legacy/ListItem.h     | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/interfaces/legacy/InfoTagMusic.h b/xbmc/interfaces/legacy/InfoTagMusic.h
+index 4f1dd3333eee..8324c08dfe2d 100644
+--- a/xbmc/interfaces/legacy/InfoTagMusic.h
++++ b/xbmc/interfaces/legacy/InfoTagMusic.h
+@@ -63,7 +63,7 @@ namespace XBMCAddon
+       ///
+       ///
+       ///-----------------------------------------------------------------------
+-      /// @python_v17 New function added.
++      /// @python_v18 New function added.
+       ///
+       getDbId();
+ #else
+diff --git a/xbmc/interfaces/legacy/ListItem.h b/xbmc/interfaces/legacy/ListItem.h
+index 32a999490092..4c8857b34661 100644
+--- a/xbmc/interfaces/legacy/ListItem.h
++++ b/xbmc/interfaces/legacy/ListItem.h
+@@ -704,10 +704,10 @@ namespace XBMCAddon
+       /// @python_v15 **duration** has to be set in seconds.
+       /// @python_v16 Added new label **mediatype**.
+       /// @python_v17
+-      /// Added labels **setid**, **set**, **imdbnumber**, **code**, **dbid**, **path** and **userrating**.
++      /// Added labels **setid**, **set**, **imdbnumber**, **code**, **dbid** (video), **path** and **userrating**.
+       /// Expanded the possible infoLabels for the option **mediatype**.
+       /// @python_v18 Added new **game** type and associated infolabels.
+-      /// Added labels **setoverview**, **tag**, **sortepisode**, **sortseason**, **episodeguide**, **showlink**.
++      /// Added labels **dbid** (music), **setoverview**, **tag**, **sortepisode**, **sortseason**, **episodeguide**, **showlink**.
+       /// Extended labels **genre**, **country**, **director**, **studio**, **writer**, **tag**, **credits** to also use a list of strings.
+       ///
+       /// **Example:**
