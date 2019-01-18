@@ -1,0 +1,95 @@
+From 503b28dd4946549bb37b39dbf18d8a4440a6cf25 Mon Sep 17 00:00:00 2001
+From: ronie <ronie@kodi.tv>
+Date: Tue, 15 Jan 2019 00:21:50 +0100
+Subject: [PATCH] [Estuary] fix undefined font references
+
+---
+ addons/skin.estuary/xml/DialogSeekBar.xml   | 6 +++---
+ addons/skin.estuary/xml/Includes_PVR.xml    | 8 ++++----
+ addons/skin.estuary/xml/VideoFullScreen.xml | 2 +-
+ 3 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/addons/skin.estuary/xml/DialogSeekBar.xml b/addons/skin.estuary/xml/DialogSeekBar.xml
+index 1350ebf3ac7f..91c16b36c1c9 100644
+--- a/addons/skin.estuary/xml/DialogSeekBar.xml
++++ b/addons/skin.estuary/xml/DialogSeekBar.xml
+@@ -35,7 +35,7 @@
+ 					<width>400</width>
+ 					<height>50</height>
+ 					<aligny>center</aligny>
+-					<font>font30</font>
++					<font>font13</font>
+ 					<wrapmultiline>true</wrapmultiline>
+ 					<label>[COLOR button_focus]$LOCALIZE[21396]:[CR][/COLOR]$INFO[player.chapter]$INFO[player.chaptercount, / ]</label>
+ 					<visible>player.chaptercount</visible>
+@@ -109,7 +109,7 @@
+ 					<height>50</height>
+ 					<align>right</align>
+ 					<aligny>center</aligny>
+-					<font>font30</font>
++					<font>font13</font>
+ 					<wrapmultiline>true</wrapmultiline>
+ 					<animation effect="fade" time="200">VisibleChange</animation>
+ 					<label>$INFO[Player.TimeRemaining,[COLOR button_focus]$LOCALIZE[31134]:[CR][/COLOR]]</label>
+@@ -122,7 +122,7 @@
+ 					<height>50</height>
+ 					<align>right</align>
+ 					<aligny>center</aligny>
+-					<font>font30</font>
++					<font>font13</font>
+ 					<wrapmultiline>true</wrapmultiline>
+ 					<animation effect="fade" time="200">VisibleChange</animation>
+ 					<label>$INFO[PVR.EpgEventRemainingTime,[COLOR button_focus]$LOCALIZE[31134]:[CR][/COLOR]]</label>
+diff --git a/addons/skin.estuary/xml/Includes_PVR.xml b/addons/skin.estuary/xml/Includes_PVR.xml
+index de795cd9e30c..d0607c63b34a 100644
+--- a/addons/skin.estuary/xml/Includes_PVR.xml
++++ b/addons/skin.estuary/xml/Includes_PVR.xml
+@@ -114,7 +114,7 @@
+ 					<height>50</height>
+ 					<align>right</align>
+ 					<aligny>center</aligny>
+-					<font>font30</font>
++					<font>font13</font>
+ 					<label>$INFO[PVR.TimeshiftProgressEndTime]</label>
+ 				</control>
+ 				<control type="label">
+@@ -124,7 +124,7 @@
+ 					<height>50</height>
+ 					<align>left</align>
+ 					<aligny>center</aligny>
+-					<font>font30</font>
++					<font>font13</font>
+ 					<label>$INFO[PVR.TimeshiftProgressStartTime]</label>
+ 				</control>
+ 				<control type="label">
+@@ -134,7 +134,7 @@
+ 					<height>50</height>
+ 					<align>center</align>
+ 					<aligny>center</aligny>
+-					<font>font30</font>
++					<font>font13</font>
+ 					<label>[B]$LOCALIZE[31026][/B] $INFO[PVR.TimeshiftCur] (-$INFO[PVR.TimeshiftOffset])</label>
+ 					<visible>PVR.IsTimeShift</visible>
+ 				</control>
+@@ -385,7 +385,7 @@
+ 					<control type="label">
+ 						<width>1700</width>
+ 						<height>45</height>
+-						<font>font24</font>
++						<font>font13</font>
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<textcolor>button_focus</textcolor>
+ 						<align>center</align>
+diff --git a/addons/skin.estuary/xml/VideoFullScreen.xml b/addons/skin.estuary/xml/VideoFullScreen.xml
+index 0b9515bd3709..ad2f55dd9499 100644
+--- a/addons/skin.estuary/xml/VideoFullScreen.xml
++++ b/addons/skin.estuary/xml/VideoFullScreen.xml
+@@ -70,7 +70,7 @@
+ 				<height>200</height>
+ 				<aligny>center</aligny>
+ 				<align>center</align>
+-				<font>font11</font>
++				<font>font13</font>
+ 			</control>
+ 		</control>
+ 	</controls>
