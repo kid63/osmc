@@ -1,0 +1,36 @@
+From 6a0d6e2f1115cfb5a920b616a349dfc630201dad Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Fri, 18 Jan 2019 11:28:52 +0100
+Subject: [PATCH] [video][filesystem] Fix XFILE::CFileFactory::CreateLoader -
+ unsupported protocol(pvr) logspam.
+
+---
+ xbmc/filesystem/FileFactory.cpp | 1 +
+ xbmc/video/VideoThumbLoader.cpp | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 5b67eb0ceded..4a8583c39fef 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -97,6 +97,7 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
+   else if (url.IsProtocol("musicdb")) return new CMusicDatabaseFile();
+   else if (url.IsProtocol("videodb")) return new CVideoDatabaseFile();
+   else if (url.IsProtocol("library")) return nullptr;
++  else if (url.IsProtocol("pvr")) return nullptr;
+   else if (url.IsProtocol("special")) return new CSpecialProtocolFile();
+   else if (url.IsProtocol("multipath")) return new CMultiPathFile();
+   else if (url.IsProtocol("image")) return new CImageFile();
+diff --git a/xbmc/video/VideoThumbLoader.cpp b/xbmc/video/VideoThumbLoader.cpp
+index 28dd92e47764..75946ca44275 100644
+--- a/xbmc/video/VideoThumbLoader.cpp
++++ b/xbmc/video/VideoThumbLoader.cpp
+@@ -81,7 +81,7 @@ bool CThumbExtractor::DoWork()
+   if (m_item.IsLiveTV()
+   // Due to a pvr addon api design flaw (no support for multiple concurrent streams
+   // per addon instance), pvr recording thumbnail extraction does not work (reliably).
+-  ||  m_item.IsPVRRecording()
++  ||  URIUtils::IsPVRRecording(m_item.GetDynPath())
+   ||  URIUtils::IsUPnP(m_item.GetPath())
+   ||  URIUtils::IsBluray(m_item.GetPath())
+   ||  m_item.IsBDFile()
