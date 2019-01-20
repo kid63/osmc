@@ -1,0 +1,34 @@
+From 3aac935a7e712e7a303763c649351d1569241cae Mon Sep 17 00:00:00 2001
+From: Attila Jakosa <attila.jakosa@gmail.com>
+Date: Sat, 19 Jan 2019 20:52:20 +0000
+Subject: [PATCH] [lang][skin.estouchy] updated language files from Transifex
+
+---
+ addons/skin.estouchy/addon.xml                                  | 2 +-
+ .../skin.estouchy/language/resource.language.fr_fr/strings.po   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/addons/skin.estouchy/addon.xml b/addons/skin.estouchy/addon.xml
+index e633d4640d5a..f5f1d039ecd7 100644
+--- a/addons/skin.estouchy/addon.xml
++++ b/addons/skin.estouchy/addon.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+-<addon id="skin.estouchy" version="2.0.21" name="Estouchy" provider-name="Team Kodi">
++<addon id="skin.estouchy" version="2.0.22" name="Estouchy" provider-name="Team Kodi">
+ 	<requires>
+ 		<import addon="xbmc.gui" version="5.14.0"/>
+ 	</requires>
+diff --git a/addons/skin.estouchy/language/resource.language.fr_fr/strings.po b/addons/skin.estouchy/language/resource.language.fr_fr/strings.po
+index 4ef821159acf..8c6fac63d271 100644
+--- a/addons/skin.estouchy/language/resource.language.fr_fr/strings.po
++++ b/addons/skin.estouchy/language/resource.language.fr_fr/strings.po
+@@ -210,7 +210,7 @@ msgstr "Configuration de l'affichage · Configuration de l'audio · Configuratio
+ 
+ msgctxt "#31407"
+ msgid "Manage your installed add-ons · Browse for and install add-ons from kodi.tv · Modify add-on settings"
+-msgstr "Gestion des extensions installées · Parcours et installation des extensions depuis kodi.tv · Modification des paramètres des extensions"
++msgstr "Gestion des extensions installées · Parcours et installation des extensions depuis Kodi.tv · Modification des paramètres des extensions"
+ 
+ msgctxt "#31408"
+ msgid "Configure actions that can be used during playback · Configure how media content is played"
