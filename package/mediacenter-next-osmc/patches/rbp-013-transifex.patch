@@ -14,15 +14,6 @@ diff --git a/addons/repository.xbmc.org/addon.xml b/addons/repository.xbmc.org/a
 index 66dce5457129..c431c0fbca9e 100644
 --- a/addons/repository.xbmc.org/addon.xml
 +++ b/addons/repository.xbmc.org/addon.xml
-@@ -1,7 +1,7 @@
- <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
- <addon id="repository.xbmc.org"
- 		name="Kodi Add-on repository"
--		version="3.1.4"
-+		version="9.9.10"
- 		provider-name="Team Kodi">
-   <requires>
-     <import addon="xbmc.addon" version="12.0.0"/>
 @@ -96,7 +96,7 @@
  		<description lang="fa_IR">افزودنی ها را از منبع رسمی افزونه ها در Kodi.tv دانلود و نصب کنید. [CR] با استفاده از منبع رسمی شما قادر خواهید بود از خدمات گسترده سرویس دانلود جایگزین ما بهره ببرید که امکان دانلود از مناطق نزدیکتر را در اختیار شما قرار می دهد. [CR] همه افزونه های این منبع آزمایش های اولیه را پشت سر گذاشته اند. در صورت یافتن افزونه معیوب یا غیر قابل استفاده لطفا آن را به تیم کودی گزارش کنید تا اقدامات لازم را انجام دهیم.</description>
  		<description lang="fi_FI">Lataa ja asenna lisäosia virallisesta Kodi.tv lisäosien ohjelmavarastosta.[CR]  Käyttämällä virallista ohjelmavarastoa sinun on mahdollista käyttää hyväksesi meidän kattavaa tiedostojen peilauspalveluamme saavuttaaksesi korkeat latausnopeudet sinun lähialueeltasi.[CR]  Kaikki tämän ohjelmavaraston lisäosat on testattu toimiviksi, jos löydät rikkinäisen tai "ei toimivan" lisäosan, ilmoita siitä Team Kodille, jotta voimme korjata asian.</description>
