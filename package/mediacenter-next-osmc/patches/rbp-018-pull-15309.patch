@@ -1,0 +1,24 @@
+From 92b7d731c7c51405552c31e2eff1b8bf2f669cce Mon Sep 17 00:00:00 2001
+From: Arne Morten Kvarving <spiff@kodi.tv>
+Date: Tue, 22 Jan 2019 15:04:38 +0100
+Subject: [PATCH] fixed: do no add cache=no option to zip urls unless zip://
+ protocol
+
+fixes zip files handled using vfs.libarchive (archive:// protocol)
+---
+ xbmc/filesystem/File.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/filesystem/File.cpp b/xbmc/filesystem/File.cpp
+index 968b02b978c9..540281617558 100644
+--- a/xbmc/filesystem/File.cpp
++++ b/xbmc/filesystem/File.cpp
+@@ -74,7 +74,7 @@ bool CFile::Copy(const CURL& url2, const CURL& dest, XFILE::IFileCallback* pCall
+ 
+   // special case for zips - ignore caching
+   CURL url(url2);
+-  if (URIUtils::IsInZIP(url.Get()) || URIUtils::IsInAPK(url.Get()))
++  if (StringUtils::StartsWith(url.Get(), "zip://") || URIUtils::IsInAPK(url.Get()))
+     url.SetOptions("?cache=no");
+   if (file.Open(url.Get(), READ_TRUNCATED | READ_CHUNKED))
+   {
