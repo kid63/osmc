@@ -1,0 +1,114 @@
+From 61e03befc05ccabcd52885056cc1158487205440 Mon Sep 17 00:00:00 2001
+From: fritsch <Peter.Fruehberger@gmail.com>
+Date: Tue, 22 Jan 2019 18:35:03 +0100
+Subject: [PATCH] GLContextEGL: Properly guard members
+
+---
+ xbmc/windowing/X11/GLContextEGL.cpp | 28 ++++++++++++++++++----------
+ xbmc/windowing/X11/GLContextEGL.h   |  3 +++
+ 2 files changed, 21 insertions(+), 10 deletions(-)
+
+diff --git a/xbmc/windowing/X11/GLContextEGL.cpp b/xbmc/windowing/X11/GLContextEGL.cpp
+index 2b6b5d35e3dd..6d02068c7661 100644
+--- a/xbmc/windowing/X11/GLContextEGL.cpp
++++ b/xbmc/windowing/X11/GLContextEGL.cpp
+@@ -21,6 +21,7 @@
+ #include "ServiceBroker.h"
+ #include "settings/AdvancedSettings.h"
+ #include "settings/SettingsComponent.h"
++#include "threads/SingleLock.h"
+ 
+ #define EGL_NO_CONFIG (EGLConfig)0
+ 
+@@ -420,6 +421,8 @@ void CGLContextEGL::SwapBuffers()
+   uint64_t sbc1, sbc2;
+   struct timespec nowTs;
+   uint64_t now;
++  uint64_t cont = m_sync.cont;
++  uint64_t interval = m_sync.interval;
+ 
+   eglGetSyncValuesCHROMIUM(m_eglDisplay, m_eglSurface, &ust1, &msc1, &sbc1);
+ 
+@@ -432,7 +435,7 @@ void CGLContextEGL::SwapBuffers()
+ 
+   if ((msc1 - m_sync.msc1) > 2)
+   {
+-    m_sync.cont = 0;
++    cont = 0;
+   }
+ 
+   // we want to block in SwapBuffers
+@@ -442,12 +445,12 @@ void CGLContextEGL::SwapBuffers()
+   {
+     if ((msc1 - m_sync.msc1) == 2)
+     {
+-      m_sync.cont = 0;
++      cont = 0;
+     }
+     else if ((msc1 - m_sync.msc1) == 1)
+     {
+-      m_sync.interval = (ust1 - m_sync.ust1) / (msc1 - m_sync.msc1);
+-      m_sync.cont++;
++      interval = (ust1 - m_sync.ust1) / (msc1 - m_sync.msc1);
++      cont++;
+     }
+   }
+   else if (m_sync.cont == 5 && m_omlSync)
+@@ -466,7 +469,7 @@ void CGLContextEGL::SwapBuffers()
+       }
+       uint64_t sleeptime = m_sync.interval - lastIncrement;
+       usleep(sleeptime);
+-      m_sync.cont++;
++      cont++;
+       msc2++;
+       CLog::Log(LOGDEBUG, "CGLContextEGL::SwapBuffers: sync sleep: %ld", sleeptime);
+     }
+@@ -485,11 +488,15 @@ void CGLContextEGL::SwapBuffers()
+     usleep(sleeptime);
+     msc2++;
+   }
+-
+-  m_sync.ust1 = ust1;
+-  m_sync.ust2 = ust2;
+-  m_sync.msc1 = msc1;
+-  m_sync.msc2 = msc2;
++  {
++    CSingleLock lock(m_syncLock);
++    m_sync.ust1 = ust1;
++    m_sync.ust2 = ust2;
++    m_sync.msc1 = msc1;
++    m_sync.msc2 = msc2;
++    m_sync.interval = interval;
++    m_sync.cont = cont;
++  }
+ }
+ 
+ uint64_t CGLContextEGL::GetVblankTiming(uint64_t &msc, uint64_t &interval)
+@@ -500,6 +507,7 @@ uint64_t CGLContextEGL::GetVblankTiming(uint64_t &msc, uint64_t &interval)
+   now = nowTs.tv_sec * 1000000000 + nowTs.tv_nsec;
+   now /= 1000;
+ 
++  CSingleLock lock(m_syncLock);
+   msc = m_sync.msc2;
+ 
+   interval = (m_sync.cont > 5) ? m_sync.interval : m_sync.ust2 - m_sync.ust1;
+diff --git a/xbmc/windowing/X11/GLContextEGL.h b/xbmc/windowing/X11/GLContextEGL.h
+index 9dbb4bcc3c65..80ad06050a84 100644
+--- a/xbmc/windowing/X11/GLContextEGL.h
++++ b/xbmc/windowing/X11/GLContextEGL.h
+@@ -9,6 +9,7 @@
+ #pragma once
+ 
+ #include "GLContext.h"
++#include "threads/CriticalSection.h"
+ #include "EGL/egl.h"
+ #include "EGL/eglext.h"
+ #include "EGL/eglextchromium.h"
+@@ -48,5 +49,7 @@ class CGLContextEGL : public CGLContext
+     uint64_t interval = 0;
+   } m_sync;
+ 
++  CCriticalSection m_syncLock;
++
+   bool m_usePB = false;
+ };
