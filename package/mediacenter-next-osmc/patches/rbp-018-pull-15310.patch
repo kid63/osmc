@@ -1,0 +1,105 @@
+From f1ce6157054afce455ecce761f07c9bb7569cb5a Mon Sep 17 00:00:00 2001
+From: linknetx <forums@linknetmail.com>
+Date: Tue, 22 Jan 2019 13:55:54 +0000
+Subject: [PATCH] Active Skin Update - Force Close TextureBundle
+
+Updating the active skin fails due to Kodi maintaing a lock on the  textures.xbt file.
+
+This PR allows the active skin to be updated when installing updated skin via addons "Install from zip file". Tested with default textures and also with themes selected. Not tested when updating skin from online source which may still fail due to antivirus locking the downloaded folder.
+
+This is essentially a copy of PR #11090 which was merged to Krypton but seems to have been omitted in Leia.
+---
+ xbmc/addons/Skin.cpp             | 3 +++
+ xbmc/guilib/TextureBundle.cpp    | 5 +++++
+ xbmc/guilib/TextureBundle.h      | 2 +-
+ xbmc/guilib/TextureBundleXBT.cpp | 5 +++++
+ xbmc/guilib/TextureBundleXBT.h   | 2 ++
+ xbmc/guilib/TextureManager.cpp   | 3 ++-
+ 6 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/addons/Skin.cpp b/xbmc/addons/Skin.cpp
+index 9614288c3750..1ee372c1fb69 100644
+--- a/xbmc/addons/Skin.cpp
++++ b/xbmc/addons/Skin.cpp
+@@ -392,6 +392,9 @@ const INFO::CSkinVariableString* CSkinInfo::CreateSkinVariable(const std::string
+ 
+ void CSkinInfo::OnPreInstall()
+ {
++  bool skinLoaded = g_SkinInfo != nullptr;
++  if (IsInUse() && skinLoaded)
++    CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "UnloadSkin");
+ }
+ 
+ void CSkinInfo::OnPostInstall(bool update, bool modal)
+diff --git a/xbmc/guilib/TextureBundle.cpp b/xbmc/guilib/TextureBundle.cpp
+index 9f28b601d0bd..3f41a0981845 100644
+--- a/xbmc/guilib/TextureBundle.cpp
++++ b/xbmc/guilib/TextureBundle.cpp
+@@ -66,6 +66,11 @@ int CTextureBundle::LoadAnim(const std::string& Filename, CBaseTexture*** ppText
+   return 0;
+ }
+ 
++void CTextureBundle::Close()
++{
++  m_tbXBT.CloseBundle();
++}
++
+ void CTextureBundle::SetThemeBundle(bool themeBundle)
+ {
+   m_tbXBT.SetThemeBundle(themeBundle);
+diff --git a/xbmc/guilib/TextureBundle.h b/xbmc/guilib/TextureBundle.h
+index 557472741df1..4d3ef95de42d 100644
+--- a/xbmc/guilib/TextureBundle.h
++++ b/xbmc/guilib/TextureBundle.h
+@@ -27,7 +27,7 @@ class CTextureBundle
+   bool LoadTexture(const std::string& Filename, CBaseTexture** ppTexture, int &width, int &height);
+ 
+   int LoadAnim(const std::string& Filename, CBaseTexture*** ppTextures, int &width, int &height, int& nLoops, int** ppDelays);
+-
++  void Close();
+ private:
+   CTextureBundleXBT m_tbXBT;
+ 
+diff --git a/xbmc/guilib/TextureBundleXBT.cpp b/xbmc/guilib/TextureBundleXBT.cpp
+index 9a5cd68a8692..1fa2d6659ced 100644
+--- a/xbmc/guilib/TextureBundleXBT.cpp
++++ b/xbmc/guilib/TextureBundleXBT.cpp
+@@ -45,6 +45,11 @@ CTextureBundleXBT::CTextureBundleXBT(bool themeBundle)
+ }
+ 
+ CTextureBundleXBT::~CTextureBundleXBT(void)
++{
++  CloseBundle();
++}
++
++void CTextureBundleXBT::CloseBundle()
+ {
+   if (m_XBTFReader != nullptr && m_XBTFReader->IsOpen())
+   {
+diff --git a/xbmc/guilib/TextureBundleXBT.h b/xbmc/guilib/TextureBundleXBT.h
+index 669f634d477c..191499833e02 100644
+--- a/xbmc/guilib/TextureBundleXBT.h
++++ b/xbmc/guilib/TextureBundleXBT.h
+@@ -37,6 +37,8 @@ class CTextureBundleXBT
+                 int &width, int &height, int& nLoops, int** ppDelays);
+ 
+   static uint8_t* UnpackFrame(const CXBTFReader& reader, const CXBTFFrame& frame);
++  
++  void CloseBundle();
+ 
+ private:
+   bool OpenBundle();
+diff --git a/xbmc/guilib/TextureManager.cpp b/xbmc/guilib/TextureManager.cpp
+index 4ec1336766d5..59a4ffb89625 100644
+--- a/xbmc/guilib/TextureManager.cpp
++++ b/xbmc/guilib/TextureManager.cpp
+@@ -533,7 +533,8 @@ void CGUITextureManager::Cleanup()
+     delete pMap;
+     i = m_vecTextures.erase(i);
+   }
+-
++  m_TexBundle[0].Close();
++  m_TexBundle[1].Close();
+   m_TexBundle[0] = CTextureBundle(true);
+   m_TexBundle[1] = CTextureBundle();
+   FreeUnusedTextures();
