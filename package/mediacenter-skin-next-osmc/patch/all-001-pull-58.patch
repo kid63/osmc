@@ -1,0 +1,2768 @@
+From 548166b253bfc7e68dec7a65b6799e9ef79b257a Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Sun, 27 Jan 2019 17:36:31 +0100
+Subject: [PATCH] Animation & PVR timeshift improvements
+
+DialogFullScreenInfo.xml
+- remove progress bar
+- add new animations
+
+DialogKeyboard.xml:
+- fix background when using with subtitles dialog
+
+DialogSeekBar.xml:
+- remove progress bar
+- fix conditional visibility
+
+DialogSubtitles.xml:
+- fix background
+
+IncludeDialogSettings.xml
+- add conditional visibility during subtitles dialog use
+
+MusicOSD.xml:
+- fix animations
+
+MusicVisualisations.xml:
+- add new animations
+- fix conditional visibility
+- add elements formerly present in seek bar dialog
+
+VideoFullScreen.xml:
+- add new animations
+- fix conditional visibility
+- add elements formerly present in seek bar dialog
+
+VideoOSD.xml:
+- remove PVR channel number input dialog
+- remove progress bar
+- add new animations
+
+VideoOSDBookmarks.xml:
+- add new animations
+
+Textures.xbt:
+- repack content of media folder after adding new timeshift icon
+
+addon.xml:
+- update changelog
+
+Changelog.md:
+- update changelog
+---
+ 16x9/DialogFullScreenInfo.xml   | 257 +---------
+ 16x9/DialogKeyboard.xml         |   2 +-
+ 16x9/DialogSeekBar.xml          | 238 +--------
+ 16x9/DialogSubtitles.xml        | 510 ++++++++++---------
+ 16x9/Include_DialogSettings.xml |   9 +
+ 16x9/MusicOSD.xml               |   4 +-
+ 16x9/MusicVisualisation.xml     |  68 +--
+ 16x9/VideoFullScreen.xml        | 118 +++--
+ 16x9/VideoOSD.xml               | 835 +++++++++++---------------------
+ 16x9/VideoOSDBookmarks.xml      |  18 +-
+ Changelog.md                    |   2 +
+ addon.xml                       |   2 +-
+ language/English/strings.po     |   5 -
+ media/Textures.xbt              | Bin 8994769 -> 8996422 bytes
+ media/osd/OSDTimeShift.png      | Bin 0 -> 3202 bytes
+ 15 files changed, 736 insertions(+), 1332 deletions(-)
+ create mode 100644 media/osd/OSDTimeShift.png
+
+diff --git a/16x9/DialogFullScreenInfo.xml b/16x9/DialogFullScreenInfo.xml
+index 777c9a5..cc35374 100755
+--- a/16x9/DialogFullScreenInfo.xml
++++ b/16x9/DialogFullScreenInfo.xml
+@@ -2,10 +2,6 @@
+ <window>
+ 	<!-- fullscreeninfo -->
+ 	<defaultcontrol>100</defaultcontrol>
+-	<animation type="WindowOpen">
+-		<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-		<effect type="fade" start="0" end="100" time="200"/>
+-	</animation>
+ 
+ 	<controls>
+ 
+@@ -16,6 +12,14 @@
+ 				<top>75</top>
+ 				<width>1620</width>
+ 				<height>278</height>
++				<animation type="WindowOpen">
++					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++					<effect type="fade" start="0" end="100" time="200"/>
++				</animation>
++				<animation type="WindowClose">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
+ 
+ 				<!-- Background -->
+ 				<control type="image">
+@@ -150,251 +154,6 @@
+ 
+ 			</control>
+ 
+-			<control type="group">
+-				<visible>!Window.IsActive(seekbar) + !Window.IsActive(videoosd)</visible>
+-				<animation type="Visible">
+-					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-					<effect type="fade" start="0" end="100" time="200"/>
+-				</animation>
+-				
+-				<!-- PVR channel number input -->
+-				<control type="group">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>1920</width>
+-					<height>1080</height>
+-					<visible>!String.IsEmpty(PVR.ChannelNumberInput)</visible>
+-					<control type="image">
+-						<centerleft>50%</centerleft>
+-						<centertop>50%</centertop>
+-						<width>140</width>
+-						<height>140</height>
+-						<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-					</control>
+-					<control type="label">
+-						<label>$INFO[PVR.ChannelNumberInput]</label>
+-						<centerleft>50%</centerleft>
+-						<centertop>50%</centertop>
+-						<align>center</align>
+-						<font>Font72</font>
+-						<width>140</width>
+-						<height>140</height>
+-						<textcolor>$VAR[TextColor1]</textcolor>
+-						<aligny>center</aligny>
+-					</control>
+-				</control>
+-				
+-				<!-- Player forwarding/rewinding -->
+-				<control type="group">
+-					<left>150</left>
+-					<top>870</top>
+-					<width>140</width>
+-					<height>60</height>
+-					<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
+-
+-					<!-- Background -->
+-					<control type="image">
+-						<width>140</width>
+-						<height>60</height>
+-						<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-					</control>
+-
+-					<!-- Status -->
+-					<control type="label">
+-						<width>140</width>
+-						<height>60</height>
+-						<font>Font36</font>
+-						<align>center</align>
+-						<label>$VAR[PlayerStatus]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-					</control>
+-
+-					<!-- Pause -->
+-					<control type="image">
+-						<left>40</left>
+-						<width>60</width>
+-						<height>60</height>
+-						<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPauseNF.png</texture>
+-						<visible>player.paused</visible>
+-					</control>
+-
+-				</control>
+-
+-				<!-- Player skipping -->
+-				<control type="group">
+-					<right>150</right>
+-					<top>870</top>
+-					<width>140</width>
+-					<height>60</height>
+-					<visible>[Player.DisplayAfterSeek + Integer.IsGreater(Player.ChapterCount,0)] | Integer.IsGreater(MusicPlayer.PlaylistLength,0)</visible>
+-
+-					<!-- Background -->
+-					<control type="image">
+-						<width>140</width>
+-						<height>60</height>
+-						<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-					</control>
+-
+-					<!-- Status -->
+-					<control type="label">
+-						<width>140</width>
+-						<height>60</height>
+-						<font>Font27</font>
+-						<align>center</align>
+-						<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B][B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>!Window.IsVisible(visualisation)</visible>
+-					</control>
+-
+-					<!-- Status -->
+-					<control type="label">
+-						<width>140</width>
+-						<height>60</height>
+-						<font>Font27</font>
+-						<align>center</align>
+-						<label>[B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<visible>Window.IsVisible(visualisation)</visible>
+-					</control>
+-
+-				</control>
+-				
+-				<!-- Timeshift status -->
+-				<control type="group">
+-					<visible>Pvr.IsTimeShift</visible>
+-					<left>430</left>
+-					<top>870</top>
+-					<width>920</width>
+-					<height>60</height>
+-					<animation type="Visible">
+-						<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-						<effect type="fade" start="0" end="100" time="200"/>
+-					</animation>
+-					
+-					<control type="image">
+-						<width>920</width>
+-						<height>60</height>
+-						<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-					</control>
+-					
+-					<control type="label">
+-						<left>20</left>
+-						<width>880</width>
+-						<height>60</height>
+-						<font>Font27</font>
+-						<align>center</align>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$LOCALIZE[31112] $INFO[PVR.TimeshiftCur(hh:mm xx)] (-$INFO[PVR.TimeshiftOffset])</label>
+-					</control>
+-				</control>
+-
+-				<!-- Progress -->
+-				<control type="group">
+-					<left>150</left>
+-					<top>945</top>
+-					<width>1620</width>
+-					<height>60</height>
+-
+-					<!-- Background -->
+-					<control type="image">
+-						<width>1620</width>
+-						<height>60</height>
+-						<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-					</control>
+-
+-					<!--  Current position/Time remaining -->
+-					<control type="label">
+-						<left>20</left>
+-						<width>260</width>
+-						<height>60</height>
+-						<font>Font27</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[Player.Time]$INFO[Player.Duration, / ,]</label>
+-						<visible>!Pvr.IsPlayingTv</visible>
+-					</control>
+-					
+-					<!--  PVR current position/Time remaining -->
+-					<control type="label">
+-						<left>20</left>
+-						<width>260</width>
+-						<height>60</height>
+-						<font>Font27</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[PVR.EpgEventElapsedTime]$INFO[PVR.EpgEventDuration, / ,]</label>
+-						<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-					</control>
+-
+-					<!--  Progress bar -->
+-					<control type="progress" id="1">
+-						<left>280</left>
+-						<top>20</top>
+-						<width>920</width>
+-						<height>20</height>
+-						<info>Player.Progress</info>
+-						<texturebg border="2" colordiffuse="$VAR[DialogColor2]">osd/OSDProgressBack.png</texturebg>
+-						<lefttexture></lefttexture>
+-						<midtexture border="2" colordiffuse="$VAR[DialogColor1]">osd/OSDProgressBar.png</midtexture>
+-						<righttexture></righttexture>
+-						<overlaytexture></overlaytexture>
+-						<visible>!Pvr.IsPlayingTv</visible>
+-					</control>
+-					
+-					<!--  PVR progress bar -->
+-					<control type="progress">
+-						<left>280</left>
+-						<top>20</top>
+-						<width>920</width>
+-						<height>20</height>
+-						<info>PVR.EpgEventProgress</info>
+-						<texturebg border="2" colordiffuse="$VAR[DialogColor2]">osd/OSDProgressBack.png</texturebg>
+-						<lefttexture></lefttexture>
+-						<midtexture border="2" colordiffuse="$VAR[DialogColor1]">osd/OSDProgressBar.png</midtexture>
+-						<righttexture></righttexture>
+-						<overlaytexture></overlaytexture>
+-						<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-					</control>
+-
+-					<!--  Cache bar -->
+-					<control type="progress" id="1">
+-						<left>280</left>
+-						<top>20</top>
+-						<width>920</width>
+-						<height>20</height>
+-						<info>Player.ProgressCache</info>
+-						<texturebg colordiffuse="$VAR[DialogColor2]" border="2">osd/OSDProgressBack.png</texturebg>
+-						<lefttexture></lefttexture>
+-						<midtexture colordiffuse="OSDCache" border="2">osd/OSDProgressBar.png</midtexture>
+-						<righttexture></righttexture>
+-						<overlaytexture></overlaytexture>
+-					</control>
+-
+-					<!-- Current Time/End Time -->
+-					<control type="label">
+-						<left>1001</left>
+-						<width>600</width>
+-						<height>60</height>
+-						<align>right</align>
+-						<font>Font27</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[System.Time,$LOCALIZE[142] ,]$INFO[Player.FinishTime, / $LOCALIZE[19081] ,]</label>
+-						<visible>Integer.IsGreater(Player.Duration,0) + !Pvr.IsPlayingTv</visible>
+-					</control>
+-					
+-					<!-- PVR current Time/End Time -->
+-					<control type="label">
+-						<left>1001</left>
+-						<width>600</width>
+-						<height>60</height>
+-						<align>right</align>
+-						<font>Font27</font>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[System.Time,$LOCALIZE[142] ,]$INFO[PVR.EpgEventFinishTime, / $LOCALIZE[19081] ,]</label>
+-						<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-					</control>
+-
+-				</control>
+-			</control>
+-
+ 		</control>
+ 
+ 	</controls>
+diff --git a/16x9/DialogKeyboard.xml b/16x9/DialogKeyboard.xml
+index c4f1afb..00bcc2f 100755
+--- a/16x9/DialogKeyboard.xml
++++ b/16x9/DialogKeyboard.xml
+@@ -5,7 +5,7 @@
+ 
+ 	<controls>
+ 		<!-- Window Background -->
+-		<include>WindowFadeBackgroundImage</include>
++		<include condition="!Window.IsVisible(10153)">WindowFadeBackgroundImage</include>
+ 
+ 		<control type="group">
+ 
+diff --git a/16x9/DialogSeekBar.xml b/16x9/DialogSeekBar.xml
+index a71d1fc..2f99849 100755
+--- a/16x9/DialogSeekBar.xml
++++ b/16x9/DialogSeekBar.xml
+@@ -2,7 +2,7 @@
+ <window>
+ 	<!-- seekbar -->
+ 	<defaultcontrol always="true">901</defaultcontrol>
+-		<visible>[Player.Seeking | Player.DisplayAfterSeek + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.DisplayAfterSeek + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.DisplayAfterSeek + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s)	| Player.DisplayAfterSeek + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.DisplayAfterSeek + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.DisplayAfterSeek + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.DisplayAfterSeek + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.DisplayAfterSeek + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.DisplayAfterSeek + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Forwarding | Player.Rewinding | Player.IsTempo] + !Window.IsVisible(VideoOSD) + !Window.IsVisible(subtitlesearch) + !Window.IsVisible(MusicOSD) + ![Window.IsActive(gameviewmode) | Window.IsActive(gamevideofilter)] | !String.IsEmpty(PVR.ChannelNumberInput)</visible>
++		<visible>[Player.Seeking | Player.DisplayAfterSeek + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.DisplayAfterSeek + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.DisplayAfterSeek + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s)	| Player.DisplayAfterSeek + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.DisplayAfterSeek + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.DisplayAfterSeek + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.DisplayAfterSeek + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.DisplayAfterSeek + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.DisplayAfterSeek + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Forwarding | Player.Rewinding | Player.IsTempo] + !Window.IsVisible(subtitlesearch) + ![Window.IsActive(gameviewmode) | Window.IsActive(gamevideofilter)] | !String.IsEmpty(PVR.ChannelNumberInput)</visible>
+ 		<visible>VideoPlayer.IsFullscreen | Window.IsVisible(visualisation)</visible>
+ 		<zorder>0</zorder>
+ 
+@@ -34,242 +34,6 @@
+ 				<aligny>center</aligny>
+ 			</control>
+ 		</control>
+-	
+-		<control type="group">
+-			<animation type="WindowOpen">
+-				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-				<effect type="fade" start="0" end="100" time="200"/>
+-			</animation>
+-			<!-- Player forwarding/rewinding -->
+-			<control type="group">
+-				<left>150</left>
+-				<top>870</top>
+-				<width>140</width>
+-				<height>60</height>
+-				<visible>player.forwarding + !Player.HasGame | player.rewinding + !Player.HasGame | player.paused | player.istempo + !Player.HasGame</visible>
+-				<animation type="Visible">
+-					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-					<effect type="fade" start="0" end="100" time="200"/>
+-				</animation>
+-
+-				<!-- Background -->
+-				<control type="image">
+-					<width>140</width>
+-					<height>60</height>
+-					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-				</control>
+-
+-				<!-- Status -->
+-				<control type="label">
+-					<width>140</width>
+-					<height>60</height>
+-					<font>Font36</font>
+-					<align>center</align>
+-					<label>$VAR[PlayerStatus]</label>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-				</control>
+-
+-				<!-- Pause -->
+-				<control type="image">
+-					<left>40</left>
+-					<width>60</width>
+-					<height>60</height>
+-					<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPauseNF.png</texture>
+-					<visible>player.paused</visible>
+-				</control>
+-
+-			</control>
+-
+-			<!-- Player skipping -->
+-			<control type="group">
+-				<right>150</right>
+-				<top>870</top>
+-				<width>140</width>
+-				<height>60</height>
+-				<visible>[[Player.DisplayAfterSeek + Integer.IsGreater(Player.ChapterCount,0)] | Integer.IsGreater(MusicPlayer.PlaylistLength,0) | !String.IsEmpty(Player.SeekStepSize)] + !Player.HasGame</visible>
+-				<visible>String.IsEmpty(Player.SeekNumeric)</visible>
+-
+-				<!-- Background -->
+-				<control type="image">
+-					<width>140</width>
+-					<height>60</height>
+-					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-				</control>
+-
+-				<!-- Status -->
+-				<control type="label">
+-					<width>140</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<align>center</align>
+-					<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B][B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<visible>!Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
+-				</control>
+-
+-				<!-- Status -->
+-				<control type="label">
+-					<width>140</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<align>center</align>
+-					<label>[B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<visible>Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
+-				</control>
+-
+-				<!-- Status -->
+-				<control type="label">
+-					<width>140</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<align>center</align>
+-					<visible>!String.IsEmpty(Player.SeekStepSize)</visible>
+-					<label>$INFO[Player.SeekStepSize]</label>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-				</control>
+-
+-			</control>
+-
+-			<!-- Timeshift status -->
+-			<control type="group">
+-				<visible>Pvr.IsTimeShift</visible>
+-				<left>430</left>
+-				<top>870</top>
+-				<width>920</width>
+-				<height>60</height>
+-				<animation type="Visible">
+-					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-					<effect type="fade" start="0" end="100" time="200"/>
+-				</animation>
+-				
+-				<control type="image">
+-					<width>920</width>
+-					<height>60</height>
+-					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-				</control>
+-				
+-				<control type="label">
+-					<left>20</left>
+-					<width>880</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<align>center</align>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>$LOCALIZE[31112] $INFO[PVR.TimeshiftCur(hh:mm xx)] (-$INFO[PVR.TimeshiftOffset])</label>
+-				</control>
+-			</control>
+-			
+-			<!-- Progress -->
+-			<control type="group">
+-				<left>150</left>
+-				<top>945</top>
+-				<width>1620</width>
+-				<height>60</height>
+-				<visible>[String.IsEmpty(Player.SeekNumeric) + !Player.IsTempo] + !Player.HasGame</visible>
+-				<animation type="Visible">
+-					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-					<effect type="fade" start="0" end="100" time="200"/>
+-				</animation>
+-
+-				<!-- Background -->
+-				<control type="image">
+-					<width>1620</width>
+-					<height>60</height>
+-					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-				</control>
+-
+-				<!--  Current position/Time remaining -->
+-				<control type="label">
+-					<left>20</left>
+-					<width>260</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>$INFO[Player.Time]$INFO[Player.Duration, / ,]</label>
+-					<visible>!Pvr.IsPlayingTv</visible>
+-				</control>
+-				
+-				<!--  PVR current position/Time remaining -->
+-				<control type="label">
+-					<left>20</left>
+-					<width>260</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>$INFO[PVR.EpgEventElapsedTime]$INFO[PVR.EpgEventDuration, / ,]</label>
+-					<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-				</control>
+-
+-				<!--  Progress bar -->
+-				<control type="progress" id="1">
+-					<left>280</left>
+-					<top>20</top>
+-					<width>920</width>
+-					<height>20</height>
+-					<info>Player.Progress</info>
+-					<texturebg border="2" colordiffuse="$VAR[DialogColor2]">osd/OSDProgressBack.png</texturebg>
+-					<lefttexture></lefttexture>
+-					<midtexture border="2" colordiffuse="$VAR[DialogColor1]">osd/OSDProgressBar.png</midtexture>
+-					<righttexture></righttexture>
+-					<overlaytexture></overlaytexture>
+-					<visible>!Pvr.IsPlayingTv</visible>
+-				</control>
+-				
+-				<!--  PVR progress bar -->
+-				<control type="progress">
+-					<left>280</left>
+-					<top>20</top>
+-					<width>920</width>
+-					<height>20</height>
+-					<info>PVR.EpgEventProgress</info>
+-					<texturebg border="2" colordiffuse="$VAR[DialogColor2]">osd/OSDProgressBack.png</texturebg>
+-					<lefttexture></lefttexture>
+-					<midtexture border="2" colordiffuse="$VAR[DialogColor1]">osd/OSDProgressBar.png</midtexture>
+-					<righttexture></righttexture>
+-					<overlaytexture></overlaytexture>
+-					<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-				</control>
+-
+-				<!--  Cache bar -->
+-				<control type="progress" id="1">
+-					<left>280</left>
+-					<top>20</top>
+-					<width>920</width>
+-					<height>20</height>
+-					<info>Player.ProgressCache</info>
+-					<texturebg colordiffuse="$VAR[DialogColor2]" border="2">osd/OSDProgressBack.png</texturebg>
+-					<lefttexture></lefttexture>
+-					<midtexture colordiffuse="OSDCache" border="2">osd/OSDProgressBar.png</midtexture>
+-					<righttexture></righttexture>
+-					<overlaytexture></overlaytexture>
+-				</control>
+-
+-				<!-- Current Time/End Time -->
+-				<control type="label">
+-					<left>1001</left>
+-					<width>600</width>
+-					<height>60</height>
+-					<align>right</align>
+-					<font>Font27</font>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>$INFO[System.Time,$LOCALIZE[142] ,]$INFO[Player.FinishTime, / $LOCALIZE[19081] ,]</label>
+-					<visible>Integer.IsGreater(Player.Duration,0) + !Pvr.IsPlayingTv</visible>
+-				</control>
+-				
+-				<!-- PVR current Time/End Time -->
+-				<control type="label">
+-					<left>1001</left>
+-					<width>600</width>
+-					<height>60</height>
+-					<align>right</align>
+-					<font>Font27</font>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>$INFO[System.Time,$LOCALIZE[142] ,]$INFO[PVR.EpgEventFinishTime, / $LOCALIZE[19081] ,]</label>
+-					<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-				</control>
+-			</control>
+-		</control>
+ 
+ 	</controls>
+ 
+diff --git a/16x9/DialogSubtitles.xml b/16x9/DialogSubtitles.xml
+index 8ba78e8..7573305 100755
+--- a/16x9/DialogSubtitles.xml
++++ b/16x9/DialogSubtitles.xml
+@@ -2,225 +2,172 @@
+ <window>
+ 	<!-- subtitlesearch -->
+ 	<defaultcontrol>150</defaultcontrol>
+-
++	
+ 	<controls>
+-		<!-- Window Background -->
+-		<include>WindowFadeBackgroundImage</include>
+-
+ 		<control type="group">
++			
++			<!-- Window Background -->
++			<control type="group">
+ 
+-			<!-- Animation -->
+-			<include>DialogZoomAnimation</include>
+-
+-			<!-- Heading -->
+-			<include content="Time">
+-				<param name="heading">$INFO[Control.GetLabel(100)]</param>
+-			</include>
+-			<control type="label" id="100">
+-				<left>-15000</left>
+-				<top>96</top>
+-				<width>1620</width>
+-				<height>72</height>
+-				<font>Font72</font>
+-			</control>
+-
+-			<!-- Left heading -->
+-			<control type="label">
+-				<left>150</left>
+-				<top>228</top>
+-				<width>360</width>
+-				<height>66</height>
+-				<label>24018</label>
+-			</control>
++				<!-- Background Image -->
++				<control type="image" id="10000">
++					<include>FullscreenDimensions</include>
++					<texture background="true" fallback="transparent.png">$VAR[OSMCBackgroundImage]</texture>
++					<visible>![Player.HasVideo + Skin.HasSetting(BackgroundVideo)]</visible>
++					<animation effect="fade" start="0" end="100" time="200" delay="70">WindowOpen</animation>
++					<animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
++				</control>
+ 
+-			<!-- Seperator -->
+-			<control type="image">
+-				<left>150</left>
+-				<top>298</top>
+-				<width>360</width>
+-				<height>20</height>
+-				<texture border="1,12,1,1" colordiffuse="$VAR[DialogOverlayColorNF]">common/ScrollBackgroundHorizontal.png</texture>
++				<!-- Overlay -->
++				<control type="image">
++					<include>FullscreenDimensions</include>
++					<texture background="true">$INFO[Skin.String(OSMCBackgroundOverlay),overlays/,.png]</texture>
++					<colordiffuse>$VAR[BackgroundColor]</colordiffuse>
++					<animation effect="fade" start="0" end="100" time="200">WindowOpen</animation>
++					<animation effect="fade" start="100" end="0" time="200" delay="70">WindowClose</animation>
++					<include>VisibleFadeAnimation</include>
++				</control>
++				<control type="image">
++					<include>FullscreenDimensions</include>
++					<include>WindowFadeAnimation</include>
++					<texture colordiffuse="$VAR[DarkenColor]">dialogs/DialogTextBackground.png</texture>
++				</control>
+ 			</control>
+ 
+-			<!-- Left list -->
+-			<control type="list" id="150">
+-				<left>150</left>
+-				<top>337</top>
+-				<width>360</width>
+-				<height>528</height>
+-				<onleft>noop</onleft>
+-				<onright>120</onright>
+-				<onup>noop</onup>
+-				<ondown>noop</ondown>
+-				<viewtype label="535">list</viewtype>
+-				<scrolltime tween="sine" easing="out">240</scrolltime>
+-
+-				<itemlayout width="360" height="66">
+-					<control type="label">
+-						<width>360</width>
+-						<height>66</height>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.Label]</label>
+-					</control>
+-				</itemlayout>
+-				<focusedlayout width="360" height="66">
+-					<control type="label">
+-						<width>360</width>
+-						<height>66</height>
+-						<label>$INFO[ListItem.Label]</label>
+-						<textcolor>$VAR[TextColor1]</textcolor>
+-						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(150)">Conditional</animation>
+-					</control>
+-					<control type="image">
+-						<width>360</width>
+-						<height>66</height>
+-						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(150)">Conditional</animation>
+-					</control>
+-				</focusedlayout>
+-
+-			</control>
++			<control type="group">
++				<visible>!Window.IsVisible(10103)</visible>
++				<animation type="Visible">
++					<effect type="zoom" start="70" end="100" center="auto" tween="back" easing="inout" time="300" />
++					<effect type="fade" start="0" end="100" time="300" />
++				</animation>
++				<animation type="Hidden">
++					<effect type="zoom" start="100" end="70" center="auto" time="300" />
++					<effect type="fade" start="100" end="0" time="300" />
++				</animation>
+ 
+-			<!-- Video label -->
+-			<control type="fadelabel">
+-				<left>600</left>
+-				<top>228</top>
+-				<width>800</width>
+-				<height>66</height>
+-				<label>$INFO[Player.Filename]</label>
+-			</control>
++				<!-- Animation -->
++				<include>DialogZoomAnimation</include>
+ 
+-			<!-- Number label -->
+-			<control type="label" id="140">
+-				<left>1400</left>
+-				<top>228</top>
+-				<width>400</width>
+-				<height>66</height>
+-				<align>right</align>
+-			</control>
++				<!-- Heading -->
++				<include content="Time">
++					<param name="heading">$INFO[Control.GetLabel(100)]</param>
++				</include>
++				
++				<control type="label" id="100">
++					<left>-15000</left>
++					<top>96</top>
++					<width>1620</width>
++					<height>72</height>
++					<font>Font72</font>
++				</control>
+ 
+-			<!-- Seperator -->
+-			<control type="image">
+-				<left>600</left>
+-				<top>298</top>
+-				<width>1200</width>
+-				<height>20</height>
+-				<texture border="1,12,1,1" colordiffuse="$VAR[DialogOverlayColorNF]">common/ScrollBackgroundHorizontal.png</texture>
+-			</control>
++				<!-- Left heading -->
++				<control type="label">
++					<left>150</left>
++					<top>228</top>
++					<width>360</width>
++					<height>66</height>
++					<label>24018</label>
++				</control>
+ 
+-			<!-- List -->
+-			<control type="list" id="120">
+-				<left>600</left>
+-				<top>337</top>
+-				<width>1200</width>
+-				<height>528</height>
+-				<onleft>150</onleft>
+-				<onright>160</onright>
+-				<onup>noop</onup>
+-				<ondown>160</ondown>
+-				<viewtype label="535">list</viewtype>
+-				<scrolltime tween="sine" easing="out">240</scrolltime>
++				<!-- Seperator -->
++				<control type="image">
++					<left>150</left>
++					<top>298</top>
++					<width>360</width>
++					<height>20</height>
++					<texture border="1,12,1,1" colordiffuse="$VAR[DialogOverlayColorNF]">common/ScrollBackgroundHorizontal.png</texture>
++				</control>
+ 
+-				<itemlayout width="1200" height="66">
+-					<control type="image">
+-						<left>9</left>
+-						<top>9</top>
+-						<width>48</width>
+-						<height>48</height>
+-						<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-						<texture>$INFO[ListItem.Thumb,language/,.png]</texture>
+-					</control>
+-					<control type="label">
+-						<left>86</left>
+-						<width>120</width>
+-						<height>66</height>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.Label]</label>
+-					</control>
+-					<control type="label">
+-						<left>226</left>
+-						<width>70</width>
+-						<height>66</height>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>[CC]</label>
+-						<visible>ListItem.Property(hearingimp)</visible>
+-					</control>
+-					<control type="label">
+-						<left>316</left>
+-						<width>120</width>
+-						<height>66</height>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>(SYNC)</label>
+-						<visible>ListItem.Property(sync)</visible>
+-					</control>
+-					<control type="label">
+-						<left>456</left>
+-						<width>584</width>
+-						<height>66</height>
+-						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>$INFO[ListItem.Label2]</label>
+-					</control>
+-					<control type="image">
+-						<left>1058</left>
+-						<top>17</top>
+-						<width>182</width>
+-						<height>33</height>
+-						<aspectratio>keep</aspectratio>
+-						<texture>$INFO[ListItem.ActualIcon,rating,.png]</texture>
+-					</control>
+-				</itemlayout>
++				<!-- Left list -->
++				<control type="list" id="150">
++					<left>150</left>
++					<top>337</top>
++					<width>360</width>
++					<height>528</height>
++					<onleft>160</onleft>
++					<onright>120</onright>
++					<onup>noop</onup>
++					<ondown>160</ondown>
++					<orientation>vertical</orientation>
++					<viewtype label="list">list</viewtype>
++					<scrolltime tween="sine" easing="out">240</scrolltime>
+ 
+-				<focusedlayout width="1200" height="66">
+-					<control type="group">
+-						<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(120)">Conditional</animation>
+-						<control type="image">
+-							<left>9</left>
+-							<top>9</top>
+-							<width>48</width>
+-							<height>48</height>
+-							<texture>$INFO[ListItem.Thumb,language/,.png]</texture>
+-						</control>
++					<itemlayout width="360" height="66">
+ 						<control type="label">
+-							<left>86</left>
+-							<width>120</width>
++							<width>360</width>
+ 							<height>66</height>
+-							<textcolor>$VAR[TextColor1]</textcolor>
++							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<label>$INFO[ListItem.Label]</label>
+-							<visible>Control.HasFocus(120)</visible>
+ 						</control>
++					</itemlayout>
++					<focusedlayout width="360" height="66">
+ 						<control type="label">
+-							<left>226</left>
+-							<width>70</width>
+-							<height>66</height>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>[CC]</label>
+-							<visible>ListItem.Property(hearingimp) + Control.HasFocus(120)</visible>
+-						</control>
+-						<control type="label">
+-							<left>316</left>
+-							<width>120</width>
++							<width>360</width>
+ 							<height>66</height>
++							<label>$INFO[ListItem.Label]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>(SYNC)</label>
+-							<visible>ListItem.Property(sync) + Control.HasFocus(120)</visible>
++							<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(150)">Conditional</animation>
+ 						</control>
+-						<control type="label">
+-							<left>456</left>
+-							<width>584</width>
++						<control type="image">
++							<width>360</width>
+ 							<height>66</height>
+-							<textcolor>$VAR[TextColor1]</textcolor>
+-							<label>$INFO[ListItem.Label2]</label>
+-							<scroll>True</scroll>
+-							<scrollout>false</scrollout>
+-							<scrollspeed>40</scrollspeed>
+-							<visible>Control.HasFocus(120)</visible>
++							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
++							<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(150)">Conditional</animation>
+ 						</control>
++					</focusedlayout>
++
++				</control>
++
++				<!-- Video label -->
++				<control type="fadelabel">
++					<left>600</left>
++					<top>228</top>
++					<width>800</width>
++					<height>66</height>
++					<label>$INFO[Player.Filename]</label>
++				</control>
++
++				<!-- Number label -->
++				<control type="label" id="140">
++					<left>1400</left>
++					<top>228</top>
++					<width>400</width>
++					<height>66</height>
++					<align>right</align>
++				</control>
++
++				<!-- Seperator -->
++				<control type="image">
++					<left>600</left>
++					<top>298</top>
++					<width>1200</width>
++					<height>20</height>
++					<texture border="1,12,1,1" colordiffuse="$VAR[DialogOverlayColorNF]">common/ScrollBackgroundHorizontal.png</texture>
++				</control>
++
++				<!-- List -->
++				<control type="list" id="120">
++					<left>600</left>
++					<top>337</top>
++					<width>1200</width>
++					<height>528</height>
++					<onleft>150</onleft>
++					<onright>160</onright>
++					<onup>noop</onup>
++					<ondown>160</ondown>
++					<orientation>vertical</orientation>
++					<viewtype label="list">list</viewtype>
++					<scrolltime tween="sine" easing="out">240</scrolltime>
++
++					<itemlayout width="1200" height="66">
+ 						<control type="image">
+ 							<left>9</left>
+-							<width>1231</width>
+-							<height>66</height>
+-							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
+-							<visible>Control.HasFocus(120)</visible>
++							<top>9</top>
++							<width>48</width>
++							<height>48</height>
++							<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++							<texture>$INFO[ListItem.Thumb,language/,.png]</texture>
+ 						</control>
+ 						<control type="label">
+ 							<left>86</left>
+@@ -228,7 +175,6 @@
+ 							<height>66</height>
+ 							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<label>$INFO[ListItem.Label]</label>
+-							<visible>!Control.HasFocus(120)</visible>
+ 						</control>
+ 						<control type="label">
+ 							<left>226</left>
+@@ -236,7 +182,7 @@
+ 							<height>66</height>
+ 							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<label>[CC]</label>
+-							<visible>ListItem.Property(hearingimp) + !Control.HasFocus(120)</visible>
++							<visible>ListItem.Property(hearingimp)</visible>
+ 						</control>
+ 						<control type="label">
+ 							<left>316</left>
+@@ -244,7 +190,7 @@
+ 							<height>66</height>
+ 							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<label>(SYNC)</label>
+-							<visible>ListItem.Property(sync) + !Control.HasFocus(120)</visible>
++							<visible>ListItem.Property(sync)</visible>
+ 						</control>
+ 						<control type="label">
+ 							<left>456</left>
+@@ -252,10 +198,6 @@
+ 							<height>66</height>
+ 							<textcolor>$VAR[TextColor2]</textcolor>
+ 							<label>$INFO[ListItem.Label2]</label>
+-							<visible>!Control.HasFocus(120)</visible>
+-							<scroll>True</scroll>
+-							<scrollout>false</scrollout>
+-							<scrollspeed>40</scrollspeed>
+ 						</control>
+ 						<control type="image">
+ 							<left>1058</left>
+@@ -265,44 +207,142 @@
+ 							<aspectratio>keep</aspectratio>
+ 							<texture>$INFO[ListItem.ActualIcon,rating,.png]</texture>
+ 						</control>
+-						<control type="image">
+-							<left>9</left>
+-							<width>1231</width>
+-							<height>66</height>
+-							<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
+-							<visible>!Control.HasFocus(120)</visible>
++					</itemlayout>
++
++					<focusedlayout width="1200" height="66">
++						<control type="group">
++							<animation effect="fade" start="100" end="75" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(120)">Conditional</animation>
++							<control type="image">
++								<left>9</left>
++								<top>9</top>
++								<width>48</width>
++								<height>48</height>
++								<texture>$INFO[ListItem.Thumb,language/,.png]</texture>
++							</control>
++							<control type="label">
++								<left>86</left>
++								<width>120</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor1]</textcolor>
++								<label>$INFO[ListItem.Label]</label>
++								<visible>Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>226</left>
++								<width>70</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor1]</textcolor>
++								<label>[CC]</label>
++								<visible>ListItem.Property(hearingimp) + Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>316</left>
++								<width>120</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor1]</textcolor>
++								<label>(SYNC)</label>
++								<visible>ListItem.Property(sync) + Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>456</left>
++								<width>584</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor1]</textcolor>
++								<label>$INFO[ListItem.Label2]</label>
++								<scroll>True</scroll>
++								<scrollout>false</scrollout>
++								<scrollspeed>40</scrollspeed>
++								<visible>Control.HasFocus(120)</visible>
++							</control>
++							<control type="image">
++								<left>9</left>
++								<width>1231</width>
++								<height>66</height>
++								<texture colordiffuse="$VAR[TextColor1]">$VAR[focus66]</texture>
++								<visible>Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>86</left>
++								<width>120</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor2]</textcolor>
++								<label>$INFO[ListItem.Label]</label>
++								<visible>!Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>226</left>
++								<width>70</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor2]</textcolor>
++								<label>[CC]</label>
++								<visible>ListItem.Property(hearingimp) + !Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>316</left>
++								<width>120</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor2]</textcolor>
++								<label>(SYNC)</label>
++								<visible>ListItem.Property(sync) + !Control.HasFocus(120)</visible>
++							</control>
++							<control type="label">
++								<left>456</left>
++								<width>584</width>
++								<height>66</height>
++								<textcolor>$VAR[TextColor2]</textcolor>
++								<label>$INFO[ListItem.Label2]</label>
++								<visible>!Control.HasFocus(120)</visible>
++								<scroll>True</scroll>
++								<scrollout>false</scrollout>
++								<scrollspeed>40</scrollspeed>
++							</control>
++							<control type="image">
++								<left>1058</left>
++								<top>17</top>
++								<width>182</width>
++								<height>33</height>
++								<aspectratio>keep</aspectratio>
++								<texture>$INFO[ListItem.ActualIcon,rating,.png]</texture>
++							</control>
++							<control type="image">
++								<left>9</left>
++								<width>1231</width>
++								<height>66</height>
++								<texture colordiffuse="$VAR[TextColor2]">$VAR[focus66]</texture>
++								<visible>!Control.HasFocus(120)</visible>
++							</control>
+ 						</control>
+-					</control>
+-				</focusedlayout>
++					</focusedlayout>
+ 
+-			</control>
++				</control>
+ 
+-			<!-- Manual search button -->
+-			<control type="button" id="160">
+-				<left>600</left>
+-				<top>926</top>
+-				<width>600</width>
+-				<height>66</height>
+-				<onleft>150</onleft>
+-				<onright>noop</onright>
+-				<onup>120</onup>
+-				<ondown>noop</ondown>
+-				<label>24120</label>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-			</control>
++				<!-- Manual search button -->
++				<control type="button" id="160">
++					<left>600</left>
++					<top>926</top>
++					<width>600</width>
++					<height>66</height>
++					<onleft>150</onleft>
++					<onright>noop</onright>
++					<onup>120</onup>
++					<ondown>noop</ondown>
++					<label>24120</label>
++					<textcolor>$VAR[TextColor2]</textcolor>
++					<focusedcolor>$VAR[TextColor1]</focusedcolor>
++				</control>
+ 
+-			<!-- Notification -->
+-			<control type="label" id="130">
+-				<left>1200</left>
+-				<top>926</top>
+-				<width>600</width>
+-				<height>66</height>
+-				<align>right</align>
+-				<label>31044</label>
+-				<textcolor>$VAR[TextColor1]</textcolor>
+-			</control>
++				<!-- Notification -->
++				<control type="label" id="130">
++					<left>1200</left>
++					<top>926</top>
++					<width>600</width>
++					<height>66</height>
++					<align>right</align>
++					<label>31044</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++				</control>
+ 
++			</control>
+ 		</control>
+ 
+ 	</controls>
+diff --git a/16x9/Include_DialogSettings.xml b/16x9/Include_DialogSettings.xml
+index 5d04b72..ee7f18c 100644
+--- a/16x9/Include_DialogSettings.xml
++++ b/16x9/Include_DialogSettings.xml
+@@ -135,6 +135,15 @@
+ 				<!-- Animation -->
+ 				<include>DialogZoomAnimation</include>
+ 				<animation effect="fade" start="100" end="0" time="200" condition="Window.IsVisible(SliderDialog) | Window.IsVisible(FileBrowser)">Conditional</animation>
++				<visible>!Window.IsVisible(10153)</visible>
++				<animation type="Visible">
++					<effect type="zoom" start="70" end="100" center="auto" tween="back" easing="inout" time="300" />
++					<effect type="fade" start="0" end="100" time="300" />
++				</animation>
++				<animation type="Hidden">
++					<effect type="zoom" start="100" end="70" center="auto" time="300" />
++					<effect type="fade" start="100" end="0" time="300" />
++				</animation>
+ 
+ 				<!-- Window Background -->
+ 				<control type="image">
+diff --git a/16x9/MusicOSD.xml b/16x9/MusicOSD.xml
+index acc245a..5ee857d 100755
+--- a/16x9/MusicOSD.xml
++++ b/16x9/MusicOSD.xml
+@@ -10,11 +10,11 @@
+ 			<top>945</top>
+ 			<width>1620</width>
+ 			<height>60</height>
+-			<animation type="WindowOpen" condition="!Window.IsActive(seekbar)">
++			<animation type="WindowOpen">
+ 				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 				<effect type="fade" start="0" end="100" time="200"/>
+ 			</animation>
+-			<animation type="WindowClose" condition="!Window.IsActive(seekbar)">
++			<animation type="WindowClose">
+ 				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
+ 				<effect type="fade" start="100" end="0" time="200"/>
+ 			</animation>
+diff --git a/16x9/MusicVisualisation.xml b/16x9/MusicVisualisation.xml
+index 5b2764f..5df7966 100755
+--- a/16x9/MusicVisualisation.xml
++++ b/16x9/MusicVisualisation.xml
+@@ -107,33 +107,34 @@
+ 		</control>
+ 
+ 		<control type="group">
+-			<visible>!Window.IsActive(seekbar) + [Window.IsActive(musicosd) | Player.ShowInfo]</visible>
+-			<animation type="Visible" condition="!Window.IsActive(seekbar)">
++			<visible>Window.IsActive(seekbar) | Window.IsActive(musicosd) | Player.ShowInfo</visible>
++			<left>150</left>
++			<top>870</top>
++			<width>1620</width>
++			<height>60</height>
++			<animation effect="slide" end="0,-75" time="200" condition="Window.IsActive(musicosd)">Conditional</animation>
++			<animation type="Visible">
+ 				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 				<effect type="fade" start="0" end="100" time="200"/>
+ 			</animation>
+-			<animation type="Hidden" condition="!Window.IsActive(seekbar)">
++			<animation type="Hidden">
+ 				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
+ 				<effect type="fade" start="100" end="0" time="200"/>
+ 			</animation>
+-			<animation effect="slide" end="0,-75" time="200" condition="Window.IsVisible(musicosd) + Player.ShowInfo">Conditional</animation>
+-			<animation effect="slide" end="0,-75" time="0" condition="Window.IsVisible(musicosd) + !Player.ShowInfo">Conditional</animation>
+ 
+ 			<!-- Player forwarding/rewinding -->
+ 			<control type="group">
+-				<left>150</left>
+-				<top>870</top>
+ 				<width>140</width>
+ 				<height>60</height>
+-				<animation type="WindowOpen" condition="!Window.IsActive(seekbar)">
++				<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
++				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+ 				</animation>
+-				<animation type="WindowClose" condition="!Window.IsActive(seekbar)">
++				<animation type="Hidden">
+ 					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
+ 					<effect type="fade" start="100" end="0" time="200"/>
+ 				</animation>
+-				<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
+ 
+ 				<!-- Background -->
+ 				<control type="image">
+@@ -165,19 +166,18 @@
+ 
+ 			<!-- Player skipping -->
+ 			<control type="group">
+-				<right>150</right>
+-				<top>870</top>
++				<right>0</right>
+ 				<width>140</width>
+ 				<height>60</height>
+-				<animation type="WindowOpen" condition="!Window.IsActive(seekbar)">
++				<visible>Integer.IsGreater(MusicPlayer.PlaylistLength,0)</visible>
++				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+ 				</animation>
+-				<animation type="WindowClose" condition="!Window.IsActive(seekbar)">
++				<animation type="Hidden">
+ 					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
+ 					<effect type="fade" start="100" end="0" time="200"/>
+ 				</animation>
+-				<visible>Integer.IsGreater(MusicPlayer.PlaylistLength,0)</visible>
+ 
+ 				<!-- Background -->
+ 				<control type="image">
+@@ -186,6 +186,17 @@
+ 					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 				</control>
+ 
++				<!-- Status -->
++				<control type="label">
++					<width>140</width>
++					<height>60</height>
++					<font>Font27</font>
++					<align>center</align>
++					<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B][B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
++					<textcolor>$VAR[TextColor2]</textcolor>
++					<visible>!Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
++				</control>
++				
+ 				<!-- Status -->
+ 				<control type="label">
+ 					<width>140</width>
+@@ -194,24 +205,27 @@
+ 					<align>center</align>
+ 					<label>[B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
++					<visible>Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
++				</control>
++				
++				<!-- Status -->
++				<control type="label">
++					<width>140</width>
++					<height>60</height>
++					<font>Font27</font>
++					<align>center</align>
++					<visible>!String.IsEmpty(Player.SeekStepSize)</visible>
++					<label>$INFO[Player.SeekStepSize]</label>
++					<textcolor>$VAR[TextColor2]</textcolor>
+ 				</control>
+ 
+ 			</control>
+ 
+ 			<!-- Progress -->
+ 			<control type="group">
+-				<left>150</left>
+-				<top>945</top>
++				<top>75</top>
+ 				<width>1620</width>
+ 				<height>60</height>
+-				<animation type="WindowOpen" condition="!Window.IsActive(seekbar)">
+-					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-					<effect type="fade" start="0" end="100" time="200"/>
+-				</animation>
+-				<animation type="WindowClose" condition="!Window.IsActive(seekbar)">
+-					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
+-					<effect type="fade" start="100" end="0" time="200"/>
+-				</animation>
+ 
+ 				<!-- Background -->
+ 				<control type="image">
+@@ -231,7 +245,7 @@
+ 				</control>
+ 
+ 				<!--  Progress bar -->
+-				<control type="progress" id="1">
++				<control type="progress">
+ 					<left>280</left>
+ 					<top>20</top>
+ 					<width>920</width>
+@@ -245,7 +259,7 @@
+ 				</control>
+ 
+ 				<!--  Cache bar -->
+-				<control type="progress" id="1">
++				<control type="progress">
+ 					<left>280</left>
+ 					<top>20</top>
+ 					<width>920</width>
+diff --git a/16x9/VideoFullScreen.xml b/16x9/VideoFullScreen.xml
+index ec269a3..010af13 100755
+--- a/16x9/VideoFullScreen.xml
++++ b/16x9/VideoFullScreen.xml
+@@ -53,22 +53,36 @@
+ 
+ 		</control>
+ 
+-
+-		<!-- Seek Numeric -->
+ 		<control type="group" id="1">
+-			<visible>!String.IsEmpty(Player.SeekNumeric) + !Window.IsVisible(VideoOSD)</visible>
++			<visible>Window.IsActive(seekbar) | !String.IsEmpty(Player.SeekNumeric) | Player.DisplayAfterSeek | Window.IsActive(fullscreeninfo) | Window.IsActive(VideoOSD)</visible>
++			<left>150</left>
++			<top>870</top>
++			<width>1620</width>
++			<height>60</height>
++			<animation effect="slide" end="0,-75" time="200" condition="Window.IsActive(VideoOSD)">Conditional</animation>
+ 			<animation type="Visible">
+ 				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 				<effect type="fade" start="0" end="100" time="200"/>
+ 			</animation>
++			<animation type="Hidden">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
+ 
+ 			<!-- Player forwarding/rewinding -->
+ 			<control type="group" id="1">
+-				<left>150</left>
+-				<top>870</top>
+ 				<width>140</width>
+ 				<height>60</height>
+-				<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
++				<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml)</visible>
++				<visible>player.forwarding + !Player.HasGame | player.rewinding + !Player.HasGame | player.paused | player.istempo + !Player.HasGame</visible>
++				<animation type="Visible">
++					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++					<effect type="fade" start="0" end="100" time="200"/>
++				</animation>
++				<animation type="Hidden">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
+ 
+ 				<!-- Background -->
+ 				<control type="image" id="1">
+@@ -97,13 +111,22 @@
+ 				</control>
+ 
+ 			</control>
+-
++			
+ 			<!-- Player skipping -->
+ 			<control type="group" id="1">
+-				<right>150</right>
+-				<top>870</top>
++				<right>0</right>
+ 				<width>140</width>
+ 				<height>60</height>
++				<visible>[Integer.IsGreater(Player.ChapterCount,0) | !String.IsEmpty(Player.SeekStepSize)] + !Player.HasGame</visible>
++				<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml)</visible>
++				<animation type="Visible">
++					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++					<effect type="fade" start="0" end="100" time="200"/>
++				</animation>
++				<animation type="Hidden">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
+ 
+ 				<!-- Background -->
+ 				<control type="image" id="1">
+@@ -112,53 +135,87 @@
+ 					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 				</control>
+ 
+-				<!-- Numeric seek -->
++				<!-- Status -->
++				<control type="label" id="1">
++					<width>140</width>
++					<height>60</height>
++					<font>Font27</font>
++					<align>center</align>
++					<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B][B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
++					<textcolor>$VAR[TextColor2]</textcolor>
++					<visible>!Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
++				</control>
++
++				<!-- Status -->
+ 				<control type="label" id="1">
+ 					<width>140</width>
+ 					<height>60</height>
+ 					<font>Font27</font>
+ 					<align>center</align>
+-					<label>$INFO[Player.SeekNumeric(hh:mm:ss)]</label>
++					<visible>!String.IsEmpty(Player.SeekStepSize)</visible>
++					<label>$INFO[Player.SeekStepSize]</label>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
+ 				</control>
+ 
+ 			</control>
+ 
++
+ 			<!-- Timeshift status -->
+-			<control type="group">
++			<control type="group" id="1">
++				<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml)</visible>
+ 				<visible>Pvr.IsTimeShift</visible>
+-				<left>430</left>
+-				<top>870</top>
+-				<width>920</width>
++				<width>380</width>
+ 				<height>60</height>
++				<animation effect="slide" end="155,0" time="200" condition="player.forwarding | player.rewinding | player.paused | player.istempo">Conditional</animation>
+ 				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+ 				</animation>
++				<animation type="Hidden">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
+ 
+-				<control type="image">
+-					<width>920</width>
++				<control type="image" id="1">
++					<width>380</width>
+ 					<height>60</height>
+ 					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 				</control>
+ 				
+-				<control type="label">
+-					<left>20</left>
+-					<width>880</width>
+-					<height>60</height>
+-					<font>Font27</font>
+-					<align>center</align>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<label>$LOCALIZE[31112] $INFO[PVR.TimeshiftCur(hh:mm xx)] (-$INFO[PVR.TimeshiftOffset])</label>
++				<control type="group" id="1">
++					<control type="image" id="1">
++						<left>10</left>
++						<width>60</width>
++						<height>60</height>
++						<texture>osd/OSDTimeShift.png</texture>
++					</control>
++					
++					<control type="label" id="1">
++						<left>80</left>
++						<width>280</width>
++						<height>60</height>
++						<font>Font27</font>
++						<align>center</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<label>$INFO[PVR.TimeshiftOffset,[B]-,[/B]] ($LOCALIZE[335]: $INFO[PVR.TimeShiftStart])</label>
++					</control>
+ 				</control>
+ 			</control>
+ 			
+ 			<!-- Progress -->
+ 			<control type="group" id="1">
+-				<left>150</left>
+-				<top>945</top>
++				<top>75</top>
+ 				<width>1620</width>
+ 				<height>60</height>
++				<visible>!Window.IsVisible(DialogSettings.xml)</visible>
++				<animation type="Visible">
++					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++					<effect type="fade" start="0" end="100" time="200"/>
++				</animation>
++				<animation type="Hidden">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
+ 
+ 				<!-- Background -->
+ 				<control type="image" id="1">
+@@ -179,7 +236,7 @@
+ 				</control>
+ 				
+ 				<!--  PVR current position/Time remaining -->
+-				<control type="label">
++				<control type="label" id="1">
+ 					<left>20</left>
+ 					<width>260</width>
+ 					<height>60</height>
+@@ -205,7 +262,7 @@
+ 				</control>
+ 				
+ 				<!--  PVR progress bar -->
+-				<control type="progress">
++				<control type="progress" id="1">
+ 					<left>280</left>
+ 					<top>20</top>
+ 					<width>920</width>
+@@ -231,6 +288,7 @@
+ 					<midtexture colordiffuse="OSDCache" border="2">osd/OSDProgressBar.png</midtexture>
+ 					<righttexture></righttexture>
+ 					<overlaytexture></overlaytexture>
++					<visible>!Pvr.IsTimeShift + ![player.paused + Pvr.IsPlayingTv]</visible>
+ 				</control>
+ 
+ 				<!-- Current Time/End Time -->
+@@ -246,7 +304,7 @@
+ 				</control>
+ 				
+ 				<!-- PVR current Time/End Time -->
+-				<control type="label">
++				<control type="label" id="1">
+ 					<left>1001</left>
+ 					<width>600</width>
+ 					<height>60</height>
+diff --git a/16x9/VideoOSD.xml b/16x9/VideoOSD.xml
+index 59806bd..6765317 100755
+--- a/16x9/VideoOSD.xml
++++ b/16x9/VideoOSD.xml
+@@ -2,572 +2,319 @@
+ <window>
+ 	<!-- videoosd -->
+ 	<defaultcontrol always="true">5</defaultcontrol>
+-			<animation type="WindowOpen">
+-				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+-				<effect type="fade" start="0" end="100" time="200"/>
+-			</animation>
+ 
+ 	<controls>
+ 
+-		<!-- PVR channel number input -->
+-		<control type="group">
+-			<left>0</left>
+-			<top>0</top>
+-			<width>1920</width>
+-			<height>1080</height>
+-			<visible>!String.IsEmpty(PVR.ChannelNumberInput)</visible>
+-			<control type="image">
+-				<centerleft>50%</centerleft>
+-				<centertop>50%</centertop>
+-				<width>140</width>
+-				<height>140</height>
+-				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-			</control>
+-			<control type="label">
+-				<label>$INFO[PVR.ChannelNumberInput]</label>
+-				<centerleft>50%</centerleft>
+-				<centertop>50%</centertop>
+-				<align>center</align>
+-				<font>Font72</font>
+-				<width>140</width>
+-				<height>140</height>
+-				<textcolor>$VAR[TextColor1]</textcolor>
+-				<aligny>center</aligny>
+-			</control>
+-		</control>
+-		
+-		<!-- Player forwarding/rewinding -->
+ 		<control type="group">
+ 			<left>150</left>
+-			<top>795</top>
+-			<width>140</width>
+-			<height>60</height>
+-			<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(DialogConfirm.xml)</visible>
+-			<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
+-
+-			<!-- Background -->
+-			<control type="image">
+-				<width>140</width>
+-				<height>60</height>
+-				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-			</control>
+-
+-			<!-- Status -->
+-			<control type="label">
+-				<width>140</width>
+-				<height>60</height>
+-				<font>Font36</font>
+-				<align>center</align>
+-				<label>$VAR[PlayerStatus]</label>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-			</control>
+-
+-			<!-- Pause -->
+-			<control type="image">
+-				<left>40</left>
+-				<width>60</width>
+-				<height>60</height>
+-				<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPauseNF.png</texture>
+-				<visible>player.paused</visible>
+-			</control>
+-
+-		</control>
+-
+-		<!-- Player skipping -->
+-		<control type="group">
+-			<right>150</right>
+-			<top>795</top>
+-			<width>140</width>
++			<top>945</top>
++			<width>1620</width>
+ 			<height>60</height>
+ 			<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml)</visible>
+-			<visible>[Player.DisplayAfterSeek + Integer.IsGreater(Player.ChapterCount,0)] | Integer.IsGreater(MusicPlayer.PlaylistLength,0) | !String.IsEmpty(Player.SeekStepSize)</visible>
+-
+-			<!-- Background -->
+-			<control type="image">
+-				<width>140</width>
+-				<height>60</height>
+-				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-			</control>
+-
+-			<!-- Status -->
+-			<control type="label">
+-				<width>140</width>
+-				<height>60</height>
+-				<font>Font27</font>
+-				<align>center</align>
+-				<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B][B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<visible>!Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
+-			</control>
+-
+-			<!-- Status -->
+-			<control type="label">
+-				<width>140</width>
+-				<height>60</height>
+-				<font>Font27</font>
+-				<align>center</align>
+-				<label>[B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<visible>Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
+-			</control>
+-
+-			<!-- Status -->
+-			<control type="label">
+-				<width>140</width>
+-				<height>60</height>
+-				<font>Font27</font>
+-				<align>center</align>
+-				<visible>!String.IsEmpty(Player.SeekStepSize)</visible>
+-				<label>$INFO[Player.SeekStepSize]</label>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-			</control>
+-
+-		</control>
+-
+-		<!-- Timeshift status -->
+-		<control type="group">
+-			<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(DialogConfirm.xml)</visible>
+-			<visible>Pvr.IsTimeShift</visible>
+-			<left>430</left>
+-			<top>795</top>
+-			<width>920</width>
+-			<height>60</height>
+ 			<animation type="Visible">
+ 				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 				<effect type="fade" start="0" end="100" time="200"/>
+ 			</animation>
+-			
+-			<control type="image">
+-				<width>920</width>
+-				<height>60</height>
+-				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-				<visible>Pvr.IsTimeShift</visible>
+-			</control>
+-			
+-			<control type="label">
+-				<left>20</left>
+-				<width>880</width>
+-				<height>60</height>
+-				<font>Font27</font>
+-				<align>center</align>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<label>$LOCALIZE[31112] $INFO[PVR.TimeshiftCur(hh:mm xx)] (-$INFO[PVR.TimeshiftOffset])</label>
+-				<visible>Pvr.IsTimeShift</visible>
+-			</control>
+-		</control>
+-		
+-		<!-- Progress -->
+-		<control type="group">
+-			<visible>!Window.IsVisible(DialogSettings.xml)</visible>
+-			<left>150</left>
+-			<top>870</top>
+-			<width>1620</width>
+-			<height>60</height>
+-			
+-			<!-- Background -->
+-			<control type="image">
+-				<width>1620</width>
+-				<height>60</height>
+-				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-			</control>
+-
+-			<!--  Current position/Time remaining -->
+-			<control type="label">
+-				<left>20</left>
+-				<width>260</width>
+-				<height>60</height>
+-				<font>Font27</font>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<label>$INFO[Player.Time]$INFO[Player.Duration, / ,]</label>
+-				<visible>!Pvr.IsPlayingTv</visible>
+-			</control>
+-			
+-			<!--  PVR current position/Time remaining -->
+-			<control type="label">
+-				<left>20</left>
+-				<width>260</width>
+-				<height>60</height>
+-				<font>Font27</font>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<label>$INFO[PVR.EpgEventElapsedTime]$INFO[PVR.EpgEventDuration, / ,]</label>
+-				<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-			</control>
+-			
+-			<!-- Seek slider -->
+-			<control type="slider">
+-				<left>280</left>
+-				<top>20</top>
+-				<width>920</width>
+-				<height>20</height>
+-				<texturesliderbar />
+-				<textureslidernib />
+-				<textureslidernibfocus />
+-				<action>seek</action>
+-			</control>
+-
+-			<!--  Progress bar -->
+-			<control type="progress">
+-				<left>280</left>
+-				<top>20</top>
+-				<width>920</width>
+-				<height>20</height>
+-				<info>Player.Progress</info>
+-				<texturebg border="2" colordiffuse="$VAR[DialogColor2]">osd/OSDProgressBack.png</texturebg>
+-				<lefttexture></lefttexture>
+-				<midtexture border="2" colordiffuse="$VAR[DialogColor1]">osd/OSDProgressBar.png</midtexture>
+-				<righttexture></righttexture>
+-				<overlaytexture></overlaytexture>
+-				<visible>!Pvr.IsPlayingTv</visible>
+-			</control>
+-			
+-			<!--  PVR progress bar -->
+-			<control type="progress">
+-				<left>280</left>
+-				<top>20</top>
+-				<width>920</width>
+-				<height>20</height>
+-				<info>PVR.EpgEventProgress</info>
+-				<texturebg border="2" colordiffuse="$VAR[DialogColor2]">osd/OSDProgressBack.png</texturebg>
+-				<lefttexture></lefttexture>
+-				<midtexture border="2" colordiffuse="$VAR[DialogColor1]">osd/OSDProgressBar.png</midtexture>
+-				<righttexture></righttexture>
+-				<overlaytexture></overlaytexture>
+-				<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-			</control>
+-
+-			<!--  Cache bar -->
+-			<control type="progress">
+-				<left>280</left>
+-				<top>20</top>
+-				<width>920</width>
+-				<height>20</height>
+-				<info>Player.ProgressCache</info>
+-				<texturebg colordiffuse="$VAR[DialogColor2]" border="2">osd/OSDProgressBack.png</texturebg>
+-				<lefttexture></lefttexture>
+-				<midtexture colordiffuse="OSDCache" border="2">osd/OSDProgressBar.png</midtexture>
+-				<righttexture></righttexture>
+-				<overlaytexture></overlaytexture>
+-			</control>
+-			
+-			<!-- Current Time/End Time -->
+-			<control type="label">
+-				<left>1001</left>
+-				<width>600</width>
+-				<height>60</height>
+-				<align>right</align>
+-				<font>Font27</font>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<label>$INFO[System.Time,$LOCALIZE[142] ,]$INFO[Player.FinishTime, / $LOCALIZE[19081] ,]</label>
+-				<visible>Integer.IsGreater(Player.Duration,0) + !Pvr.IsPlayingTv</visible>
+-			</control>
+-
+-			<!-- PVR current Time/End Time -->
+-			<control type="label">
+-				<left>1001</left>
+-				<width>600</width>
+-				<height>60</height>
+-				<align>right</align>
+-				<font>Font27</font>
+-				<textcolor>$VAR[TextColor2]</textcolor>
+-				<label>$INFO[System.Time,$LOCALIZE[142] ,]$INFO[PVR.EpgEventFinishTime, / $LOCALIZE[19081] ,]</label>
+-				<visible>Pvr.IsPlayingTv + VideoPlayer.HasEpg</visible>
+-			</control>
+-
+-		</control>
+-
+-		<control type="group">
+-			<left>150</left>
+-			<top>945</top>
+-			<width>1620</width>
+-			<height>60</height>
+-			<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml)</visible>
+-
+-			<!-- Background -->
+-			<control type="image">
+-				<width>1620</width>
+-				<height>60</height>
+-				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-			</control>
+-
+-			<!-- Controls -->
+-			<control type="grouplist">
+-				<width>540</width>
+-				<height>60</height>
+-				<itemgap>0</itemgap>
+-				<onleft>20</onleft>
+-				<onright>12</onright>
+-				<onup>30</onup>
+-				<ondown>30</ondown>
+-				<orientation>horizontal</orientation>
+-
+-				<!-- Spacer -->
+-				<control type="image" id="40">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>7</width>
+-					<height>60</height>
+-					<texture>transparent.png</texture>
+-				</control>
+-
+-				<!-- Skip Back -->
+-				<control type="button" id="1">
+-					<width>9</width>
+-					<height>60</height>
+-					<onleft>2</onleft>
+-					<onright>4</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackwardEnd.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickBackwardEnd.png</texturenofocus>
+-					<onclick>PlayerControl(Previous)</onclick>
+-					<visible>[VideoPlayer.Content(LiveTV) + Player.SeekEnabled] | !VideoPlayer.Content(LiveTV)</visible>
+-				</control>
+-				<!-- Rewind -->
+-				<control type="togglebutton" id="2">
+-					<width>18</width>
+-					<height>60</height>
+-					<onleft>8</onleft>
+-					<onright>10</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickBackward.png</texturenofocus>
+-					<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturefocus>
+-					<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturenofocus>
+-					<usealttexture>Control.HasFocus(1)</usealttexture>
+-					<onclick>PlayerControl(Rewind)</onclick>
+-					<visible>Player.SeekEnabled</visible>
+-				</control>
+-				<!-- Tempo Down -->
+-				<control type="togglebutton" id="3">
+-					<width>18</width>
+-					<height>60</height>
+-					<onleft>8</onleft>
+-					<onright>10</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickBackward.png</texturenofocus>
+-					<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturefocus>
+-					<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturenofocus>
+-					<usealttexture>Control.HasFocus(1) | Control.HasFocus(2)</usealttexture>
+-					<onclick>PlayerControl(TempoDown)</onclick>
+-					<visible>Player.SeekEnabled</visible>
+-					<enable>Player.TempoEnabled</enable>
+-				</control>
+-
+-				<!-- Spacer -->
+-				<control type="image" id="41">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>7</width>
+-					<height>60</height>
+-					<texture>transparent.png</texture>
+-				</control>
+-
+-				<!-- Up -->
+-				<!-- <control type="button" id="4">
+-					<width>60</width>
+-					<height>60</height>
+-					<onleft>4</onleft>
+-					<onright>6</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDUpNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDUpNF.png</texturenofocus>
+-					<onclick>PlayerControl(Previous)</onclick>
+-					<visible>VideoPlayer.Content(LiveTV) + !Player.SeekEnabled</visible>
+-				</control> -->
+-
+-				<!-- Play/Pause -->
+-				<include condition="Player.PauseEnabled">OSDPlayStopButtons</include>
+-				<!-- Stop -->
+-				<include condition="!Player.PauseEnabled">OSDStopButton</include>
+-
+-				<!-- Down -->
+-				<!-- <control type="button" id="7">
+-					<width>60</width>
+-					<height>60</height>
+-					<onleft>5</onleft>
+-					<onright>7</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDDownNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDDownNF.png</texturenofocus>
+-					<onclick>PlayerControl(Next)</onclick>
+-					<visible>VideoPlayer.Content(LiveTV) + !Player.SeekEnabled</visible>
+-				</control> -->
+-
+-				<!-- Spacer -->
+-				<control type="image" id="42">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>7</width>
++			<animation type="Hidden">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
++			<control type="group">
++				<animation type="WindowOpen">
++					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++					<effect type="fade" start="0" end="100" time="200"/>
++				</animation>
++				<animation type="WindowClose">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
++
++				<!-- Background -->
++				<control type="image">
++					<width>1620</width>
+ 					<height>60</height>
+-					<texture>transparent.png</texture>
++					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 				</control>
+ 
+-				<!-- Tempo Up -->
+-				<control type="togglebutton" id="8">
+-					<width>18</width>
+-					<height>60</height>
+-					<onleft>8</onleft>
+-					<onright>10</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickForward.png</texturenofocus>
+-					<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturefocus>
+-					<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturenofocus>
+-					<usealttexture>Control.HasFocus(9) | Control.HasFocus(10)</usealttexture>
+-					<onclick>PlayerControl(TempoUp)</onclick>
+-					<visible>Player.SeekEnabled</visible>
+-					<enable>Player.TempoEnabled</enable>
+-				</control>
+-				<!-- Fast Forward -->
+-				<control type="togglebutton" id="9">
+-					<width>18</width>
++				<!-- Controls -->
++				<control type="grouplist">
++					<width>540</width>
+ 					<height>60</height>
+-					<onleft>8</onleft>
+-					<onright>10</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickForward.png</texturenofocus>
+-					<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturefocus>
+-					<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturenofocus>
+-					<usealttexture>Control.HasFocus(10)</usealttexture>
+-					<onclick>PlayerControl(Forward)</onclick>
+-					<visible>Player.SeekEnabled</visible>
+-				</control>
+-				<!-- Next -->
+-				<control type="button" id="10">
+-					<width>9</width>
+-					<height>60</height>
+-					<onleft>7</onleft>
+-					<onright>9</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForwardEnd.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickForwardEnd.png</texturenofocus>
+-					<onclick>PlayerControl(Next)</onclick>
+-					<visible>[VideoPlayer.Content(LiveTV) + Player.SeekEnabled] | !VideoPlayer.Content(LiveTV)</visible>
+-				</control>
++					<itemgap>0</itemgap>
++					<onleft>20</onleft>
++					<onright>12</onright>
++					<onup>30</onup>
++					<ondown>30</ondown>
++					<orientation>horizontal</orientation>
++
++					<!-- Spacer -->
++					<control type="image" id="40">
++						<left>0</left>
++						<top>0</top>
++						<width>7</width>
++						<height>60</height>
++						<texture>transparent.png</texture>
++					</control>
++
++					<!-- Skip Back -->
++					<control type="button" id="1">
++						<width>9</width>
++						<height>60</height>
++						<onleft>2</onleft>
++						<onright>4</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackwardEnd.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickBackwardEnd.png</texturenofocus>
++						<onclick>PlayerControl(Previous)</onclick>
++						<visible>Player.SeekEnabled</visible>
++					</control>
++					<!-- Rewind -->
++					<control type="togglebutton" id="2">
++						<width>18</width>
++						<height>60</height>
++						<onleft>8</onleft>
++						<onright>10</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickBackward.png</texturenofocus>
++						<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturefocus>
++						<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturenofocus>
++						<usealttexture>Control.HasFocus(1)</usealttexture>
++						<onclick>PlayerControl(Rewind)</onclick>
++						<visible>Player.SeekEnabled</visible>
++					</control>
++					<!-- Tempo Down -->
++					<control type="togglebutton" id="3">
++						<width>18</width>
++						<height>60</height>
++						<onleft>8</onleft>
++						<onright>10</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickBackward.png</texturenofocus>
++						<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturefocus>
++						<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickBackward.png</alttexturenofocus>
++						<usealttexture>Control.HasFocus(1) | Control.HasFocus(2)</usealttexture>
++						<onclick>PlayerControl(TempoDown)</onclick>
++						<visible>Player.SeekEnabled</visible>
++						<enable>Player.TempoEnabled</enable>
++					</control>
++
++					<!-- Spacer -->
++					<control type="image" id="41">
++						<left>0</left>
++						<top>0</top>
++						<width>7</width>
++						<height>60</height>
++						<texture>transparent.png</texture>
++					</control>
++
++					<!-- Up -->
++					<!-- <control type="button" id="4">
++						<width>60</width>
++						<height>60</height>
++						<onleft>4</onleft>
++						<onright>6</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDUpNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDUpNF.png</texturenofocus>
++						<onclick>PlayerControl(Previous)</onclick>
++						<visible>VideoPlayer.Content(LiveTV) + !Player.SeekEnabled</visible>
++					</control> -->
++
++					<!-- Play/Pause -->
++					<include condition="Player.PauseEnabled">OSDPlayStopButtons</include>
++					<!-- Stop -->
++					<include condition="!Player.PauseEnabled">OSDStopButton</include>
++
++					<!-- Down -->
++					<!-- <control type="button" id="7">
++						<width>60</width>
++						<height>60</height>
++						<onleft>5</onleft>
++						<onright>7</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDDownNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDDownNF.png</texturenofocus>
++						<onclick>PlayerControl(Next)</onclick>
++						<visible>VideoPlayer.Content(LiveTV) + !Player.SeekEnabled</visible>
++					</control> -->
++
++					<!-- Spacer -->
++					<control type="image" id="42">
++						<left>0</left>
++						<top>0</top>
++						<width>7</width>
++						<height>60</height>
++						<texture>transparent.png</texture>
++					</control>
++
++					<!-- Tempo Up -->
++					<control type="togglebutton" id="8">
++						<width>18</width>
++						<height>60</height>
++						<onleft>8</onleft>
++						<onright>10</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickForward.png</texturenofocus>
++						<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturefocus>
++						<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturenofocus>
++						<usealttexture>Control.HasFocus(9) | Control.HasFocus(10)</usealttexture>
++						<onclick>PlayerControl(TempoUp)</onclick>
++						<visible>Player.SeekEnabled</visible>
++						<enable>Player.TempoEnabled</enable>
++					</control>
++					<!-- Fast Forward -->
++					<control type="togglebutton" id="9">
++						<width>18</width>
++						<height>60</height>
++						<onleft>8</onleft>
++						<onright>10</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickForward.png</texturenofocus>
++						<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturefocus>
++						<alttexturenofocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForward.png</alttexturenofocus>
++						<usealttexture>Control.HasFocus(10)</usealttexture>
++						<onclick>PlayerControl(Forward)</onclick>
++						<visible>Player.SeekEnabled</visible>
++					</control>
++					<!-- Next -->
++					<control type="button" id="10">
++						<width>9</width>
++						<height>60</height>
++						<onleft>7</onleft>
++						<onright>9</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTrickForwardEnd.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTrickForwardEnd.png</texturenofocus>
++						<onclick>PlayerControl(Next)</onclick>
++						<visible>Player.SeekEnabled</visible>
++					</control>
++
++					<!-- Spacer -->
++					<control type="image" id="43">
++						<left>0</left>
++						<top>0</top>
++						<width>7</width>
++						<height>60</height>
++						<texture>transparent.png</texture>
++					</control>
++
++					<!-- Record -->
++					<control type="togglebutton" id="11">
++						<width>60</width>
++						<height>60</height>
++						<onleft>8</onleft>
++						<onright>10</onright>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDRecordOffNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDRecordOffNF.png</texturenofocus>
++						<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDRecordOnNF.png</alttexturefocus>
++						<alttexturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDRecordOnNF.png</alttexturenofocus>
++						<usealttexture>PVR.IsRecordingPlayingChannel</usealttexture>
++						<onclick>PVR.ToggleRecordPlayingChannel</onclick>
++						<visible>PVR.CanRecordPlayingChannel</visible>
++					</control>
+ 
+-				<!-- Spacer -->
+-				<control type="image" id="43">
+-					<left>0</left>
+-					<top>0</top>
+-					<width>7</width>
+-					<height>60</height>
+-					<texture>transparent.png</texture>
+ 				</control>
+ 
+-				<!-- Record -->
+-				<control type="togglebutton" id="11">
+-					<width>60</width>
++				<!-- Options -->
++				<control type="grouplist" id="30">
++					<right>0</right>
++					<width>360</width>
+ 					<height>60</height>
+-					<onleft>8</onleft>
+-					<onright>10</onright>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDRecordOffNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDRecordOffNF.png</texturenofocus>
+-					<alttexturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDRecordOnNF.png</alttexturefocus>
+-					<alttexturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDRecordOnNF.png</alttexturenofocus>
+-					<usealttexture>PVR.IsRecordingPlayingChannel</usealttexture>
+-					<onclick>PVR.ToggleRecordPlayingChannel</onclick>
+-					<visible>PVR.CanRecordPlayingChannel</visible>
+-				</control>
+-
+-			</control>
+-
+-			<!-- Options -->
+-			<control type="grouplist" id="30">
+-				<right>0</right>
+-				<width>360</width>
+-				<height>60</height>
+-				<align>right</align>
+-				<itemgap>0</itemgap>
+-				<onleft>11</onleft>
+-				<onright>1</onright>
+-				<onup>5</onup>
+-				<ondown>5</ondown>
+-				<orientation>horizontal</orientation>
++					<align>right</align>
++					<itemgap>0</itemgap>
++					<onleft>11</onleft>
++					<onright>1</onright>
++					<onup>5</onup>
++					<ondown>5</ondown>
++					<orientation>horizontal</orientation>
++
++					<!-- 3D mode -->
++					<control type="button" id="12">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSD3DNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSD3DNF.png</texturenofocus>
++						<onclick>StereoMode</onclick>
++						<visible>VideoPlayer.IsStereoscopic</visible>
++					</control>
++									<!-- Video Settings -->
++					<control type="button" id="13">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDVideoNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDVideoNF.png</texturenofocus>
++						<onclick>ActivateWindow(123)</onclick>
++					</control>
++					<!-- Audio Settings -->
++					<control type="button" id="14">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDAudioNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDAudioNF.png</texturenofocus>
++						<onclick>ActivateWindow(124)</onclick>
++					</control>
++					<!-- Subtitles -->
++					<control type="button" id="15">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDSubtitlesNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDSubtitlesNF.png</texturenofocus>
++						<onclick>ActivateWindow(159)</onclick>
++						<visible>!VideoPlayer.Content(LiveTV)</visible>
++					</control>
++					<!-- Bookmarks -->
++					<control type="button" id="16">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDBookmarksNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDBookmarksNF.png</texturenofocus>
++						<onclick>ActivateWindow(125)</onclick>
++						<visible>!VideoPlayer.Content(LiveTV)</visible>
++					</control>
++					<!-- Channels -->
++					<control type="button" id="17">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDChannelNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDChannelNF.png</texturenofocus>
++						<onclick>ActivateWindow(PVROSDChannels)</onclick>
++						<visible>VideoPlayer.Content(LiveTV)</visible>
++					</control>
++					<!-- Channel EPG -->
++					<control type="button" id="18">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDEPGNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDEPGNF.png</texturenofocus>
++						<onclick>ActivateWindow(PVRChannelGuide)</onclick>
++						<visible>VideoPlayer.Content(LiveTV)</visible>
++					</control>
++					<!-- Teletext -->
++					<control type="button" id="19">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTextNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTextNF.png</texturenofocus>
++						<onclick>ActivateWindow(Teletext)</onclick>
++						<visible>VideoPlayer.Content(LiveTV)</visible>
++					</control>
++					<!-- DVD menu -->
++					<control type="button" id="20">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDDvdNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDDvdNF.png</texturenofocus>
++						<onclick>PlayerControl(ShowVideoMenu)</onclick>
++						<visible>VideoPlayer.HasMenu</visible>
++					</control>
++					<!-- Resolution select -->
++					<control type="button" id="21">
++						<width>60</width>
++						<height>60</height>
++						<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDResNF.png</texturefocus>
++						<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDResNF.png</texturenofocus>
++						<onclick>PlayerResolutionSelect</onclick>
++						<visible>Player.HasResolutions</visible>
++					</control>
+ 
+-				<!-- 3D mode -->
+-				<control type="button" id="12">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSD3DNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSD3DNF.png</texturenofocus>
+-					<onclick>StereoMode</onclick>
+-					<visible>VideoPlayer.IsStereoscopic</visible>
+-				</control>
+-								<!-- Video Settings -->
+-				<control type="button" id="13">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDVideoNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDVideoNF.png</texturenofocus>
+-					<onclick>ActivateWindow(123)</onclick>
+-				</control>
+-				<!-- Audio Settings -->
+-				<control type="button" id="14">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDAudioNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDAudioNF.png</texturenofocus>
+-					<onclick>ActivateWindow(124)</onclick>
+-				</control>
+-				<!-- Subtitles -->
+-				<control type="button" id="15">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDSubtitlesNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDSubtitlesNF.png</texturenofocus>
+-					<onclick>ActivateWindow(159)</onclick>
+-					<visible>!VideoPlayer.Content(LiveTV)</visible>
+ 				</control>
+-				<!-- Bookmarks -->
+-				<control type="button" id="16">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDBookmarksNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDBookmarksNF.png</texturenofocus>
+-					<onclick>ActivateWindow(125)</onclick>
+-					<visible>!VideoPlayer.Content(LiveTV)</visible>
+-				</control>
+-				<!-- Channels -->
+-				<control type="button" id="17">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDChannelNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDChannelNF.png</texturenofocus>
+-					<onclick>ActivateWindow(PVROSDChannels)</onclick>
+-					<visible>VideoPlayer.Content(LiveTV)</visible>
+-				</control>
+-				<!-- Channel EPG -->
+-				<control type="button" id="18">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDEPGNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDEPGNF.png</texturenofocus>
+-					<onclick>ActivateWindow(PVRChannelGuide)</onclick>
+-					<visible>VideoPlayer.Content(LiveTV)</visible>
+-				</control>
+-				<!-- Teletext -->
+-				<control type="button" id="19">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDTextNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDTextNF.png</texturenofocus>
+-					<onclick>ActivateWindow(Teletext)</onclick>
+-					<visible>VideoPlayer.Content(LiveTV)</visible>
+-				</control>
+-				<!-- DVD menu -->
+-				<control type="button" id="20">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDDvdNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDDvdNF.png</texturenofocus>
+-					<onclick>PlayerControl(ShowVideoMenu)</onclick>
+-					<visible>VideoPlayer.HasMenu</visible>
+-				</control>
+-				<!-- Resolution select -->
+-				<control type="button" id="21">
+-					<width>60</width>
+-					<height>60</height>
+-					<texturefocus colordiffuse="$VAR[DialogColor1]">osd/OSDResNF.png</texturefocus>
+-					<texturenofocus colordiffuse="$VAR[DialogColor2]">osd/OSDResNF.png</texturenofocus>
+-					<onclick>PlayerResolutionSelect</onclick>
+-					<visible>Player.HasResolutions</visible>
+-				</control>
+-
+ 			</control>
+-
+ 		</control>
+ 
+ 	</controls>
+diff --git a/16x9/VideoOSDBookmarks.xml b/16x9/VideoOSDBookmarks.xml
+index 85eddbb..9d21827 100755
+--- a/16x9/VideoOSDBookmarks.xml
++++ b/16x9/VideoOSDBookmarks.xml
+@@ -4,7 +4,7 @@
+ 	<defaultcontrol always="true">2</defaultcontrol>
+ 
+ 	<controls>
+-
++		
+ 		<control type="list" id="11">
+ 			<left>150</left>
+ 			<top>610</top>
+@@ -17,6 +17,14 @@
+ 			<orientation>horizontal</orientation>
+ 			<viewtype label="535">list</viewtype>
+ 			<scrolltime tween="sine" easing="out">240</scrolltime>
++			<animation type="WindowOpen">
++				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++				<effect type="fade" start="0" end="100" time="200"/>
++			</animation>
++			<animation type="WindowClose">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
+ 
+ 			<itemlayout height="290" width="324">
+ 				<control type="image">
+@@ -82,6 +90,14 @@
+ 			<top>945</top>
+ 			<width>1620</width>
+ 			<height>60</height>
++			<animation type="WindowOpen">
++				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++				<effect type="fade" start="0" end="100" time="200"/>
++			</animation>
++			<animation type="WindowClose">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
+ 
+ 			<!-- Background -->
+ 			<control type="image">
+diff --git a/Changelog.md b/Changelog.md
+index 21c7dbe..e7658eb 100644
+--- a/Changelog.md
++++ b/Changelog.md
+@@ -14,12 +14,14 @@ _Improved_
+ - adjust syntax, values, labels and infobools to match v18 requirements
+ - adjust PVR section to match v18 requirements
+ - highlighting color now adjusts according to text color
++- streamline OSD animations
+ 
+ _Fixed_
+ - show proper game widget title when not using skinshortcuts script
+ - highlighting is now more consistent
+ - fix current position/time remaining and current time/end time for PVR playback
+ - hide deprecated previous/next channel buttons in PVR playback OSD
++- fix background of subtitle settings window
+ 
+ **Changelog v18.0.0**
+ 
+diff --git a/addon.xml b/addon.xml
+index 0581851..f4e32bd 100644
+--- a/addon.xml
++++ b/addon.xml
+@@ -14,7 +14,7 @@
+ 		<platform>all</platform>
+ 		<summary lang="en">The default skin for OSMC</summary>
+ 		<description lang="en">Original skin: Andy Morton[CR]Original design: Simon Brunton[CR]Skinner: Julian Michel</description>
+-		<news>Kodi v18 RC5.2 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD</news>
++		<news>Kodi v18 RC5.2 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window</news>
+ 	</extension>
+ 	<assets>
+ 		<icon>icon.png</icon>
+diff --git a/language/English/strings.po b/language/English/strings.po
+index 5a9966b..609dbd4 100644
+--- a/language/English/strings.po
++++ b/language/English/strings.po
+@@ -523,9 +523,4 @@ msgstr ""
+ #: /16x9/SkinSettings.xml
+ msgctxt "#31111"
+ msgid "Background color gradient (default: Left-right)"
+-msgstr ""
+-
+-#: /16x9/VideoOSD.xml
+-msgctxt "#31112"
+-msgid "Timeshift:"
+ msgstr ""
+\ No newline at end of file
+diff --git a/media/Textures.xbt b/media/Textures.xbt
+index d8bbb1ae8f289d02c8e6a17b65430fe500f22857..9466224681b63f03251c2eaaf9c974121e850816 100644
+GIT binary patch
+delta 6044
+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
+I`MsV03mek$Gynhq
+
+delta 4660
+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
+CiH^+x
+
+diff --git a/media/osd/OSDTimeShift.png b/media/osd/OSDTimeShift.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..dbe4653a29cd0a7376c6d8346cbf6a4bdfee7257
+GIT binary patch
+literal 3202
+zcmb_f3se(V8V+d{g#y;1`05&?LM==llgVQSA_74`4FZA$l*P$p0#V4MnLq#^fMP2s
+z%0op!e4uDm5L~gKpt2UFQV=XYC@96ch-*|_sk#*^JK>SqJ?eUTHs{RTJ9Gd0ec%6@
+zdy?ws>t$sz#eznoS^0QN0;ti&c#RoN-I4wuwbU?H;~hfMXqKNCFEd)+?nyM7d88^(
+zrjtn*As7+OLKTD@XT?QpC~Io7Yn%qfR^d8^9FI_`#mt_n^Gt?HA!Y{ir5vfo1CLaB
+zCus2{3BG|?!YT|_FkR;|T;dQ4AR5=9jJW71HHpNDnS;0pH8;LyGZ}*>x>aJPn~{(q
+zlln0{2rbUwvjhOfg+PW7W^n}^7=)Y{AcretbA)Uz58!YSjsW4ojNu=XV$&*=NPuMi
+zFc<YCW=86C8idW(>-8)>k40!B*jyNf*&L7!f&gU!knw6A8V9J!nIi}ioW!&$jZQ_V
+z8Ae1@PQ>WMOiJmH3(*=AtePAS6BRIa9I9b+SsbHFgN6#sWT%PIMh%iHFg6~AN8@T8
+zN!fBuwwg#nN05=kTcAzLe;}YjE0vl!-l!!y+C)L>JYy+0h6D0OYceoigR=v0l8Dh_
+zxMwUSbEeT74dS82Q5~TTB#5YyMEQ+KW_WlQ6C+}L7OYY$2t7IHwLQ25)!|~MaUI|Y
+z08kW2B@PrIT#+LOL^zxwQz@ZPDdSD1FqK^Z6b5oZ1mYnO>}X8(h$&Sy3RH*wPh$m!
+zC<$#eO8KmcMk8>xMjgRqm?DXI5K)AdBBs>wUVrc7;o+wxl&UCdfei3+XZUz}2)M9-
+z63^le%9TnHA2q2%)fnz05i_ayuv97qBEn&ahw&lGNgfA)1rT-P3WNX#fv5n2Aub;q
+z@`2hfA+Q)@6&UvqHH3n|D2(6b;Wz|xg(5xx%PAlM1fc*7gIqwsgJC5{4hukma74{w
+zt%~YNH0pI!qbdc3C=|&Rd?h9aK%M}i1VI7-=JQ~HClHBXA;cH(<U(WR|IR#u;zs#L
+zQb{L=JIfu77@kF`=DtNV$i;<12m~M=#0PLCMTQD_B0$7}<VuL6q}U)Awy~)w2*%KC
+z2$ubB{=rg5yj4a$@xv;X;9r>ZFb1m|K`~?3ikX<PTyX_+__gW{*?O<I4DZ)R;uPpR
+zYIum9B$PTms>R(RsLZ}ko3P)epG0HdtsWJ^AP+<NfI`Ss094T_06B=E0HjnXc{qeA
+zLAiXydz1Rt+KLAuAZMhl{-pZh;9!xcIs&H-0ygu{`}2OiGbHp){`}!H@qhJauv&*o
+zjs4$MIJoxOaWPWT)EQ))nhrne!E}7$YARG(>TtB36LX11`>@7G;uaX$@hDFk85nF^
+z$K!<tL`(ZumTY#vxb(BiGNya5hyD@E@AHz*`k>%ge~U1??elWhyW6p5hL!sl@86g;
+zy5;EFTwkyBZ)O*cmny+4wYj2S^K6>-pSR4J!R6)VI!`}mo|uJp<m(e(thq%ttqv;+
+zIAZV&$gz3&L0`?>GHN&<S7UZ{^ws&lWZe()x7q7#AxqwxHd->U>E42Y>ExQfboQke
+z&|Q`veK_fPa{H~Krc(OL1NUVPr^`!rY;CsaUOOjrT-bz-&Q_H!`8{?(P66rmi@FL}
+zczXgpJhaQDAf>d;EH3-L*ni-2#@^J9kI&k_)TP&c(|WXqy?O4qu#X$ll#+i2F~%3x
+z6?zpqtfGYz{LXz}Z%ZyROaEZU!PaI)dCE0;Z=qADVNAvNvYlx;o;Jyg=$R)O&jt?5
+z0tW7Rdip0%YIHS^E!&ZGBlaqAb$ev!_6rG~o%1Er{hiGLqIHX5TN+5~&P{rna;h{a
+zNuTx@y)NQbZE{YOx&-IlI@fi^vl>nH$yWsATUX~=&0C**1x*k4JZtE0yy+ABz3ld)
+zgB=kIdCAvjv%y_;v!<W=?lK~Cuh`}~u5a;}Pp&Us>Mb&VwX0~><(jmZBrCrqJ(uz}
+zRO-|EpJenQ<~J&<zjSn+efguCW=jnZDkNB;Yh_bU%7ST*;m4TlYgVF$Vuus+cD5cH
+zC6b(q+0fupKdX91!iotFM?!DheP;bwcr3%uurA!(@F3-4(zE)kj>+HGr-oLm#CB&d
+z{E)3|Y{)2Cm3+MjuqZy$yY+8mEZJncbPqnwH|g7@MS-&}txUc>`=w>;cNS&yU!3lS
+zYS7@C-)dXv8y+4ri>(?pb***rgQ-t9hV=G@nT5|-C!KKZq_tnz!iqcR68h7Zl?G)T
+z^xJ*#-iQCTJ{h&LW2I%XwC2^=s4bI94mSJvX?^|UVY79$ALYBBZ!_p+Wx~`u^ETeh
+zd(>rnS3~b-^UiKLda6v--f>j>$U0=1RJwfNH2s|Q6Z*vCf-e(iObuT4^}`tpBWTZ;
+zo9(q%;hXN*e9EW0)?Kh)nAmMm*;KzXe&sT|ngh1ZhpHcvqpGvp;J=>{d96O2S$0+y
+zGrH3$Mt?Wi!QP%;yMitY+nlK8JPCQ;erWPIblMexjh9n}z^c;2YW>>mdiBmO@19>%
+zTW$xia@y;sth{xmwn0d5J-J}PsB@QpE6}_6a*{%BwH22<OZl{B!<Lw!aH!~FcB8WD
+z$gV@Fr2z%|&1It+tbMX~)UC~LIn~hJOSBY9L#rI_c9^f)6k=1#H5{k^<Y;Tbe{slw
+zroQ-s-*Vb1w2>^mknUzTp<T5uBDbhc(KY9BOaJ`-=H?8Rjro1&Mo#mZ$(8H$Yc@LA
+zh+Q%(7x<q@u{>OSqxi3@llsc9^`bEq?XqvT@3ExW6?Zv)H4*3%x#A&#SnTrh3j8OU
+z_u-bdcBIbN9u-^gf&EV%zM5<pd*DRmZbQ?*R+kKHt?Tcv4(+oAZkAvFq2NSTMrQ7I
+zsC)0vFP|qI!Pl&D5y9|}%bX_Kv?#CNcpSEm>@VoN{PSe-;-;I1wpYNO%*@Q1)>c__
+zZ?zvZ#p<H`gw@MnS1)GfzI8q4mp>T!ZuHd@ltwJs|Bv*TdkDw)FTuytS908a#rppM
+D#Ky)C
+
+literal 0
+HcmV?d00001
+
