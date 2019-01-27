@@ -1,0 +1,60 @@
+From 6ac58ba449c7b15bd93bc50b9509fcbb1e0d9d6b Mon Sep 17 00:00:00 2001
+From: ronie <ronie@kodi.tv>
+Date: Tue, 22 Jan 2019 01:58:04 +0100
+Subject: [PATCH] [skins] define textwidth for sliderex controls
+
+---
+ addons/skin.estouchy/xml/DialogAddonSettings.xml | 1 +
+ addons/skin.estouchy/xml/DialogSettings.xml      | 1 +
+ addons/skin.estuary/xml/DialogAddonSettings.xml  | 1 +
+ addons/skin.estuary/xml/DialogSettings.xml       | 1 +
+ 4 files changed, 4 insertions(+)
+
+diff --git a/addons/skin.estouchy/xml/DialogAddonSettings.xml b/addons/skin.estouchy/xml/DialogAddonSettings.xml
+index 693c7110d7c8..30dc08a913fd 100644
+--- a/addons/skin.estouchy/xml/DialogAddonSettings.xml
++++ b/addons/skin.estouchy/xml/DialogAddonSettings.xml
+@@ -144,6 +144,7 @@
+ 			<description>Default Slider</description>
+ 			<height>70</height>
+ 			<font>font25</font>
++			<textwidth>550</textwidth>
+ 		</control>
+ 		<control type="edit" id="12">
+ 			<height>70</height>
+diff --git a/addons/skin.estouchy/xml/DialogSettings.xml b/addons/skin.estouchy/xml/DialogSettings.xml
+index e7f8e124791c..c6886a9a50a0 100644
+--- a/addons/skin.estouchy/xml/DialogSettings.xml
++++ b/addons/skin.estouchy/xml/DialogSettings.xml
+@@ -95,6 +95,7 @@
+ 		<control type="sliderex" id="13">
+ 			<height>70</height>
+ 			<font>font25</font>
++			<textwidth>300</textwidth>
+ 		</control>
+ 		<control type="label" id="14">
+ 			<posx>0</posx>
+diff --git a/addons/skin.estuary/xml/DialogAddonSettings.xml b/addons/skin.estuary/xml/DialogAddonSettings.xml
+index 7d717e6ae4ed..82dfa0a467f5 100644
+--- a/addons/skin.estuary/xml/DialogAddonSettings.xml
++++ b/addons/skin.estuary/xml/DialogAddonSettings.xml
+@@ -78,6 +78,7 @@
+ 			<control type="sliderex" id="13">
+ 				<description>Default Slider</description>
+ 				<include>DefaultSettingButton</include>
++				<textwidth>700</textwidth>
+ 			</control>
+ 			<control type="label" id="14">
+ 				<description>Default Label</description>
+diff --git a/addons/skin.estuary/xml/DialogSettings.xml b/addons/skin.estuary/xml/DialogSettings.xml
+index 06768db57d71..33648603cb86 100644
+--- a/addons/skin.estuary/xml/DialogSettings.xml
++++ b/addons/skin.estuary/xml/DialogSettings.xml
+@@ -56,6 +56,7 @@
+ 			<control type="sliderex" id="13">
+ 				<description>Default Slider</description>
+ 				<include>DefaultSettingButton</include>
++				<textwidth>800</textwidth>
+ 			</control>
+ 			<control type="label" id="14">
+ 				<description>Default Label</description>

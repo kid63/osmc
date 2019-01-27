@@ -1,0 +1,76 @@
+From 26af62f12a70107f754542b4ada0c21e92c17f72 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Fri, 25 Jan 2019 10:14:35 +0100
+Subject: [PATCH 1/3] [PVR] Fix duplicate channnel numbers. Do not let slip
+ thru numbers from channel groups to main channel instance.
+
+---
+ xbmc/pvr/channels/PVRChannelGroup.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/pvr/channels/PVRChannelGroup.cpp b/xbmc/pvr/channels/PVRChannelGroup.cpp
+index d312e37f7728..4293a18cf55b 100644
+--- a/xbmc/pvr/channels/PVRChannelGroup.cpp
++++ b/xbmc/pvr/channels/PVRChannelGroup.cpp
+@@ -846,7 +846,9 @@ bool CPVRChannelGroup::Renumber(void)
+       (*it).channelNumber = currentChannelNumber;
+     }
+ 
+-    (*it).channel->SetChannelNumber((*it).channelNumber);
++    //! @todo This is a quick fix for v18. Whole channel number handling should be reworked - code is imo unmaintainable.
++    if (IsInternalGroup())
++      (*it).channel->SetChannelNumber((*it).channelNumber);
+   }
+ 
+   SortByChannelNumber();
+
+From f60d19098bfe4488a902e63f5a862026417859d0 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Fri, 25 Jan 2019 10:15:44 +0100
+Subject: [PATCH 2/3] [PVR] client priority must be reset on stop of pvr
+ component, because it must be re-read from db after restart.
+
+---
+ xbmc/addons/PVRClient.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/xbmc/addons/PVRClient.cpp b/xbmc/addons/PVRClient.cpp
+index c2752e8e5228..46fcf66687b6 100644
+--- a/xbmc/addons/PVRClient.cpp
++++ b/xbmc/addons/PVRClient.cpp
+@@ -188,6 +188,7 @@ void CPVRClient::Destroy(void)
+ void CPVRClient::Stop()
+ {
+   m_bBlockAddonCalls = true;
++  m_bPriorityFetched = false;
+ }
+ 
+ void CPVRClient::Continue()
+
+From 0ed6d00232a2db89e9cd316bb2a17323ae11ef21 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Fri, 25 Jan 2019 10:55:04 +0100
+Subject: [PATCH 3/3] [PVR] Fix CPVRClients::GetTimerTypes not to overwrite in
+ multi-client setups.
+
+---
+ xbmc/pvr/addons/PVRClients.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/pvr/addons/PVRClients.cpp b/xbmc/pvr/addons/PVRClients.cpp
+index 97e7d0fd7663..34d7f54ef5fe 100644
+--- a/xbmc/pvr/addons/PVRClients.cpp
++++ b/xbmc/pvr/addons/PVRClients.cpp
+@@ -476,7 +476,11 @@ bool CPVRClients::GetTimers(CPVRTimersContainer *timers, std::vector<int> &faile
+ PVR_ERROR CPVRClients::GetTimerTypes(CPVRTimerTypes& results) const
+ {
+   return ForCreatedClients(__FUNCTION__, [&results](const CPVRClientPtr &client) {
+-    return client->GetTimerTypes(results);
++    CPVRTimerTypes types;
++    PVR_ERROR ret = client->GetTimerTypes(types);
++    if (ret == PVR_ERROR_NO_ERROR)
++      results.insert(results.end(), types.begin(), types.end());
++    return ret;
+   });
+ }
+ 
