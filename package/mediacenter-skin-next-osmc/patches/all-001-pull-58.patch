@@ -1,7 +1,7 @@
 From 548166b253bfc7e68dec7a65b6799e9ef79b257a Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 17:36:31 +0100
-Subject: [PATCH 1/5] Animation & PVR timeshift improvements
+Subject: [PATCH 1/6] Animation & PVR timeshift improvements
 
 DialogFullScreenInfo.xml
 - remove progress bar
@@ -2770,7 +2770,7 @@ HcmV?d00001
 From a8d9e8a884844e75e8fed3a5496b8799016f95e3 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 20:51:28 +0100
-Subject: [PATCH 2/5] Animation bug fix
+Subject: [PATCH 2/6] Animation bug fix
 
 DialogFullScreenInfo.xml:
 - add conditional visibility and animation to hide video playback info dialog when settings dialog or player process info dialog are opened
@@ -3024,7 +3024,7 @@ index 010af13..5bb9141 100755
 From c74616c61f1de137f03b796b7b344f2ad16e8956 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 23:21:10 +0100
-Subject: [PATCH 3/5] OSD conditional visibility fix
+Subject: [PATCH 3/6] OSD conditional visibility fix
 
 DialogFullScreenInfo.xml:
 - fix conditional visibility for PVR dialogs
@@ -3154,7 +3154,7 @@ index 6765317..368a348 100755
 From 2a5eeb442b9b2bb3146af6926854fad0ee1cdf9c Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Wed, 30 Jan 2019 01:43:45 +0100
-Subject: [PATCH 4/5] Improvements & bug fixes
+Subject: [PATCH 4/6] Improvements & bug fixes
 
 DialogAddonInfo.xml:
 - fix textcolor of plot textbox
@@ -4423,7 +4423,7 @@ index f4e32bd..0a2c52b 100644
 From 10798e4ce8af2ecdadd4b184ea20c4c56cba65d6 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Wed, 30 Jan 2019 14:58:31 +0100
-Subject: [PATCH 5/5] Game OSD fixes
+Subject: [PATCH 5/6] Game OSD fixes
 
 DialogSeekBar.xml:
 - adjust conditional visibility
@@ -4909,3 +4909,53 @@ index bcc43d0..db6d265 100644
  				</control>
  			</control>
  
+
+From ea83f78e470c941d61904dcd269cbe58f7233a94 Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Wed, 30 Jan 2019 18:45:43 +0100
+Subject: [PATCH 6/6] Update changelog
+
+addon.xml:
+- update changelog
+
+Changelog.md:
+- update changelog
+---
+ Changelog.md | 1 -
+ addon.xml    | 4 ++--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/Changelog.md b/Changelog.md
+index ffdc5a9..a9fa02f 100644
+--- a/Changelog.md
++++ b/Changelog.md
+@@ -413,7 +413,6 @@ Viewtype55.xml:
+ 
+ strings.po:
+ - add new localizes for reworked skin settings (31052, 31097, 31107, 31108, 31109, 31110, 31111)
+-- add new localize for new PVR timeshift status dialog (31112)
+ 
+ Textures.xbt:
+ - update file with new resolution select icon included
+diff --git a/addon.xml b/addon.xml
+index 0a2c52b..02c042c 100644
+--- a/addon.xml
++++ b/addon.xml
+@@ -2,7 +2,7 @@
+ <addon
+ 	id="skin.osmc.v18alpha"
+ 	version="18.0.0"
+-	name="OSMC Skin (v18 RC5.2)"
++	name="OSMC Skin (v18)"
+ 	provider-name="OSMC">
+ 	<requires>
+ 		<import addon="xbmc.gui" version="5.14.0"/>
+@@ -14,7 +14,7 @@
+ 		<platform>all</platform>
+ 		<summary lang="en">The default skin for OSMC</summary>
+ 		<description lang="en">Original skin: Andy Morton[CR]Original design: Simon Brunton[CR]Skinner: Julian Michel</description>
+-		<news>Kodi v18 RC5.2 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR]- add missing adjustable plot fonts[CR]- let favourites dialog behave like a normal window[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window[CR]- fix layout of PVR playback dialogs</news>
++		<news>Kodi v18 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR]- add missing adjustable plot fonts[CR]- let favourites dialog behave like a normal window[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window[CR]- fix layout of PVR playback dialogs</news>
+ 	</extension>
+ 	<assets>
+ 		<icon>icon.png</icon>
