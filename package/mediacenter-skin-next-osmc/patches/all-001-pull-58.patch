@@ -1,7 +1,7 @@
 From 548166b253bfc7e68dec7a65b6799e9ef79b257a Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 17:36:31 +0100
-Subject: [PATCH 1/4] Animation & PVR timeshift improvements
+Subject: [PATCH 1/5] Animation & PVR timeshift improvements
 
 DialogFullScreenInfo.xml
 - remove progress bar
@@ -2770,7 +2770,7 @@ HcmV?d00001
 From a8d9e8a884844e75e8fed3a5496b8799016f95e3 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 20:51:28 +0100
-Subject: [PATCH 2/4] Animation bug fix
+Subject: [PATCH 2/5] Animation bug fix
 
 DialogFullScreenInfo.xml:
 - add conditional visibility and animation to hide video playback info dialog when settings dialog or player process info dialog are opened
@@ -3024,7 +3024,7 @@ index 010af13..5bb9141 100755
 From c74616c61f1de137f03b796b7b344f2ad16e8956 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 23:21:10 +0100
-Subject: [PATCH 3/4] OSD conditional visibility fix
+Subject: [PATCH 3/5] OSD conditional visibility fix
 
 DialogFullScreenInfo.xml:
 - fix conditional visibility for PVR dialogs
@@ -3154,7 +3154,7 @@ index 6765317..368a348 100755
 From 2a5eeb442b9b2bb3146af6926854fad0ee1cdf9c Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Wed, 30 Jan 2019 01:43:45 +0100
-Subject: [PATCH 4/4] Improvements & bug fixes
+Subject: [PATCH 4/5] Improvements & bug fixes
 
 DialogAddonInfo.xml:
 - fix textcolor of plot textbox
@@ -4419,3 +4419,493 @@ index f4e32bd..0a2c52b 100644
  	</extension>
  	<assets>
  		<icon>icon.png</icon>
+
+From 10798e4ce8af2ecdadd4b184ea20c4c56cba65d6 Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Wed, 30 Jan 2019 14:58:31 +0100
+Subject: [PATCH 5/5] Game OSD fixes
+
+DialogSeekBar.xml:
+- adjust conditional visibility
+
+DialogSelect.xml:
+- adjust conditional visibility
+- adjust animation for games dialogs
+
+DialogSlider.xml:
+- add animation
+
+GameOSD.xml:
+- adjust animation
+- adjust conditional visibility
+---
+ 16x9/DialogSeekBar.xml |   2 +-
+ 16x9/DialogSelect.xml  |   8 +-
+ 16x9/DialogSlider.xml  |  69 ++++-----
+ 16x9/GameOSD.xml       | 316 ++++++++++++++++++++++++-----------------
+ 4 files changed, 230 insertions(+), 165 deletions(-)
+
+diff --git a/16x9/DialogSeekBar.xml b/16x9/DialogSeekBar.xml
+index 2f99849..e6fb378 100755
+--- a/16x9/DialogSeekBar.xml
++++ b/16x9/DialogSeekBar.xml
+@@ -2,7 +2,7 @@
+ <window>
+ 	<!-- seekbar -->
+ 	<defaultcontrol always="true">901</defaultcontrol>
+-		<visible>[Player.Seeking | Player.DisplayAfterSeek + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.DisplayAfterSeek + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.DisplayAfterSeek + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s)	| Player.DisplayAfterSeek + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.DisplayAfterSeek + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.DisplayAfterSeek + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.DisplayAfterSeek + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.DisplayAfterSeek + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.DisplayAfterSeek + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Forwarding | Player.Rewinding | Player.IsTempo] + !Window.IsVisible(subtitlesearch) + ![Window.IsActive(gameviewmode) | Window.IsActive(gamevideofilter)] | !String.IsEmpty(PVR.ChannelNumberInput)</visible>
++		<visible>[Player.Seeking | Player.DisplayAfterSeek + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.DisplayAfterSeek + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.DisplayAfterSeek + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s)	| Player.DisplayAfterSeek + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.DisplayAfterSeek + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.DisplayAfterSeek + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.DisplayAfterSeek + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.DisplayAfterSeek + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.DisplayAfterSeek + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Forwarding | Player.Rewinding | Player.IsTempo] + !Window.IsVisible(subtitlesearch) + !Window.IsVisible(gameviewmode) + !Window.IsVisible(gamevideofilter) + !Window.IsVisible(gameosd) + !String.IsEmpty(PVR.ChannelNumberInput)</visible>
+ 		<visible>VideoPlayer.IsFullscreen | Window.IsVisible(visualisation)</visible>
+ 		<zorder>0</zorder>
+ 
+diff --git a/16x9/DialogSelect.xml b/16x9/DialogSelect.xml
+index 9538faa..3674fdb 100755
+--- a/16x9/DialogSelect.xml
++++ b/16x9/DialogSelect.xml
+@@ -7,7 +7,7 @@
+ 	<controls>
+ 		
+ 		<control type="group">
+-			<visible>![Window.IsActive(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation)]</visible>
++			<visible>![Window.IsVisible(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation)]</visible>
+ 			
+ 			<!-- Window Background -->
+ 			<include>WindowFadeBackgroundImage</include>
+@@ -254,10 +254,10 @@
+ 		</control>
+ 
+ 		<control type="group">
+-			<visible>Window.IsActive(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation)</visible>
++			<visible>Window.IsVisible(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation)</visible>
+ 			<!-- Animation -->
+-			<animation effect="slide" start="0,1480" time="200">WindowOpen</animation>
+-			<animation effect="slide" end="0,1480" time="200">WindowClose</animation>
++			<animation effect="slide" start="0,1480" time="400">WindowOpen</animation>
++			<animation effect="slide" end="0,1480" time="400">WindowClose</animation>
+ 
+ 			<!-- Window Background -->
+ 			<control type="image">
+diff --git a/16x9/DialogSlider.xml b/16x9/DialogSlider.xml
+index ecf9894..c03ebbb 100755
+--- a/16x9/DialogSlider.xml
++++ b/16x9/DialogSlider.xml
+@@ -4,45 +4,50 @@
+ 	<defaultcontrol always="true">11</defaultcontrol>
+ 
+ 	<controls>
+-
+-		<!-- Background image -->
+-		<control type="image">
++		<control type="group">
+ 			<left>685</left>
+ 			<top>10</top>
+ 			<width>550</width>
+ 			<height>75</height>
+-			<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+-		</control>
++			
++			<!-- Animation -->
++			<include>DialogZoomAnimation</include>
++			
++			<!-- Background image -->
++			<control type="image">
++				<width>550</width>
++				<height>75</height>
++				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
++			</control>
+ 
+-		<!-- Heading -->
+-		<control type="label" id="10">
+-			<left>685</left>
+-			<top>20</top>
+-			<width>550</width>
+-			<height>20</height>
+-			<align>center</align>
+-			<scroll>true</scroll>
+-			<font>Font27</font>
+-		</control>
++			<!-- Heading -->
++			<control type="label" id="10">
++				<top>10</top>
++				<width>550</width>
++				<height>20</height>
++				<align>center</align>
++				<scroll>true</scroll>
++				<font>Font27</font>
++			</control>
+ 
+-		<!-- Details -->
+-		<control type="label" id="12">
+-			<left>685</left>
+-			<top>45</top>
+-			<width>550</width>
+-			<height>25</height>
+-			<align>center</align>
+-			<aligny>top</aligny>
+-			<scroll>true</scroll>
+-			<font>Font27-Light</font>
+-		</control>
++			<!-- Details -->
++			<control type="label" id="12">
++				<top>35</top>
++				<width>550</width>
++				<height>25</height>
++				<align>center</align>
++				<aligny>top</aligny>
++				<scroll>true</scroll>
++				<font>Font27-Light</font>
++			</control>
+ 
+-		<!-- Slider -->
+-		<control type="slider" id="11">
+-			<left>685</left>
+-			<top>75</top>
+-			<width>550</width>
+-			<height>20</height>
++			<!-- Slider -->
++			<control type="slider" id="11">
++				<top>65</top>
++				<width>550</width>
++				<height>20</height>
++			</control>
++			
+ 		</control>
+ 
+ 	</controls>
+diff --git a/16x9/GameOSD.xml b/16x9/GameOSD.xml
+index bcc43d0..db6d265 100644
+--- a/16x9/GameOSD.xml
++++ b/16x9/GameOSD.xml
+@@ -5,144 +5,204 @@
+ 	
+ 	<controls>
+ 
++		<!-- Player status -->
+ 		<control type="group">
+-			<!-- Animation -->
+-			<include>DialogZoomAnimation</include>
+-			
+-			<visible>![Window.IsActive(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation) | Window.IsVisible(gamevolume)]</visible>
++			<left>150</left>
++			<top>870</top>
++			<width>140</width>
++			<height>60</height>
++			<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
++			<visible>![Window.IsVisible(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation) | Window.IsVisible(gamevolume) | Window.IsVisible(gamecontrollers) | Window.IsVisible(gameadvancedsettings)]</visible>
++			<animation type="Visible">
++				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++				<effect type="fade" start="0" end="100" time="200"/>
++			</animation>
++			<animation type="Hidden">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
++			<animation type="WindowOpen">
++				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++				<effect type="fade" start="0" end="100" time="200"/>
++			</animation>
++			<animation type="WindowClose">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
+ 
+-			<!-- Window Background -->
+-			<control type="image">
+-				<left>730</left>
+-				<top>230</top>
+-				<width>460</width>
+-				<height>620</height>
+-				<texture colordiffuse="$VAR[OverlayColor]" border="30">dialogs/Background.png</texture>
++			<!-- Background -->
++			<control type="image" id="1">
++				<width>140</width>
++				<height>60</height>
++				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 			</control>
+-			
+-			<!-- Heading -->
+-			<control type="label" id="2">
+-				<left>550</left>
+-				<top>260</top>
+-				<width>820</width>
+-				<height>33</height>
+-				<align>center</align>
+-				<aligny>top</aligny>
+-				<font>Font33</font>
+-				<label>35221</label>
++
++			<!-- Pause -->
++			<control type="image" id="1">
++				<left>40</left>
++				<width>60</width>
++				<height>60</height>
++				<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPauseNF.png</texture>
++				<visible>player.paused</visible>
+ 			</control>
+ 
+-			<!-- Game OSD Buttons Grouplist -->
+-			<control type="grouplist" id="5">
+-				<left>750</left>
+-				<top>320</top>
+-				<width>420</width>
+-				<height>510</height>
+-				<itemgap>0</itemgap>
+-				<orientation>vertical</orientation>
+-				<scrolltime tween="sine" easing="out">240</scrolltime>
+-				<control type="button" id="1001">
+-					<description>Pause/Resume button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35224]</label>
+-					<font>Font33</font>
+-					<label2>Select + X</label2>
+-					<onclick>Play</onclick>
+-					</control>
+-				<control type="button" id="1002">
+-					<description>Reset button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[13007]</label>
+-					<font>Font33</font>
+-					<label2>Select + B</label2>
+-					<onclick>PlayerControl(Reset)</onclick>
+-				</control>
+-				<control type="button" id="1003">
+-					<description>Stop button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35222]</label>
+-					<font>Font33</font>
+-					<label2>Select + Start</label2>
+-					<onclick>Stop</onclick>
+-				</control>
+-				<control type="image" id="1004"> 
+-					<width>420</width>
+-					<height>30</height> 
+-					<texture>transparent.png</texture> 
+-				</control> 
+-				<control type="button" id="1005">
+-					<description>Game video filter button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35225]</label>
+-					<font>Font33</font>
+-					<onclick>ActivateWindow(GameVideoFilter)</onclick>
+-				</control>
+-				<control type="button" id="1006">
+-					<description>Game stretch mode button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35233]</label>
+-					<font>Font33</font>
+-					<onclick>ActivateWindow(GameStretchMode)</onclick>
+-				</control>
+-				<control type="button" id="1007">
+-					<description>View mode button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35227]</label>
+-					<font>Font33</font>
+-					<onclick>ActivateWindow(GameVideoRotation)</onclick>
+-				</control>
+-				<control type="button" id="1008">
+-					<description>Game volume button</description>
+-					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[13376]</label>
+-					<font>Font33</font>
+-					<onclick>ActivateWindow(GameVolume)</onclick>
+-				</control>
+-				<control type="image" id="1009"> 
+-					<width>420</width>
+-					<height>30</height> 
+-					<texture>transparent.png</texture> 
++		</control>
++	
++		<control type="group">
++			<left>730</left>
++			<top>230</top>
++			<width>460</width>
++			<height>620</height>
++			<visible>![Window.IsActive(gamevideofilter) | Window.IsVisible(gamestretchmode) | Window.IsVisible(gamevideorotation) | Window.IsVisible(gamevolume) | Window.IsVisible(gamecontrollers) | Window.IsVisible(gameadvancedsettings)]</visible>
++			<animation type="Visible">
++				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++				<effect type="fade" start="0" end="100" time="200"/>
++			</animation>
++			<animation type="Hidden">
++				<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++				<effect type="fade" start="100" end="0" time="200"/>
++			</animation>
++			<control type="group">
++				<animation type="WindowOpen">
++					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
++					<effect type="fade" start="0" end="100" time="200"/>
++				</animation>
++				<animation type="WindowClose">
++					<effect type="zoom" start="100" end="90" center="auto" easing="in" time="200"/>
++					<effect type="fade" start="100" end="0" time="200"/>
++				</animation>
++			
++				<!-- Window Background -->
++				<control type="image">
++					<width>460</width>
++					<height>620</height>
++					<texture colordiffuse="$VAR[OverlayColor]" border="30">dialogs/Background.png</texture>
+ 				</control>
+-				<control type="button" id="1010">
+-					<description>Game advanced settings button</description>
++				
++				<!-- Heading -->
++				<control type="label" id="2">
++					<left>20</left>
++					<top>30</top>
+ 					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35226]</label>
++					<height>33</height>
++					<align>center</align>
++					<aligny>top</aligny>
+ 					<font>Font33</font>
+-					<onclick>ActivateWindow(GameAdvancedSettings)</onclick>
++					<label>35221</label>
+ 				</control>
+-				<control type="button" id="1011">
+-					<description>Input settings button</description>
++
++				<!-- Game OSD Buttons Grouplist -->
++				<control type="grouplist" id="5">
++					<left>20</left>
++					<top>90</top>
+ 					<width>420</width>
+-					<height>50</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+-					<focusedcolor>$VAR[TextColor1]</focusedcolor>
+-					<label>$LOCALIZE[35050]</label>
+-					<font>Font33</font>
+-					<onclick>ActivateWindow(gamecontrollers)</onclick>
++					<height>510</height>
++					<itemgap>0</itemgap>
++					<orientation>vertical</orientation>
++					<scrolltime tween="sine" easing="out">240</scrolltime>
++					<control type="button" id="1001">
++						<description>Pause/Resume button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35224]</label>
++						<font>Font33</font>
++						<label2>Select + X</label2>
++						<onclick>Play</onclick>
++						</control>
++					<control type="button" id="1002">
++						<description>Reset button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[13007]</label>
++						<font>Font33</font>
++						<label2>Select + B</label2>
++						<onclick>PlayerControl(Reset)</onclick>
++					</control>
++					<control type="button" id="1003">
++						<description>Stop button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35222]</label>
++						<font>Font33</font>
++						<label2>Select + Start</label2>
++						<onclick>Stop</onclick>
++					</control>
++					<control type="image" id="1004"> 
++						<width>420</width>
++						<height>30</height> 
++						<texture>transparent.png</texture> 
++					</control> 
++					<control type="button" id="1005">
++						<description>Game video filter button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35225]</label>
++						<font>Font33</font>
++						<onclick>ActivateWindow(GameVideoFilter)</onclick>
++					</control>
++					<control type="button" id="1006">
++						<description>Game stretch mode button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35233]</label>
++						<font>Font33</font>
++						<onclick>ActivateWindow(GameStretchMode)</onclick>
++					</control>
++					<control type="button" id="1007">
++						<description>View mode button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35227]</label>
++						<font>Font33</font>
++						<onclick>ActivateWindow(GameVideoRotation)</onclick>
++					</control>
++					<control type="button" id="1008">
++						<description>Game volume button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[13376]</label>
++						<font>Font33</font>
++						<onclick>ActivateWindow(GameVolume)</onclick>
++					</control>
++					<control type="image" id="1009"> 
++						<width>420</width>
++						<height>30</height> 
++						<texture>transparent.png</texture> 
++					</control>
++					<control type="button" id="1010">
++						<description>Game advanced settings button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35226]</label>
++						<font>Font33</font>
++						<onclick>ActivateWindow(GameAdvancedSettings)</onclick>
++					</control>
++					<control type="button" id="1011">
++						<description>Input settings button</description>
++						<width>420</width>
++						<height>50</height>
++						<textcolor>$VAR[TextColor2]</textcolor>
++						<focusedcolor>$VAR[TextColor1]</focusedcolor>
++						<label>$LOCALIZE[35050]</label>
++						<font>Font33</font>
++						<onclick>ActivateWindow(gamecontrollers)</onclick>
++					</control>
+ 				</control>
+ 			</control>
+ 
