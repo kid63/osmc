@@ -1,0 +1,79 @@
+From b2373888911af025a774f4e971b0e341bf7667e6 Mon Sep 17 00:00:00 2001
+From: ronie <ronie@kodi.tv>
+Date: Fri, 25 Jan 2019 01:48:14 +0100
+Subject: [PATCH] [Estuary] videoinfo - add movieset button
+
+---
+ .../skin.estuary/media/icons/infodialogs/set.png | Bin 0 -> 2029 bytes
+ addons/skin.estuary/xml/DialogVideoInfo.xml      |   8 ++++++++
+ 2 files changed, 8 insertions(+)
+ create mode 100644 addons/skin.estuary/media/icons/infodialogs/set.png
+
+diff --git a/addons/skin.estuary/media/icons/infodialogs/set.png b/addons/skin.estuary/media/icons/infodialogs/set.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..e708591b3d7bf2ee2d9890a6f3a8920d1fc22a59
+GIT binary patch
+literal 2029
+zcmV<J2NL*+P)<h;3K|Lk000e1NJLTq001xm001xu1ONa4{R=S+0009&dQ@0+Qek%>
+zaB^>EX>4U6ba`-PAZ2)IW&i+q+U=EFw&N%aMgJK^4*^LC!Ei8-wR#3U{61jHdEKgY
+zD^;H{iLn(SINFG~{@=gD{ez1`_AaQUm}B&~LJpY=9+E$=vnL<ceO<DD!ux~WT|Y2P
+za`TLR`xn^tHo(HRACGotb;n6N5M6=K70j9E^Y%+Sknm}z{qFJ}SHhi~{pGsD?%>bw
+z!H|rmh$rm03yH@)%~=F1kSt~O1@8){^ErsDJAIuycRfBO?|OR5oiE!ikEw7zZio1k
+zqirXBvdc9MKdgvuGe7(Qb;;jfcexv*r7`-cu7rq8MYl!$kg}fOcp#OshD9{PSMhAC
+zWwZo|6~r279%$83CPuag1!`1iP+xteiX{f_Z0MOQ%d#ag&RiFOFdGdv;Au`0*i=vx
+znE6@@t$FjBuTsLyjo`_IV1yAb&3$Ejr(J=@m|K^~rz=-j7tcM7WlVDO4le+qv2&^`
+zzpJ^sedF)I3JB^-bArI)k2A!fblY39I1BvL2j|byAZt4SQiQn`iy;94A4!xVd1E#r
+z<S~Iy!OB?zA0R-g+{g{E5s844c+QP6M$4C#Pcx1dfKZ8IK!XATtPm9Y$3ns$Dk>VB
+zszx<UnzclUA!>}#;yj~@i3L-OW|k~lNs>a+6qBWtaw?g#;0V(kv$>pd&ZS_|g3tw{
+z3p`3W_>dzUdc?zybmXH{Y@Zsc)>y5knrms?q@ny<Z01^Oxs^^GTd9YxJ$CD<=UxW(
+z+K>^3jyP<jkw>|xZK{vd=!x8~snMo3iG}57H)=4O{RlzxIMK-r#5fR$+a!Pu&6Al=
+z6ar6jlbO$qqEH4k(g~;0BnE<^6YHRh-HqHYxj7BL#f^VP&P{ZGgPfb_Hn~@BUr=jh
+z{iDbNG^=pt)XTuZ28Vw144+(W^pJbRxilhamVxpNQ~f|mSzGUi;CQTAY6~)Y<%2OQ
+zIfzJJ8pIcT=KtG!z5Cq(Bi&5*I^26gUUj%X6ZGvsKNIq*!@VcuwRe9<*i)eI3whPy
+z-V^fLyFV9p>TvG~`IN|~L_Q_*DUnZ!d`jd~BA*iZl*so=WK0#<o&N*ZL)cn?dQ_hP
+z0007FOGiWi0z`vC9smFU32;bRa{vG?BLDy{BLR4&KXw2B00(qQO+^Re0T}=*E0($T
+z00004Gf6~2R9M5Um|IL-RTPH*bB4<>1)(@h!2qGf7@C+^jIq&J4XtV7gV(gei?^5%
+zqm85@mR4&tF>0cHAZoldwHh8wj1NB8J~XLDV}crk)Jtiwp|!viDMcu>TxRC;VLD~z
+zoINw=P}ke+y=Pta{@1_OI+hGVSR1ujH>p-3&1ppaI;x+oN&O!}H7_wpj7*7foZUpO
+zR(XK?86<&O;{49N1XixTh+SMDw_Ko;!j-8nU@!CJmwCD=@UPyYjXAtXf>CbvZ=jx&
+zp43NqohAw;EP_-}Njbq>nhTQt>shVM>qSgo>J^=kbRBo8MNJB;So50TxQ^;Ojay{*
+ze<ZK(Gwh@Uiw5>_hPVsH!@NdqHUp0tp&4hCV~i08rg;RLLLTQ-Rv0H3V!IIld}cU4
+z%?s2~Mm@WkWCu1Syve0Jan7-aBDaA*TnA%xrc#OkcTh|bZ?oh91`F(UMZt{g*lDUA
+zFmCshCCMlr#>zCX=sI*P(+ipy!@CSEKesJOnseP+xx#7cZ9S(NA8FO7r!!(Oyg{5!
+z>?`}%GmbwQrY1dtUtB)edRbl6P=qb%ZdDoljB8kZ`dbOZUcEMX$%AnQXePkthTU_t
+z6DCB2olG0{KS(!Fmo<~mvyN5t6JwSUh8bm+7zvhWPhBB4&$}`k`Z7WIR+jwyhX_HQ
+zqJ;+5P(?Ls*}{wTQkmi4sOz7jUfA?s-lass!lsNm8mXfc8_NOWRSdeX&{+>!9rYm2
+zx7<#E0@l;TA^sxD1W|@KL?<_-n_wMh-KpxXXnR;lOZXltuxO^2Y1j27nBo&|Ok$k^
+z-Y{J7_okZM%`5<myh<@4b}^9y>u2d8D6z#rHPDl-tN4=`Jrq;U{=DS2$UBr$!pE)%
+zV%(RlHq`JW6@)lofF1_ceUBhv`W)+ngmYDBn=Vh(oQ&cbELtvKZVDjX4nB1l*uXg-
+zyc1<Th4iMa3{aK3zw7l$ZSP~V=}NVmVr%XerpcH8Njx<W;-|~yrhS=*Q*4?kTUBXT
+zomaoU(ts8Wdl7B6F6tXe=hdMDRw8!``Gvv9Gdw_$041~%HS8b6W*a|nCw9IbuasX6
+zNNG!<0*faM2<szA8P|AeB3B!#?}-fVjBwg@;uNK3eeQrPxm%|>&8GdD(IwZ3tW$$+
+zD1`17U`<BJuh+E(7ZP3#ENaZPR-+xMevP0y3<gFN^FAqjXzbTM;uad%$ft%b3ijos
+z28W4lt`RUb+f1ZYjC5Jz9zVlKgdv}q{2QyiKe9BTgG%`DD6ak1l)r(h%8+c?r7yex
+z*-f-C=~4YSx2<HTwRzN7X`M2~b|3h0m}oQ7S|$ZPn3vpgW<)bbjHpj$#@DIF<!ZiO
+zglOf6qcch{#bF-GJs&Sqn}=^0YSgXTpjs8{qQ*3!A9d1N^5)`y>fe-nJPl+^00000
+LNkvXXu0mjfW(&7f
+
+literal 0
+HcmV?d00001
+
+diff --git a/addons/skin.estuary/xml/DialogVideoInfo.xml b/addons/skin.estuary/xml/DialogVideoInfo.xml
+index 283757d3514a..a1f3e279bd5d 100644
+--- a/addons/skin.estuary/xml/DialogVideoInfo.xml
++++ b/addons/skin.estuary/xml/DialogVideoInfo.xml
+@@ -468,6 +468,14 @@
+ 						<param name="label" value="$LOCALIZE[31123]" />
+ 						<param name="visible" value="!String.IsEmpty(ListItem.Director)" />
+ 					</include>
++					<include content="InfoDialogButton">
++						<param name="id" value="443" />
++						<param name="icon" value="icons/infodialogs/set.png" />
++						<param name="label" value="$LOCALIZE[20457]" />
++						<param name="onclick_1" value="Dialog.Close(all,true)" />
++						<param name="onclick_2" value="ActivateWindow(Videos,videodb://movies/sets/$INFO[ListItem.SetId]/?setid=$INFO[ListItem.SetId])" />
++						<param name="visible" value="!String.IsEmpty(ListItem.SetID)" />
++					</include>
+ 					<include content="InfoDialogButton">
+ 						<param name="id" value="10" />
+ 						<param name="icon" value="icons/infodialogs/choose_image.png" />
