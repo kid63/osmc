@@ -1,7 +1,7 @@
 From 548166b253bfc7e68dec7a65b6799e9ef79b257a Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 17:36:31 +0100
-Subject: [PATCH 1/3] Animation & PVR timeshift improvements
+Subject: [PATCH 1/4] Animation & PVR timeshift improvements
 
 DialogFullScreenInfo.xml
 - remove progress bar
@@ -2770,7 +2770,7 @@ HcmV?d00001
 From a8d9e8a884844e75e8fed3a5496b8799016f95e3 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 20:51:28 +0100
-Subject: [PATCH 2/3] Animation bug fix
+Subject: [PATCH 2/4] Animation bug fix
 
 DialogFullScreenInfo.xml:
 - add conditional visibility and animation to hide video playback info dialog when settings dialog or player process info dialog are opened
@@ -3024,7 +3024,7 @@ index 010af13..5bb9141 100755
 From c74616c61f1de137f03b796b7b344f2ad16e8956 Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Sun, 27 Jan 2019 23:21:10 +0100
-Subject: [PATCH 3/3] OSD conditional visibility fix
+Subject: [PATCH 3/4] OSD conditional visibility fix
 
 DialogFullScreenInfo.xml:
 - fix conditional visibility for PVR dialogs
@@ -3150,3 +3150,1272 @@ index 6765317..368a348 100755
  					<onright>12</onright>
  					<onup>30</onup>
  					<ondown>30</ondown>
+
+From 2a5eeb442b9b2bb3146af6926854fad0ee1cdf9c Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Wed, 30 Jan 2019 01:43:45 +0100
+Subject: [PATCH 4/4] Improvements & bug fixes
+
+DialogAddonInfo.xml:
+- fix textcolor of plot textbox
+
+DialogFavourites.xml
+- change behaviour to mimic normal window behaviour (not dialog behaviour)
+- fix onup/ondown behaviour
+
+DialogFullScreenInfo.xml:
+- fix textcolor of plot textbox
+
+DialogMusicInfo.xml:
+- fix textcolor of plot textbox
+
+DialogPVRChannelGuide.xml:
+- rework window layout
+- add adjustable plot font
+
+DialogPVRChannelOSD.xml:
+- rework window layout
+- add adjustable plot font
+
+DialogPVRInfo.xml:
+- fix textcolor of plot textbox
+
+DialogVideoInfo.xml:
+- fix textcolor of plot textbox
+
+LoginScreen.xml:
+- fix code formatting
+
+MyPVRChannels:
+- add adjustable plot font
+
+MyPVRGuide:
+- remove scrollbar
+- add highlighting
+- add adjustable plot font
+
+MyPVRRecordings.xml:
+- add adjustable plot font
+
+MyPVRSearch.xml:
+- change labels to fadelabels
+- add adjustable plot font
+
+Variables.xml:
+- add new PVRCHannelIconDialogOSD variable
+- add new PlotDialogGuide variable
+- add new PVRDescriptionDialogGuide variable
+
+VideoFullScreen:
+- adjust conditional visibility
+
+VideoOSD:
+- adjust conditional visibility
+
+Viewtype51.xml:
+- add adjustable plot font
+
+addon.xml:
+- update changelog
+
+Changelog.md:
+- update changelog
+---
+ 16x9/DialogAddonInfo.xml       |  9 +++-
+ 16x9/DialogFavourites.xml      | 11 ++---
+ 16x9/DialogFullScreenInfo.xml  |  4 +-
+ 16x9/DialogMusicInfo.xml       |  9 +++-
+ 16x9/DialogPVRChannelGuide.xml | 79 ++++++++++++++++++++-----------
+ 16x9/DialogPVRChannelsOSD.xml  | 85 ++++++++++++++++++++--------------
+ 16x9/DialogPVRInfo.xml         |  9 +++-
+ 16x9/DialogVideoInfo.xml       |  9 +++-
+ 16x9/LoginScreen.xml           |  1 -
+ 16x9/MyPVRChannels.xml         | 25 ++++++++--
+ 16x9/MyPVRGuide.xml            | 58 +++++++++++++----------
+ 16x9/MyPVRRecordings.xml       | 25 ++++++++--
+ 16x9/MyPVRSearch.xml           | 49 +++++++++++++-------
+ 16x9/Variables.xml             | 17 +++++++
+ 16x9/VideoFullScreen.xml       |  2 +-
+ 16x9/VideoOSD.xml              |  2 +-
+ 16x9/Viewtype51.xml            | 25 ++++++++--
+ Changelog.md                   | 19 ++++++++
+ addon.xml                      |  2 +-
+ 19 files changed, 312 insertions(+), 128 deletions(-)
+
+diff --git a/16x9/DialogAddonInfo.xml b/16x9/DialogAddonInfo.xml
+index 9f73df8..338619c 100755
+--- a/16x9/DialogAddonInfo.xml
++++ b/16x9/DialogAddonInfo.xml
+@@ -148,9 +148,9 @@
+ 					<top>230</top>
+ 					<width>1170</width>
+ 					<height>360</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+ 					<control type="textbox">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[addonInformation][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S light)</visible>
+@@ -158,12 +158,14 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[addonInformation][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M light)</visible>
+ 					</control>
+ 					<control type="textbox">
+ 						<align>left</align>
++						<font>Font33</font>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[addonInformation][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+@@ -172,6 +174,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[addonInformation][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL light)</visible>
+@@ -179,6 +182,7 @@
+ 					
+ 					<control type="textbox">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[addonInformation]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S)</visible>
+@@ -186,6 +190,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[addonInformation]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M)</visible>
+@@ -193,6 +198,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[addonInformation]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L)</visible>
+@@ -200,6 +206,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[addonInformation]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL)</visible>
+diff --git a/16x9/DialogFavourites.xml b/16x9/DialogFavourites.xml
+index 9f184ed..08e176d 100755
+--- a/16x9/DialogFavourites.xml
++++ b/16x9/DialogFavourites.xml
+@@ -1,15 +1,14 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <window>
+ 	<!-- favourites -->
++	<backgroundcolor>0x00000000</backgroundcolor>
+ 	<defaultcontrol always="true">450</defaultcontrol>
+ 	<controls>
+ 		<!-- Window Background -->
+-		<include>WindowFadeBackgroundImage</include>
++		<include>WindowBackgroundImage</include>
+ 
+ 		<control type="group">
+-
+-			<!-- Animation -->
+-			<include>DialogZoomAnimation</include>
++			<include>WindowFadeAnimation</include>
+ 
+ 			<!-- Heading -->
+ 			<include content="Time">
+@@ -43,8 +42,8 @@
+ 				<centertop>50%</centertop>
+ 				<width>1050</width>
+ 				<height>720</height>
+-				<onup>51</onup>
+-				<ondown>51</ondown>
++				<onup>450</onup>
++				<ondown>450</ondown>
+ 				<onleft>60</onleft>
+ 				<orientation>vertical</orientation>
+ 				<viewtype label="535">list</viewtype>
+diff --git a/16x9/DialogFullScreenInfo.xml b/16x9/DialogFullScreenInfo.xml
+index 4da3c83..ee260d4 100755
+--- a/16x9/DialogFullScreenInfo.xml
++++ b/16x9/DialogFullScreenInfo.xml
+@@ -80,21 +80,23 @@
+ 					<top>57</top>
+ 					<width>1280</width>
+ 					<height>163</height>
+-					<textcolor>$VAR[TextColor1]</textcolor>
+ 					<control type="textbox">
+ 						<label>[LIGHT]$VAR[VideoPlayerPlot][/LIGHT]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<autoscroll delay="8000" time="1800" repeat="10000">true</autoscroll>
+ 						<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
+ 					</control>
+ 					<control type="textbox">
+ 						<font>Font30</font>
+ 						<label>[LIGHT]$VAR[VideoPlayerPlot][/LIGHT]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<autoscroll delay="8000" time="1700" repeat="10000">true</autoscroll>
+ 						<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
+ 					</control>
+ 					<control type="textbox">
+ 						<font>Font33</font>
+ 						<label>[LIGHT]$VAR[VideoPlayerPlot][/LIGHT]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<autoscroll delay="8000" time="1600" repeat="10000">true</autoscroll>
+ 						<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
+ 					</control>
+diff --git a/16x9/DialogMusicInfo.xml b/16x9/DialogMusicInfo.xml
+index 1184b9f..353a97d 100755
+--- a/16x9/DialogMusicInfo.xml
++++ b/16x9/DialogMusicInfo.xml
+@@ -613,9 +613,9 @@
+ 					<top>370</top>
+ 					<width>1170</width>
+ 					<height>210</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+ 					<control type="textbox">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[MusicInfoDescription][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S light)</visible>
+@@ -623,6 +623,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[MusicInfoDescription][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M light)</visible>
+@@ -630,6 +631,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[MusicInfoDescription][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L light)</visible>
+@@ -637,6 +639,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[MusicInfoDescription][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL light)</visible>
+@@ -644,6 +647,7 @@
+ 					
+ 					<control type="textbox">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[MusicInfoDescription]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S)</visible>
+@@ -651,6 +655,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[MusicInfoDescription]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M)</visible>
+@@ -658,6 +663,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[MusicInfoDescription]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L)</visible>
+@@ -665,6 +671,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[MusicInfoDescription]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL)</visible>
+diff --git a/16x9/DialogPVRChannelGuide.xml b/16x9/DialogPVRChannelGuide.xml
+index a4bd1c4..b59d48c 100644
+--- a/16x9/DialogPVRChannelGuide.xml
++++ b/16x9/DialogPVRChannelGuide.xml
+@@ -9,58 +9,83 @@
+ 		<!-- Menu -->
+ 		<control type="group">
+ 			<left>150</left>
+-			<top>150</top>
++			<top>200</top>
+ 
+ 			<!-- Background -->
+ 			<control type="image">
+ 				<width>1620</width>
+-				<height>695</height>
++				<height>680</height>
+ 				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 			</control>
+ 
+ 			<!-- Heading label -->
+ 			<control type="label" id="2">
+-				<left>20</left>
+-				<top>10</top>
+-				<width>750</width>
++				<left>260</left>
++				<top>97</top>
++				<width>410</width>
+ 				<height>48</height>
+ 				<font>Font33</font>
+ 				<textcolor>$VAR[TextColor1]</textcolor>
+-				<label>$INFO[VideoPlayer.ChannelName]</label>
++				<label>$VAR[VideoPlayerChannelNumber]</label>
+ 			</control>
+ 
+ 			<!-- Date label -->
+ 			<control type="label" id="2">
+-				<left>20</left>
+-				<top>62</top>
+-				<width>750</width>
++				<left>260</left>
++				<top>149</top>
++				<width>410</width>
+ 				<height>36</height>
+ 				<font>Font33</font>
+ 				<textcolor>$VAR[TextColor1]</textcolor>
+ 				<label>[LIGHT]$INFO[Container(11).ListItem.StartDate][/LIGHT]</label>
+ 			</control>
+ 			
++			<!-- Icon -->
++			<control type="image">
++				<left>20</left>
++				<top>31</top>
++				<width>220</width>
++				<height>220</height>
++				<aspectratio align="right">keep</aspectratio>
++				<texture>$VAR[VideoPlayerIcon]</texture>
++			</control>
++			
+ 			<!-- Episode Information -->
+-			<control type="textbox">
++			<control type="group">
+ 				<left>20</left>
+-				<top>160</top>
++				<top>282</top>
+ 				<width>650</width>
+-				<height>500</height>
+-				<label>$INFO[Container(11).ListItem.TVShowTitle,[B],[/B][CR]]$INFO[Container(11).ListItem.Title,[B],[/B][CR]][LIGHT]$INFO[Container(11).ListItem.Season,$LOCALIZE[20373] , / ]$INFO[Container(11).ListItem.Episode,$LOCALIZE[20359],[CR] ][/LIGHT]$INFO[Container(11).ListItem.Plot]</label>
+-				<textcolor>$VAR[TextColor1]</textcolor>
+-				<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++				<height>378</height>
++				<control type="textbox">
++					<label>$VAR[PVRDescriptionDialogGuide]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++					<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++				</control>
++				<control type="textbox">
++					<font>Font30</font>
++					<label>$VAR[PVRDescriptionDialogGuide]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<autoscroll delay="5000" time="1300" repeat="10000">true</autoscroll>
++					<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++				</control>
++				<control type="textbox">
++					<font>Font33</font>
++					<label>$VAR[PVRDescriptionDialogGuide]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<autoscroll delay="5000" time="1200" repeat="10000">true</autoscroll>
++					<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++				</control>
+ 			</control>
+ 
+-
+-
+ 			<!-- List -->
+ 			<control type="list" id="11">
+ 				<left>750</left>
+-				<top>116</top>
++				<top>34</top>
+ 				<width>750</width>
+-				<height>561</height>
+-				<onleft>Close</onleft>
+-				<onright>Close</onright>
++				<height>612</height>
++				<onleft>noop</onleft>
++				<onright>noop</onright>
+ 				<onup>11</onup>
+ 				<ondown>11</ondown>
+ 				<scrolltime tween="sine" easing="out">240</scrolltime>
+@@ -73,7 +98,7 @@
+ 						<width>140</width>
+ 						<height>51</height>
+ 						<font>Font27</font>
+-						<align>right</align>
++						<align>left</align>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$INFO[ListItem.StartTime]</label>
+ 					</control>
+@@ -83,6 +108,7 @@
+ 						<left>160</left>
+ 						<width>520</width>
+ 						<height>51</height>
++						<font>Font33</font>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$INFO[ListItem.Label]</label>
+ 					</control>
+@@ -116,10 +142,10 @@
+ 						<top>2</top>
+ 						<width>140</width>
+ 						<height>51</height>
+-						<font>Font27</font>
+-						<align>right</align>
++						<font>Font30</font>
++						<align>left</align>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+-						<label>$INFO[ListItem.StartTime]</label>
++						<label>[B]$INFO[ListItem.StartTime][/B]</label>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 
+@@ -128,6 +154,7 @@
+ 						<left>160</left>
+ 						<width>520</width>
+ 						<height>51</height>
++						<font>Font42</font>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<label>$INFO[ListItem.Label]</label>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+@@ -135,7 +162,7 @@
+ 
+ 					<!-- Highlighting -->
+ 					<control type="image">
+-						<top>2</top>
++						<top>6</top>
+ 						<width>680</width>
+ 						<height>51</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
+diff --git a/16x9/DialogPVRChannelsOSD.xml b/16x9/DialogPVRChannelsOSD.xml
+index 13d823e..2c60987 100755
+--- a/16x9/DialogPVRChannelsOSD.xml
++++ b/16x9/DialogPVRChannelsOSD.xml
+@@ -9,52 +9,69 @@
+ 		<!-- Menu -->
+ 		<control type="group">
+ 			<left>150</left>
+-			<top>150</top>
++			<top>200</top>
+ 
+ 			<!-- Background -->
+ 			<control type="image">
+ 				<width>1620</width>
+-				<height>695</height>
++				<height>680</height>
+ 				<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
+ 			</control>
+-
+-			<!-- Heading label -->
+-			<control type="label" id="2">
+-				<left>20</left>
+-				<top>14</top>
+-				<width>750</width>
+-				<height>48</height>
+-				<font>Font33</font>
+-				<textcolor>$VAR[TextColor1]</textcolor>
+-				<label>[B]$INFO[VideoPlayer.ChannelGroup][/B]</label>
++			
++			<!-- Icon -->
++			<control type="image">
++				<left>215</left>
++				<top>31</top>
++				<width>220</width>
++				<height>220</height>
++				<aspectratio align="right">keep</aspectratio>
++				<texture>$VAR[PVRChannelIconDialogOSD]</texture>
+ 			</control>
+ 
+ 			<!-- Episode Information -->
+-			<control type="textbox">
++			<control type="group">
+ 				<left>20</left>
+-				<top>160</top>
++				<top>282</top>
+ 				<width>650</width>
+-				<height>500</height>
+-				<label>$INFO[Container(11).ListItem.TVShowTitle,[B],[/B][CR]]$INFO[Container(11).ListItem.Title,[B],[/B][CR]][LIGHT]$INFO[Container(11).ListItem.Season,$LOCALIZE[20373] , / ]$INFO[Container(11).ListItem.Episode,$LOCALIZE[20359],[CR] ][/LIGHT]$INFO[Container(11).ListItem.Plot]</label>
+-				<textcolor>$VAR[TextColor1]</textcolor>
+-				<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++				<height>378</height>
++				<control type="textbox">
++					<label>$VAR[PVRDescriptionDialogGuide]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++					<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++				</control>
++				<control type="textbox">
++					<font>Font30</font>
++					<label>$VAR[PVRDescriptionDialogGuide]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<autoscroll delay="5000" time="1300" repeat="10000">true</autoscroll>
++					<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++				</control>
++				<control type="textbox">
++					<font>Font33</font>
++					<label>$VAR[PVRDescriptionDialogGuide]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<autoscroll delay="5000" time="1200" repeat="10000">true</autoscroll>
++					<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++				</control>
+ 			</control>
+ 
++			<!-- List -->
+ 			<control type="fixedlist" id="11">
+ 				<left>750</left>
+-				<top>75</top>
+-				<width>800</width>
+-				<height>540</height>
++				<top>25</top>
++				<width>750</width>
++				<height>630</height>
+ 				<focusposition>2</focusposition>
+ 				<orientation>vertical</orientation>
+ 				<viewtype label="535">list</viewtype>
+ 				<scrolltime tween="sine" easing="out">240</scrolltime>
+ 
+-				<itemlayout height="90" width="800">
++				<itemlayout height="90" width="750">
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>-12</top>
+-						<width>746</width>
++						<width>718</width>
+ 						<height>90</height>
+ 						<font>Font36</font>
+ 						<label>$INFO[ListItem.ChannelName]</label>
+@@ -63,11 +80,11 @@
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>58</top>
+-						<width>746</width>
++						<width>718</width>
+ 						<height>27</height>
+ 						<font>Font27</font>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+-						<label>[LIGHT]$INFO[ListItem.StartTime]:[/LIGHT] $INFO[ListItem.Title]</label>
++						<label>[LIGHT]$INFO[ListItem.StartTime,,:][/LIGHT] $INFO[ListItem.Title]</label>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					<!-- Watched status -->
+@@ -84,7 +101,7 @@
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>-12</top>
+-						<width>746</width>
++						<width>718</width>
+ 						<height>90</height>
+ 						<font>Font36</font>
+ 						<label>$INFO[ListItem.ChannelNumberLabel]</label>
+@@ -93,11 +110,11 @@
+ 					</control>
+ 				</itemlayout>
+ 
+-				<focusedlayout height="180" width="1050">
++				<focusedlayout height="180" width="750">
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>43</top>
+-						<width>1018</width>
++						<width>718</width>
+ 						<height>48</height>
+ 						<font>Font48</font>
+ 						<label>$INFO[ListItem.ChannelName]</label>
+@@ -107,27 +124,27 @@
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>100</top>
+-						<width>1018</width>
++						<width>718</width>
+ 						<height>27</height>
+ 						<font>Font27</font>
+-						<label>[LIGHT]$INFO[ListItem.StartTime]:[/LIGHT] $INFO[ListItem.Title]</label>
++						<label>[LIGHT]$INFO[ListItem.StartTime,,:][/LIGHT] $INFO[ListItem.Title]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>127</top>
+-						<width>1018</width>
++						<width>718</width>
+ 						<height>27</height>
+ 						<font>Font27</font>
+-						<label>[LIGHT]$INFO[ListItem.NextStartTime]:[/LIGHT] $INFO[ListItem.NextTitle]</label>
++						<label>[LIGHT]$INFO[ListItem.NextStartTime,,:][/LIGHT] $INFO[ListItem.NextTitle]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<left>32</left>
+ 						<top>43</top>
+-						<width>1018</width>
++						<width>718</width>
+ 						<height>58</height>
+ 						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(11)">Conditional</animation>
+@@ -145,7 +162,7 @@
+ 					<control type="label">
+ 						<left>32</left>
+ 						<top>43</top>
+-						<width>746</width>
++						<width>718</width>
+ 						<height>48</height>
+ 						<font>Font36</font>
+ 						<label>$INFO[ListItem.ChannelNumberLabel]</label>
+diff --git a/16x9/DialogPVRInfo.xml b/16x9/DialogPVRInfo.xml
+index 0266c43..df61e36 100755
+--- a/16x9/DialogPVRInfo.xml
++++ b/16x9/DialogPVRInfo.xml
+@@ -154,9 +154,9 @@
+ 					<top>214</top>
+ 					<width>1170</width>
+ 					<height>366</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S light)</visible>
+@@ -164,6 +164,7 @@
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M light)</visible>
+@@ -171,6 +172,7 @@
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L light)</visible>
+@@ -178,6 +180,7 @@
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL light)</visible>
+@@ -185,6 +188,7 @@
+ 					
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S)</visible>
+@@ -192,6 +196,7 @@
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M)</visible>
+@@ -199,6 +204,7 @@
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L)</visible>
+@@ -206,6 +212,7 @@
+ 					<control type="textbox" id="400">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL)</visible>
+diff --git a/16x9/DialogVideoInfo.xml b/16x9/DialogVideoInfo.xml
+index ff22f91..25f6b8b 100755
+--- a/16x9/DialogVideoInfo.xml
++++ b/16x9/DialogVideoInfo.xml
+@@ -286,9 +286,9 @@
+ 					<top>370</top>
+ 					<width>1170</width>
+ 					<height>210</height>
+-					<textcolor>$VAR[TextColor2]</textcolor>
+ 					<control type="textbox">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S light)</visible>
+@@ -296,6 +296,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M light)</visible>
+@@ -303,6 +304,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L light)</visible>
+@@ -310,6 +312,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>[LIGHT]$VAR[Plot][/LIGHT]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL light)</visible>
+@@ -317,6 +320,7 @@
+ 					
+ 					<control type="textbox">
+ 						<align>left</align>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="2000" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,S)</visible>
+@@ -324,6 +328,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font30</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="1900" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,M)</visible>
+@@ -331,6 +336,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font33</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="1800" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,L)</visible>
+@@ -338,6 +344,7 @@
+ 					<control type="textbox">
+ 						<align>left</align>
+ 						<font>Font36</font>
++						<textcolor>$VAR[TextColor2]</textcolor>
+ 						<label>$VAR[Plot]</label>
+ 						<autoscroll delay="10000" time="1700" repeat="12000">True</autoscroll>
+ 						<visible>Skin.String(PlotFont,XL)</visible>
+diff --git a/16x9/LoginScreen.xml b/16x9/LoginScreen.xml
+index 0d6f42f..b6e0762 100755
+--- a/16x9/LoginScreen.xml
++++ b/16x9/LoginScreen.xml
+@@ -84,7 +84,6 @@
+ 						<label>[B]$INFO[ListItem.Label][/B]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(52)">Conditional</animation>
+-
+ 					</control>
+ 					<control type="image">
+ 						<left>32</left>
+diff --git a/16x9/MyPVRChannels.xml b/16x9/MyPVRChannels.xml
+index eda2b23..df853e3 100755
+--- a/16x9/MyPVRChannels.xml
++++ b/16x9/MyPVRChannels.xml
+@@ -33,14 +33,31 @@
+ 				</control>
+ 
+ 				<!-- Episode Information -->
+-				<control type="textbox">
++				<control type="group">
+ 					<left>0</left>
+ 					<top>314</top>
+ 					<width>450</width>
+ 					<height>400</height>
+-					<label>$VAR[PVRDescription]</label>
+-					<textcolor>$VAR[TextColor1]</textcolor>
+-					<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++					<control type="textbox">
++						<label>$VAR[PVRDescription]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++					</control>
++					<control type="textbox">
++						<font>Font30</font>
++						<label>$VAR[PVRDescription]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1300" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++					</control>
++					<control type="textbox">
++						<font>Font33</font>
++						<label>$VAR[PVRDescription]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1200" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++					</control>
+ 				</control>
+ 
+ 			</control>
+diff --git a/16x9/MyPVRGuide.xml b/16x9/MyPVRGuide.xml
+index 83af8b7..8f7e55d 100755
+--- a/16x9/MyPVRGuide.xml
++++ b/16x9/MyPVRGuide.xml
+@@ -17,25 +17,6 @@
+ 			<control type="group">
+ 				<visible>Control.IsVisible(10)</visible>
+ 
+-				<!-- Scrollbar (list) -->
+-				<control type="scrollbar" id="60">
+-					<left>70</left>
+-					<top>230</top>
+-					<width>20</width>
+-					<height>552</height>
+-					<onleft condition="!Skin.HasSetting(KioskMode)">3001</onleft>
+-					<onright>50</onright>
+-					<showonepage>false</showonepage>
+-					<orientation>vertical</orientation>
+-					<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
+-					<texturesliderbackground border="11,1,1,1">common/ScrollBackground.png</texturesliderbackground>
+-					<texturesliderbar border="11,1,1,1">common/ScrollbarGripNF.png</texturesliderbar>
+-					<texturesliderbarfocus border="11,1,1,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripFO.png</texturesliderbarfocus>
+-					<textureslidernib></textureslidernib>
+-					<textureslidernibfocus></textureslidernibfocus>
+-					<visible>!Skin.HasSetting(Scrollbars)</visible>
+-				</control>
+-
+ 				<!-- EPG Grid -->
+ 				<control type="epggrid" id="10">
+ 					<left>120</left>
+@@ -49,7 +30,6 @@
+ 					<onback>3000</onback>
+ 					<rulerunit>12</rulerunit>
+ 					<timeblocks>54</timeblocks>
+-					<pagecontrol>60</pagecontrol>
+ 					<viewtype label="19032">list</viewtype>
+ 					<progresstexture border="4,61,4,4">pvr/ProgressTimeline.png</progresstexture>
+ 					<scrolltime tween="sine" easing="out">240</scrolltime>
+@@ -111,7 +91,7 @@
+ 						</control>
+ 
+ 						<!-- Channel name -->
+-						<control type="label">
++						<control type="fadelabel">
+ 							<left>75</left>
+ 							<width>282</width>
+ 							<height>69</height>
+@@ -128,6 +108,16 @@
+ 							<label>$INFO[ListItem.ChannelNumberLabel]</label>
+ 							<textcolor>$VAR[TextColor1]</textcolor>
+ 						</control>
++						
++						<!-- Highlighting -->
++						<control type="image">
++							<left>75</left>
++							<top>5</top>
++							<width>363</width>
++							<height>58</height>
++							<texture colordiffuse="$VAR[TextColor1]">$VAR[focus58]</texture>
++							<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(10)">Conditional</animation>
++						</control>
+ 
+ 					</focusedchannellayout>
+ 
+@@ -187,7 +177,7 @@
+ 						</control>
+ 
+ 						<!-- Program name -->
+-						<control type="label" id="1">
++						<control type="fadelabel" id="1">
+ 							<left>10</left>
+ 							<top>0</top>
+ 							<width>80</width>
+@@ -313,13 +303,31 @@
+ 					</control>
+ 
+ 					<!-- Plot -->
+-					<control type="textbox">
++					<control type="group">
+ 						<left>880</left>
+ 						<width>800</width>
+ 						<height>140</height>
+ 						<align>justify</align>
+-						<textcolor>$VAR[TextColor1]</textcolor>
+-						<label fallback="161">$VAR[Plot]</label>
++						<control type="textbox">
++							<label fallback="161">$VAR[Plot]</label>
++							<textcolor>$VAR[TextColor1]</textcolor>
++							<autoscroll delay="8000" time="1800" repeat="10000">true</autoscroll>
++							<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++						</control>
++						<control type="textbox">
++							<font>Font30</font>
++							<label fallback="161">$VAR[Plot]</label>
++							<textcolor>$VAR[TextColor1]</textcolor>
++							<autoscroll delay="8000" time="1700" repeat="10000">true</autoscroll>
++							<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++						</control>
++						<control type="textbox">
++							<font>Font33</font>
++							<label fallback="161">$VAR[Plot]</label>
++							<textcolor>$VAR[TextColor1]</textcolor>
++							<autoscroll delay="8000" time="1600" repeat="10000">true</autoscroll>
++							<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++						</control>
+ 					</control>
+ 
+ 				</control>
+diff --git a/16x9/MyPVRRecordings.xml b/16x9/MyPVRRecordings.xml
+index 8cd7bb2..94f347f 100755
+--- a/16x9/MyPVRRecordings.xml
++++ b/16x9/MyPVRRecordings.xml
+@@ -57,14 +57,31 @@
+ 				</control>
+ 				
+ 				<!-- Episode Information -->
+-				<control type="textbox">
++				<control type="group">
+ 					<left>0</left>
+ 					<top>314</top>
+ 					<width>450</width>
+ 					<height>400</height>
+-					<label>$VAR[PVRDescription]</label>
+-					<textcolor>$VAR[TextColor1]</textcolor>
+-					<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++					<control type="textbox">
++						<label>$VAR[PVRDescription]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++					</control>
++					<control type="textbox">
++						<font>Font30</font>
++						<label>$VAR[PVRDescription]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1300" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++					</control>
++					<control type="textbox">
++						<font>Font33</font>
++						<label>$VAR[PVRDescription]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1200" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++					</control>
+ 				</control>
+ 
+ 			</control>
+diff --git a/16x9/MyPVRSearch.xml b/16x9/MyPVRSearch.xml
+index ec9bcb3..a655141 100755
+--- a/16x9/MyPVRSearch.xml
++++ b/16x9/MyPVRSearch.xml
+@@ -166,16 +166,6 @@
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
+-					
+-					<!-- Highlighting -->
+-					<control type="image">
+-						<left>280</left>
+-						<top>12</top>
+-						<width>500</width>
+-						<height>51</height>
+-						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
+-						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+-					</control>
+ 
+ 					<!-- Channel name -->
+ 					<control type="label">
+@@ -198,6 +188,16 @@
+ 						<textcolor>$VAR[TextColor1]</textcolor>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
+ 					</control>
++					
++					<!-- Highlighting -->
++					<control type="image">
++						<left>280</left>
++						<top>12</top>
++						<width>720</width>
++						<height>51</height>
++						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus52]</texture>
++						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(50)">Conditional</animation>
++					</control>
+ 
+ 				</focusedlayout>
+ 
+@@ -228,7 +228,7 @@
+ 				<width>512</width>
+ 
+ 				<!-- Program name -->
+-				<control type="label">
++				<control type="fadelabel">
+ 					<width>512</width>
+ 					<label>$INFO[Container(50).ListItem.Title]</label>
+ 					<textcolor>$VAR[TextColor1]</textcolor>
+@@ -239,17 +239,34 @@
+ 					<visible>Container(50).ListItem.HasEpg</visible>
+ 
+ 					<!-- Plot -->
+-					<control type="textbox">
++					<control type="group">
+ 						<width>512</width>
+ 						<height>460</height>
+ 						<align>justify</align>
+-						<font>Font25</font>
+-						<textcolor>$VAR[TextColor1]</textcolor>
+-						<info>Container(50).ListItem.Plot</info>
++						<control type="textbox">
++							<info>Container(50).ListItem.Plot</info>
++							<textcolor>$VAR[TextColor1]</textcolor>
++							<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++							<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++						</control>
++						<control type="textbox">
++							<font>Font30</font>
++							<info>Container(50).ListItem.Plot</info>
++							<textcolor>$VAR[TextColor1]</textcolor>
++							<autoscroll delay="5000" time="1300" repeat="10000">true</autoscroll>
++							<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++						</control>
++						<control type="textbox">
++							<font>Font33</font>
++							<info>Container(50).ListItem.Plot</info>
++							<textcolor>$VAR[TextColor1]</textcolor>
++							<autoscroll delay="5000" time="1200" repeat="10000">true</autoscroll>
++							<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++						</control>
+ 					</control>
+ 
+ 					<!-- Next program -->
+-					<control type="label">
++					<control type="fadelabel">
+ 						<right>0</right>
+ 						<top>504</top>
+ 						<width>512</width>
+diff --git a/16x9/Variables.xml b/16x9/Variables.xml
+index e4437bf..f9ba0f6 100755
+--- a/16x9/Variables.xml
++++ b/16x9/Variables.xml
+@@ -593,6 +593,11 @@
+ 		<value condition="ListItem.IsEncrypted">pvr/encrypted.png</value>
+ 		<value>$INFO[ListItem.Thumb]</value>
+ 	</variable>
++	
++	<variable name="PVRChannelIconDialogOSD">
++		<value condition="Container(11).ListItem.IsEncrypted">pvr/encrypted.png</value>
++		<value>$INFO[Container(11).ListItem.Thumb]</value>
++	</variable>
+ 
+ 	<variable name="BackgroundImage">
+ 		<value condition="String.IsEqual(Window.Property(xmlfile),Home.xml) + !String.IsEmpty(Container(9000).ListItem.Property(background))">$INFO[Container(9000).ListItem.Property(background)]</value>
+@@ -604,6 +609,11 @@
+ 		<value condition="!String.IsEmpty(ListItem.Plot)">$INFO[ListItem.Plot]</value>
+ 		<value condition="!String.IsEmpty(ListItem.PlotOutline)">$INFO[ListItem.PlotOutline]</value>
+ 	</variable>
++	
++	<variable name="PlotDialogGuide">
++		<value condition="!String.IsEmpty(Container(11).ListItem.Plot)">$INFO[Container(11).ListItem.Plot]</value>
++		<value condition="!String.IsEmpty(Container(11).ListItem.PlotOutline)">$INFO[Container(11).ListItem.PlotOutline]</value>
++	</variable>
+ 
+ 	<variable name="VideoPlayerPlot">
+ 		<value condition="VideoPlayer.Content(LiveTV) + !String.IsEmpty(Window.Property(shownext))">$INFO[VideoPlayer.NextPlot]</value>
+@@ -1225,6 +1235,13 @@
+ 	<variable name="PVRSeasonEpisode">
+ 		<value condition="!String.IsEmpty(ListItem.Season)">$INFO[ListItem.Season,$LOCALIZE[20373] , / ]$INFO[ListItem.Episode,$LOCALIZE[20359] ]</value>
+ 	</variable>
++	
++	<variable name="PVRDescriptionDialogGuide">
++		<value>$INFO[Container(11).ListItem.TVShowTitle,[B],[/B][CR][CR]]$INFO[Container(11).ListItem.Title,[B],[/B][CR][CR]]$VAR[PVRSeasonEpisodeDialogGuide,[LIGHT],[/LIGHT][CR][CR]]$VAR[PlotDialogGuide]</value>
++	</variable>
++	<variable name="PVRSeasonEpisodeDialogGuide">
++		<value condition="!String.IsEmpty(Container(11).ListItem.Season)">$INFO[Container(11).ListItem.Season,$LOCALIZE[20373] , / ]$INFO[Container(11).ListItem.Episode,$LOCALIZE[20359] ]</value>
++	</variable>
+ 
+ 	<!-- Music Next Playing -->
+ 	<variable name="MusicNextPlaying1">
+diff --git a/16x9/VideoFullScreen.xml b/16x9/VideoFullScreen.xml
+index be9667a..3b27944 100755
+--- a/16x9/VideoFullScreen.xml
++++ b/16x9/VideoFullScreen.xml
+@@ -55,7 +55,7 @@
+ 
+ 		<control type="group" id="1">
+ 			<visible>Window.IsActive(seekbar) | !String.IsEmpty(Player.SeekNumeric) | Player.DisplayAfterSeek | Window.IsActive(fullscreeninfo) | Window.IsActive(VideoOSD)</visible>
+-			<visible>!Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(PVRChannelGuide) + !Window.IsVisible(pvrosdchannels) + !Window.IsVisible(teletext) + !Window.IsVisible(DialogSelect.xml)</visible>
++			<visible>!Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(PVRChannelGuide) + !Window.IsVisible(pvrosdchannels) + !Window.IsVisible(teletext) + !Window.IsVisible(DialogSelect.xml) + !Window.IsVisible(DialogPVRInfo.xml)</visible>
+ 			<left>150</left>
+ 			<top>870</top>
+ 			<width>1620</width>
+diff --git a/16x9/VideoOSD.xml b/16x9/VideoOSD.xml
+index 368a348..71714e5 100755
+--- a/16x9/VideoOSD.xml
++++ b/16x9/VideoOSD.xml
+@@ -10,7 +10,7 @@
+ 			<top>945</top>
+ 			<width>1620</width>
+ 			<height>60</height>
+-			<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(PVRChannelGuide) + !Window.IsVisible(pvrosdchannels) + !Window.IsVisible(teletext) + !Window.IsVisible(DialogSelect.xml)</visible>
++			<visible>!Window.IsVisible(VideoBookmarks) + !Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(PVRChannelGuide) + !Window.IsVisible(pvrosdchannels) + !Window.IsVisible(teletext) + !Window.IsVisible(DialogSelect.xml) + !Window.IsVisible(DialogPVRInfo.xml)</visible>
+ 			<animation type="Visible">
+ 				<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 				<effect type="fade" start="0" end="100" time="200"/>
+diff --git a/16x9/Viewtype51.xml b/16x9/Viewtype51.xml
+index 067812d..79f48d7 100755
+--- a/16x9/Viewtype51.xml
++++ b/16x9/Viewtype51.xml
+@@ -101,14 +101,31 @@
+ 				</control>
+ 				
+ 				<!-- Episode Plot -->
+-				<control type="textbox">
++				<control type="group">
+ 					<left>0</left>
+ 					<top>474</top>
+ 					<width>450</width>
+ 					<height>190</height>
+-					<label>$VAR[Plot]</label>
+-					<textcolor>$VAR[TextColor1]</textcolor>
+-					<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++					<control type="textbox">
++						<label>$VAR[Plot]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1400" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,S) | Skin.String(PlotFont,S light)</visible>
++					</control>
++					<control type="textbox">
++						<font>Font30</font>
++						<label>$VAR[Plot]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1300" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,M) | Skin.String(PlotFont,M light)</visible>
++					</control>
++					<control type="textbox">
++						<font>Font33</font>
++						<label>$VAR[Plot]</label>
++						<textcolor>$VAR[TextColor1]</textcolor>
++						<autoscroll delay="5000" time="1200" repeat="10000">true</autoscroll>
++						<visible>Skin.String(PlotFont,L) | Skin.String(PlotFont,XL) | Skin.String(PlotFont,L light) | Skin.String(PlotFont,XL light)</visible>
++					</control>
+ 				</control>
+ 
+ 			</control>
+diff --git a/Changelog.md b/Changelog.md
+index e7658eb..ffdc5a9 100644
+--- a/Changelog.md
++++ b/Changelog.md
+@@ -15,6 +15,8 @@ _Improved_
+ - adjust PVR section to match v18 requirements
+ - highlighting color now adjusts according to text color
+ - streamline OSD animations
++- add missing adjustable plot fonts
++- let favourites dialog behave like a normal window
+ 
+ _Fixed_
+ - show proper game widget title when not using skinshortcuts script
+@@ -22,6 +24,7 @@ _Fixed_
+ - fix current position/time remaining and current time/end time for PVR playback
+ - hide deprecated previous/next channel buttons in PVR playback OSD
+ - fix background of subtitle settings window
++- fix layout of PVR playback dialogs
+ 
+ **Changelog v18.0.0**
+ 
+@@ -120,6 +123,8 @@ DialogExtendedProgressBar.xml:
+ DialogFavourites.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- change behaviour to mimic normal window behaviour (not dialog behaviour)
++- fix onup/ondown behaviour
+ 
+ DialogFullScreenInfo.xml:
+ - replace colors by new color variables
+@@ -156,6 +161,8 @@ DialogPlayerProcessInfo.xml:
+ DialogPVRChannelGuide.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- rework window layout
++- add adjustable plot font
+ 
+ DialogPVRChannelManager.xml:
+ - replace colors by new color variables
+@@ -164,6 +171,8 @@ DialogPVRChannelManager.xml:
+ DialogPVRChannelsOSD.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- rework window layout
++- add adjustable plot font
+ 
+ DialogPVRGroupManager.xml:
+ - replace colors by new color variables
+@@ -262,17 +271,23 @@ MyPrograms.xml:
+ MyPVRChannels.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- add adjustable plot font
+ 
+ MyPVRGuide.xml:
+ - replace colors by new color variables
++- remove scrollbar
++- add highlighting
++- add adjustable plot font
+ 
+ MyPVRRecordings.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- add adjustable plot font
+ 
+ MyPVRSearch.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- add adjustable plot font
+ 
+ MyPVRTimers.xml:
+ - replace colors by new color variables
+@@ -349,6 +364,9 @@ Variables.xml:
+ - add new buttonfocus variable
+ - replace colors by new color variables
+ - change PVR video player info variable
++- add new PVRCHannelIconDialogOSD variable
++- add new PlotDialogGuide variable
++- add new PVRDescriptionDialogGuide variable
+ 
+ VideoFullScreen.xml:
+ - replace colors by new color variables
+@@ -378,6 +396,7 @@ Viewtype50.xml:
+ Viewtype51.xml:
+ - replace colors by new color variables
+ - fix highlighting in focusedlayout of grouplists
++- add adjustable plot font
+ 
+ Viewtype52.xml:
+ - replace colors by new color variables
+diff --git a/addon.xml b/addon.xml
+index f4e32bd..0a2c52b 100644
+--- a/addon.xml
++++ b/addon.xml
+@@ -14,7 +14,7 @@
+ 		<platform>all</platform>
+ 		<summary lang="en">The default skin for OSMC</summary>
+ 		<description lang="en">Original skin: Andy Morton[CR]Original design: Simon Brunton[CR]Skinner: Julian Michel</description>
+-		<news>Kodi v18 RC5.2 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window</news>
++		<news>Kodi v18 RC5.2 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR]- add missing adjustable plot fonts[CR]- let favourites dialog behave like a normal window[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window[CR]- fix layout of PVR playback dialogs</news>
+ 	</extension>
+ 	<assets>
+ 		<icon>icon.png</icon>
