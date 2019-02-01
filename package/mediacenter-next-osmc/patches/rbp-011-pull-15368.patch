@@ -1,0 +1,93 @@
+From fe11e4b782449ea189515949f8d0d9b6f22ab87c Mon Sep 17 00:00:00 2001
+From: peak3d <pfau@peak3d.de>
+Date: Wed, 30 Jan 2019 18:29:18 +0100
+Subject: [PATCH] [Demux] VP9 does not provide extradata
+
+---
+ .../Video/DVDVideoCodecAndroidMediaCodec.cpp  |  3 +++
+ .../DVDDemuxers/DVDDemuxClient.cpp            | 19 +++++++++++++++++--
+ .../VideoPlayer/DVDDemuxers/DVDDemuxClient.h  |  3 +++
+ 3 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.cpp
+index 3588eeda8945..a2b4455d67fa 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.cpp
+@@ -480,6 +480,9 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
+       }
+       m_mime = "video/x-vnd.on2.vp9";
+       m_formatname = "amc-vp9";
++      free(m_hints.extradata);
++      m_hints.extradata = nullptr;
++      m_hints.extrasize = 0;
+       break;
+     case AV_CODEC_ID_AVS:
+     case AV_CODEC_ID_CAVS:
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+index f999fa679f31..48e8275c221a 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.cpp
+@@ -14,7 +14,6 @@
+ 
+ #define FF_MAX_EXTRADATA_SIZE ((1 << 28) - AV_INPUT_BUFFER_PADDING_SIZE)
+ 
+-
+ class CDemuxStreamClientInternal
+ {
+ public:
+@@ -122,7 +121,7 @@ bool CDVDDemuxClient::ParsePacket(DemuxPacket* pkt)
+   if (st == nullptr)
+     return change;
+ 
+-  if (st->ExtraSize)
++  if (st->ExtraSize || !CodecHasExtraData(st->codec))
+     return change;
+ 
+   CDemuxStreamClientInternal* stream = dynamic_cast<CDemuxStreamClientInternal*>(st);
+@@ -570,6 +569,7 @@ bool CDVDDemuxClient::IsVideoReady()
+   {
+     if (stream.first == m_videoStreamPlaying &&
+         stream.second->type == STREAM_VIDEO &&
++        CodecHasExtraData(stream.second->codec) &&
+         stream.second->ExtraData == nullptr)
+       return false;
+   }
+@@ -604,6 +604,10 @@ std::string CDVDDemuxClient::GetStreamCodecName(int iStreamId)
+       strName = "h264";
+     else if (stream->codec == AV_CODEC_ID_EAC3)
+       strName = "eac3";
++    else if (stream->codec == AV_CODEC_ID_VP8)
++      strName = "vp8";
++    else if (stream->codec == AV_CODEC_ID_VP9)
++      strName = "vp9";
+   }
+   return strName;
+ }
+@@ -659,3 +663,14 @@ void CDVDDemuxClient::SetVideoResolution(int width, int height)
+     m_IDemux->SetVideoResolution(width, height);
+   }
+ }
++
++bool CDVDDemuxClient::CodecHasExtraData(AVCodecID id)
++{
++  switch (id)
++  {
++  case AV_CODEC_ID_VP9:
++      return false;
++    default:
++      return true;
++  }
++}
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h
+index e5e0e4b8b9b1..bee2b3486b0a 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxClient.h
+@@ -56,5 +56,8 @@ class CDVDDemuxClient : public CDVDDemux
+   double m_dtsAtDisplayTime;
+   std::unique_ptr<DemuxPacket> m_packet;
+   int m_videoStreamPlaying = -1;
++
++private:
++  static inline bool CodecHasExtraData(AVCodecID id);
+ };
+ 

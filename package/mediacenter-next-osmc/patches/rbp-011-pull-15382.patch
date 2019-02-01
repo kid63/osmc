@@ -1,0 +1,171 @@
+From 724d51ab9cd64d036569753032609881ac6de47f Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Sun, 27 Jan 2019 21:31:24 +0300
+Subject: [PATCH] [videoplayer] winrenderer: do scaling in output shader
+ instead of yuv2rgb, this fixes the issue with green border with nv12 texture.
+
+---
+ system/shaders/yuv2rgb_d3d.fx                 | 10 +--
+ .../VideoRenderers/WinRenderer.cpp            | 73 ++++++++++---------
+ xbmc/utils/Geometry.h                         |  8 ++
+ 3 files changed, 47 insertions(+), 44 deletions(-)
+
+diff --git a/system/shaders/yuv2rgb_d3d.fx b/system/shaders/yuv2rgb_d3d.fx
+index eef7f16f0149..0500526a9993 100644
+--- a/system/shaders/yuv2rgb_d3d.fx
++++ b/system/shaders/yuv2rgb_d3d.fx
+@@ -29,19 +29,11 @@ float      g_gammaDstInv;
+ float      g_gammaSrc;
+ 
+ SamplerState YUVSampler : IMMUTABLE
+-{
+-  AddressU = CLAMP;
+-  AddressV = CLAMP;
+-  Filter   = MIN_MAG_MIP_LINEAR;
+-};
+-#ifdef NV12_SNORM_UV
+-SamplerState UVSamplerSNORM : IMMUTABLE
+ {
+   AddressU = CLAMP;
+   AddressV = CLAMP;
+   Filter   = MIN_MAG_MIP_POINT;
+ };
+-#endif
+ 
+ struct VS_INPUT
+ {
+@@ -93,7 +85,7 @@ float4 YUV2RGB(VS_OUTPUT In) : SV_TARGET
+ #elif defined(XBMC_NV12)
+   float4 YUV = float4(g_Texture[0].Sample(YUVSampler, In.TextureY).r
+   #if defined(NV12_SNORM_UV)
+-                    , unormUV(g_Texture[1].Sample(UVSamplerSNORM, In.TextureUV).rg)
++                    , unormUV(g_Texture[1].Sample(YUVSampler, In.TextureUV).rg)
+   #else
+                     , g_Texture[1].Sample(YUVSampler, In.TextureUV).rg
+   #endif
+diff --git a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp
+index ca7275df7c1d..3a2f7a62b49d 100644
+--- a/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoRenderers/WinRenderer.cpp
+@@ -574,11 +574,8 @@ void CWinRenderer::UpdatePSVideoFilter()
+     }
+   }
+ 
+-  if (m_bUseHQScaler && !CreateIntermediateRenderTarget(m_sourceWidth, m_sourceHeight, false))
+-  {
+-    m_scalerShader.reset();
+-    m_bUseHQScaler = false;
+-  }
++  if (m_renderMethod != RENDER_DXVA || m_bUseHQScaler)
++    CreateIntermediateRenderTarget(m_sourceWidth, m_sourceHeight, false);
+ 
+   m_colorShader.reset();
+ 
+@@ -592,7 +589,7 @@ void CWinRenderer::UpdatePSVideoFilter()
+   }
+ 
+   m_colorShader = std::make_unique<CYUV2RGBShader>();
+-  if (!m_colorShader->Create(m_bufferFormat, AVColorPrimaries::AVCOL_PRI_BT709, m_srcPrimaries, m_bUseHQScaler ? nullptr : m_outputShader.get()))
++  if (!m_colorShader->Create(m_bufferFormat, AVCOL_PRI_BT709, m_srcPrimaries))
+   {
+     if (m_bUseHQScaler)
+     {
+@@ -796,44 +793,50 @@ void CWinRenderer::RenderSW(CD3DTexture* target)
+ 
+ void CWinRenderer::RenderPS(CD3DTexture* target)
+ {
+-  if (m_bUseHQScaler)
+-    target = &m_IntermediateTarget;
+-
+-  CD3D11_VIEWPORT viewPort(0.0f, 0.0f, static_cast<float>(target->GetWidth()), static_cast<float>(target->GetHeight()));
+-
+-  if (m_bUseHQScaler)
+-    DX::Windowing()->ResetScissors();
++  CD3D11_VIEWPORT viewPort(0.0f, 0.0f, static_cast<float>(m_sourceWidth), static_cast<float>(m_sourceHeight));
+ 
++  // reset scissors
++  DX::Windowing()->ResetScissors();
+   // reset view port
+   DX::DeviceResources::Get()->GetD3DContext()->RSSetViewports(1, &viewPort);
+ 
+-  // select destination rectangle
+-  CPoint destPoints[4];
+-  if (m_renderOrientation)
+-  {
+-    for (size_t i = 0; i < 4; i++)
+-      destPoints[i] = m_rotatedDestCoords[i];
+-  }
+-  else
+-  {
+-    CRect destRect = m_bUseHQScaler ? m_sourceRect : CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(m_destRect);
+-    destPoints[0] = { destRect.x1, destRect.y1 };
+-    destPoints[1] = { destRect.x2, destRect.y1 };
+-    destPoints[2] = { destRect.x2, destRect.y2 };
+-    destPoints[3] = { destRect.x1, destRect.y2 };
+-  }
+-
+   CRenderBuffer& buf = m_renderBuffers[m_iYV12RenderBuffer];
+ 
+-  // set params
+-  m_outputShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata, buf.hasLightMetadata, buf.lightMetadata);
+-  m_outputShader->SetToneMapParam(m_videoSettings.m_ToneMapParam);
+-
++  CPoint srcPoints[4];
++  m_sourceRect.GetQuad(srcPoints);
++  // set converter params
+   m_colorShader->SetParams(m_videoSettings.m_Contrast, m_videoSettings.m_Brightness, DX::Windowing()->UseLimitedColor());
+   m_colorShader->SetColParams(buf.color_space, buf.bits, !buf.full_range, buf.texBits);
++  // convert YUV -> RGB
++  m_colorShader->Render(m_sourceRect, srcPoints, &buf, &m_IntermediateTarget);
++
++  if (!m_bUseHQScaler)
++  {
++    // second pass (bilinear scaling)
++    // select destination rectangle
++    CPoint destPoints[4];
++    if (m_renderOrientation)
++    {
++      for (size_t i = 0; i < 4; i++)
++        destPoints[i] = m_rotatedDestCoords[i];
++    }
++    else
++    {
++      CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(m_destRect).GetQuad(destPoints);
++    }
++    // set params
++    m_outputShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata, buf.hasLightMetadata, buf.lightMetadata);
++    m_outputShader->SetToneMapParam(m_videoSettings.m_ToneMapParam);
+ 
+-  // render video frame
+-  m_colorShader->Render(m_sourceRect, destPoints, &buf, target);
++    viewPort.Width = static_cast<float>(target->GetWidth());
++    viewPort.Height = static_cast<float>(target->GetHeight());
++    // set viewport to the whole target
++    DX::DeviceResources::Get()->GetD3DContext()->RSSetViewports(1, &viewPort);
++    // restore scissors
++    DX::Windowing()->SetScissors(CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(CServiceBroker::GetWinSystem()->GetGfxContext().GetScissors()));
++    // render frame
++    m_outputShader->Render(m_IntermediateTarget, m_sourceWidth, m_sourceHeight, m_sourceRect, destPoints, target);
++  }
+   // Restore our view port.
+   DX::Windowing()->RestoreViewPort();
+ }
+diff --git a/xbmc/utils/Geometry.h b/xbmc/utils/Geometry.h
+index 04e1b6da5b9e..878905babff5 100644
+--- a/xbmc/utils/Geometry.h
++++ b/xbmc/utils/Geometry.h
+@@ -452,6 +452,14 @@ template <typename T> class CRectGen
+     return fragmentsList;
+   }
+ 
++  void GetQuad(point_type (&points)[4])
++  {
++    points[0] = { x1, y1 };
++    points[1] = { x2, y1 };
++    points[2] = { x2, y2 };
++    points[3] = { x1, y2 };
++  }
++
+   T x1{}, y1{}, x2{}, y2{};
+ private:
+   static constexpr T clamp_range(T x, T l, T h) XBMC_FORCE_INLINE
