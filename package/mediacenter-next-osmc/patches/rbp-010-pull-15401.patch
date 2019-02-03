@@ -1,0 +1,22 @@
+From 47da267d998f7b618fa468778e8edf19024c2c3d Mon Sep 17 00:00:00 2001
+From: Anton Fedchin <anightik@gmail.com>
+Date: Sat, 2 Feb 2019 11:34:59 +0300
+Subject: [PATCH] [guilib] d3dtexture: fixed wrong render target index.
+
+---
+ xbmc/guilib/D3DResource.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/guilib/D3DResource.cpp b/xbmc/guilib/D3DResource.cpp
+index 42d11f6fa253..bc87dd7b1068 100644
+--- a/xbmc/guilib/D3DResource.cpp
++++ b/xbmc/guilib/D3DResource.cpp
+@@ -322,7 +322,7 @@ ID3D11RenderTargetView** CD3DTexture::GetAddressOfRTV()
+ {
+   if (!m_renderTargets[m_viewIdx])
+     GetRenderTargetInternal(m_viewIdx);
+-  return m_renderTargets[0].GetAddressOf();
++  return m_renderTargets[m_viewIdx].GetAddressOf();
+ }
+ 
+ void CD3DTexture::Release()
