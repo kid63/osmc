@@ -106,6 +106,8 @@ then
 	handle_dep "libltdl-dev"
 	handle_dep "libgnutls28-dev"
 	handle_dep "libgcrypt11-dev"
+        handle_dep "mesa-common-dev"
+	handle_dep "libgl1-mesa-dev"
 	handle_dep "git"
 	handle_dep "uuid-dev"
 	handle_dep "libcrossguid-dev"
@@ -348,7 +350,7 @@ game.libretro.bsnes-mercury-balanced  \
 game.libretro.bluemsx \
 game.libretro.gambatte game.libretro.beetle-bsnes \
 game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
-game.libretro.quicknes game.libretro.scummvm \
+game.libretro.quicknes game.libretro.scummvm game.libretro.mupen64plus \
 game.libretro.snes9x game.libretro.stella game.libretro.dosbox \
 game.libretro.vbam game.libretro.yabause game.libretro.genplus"
 # Remove  game.libretro.mame game.libretro.bsnes-mercury-accuracy game.libretro.mupen64plus game.libretro.pcsx-rearmed
