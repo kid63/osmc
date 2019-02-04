@@ -106,8 +106,6 @@ then
 	handle_dep "libltdl-dev"
 	handle_dep "libgnutls28-dev"
 	handle_dep "libgcrypt11-dev"
-        handle_dep "mesa-common-dev"
-	handle_dep "libgl1-mesa-dev"
 	handle_dep "git"
 	handle_dep "uuid-dev"
 	handle_dep "libcrossguid-dev"
@@ -151,6 +149,9 @@ then
                 handle_dep "armv7-libbluray-dev-osmc"
                 handle_dep "armv7-libsqlite-dev-osmc"
 		handle_dep "armv7-libass-dev-osmc"
+    		handle_dep "mesa-common-dev"			#Needed for some libretro builds that on compile on the vero2/3
+        	handle_dep "libgl1-mesa-dev"
+
         fi
 	if [ "$1" == "vero3" ]
  	then
@@ -164,6 +165,9 @@ then
                 handle_dep "armv7-libbluray-dev-osmc"
                 handle_dep "armv7-libsqlite-dev-osmc"
                 handle_dep "armv7-libass-dev-osmc"
+		handle_dep "mesa-common-dev"
+        	handle_dep "libgl1-mesa-dev"
+
 	fi
 	if [ "$1" == "pc" ]
 	then
@@ -350,10 +354,11 @@ game.libretro.bsnes-mercury-balanced  \
 game.libretro.bluemsx \
 game.libretro.gambatte game.libretro.beetle-bsnes \
 game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
-game.libretro.quicknes game.libretro.scummvm game.libretro.mupen64plus \
+game.libretro.quicknes game.libretro.scummvm \
 game.libretro.snes9x game.libretro.stella game.libretro.dosbox \
 game.libretro.vbam game.libretro.yabause game.libretro.genplus"
 # Remove  game.libretro.mame game.libretro.bsnes-mercury-accuracy game.libretro.mupen64plus game.libretro.pcsx-rearmed
+	ADDONS_GAME_VERO="game.libretro.mupen64plus"
 	ADDONS_PVR="pvr.sledovanitv.cz pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.hdhomerun pvr.iptvsimple pvr.demo pvr.mediaportal.tvserver vfs.libarchive vfs.rar vfs.sftp"  
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
 	ADDONS_VISUALIZATIONS="visualization.fishbmc visualization.goom visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
@@ -365,12 +370,12 @@ game.libretro.vbam game.libretro.yabause game.libretro.genplus"
   	fi
 	if [ "$1" == "vero2" ]
 	then
-	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
+	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_GAME_VERO} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
   	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero2/include -DCMAKE_LIBRARY_PATH=/opt/vero2/lib"
 	fi
 	if [ "$1" == "vero3" ]
  	then
- 	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}" 
+ 	   ADDONS_TO_BUILD="${ADDONS_GAME} ${ADDONS_GAME_VERO} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}" 
  	   PLATFORM="-DCMAKE_INCLUDE_PATH=/opt/vero3/include -DCMAKE_LIBRARY_PATH=/opt/vero3/lib"
  	fi
 	if [ "$1" == "pc" ]
