@@ -1,0 +1,107 @@
+From 8319a5f34f79692225b5fa9d2e938eadc17c11ea Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Mon, 4 Feb 2019 14:53:52 +0100
+Subject: [PATCH] [PVR][settings] Reintroduce setting "Close channel OSD after
+ switching channels", which got accidentally removed for Leia 18.0
+
+---
+ addons/resource.language.en_gb/resources/strings.po | 11 +++++++++--
+ system/settings/settings.xml                        |  5 +++++
+ xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp        |  6 +++++-
+ xbmc/settings/Settings.cpp                          |  1 +
+ xbmc/settings/Settings.h                            |  1 +
+ 5 files changed, 21 insertions(+), 3 deletions(-)
+
+diff --git a/addons/resource.language.en_gb/resources/strings.po b/addons/resource.language.en_gb/resources/strings.po
+index b28cd821413d..b7ea31b0daa4 100644
+--- a/addons/resource.language.en_gb/resources/strings.po
++++ b/addons/resource.language.en_gb/resources/strings.po
+@@ -10920,7 +10920,11 @@ msgctxt "#19302"
+ msgid "Do you want to record the selected programme or to switch to the current programme?"
+ msgstr ""
+ 
+-#empty string with id 19303
++#. label for PVR settings close channel OSD after channel switch control
++#: system/settings/settings.xml
++msgctxt "#19303"
++msgid "Close channel OSD after switching channels"
++msgstr ""
+ 
+ #. Label for context menu entry to open settings dialog for a timer rule (read-only)
+ #: xbmc/pvr/PVRContextMenus.cpp
+@@ -18641,7 +18645,10 @@ msgctxt "#36234"
+ msgid "Duration of instant recordings when pressing the record button. This value will be taken into account if \"Instant recording action\" is set to \"Record for a fixed period of time\""
+ msgstr ""
+ 
+-#empty string with id 36235
++#: system/settings/settings.xml
++msgctxt "#36235"
++msgid "Close the on screen display controls after switching channels."
++msgstr ""
+ 
+ #: system/settings/settings.xml
+ msgctxt "#36236"
+diff --git a/system/settings/settings.xml b/system/settings/settings.xml
+index f87ac4b6f4d9..54f7e4c931fc 100755
+--- a/system/settings/settings.xml
++++ b/system/settings/settings.xml
+@@ -1294,6 +1294,11 @@
+             <formatlabel>14045</formatlabel>
+           </control>
+         </setting>
++        <setting id="pvrmenu.closechannelosdonswitch" type="boolean" label="19303" help="36235">
++          <level>2</level>
++          <default>true</default>
++          <control type="toggle" />
++        </setting>
+       </group>
+       <group id="2" label="14302">
+         <setting id="pvrmenu.iconpath" type="path" label="19018" help="36216">
+diff --git a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+index 89b2f442f90e..13805ce1d90a 100644
+--- a/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
++++ b/xbmc/pvr/dialogs/GUIDialogPVRChannelsOSD.cpp
+@@ -15,6 +15,8 @@
+ #include "guilib/GUIMessage.h"
+ #include "input/Key.h"
+ #include "messaging/ApplicationMessenger.h"
++#include "settings/Settings.h"
++#include "settings/SettingsComponent.h"
+ 
+ #include "pvr/PVRGUIActions.h"
+ #include "pvr/PVRManager.h"
+@@ -214,7 +216,9 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
+ 
+   // Preserve the item before closing self, because this will clear m_vecItems
+   const CFileItemPtr itemptr = m_vecItems->Get(item);
+-  Close();
++  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_PVRMENU_CLOSECHANNELOSDONSWITCH))
++    Close();
++
+   CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(itemptr, true /* bCheckResume */);
+ }
+ 
+diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
+index b299b73fac83..829e7b5af6e6 100644
+--- a/xbmc/settings/Settings.cpp
++++ b/xbmc/settings/Settings.cpp
+@@ -201,6 +201,7 @@ const std::string CSettings::SETTING_PVRMANAGER_GROUPMANAGER = "pvrmanager.group
+ const std::string CSettings::SETTING_PVRMANAGER_CHANNELSCAN = "pvrmanager.channelscan";
+ const std::string CSettings::SETTING_PVRMANAGER_RESETDB = "pvrmanager.resetdb";
+ const std::string CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO = "pvrmenu.displaychannelinfo";
++const std::string CSettings::SETTING_PVRMENU_CLOSECHANNELOSDONSWITCH = "pvrmenu.closechannelosdonswitch";
+ const std::string CSettings::SETTING_PVRMENU_ICONPATH = "pvrmenu.iconpath";
+ const std::string CSettings::SETTING_PVRMENU_SEARCHICONS = "pvrmenu.searchicons";
+ const std::string CSettings::SETTING_EPG_PAST_DAYSTODISPLAY = "epg.pastdaystodisplay";
+diff --git a/xbmc/settings/Settings.h b/xbmc/settings/Settings.h
+index 95baba2a7ea9..d0743b32d380 100644
+--- a/xbmc/settings/Settings.h
++++ b/xbmc/settings/Settings.h
+@@ -161,6 +161,7 @@ class CSettings : public CSettingsBase, public CSettingCreator, public CSettingC
+   static const std::string SETTING_PVRMANAGER_CHANNELSCAN;
+   static const std::string SETTING_PVRMANAGER_RESETDB;
+   static const std::string SETTING_PVRMENU_DISPLAYCHANNELINFO;
++  static const std::string SETTING_PVRMENU_CLOSECHANNELOSDONSWITCH;
+   static const std::string SETTING_PVRMENU_ICONPATH;
+   static const std::string SETTING_PVRMENU_SEARCHICONS;
+   static const std::string SETTING_EPG_PAST_DAYSTODISPLAY;

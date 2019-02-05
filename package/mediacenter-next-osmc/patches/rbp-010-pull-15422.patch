@@ -1,0 +1,32 @@
+From 1deaf5e5b3df83479281332efc9a674afd28e50e Mon Sep 17 00:00:00 2001
+From: DaveTBlake <oak99sky@yahoo.co.uk>
+Date: Mon, 4 Feb 2019 15:07:28 +0000
+Subject: [PATCH] Fix how limits applied to artist and album smart playlists or
+ custom nodes
+
+---
+ xbmc/music/MusicDatabase.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/music/MusicDatabase.cpp b/xbmc/music/MusicDatabase.cpp
+index 59c8319b37d4..0ae692489666 100644
+--- a/xbmc/music/MusicDatabase.cpp
++++ b/xbmc/music/MusicDatabase.cpp
+@@ -4293,7 +4293,7 @@ bool CMusicDatabase::GetArtistsByWhere(const std::string& strBaseDir, const Filt
+     sorting = sortDescription;
+     if (limitedInSQL && sortDescription.sortBy == SortByRandom)
+       sorting.sortBy = SortByNone;
+-    if (!SortUtils::SortFromDataset(sorting, MediaTypeSong, m_pDS, results))
++    if (!SortUtils::SortFromDataset(sorting, MediaTypeArtist, m_pDS, results))
+       return false;
+     
+     // get data from returned rows
+@@ -4467,7 +4467,7 @@ bool CMusicDatabase::GetAlbumsByWhere(const std::string &baseDir, const Filter &
+     sorting = sortDescription;
+     if (limitedInSQL && sortDescription.sortBy == SortByRandom)
+       sorting.sortBy = SortByNone;
+-    if (!SortUtils::SortFromDataset(sorting, MediaTypeSong, m_pDS, results))
++    if (!SortUtils::SortFromDataset(sorting, MediaTypeAlbum, m_pDS, results))
+       return false;
+ 
+     // get data from returned rows

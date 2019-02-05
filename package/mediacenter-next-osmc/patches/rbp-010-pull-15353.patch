@@ -1,0 +1,40 @@
+From 4c16ecc50e03fed6f1e27ca8d1387232531f7068 Mon Sep 17 00:00:00 2001
+From: DaveTBlake <oak99sky@yahoo.co.uk>
+Date: Mon, 28 Jan 2019 14:30:59 +0000
+Subject: [PATCH] Avoid trying to load music info for smartplaylists and menu
+ items
+
+---
+ xbmc/music/MusicInfoLoader.cpp | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/music/MusicInfoLoader.cpp b/xbmc/music/MusicInfoLoader.cpp
+index d15a6de68271..754ae16c53ea 100644
+--- a/xbmc/music/MusicInfoLoader.cpp
++++ b/xbmc/music/MusicInfoLoader.cpp
+@@ -147,7 +147,10 @@ bool CMusicInfoLoader::LoadItem(CFileItem* pItem)
+ bool CMusicInfoLoader::LoadItemCached(CFileItem* pItem)
+ {
+   if ((pItem->m_bIsFolder && !pItem->IsAudio()) ||
+-       pItem->IsPlayList() || pItem->IsNFO() || pItem->IsInternetStream())
++      pItem->IsPlayList() || pItem->IsSmartPlayList() ||
++      StringUtils::StartsWithNoCase(pItem->GetPath(), "newplaylist://") ||
++      StringUtils::StartsWithNoCase(pItem->GetPath(), "newsmartplaylist://") ||
++      pItem->IsNFO() || pItem->IsInternetStream())
+     return false;
+ 
+   // Get thumb for item
+@@ -161,8 +164,11 @@ bool CMusicInfoLoader::LoadItemLookup(CFileItem* pItem)
+   if (m_pProgressCallback && !pItem->m_bIsFolder)
+     m_pProgressCallback->SetProgressAdvance();
+ 
+-  if ((pItem->m_bIsFolder && !pItem->IsAudio()) || pItem->IsPlayList() ||
+-       pItem->IsNFO() || pItem->IsInternetStream())
++  if ((pItem->m_bIsFolder && !pItem->IsAudio()) || 
++      pItem->IsPlayList() || pItem->IsSmartPlayList() ||
++      StringUtils::StartsWithNoCase(pItem->GetPath(), "newplaylist://") ||
++      StringUtils::StartsWithNoCase(pItem->GetPath(), "newsmartplaylist://") ||
++      pItem->IsNFO() || pItem->IsInternetStream())
+     return false;
+ 
+   if (!pItem->HasMusicInfoTag() || !pItem->GetMusicInfoTag()->Loaded())
