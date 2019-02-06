@@ -1,0 +1,69 @@
+From 48f980b7af68343ebc643b8e6fcd896518e5980c Mon Sep 17 00:00:00 2001
+From: Philipp Kerling <pkerling@casix.org>
+Date: Tue, 29 Jan 2019 09:52:11 +0100
+Subject: [PATCH] [guilib] Handle empty vertex buffers in GUIFontTTFGL
+
+CGUIFontTTF::DrawTextInternal can end up with zero-element vertex
+buffers in corner cases such as when all text to render is completely
+clipped away. This should also be cached as such, so it is unfeasible to
+forbid empty vertex buffers completely. CGUIFontTTFDX already handles
+this case, but CGUIFontTTFGL did not.
+A previous crash fix added an assertion on the vertex list not being
+empty, but this is not needed anymore since that case is correctly
+handled now.
+---
+ xbmc/guilib/GUIFontTTFGL.cpp | 32 ++++++++++++++++++++------------
+ 1 file changed, 20 insertions(+), 12 deletions(-)
+
+diff --git a/xbmc/guilib/GUIFontTTFGL.cpp b/xbmc/guilib/GUIFontTTFGL.cpp
+index f87afae0afac..55b3bd8d6f8c 100644
+--- a/xbmc/guilib/GUIFontTTFGL.cpp
++++ b/xbmc/guilib/GUIFontTTFGL.cpp
+@@ -221,6 +221,11 @@ void CGUIFontTTFGL::LastEnd()
+ 
+     for (size_t i = 0; i < m_vertexTrans.size(); i++)
+     {
++      if (m_vertexTrans[i].vertexBuffer->bufferHandle == 0)
++      {
++        continue;
++      }
++
+       // Apply the clip rectangle
+       CRect clip = renderSystem->ClipRectToScissorRect(m_vertexTrans[i].clip);
+       if (!clip.IsEmpty())
+@@ -282,20 +287,23 @@ void CGUIFontTTFGL::LastEnd()
+ 
+ CVertexBuffer CGUIFontTTFGL::CreateVertexBuffer(const std::vector<SVertex> &vertices) const
+ {
+-  assert(!vertices.empty());
+   assert(vertices.size() % 4 == 0);
++  GLuint bufferHandle = 0;
+ 
+-  // Generate a unique buffer object name and put it in bufferHandle
+-  GLuint bufferHandle;
+-  glGenBuffers(1, &bufferHandle);
+-  // Bind the buffer to the OpenGL context's GL_ARRAY_BUFFER binding point
+-  glBindBuffer(GL_ARRAY_BUFFER, bufferHandle);
+-  // Create a data store for the buffer object bound to the GL_ARRAY_BUFFER
+-  // binding point (i.e. our buffer object) and initialise it from the
+-  // specified client-side pointer
+-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof (SVertex), vertices.data(), GL_STATIC_DRAW);
+-  // Unbind GL_ARRAY_BUFFER
+-  glBindBuffer(GL_ARRAY_BUFFER, 0);
++  // Do not create empty buffers, leave buffer as 0, it will be ignored in drawing stage
++  if (!vertices.empty())
++  {
++    // Generate a unique buffer object name and put it in bufferHandle
++    glGenBuffers(1, &bufferHandle);
++    // Bind the buffer to the OpenGL context's GL_ARRAY_BUFFER binding point
++    glBindBuffer(GL_ARRAY_BUFFER, bufferHandle);
++    // Create a data store for the buffer object bound to the GL_ARRAY_BUFFER
++    // binding point (i.e. our buffer object) and initialise it from the
++    // specified client-side pointer
++    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(SVertex), vertices.data(), GL_STATIC_DRAW);
++    // Unbind GL_ARRAY_BUFFER
++    glBindBuffer(GL_ARRAY_BUFFER, 0);
++  }
+ 
+   return CVertexBuffer(bufferHandle, vertices.size() / 4, this);
+ }
