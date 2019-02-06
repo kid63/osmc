@@ -237,8 +237,8 @@ then
             -DCORE_PLATFORM_NAME=gbm \
             -DWITH_CPU=${CPU} \
             -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON
-            -DENABLE_INTERNAL_flatbuffers=ON
+            -DENABLE_INTERNAL_FMT=ON \
+            -DENABLE_INTERNAL_flatbuffers=ON \
 	 .
 	if [ "$1" == "rbp1" ]
 	then
@@ -273,8 +273,8 @@ then
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
 	    -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON
-            -DENABLE_INTERNAL_flatbuffers=ON
+            -DENABLE_INTERNAL_FMT=ON \
+            -DENABLE_INTERNAL_flatbuffers=ON \
 	.
 	fi
 	if [ "$1" == "vero2" ]; then
@@ -303,8 +303,8 @@ then
             -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
 	    -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON
-            -DENABLE_INTERNAL_flatbuffers=ON
+            -DENABLE_INTERNAL_FMT=ON \
+            -DENABLE_INTERNAL_flatbuffers=ON \
 	. 
 	fi
          if [ "$1" == "vero3" ]; then
@@ -333,8 +333,8 @@ then
 	    -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
             -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON
-             -DENABLE_INTERNAL_flatbuffers=ON
+            -DENABLE_INTERNAL_FMT=ON \
+            -DENABLE_INTERNAL_flatbuffers=ON \
 	.
 	fi
 	if [ $? != 0 ]; then echo -e "Configure failed!" && umount /proc/ > /dev/null 2>&1 && exit 1; fi
