@@ -1,0 +1,82 @@
+From 021b94536ba1f139e58932aaa894d1a6103512a8 Mon Sep 17 00:00:00 2001
+From: Chillbo <36623079+Ch1llb0@users.noreply.github.com>
+Date: Fri, 8 Feb 2019 00:09:42 +0100
+Subject: [PATCH] VideoOSD bug fix
+
+DialogSeekBar.xml:
+- fix conditional visibility
+
+VideoFullScreen.xml:
+- fix conditional visibility
+---
+ 16x9/DialogSeekBar.xml   |  2 +-
+ 16x9/VideoFullScreen.xml | 12 ++++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/16x9/DialogSeekBar.xml b/16x9/DialogSeekBar.xml
+index e6fb378..5372395 100755
+--- a/16x9/DialogSeekBar.xml
++++ b/16x9/DialogSeekBar.xml
+@@ -2,7 +2,7 @@
+ <window>
+ 	<!-- seekbar -->
+ 	<defaultcontrol always="true">901</defaultcontrol>
+-		<visible>[Player.Seeking | Player.DisplayAfterSeek + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.DisplayAfterSeek + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.DisplayAfterSeek + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s)	| Player.DisplayAfterSeek + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.DisplayAfterSeek + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.DisplayAfterSeek + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.DisplayAfterSeek + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.DisplayAfterSeek + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.DisplayAfterSeek + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | Player.Forwarding | Player.Rewinding | Player.IsTempo] + !Window.IsVisible(subtitlesearch) + !Window.IsVisible(gameviewmode) + !Window.IsVisible(gamevideofilter) + !Window.IsVisible(gameosd) + !String.IsEmpty(PVR.ChannelNumberInput)</visible>
++		<visible>[Player.Seeking | Player.DisplayAfterSeek | Player.Forwarding | Player.Rewinding | Player.IsTempo | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min)] + !Window.IsVisible(subtitlesearch) + !Window.IsVisible(gameviewmode) + !Window.IsVisible(gamevideofilter) + !Window.IsVisible(gameosd)</visible>
+ 		<visible>VideoPlayer.IsFullscreen | Window.IsVisible(visualisation)</visible>
+ 		<zorder>0</zorder>
+ 
+diff --git a/16x9/VideoFullScreen.xml b/16x9/VideoFullScreen.xml
+index 3b27944..0cafe55 100755
+--- a/16x9/VideoFullScreen.xml
++++ b/16x9/VideoFullScreen.xml
+@@ -54,7 +54,7 @@
+ 		</control>
+ 
+ 		<control type="group" id="1">
+-			<visible>Window.IsActive(seekbar) | !String.IsEmpty(Player.SeekNumeric) | Player.DisplayAfterSeek | Window.IsActive(fullscreeninfo) | Window.IsActive(VideoOSD)</visible>
++			<visible>Window.IsActive(seekbar) | Window.IsActive(fullscreeninfo) | Window.IsActive(VideoOSD)</visible>
+ 			<visible>!Window.IsVisible(DialogSettings.xml) + !Window.IsVisible(PVRChannelGuide) + !Window.IsVisible(pvrosdchannels) + !Window.IsVisible(teletext) + !Window.IsVisible(DialogSelect.xml) + !Window.IsVisible(DialogPVRInfo.xml)</visible>
+ 			<left>150</left>
+ 			<top>870</top>
+@@ -75,7 +75,7 @@
+ 				<width>140</width>
+ 				<height>60</height>
+ 				<visible>!Window.IsVisible(VideoBookmarks)</visible>
+-				<visible>player.forwarding + !Player.HasGame | player.rewinding + !Player.HasGame | player.paused | player.istempo + !Player.HasGame</visible>
++				<visible>[player.forwarding | player.rewinding | player.istempo] + !Player.HasGame | player.paused</visible>
+ 				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+@@ -119,7 +119,7 @@
+ 				<width>140</width>
+ 				<height>60</height>
+ 				<visible>[Integer.IsGreater(Player.ChapterCount,0) | !String.IsEmpty(Player.SeekStepSize)] + !Player.HasGame</visible>
+-				<visible>!Window.IsVisible(VideoBookmarks)</visible>
++				<visible>!Window.IsVisible(visualisation) + !Window.IsVisible(VideoBookmarks)</visible>
+ 				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+@@ -142,9 +142,9 @@
+ 					<height>60</height>
+ 					<font>Font27</font>
+ 					<align>center</align>
+-					<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B][B]$INFO[MusicPlayer.PlaylistPosition,(,/]$INFO[MusicPlayer.PlaylistLength,,)][/B]</label>
++					<label>[B]$INFO[Player.Chapter,(,/]$INFO[Player.ChapterCount,,)][/B]</label>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
+-					<visible>!Window.IsVisible(visualisation) + String.IsEmpty(Player.SeekStepSize)</visible>
++					<visible>String.IsEmpty(Player.SeekStepSize)</visible>
+ 				</control>
+ 
+ 				<!-- Status -->
+@@ -153,9 +153,9 @@
+ 					<height>60</height>
+ 					<font>Font27</font>
+ 					<align>center</align>
+-					<visible>!String.IsEmpty(Player.SeekStepSize)</visible>
+ 					<label>$INFO[Player.SeekStepSize]</label>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
++					<visible>!String.IsEmpty(Player.SeekStepSize)</visible>
+ 				</control>
+ 
+ 			</control>
