@@ -1,0 +1,49 @@
+From d3801d60af8cd57b084c8e627ee319b7712c1313 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Wed, 6 Feb 2019 17:31:42 +0100
+Subject: [PATCH 1/2] [guiinfo] Fixed ListItemAbsolute(0).
+
+---
+ xbmc/guilib/guiinfo/GUIInfoHelper.cpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+index afd07a094fd4..e36d444b04f3 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
++++ b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+@@ -163,7 +163,10 @@ CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId /* = 0 */,
+ {
+   CGUIListItemPtr item;
+ 
+-  if (containerId == 0  && itemOffset == 0 && !(itemFlags & INFOFLAG_LISTITEM_CONTAINER))
++  if (containerId == 0  &&
++      itemOffset == 0 &&
++      !(itemFlags & INFOFLAG_LISTITEM_CONTAINER) &&
++      !(itemFlags & INFOFLAG_LISTITEM_ABSOLUTE))
+     item = GetCurrentListItemFromWindow(contextWindow);
+ 
+   if (!item)
+
+From b62220b7a3603a83df6310e8518d822cd5b33ef0 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Wed, 6 Feb 2019 22:17:50 +0100
+Subject: [PATCH 2/2] [guiinfo] Fixed ListItemPosition.
+
+---
+ xbmc/guilib/guiinfo/GUIInfoHelper.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+index e36d444b04f3..92cca9ac44eb 100644
+--- a/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
++++ b/xbmc/guilib/guiinfo/GUIInfoHelper.cpp
+@@ -166,7 +166,8 @@ CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId /* = 0 */,
+   if (containerId == 0  &&
+       itemOffset == 0 &&
+       !(itemFlags & INFOFLAG_LISTITEM_CONTAINER) &&
+-      !(itemFlags & INFOFLAG_LISTITEM_ABSOLUTE))
++      !(itemFlags & INFOFLAG_LISTITEM_ABSOLUTE) &&
++      !(itemFlags & INFOFLAG_LISTITEM_POSITION))
+     item = GetCurrentListItemFromWindow(contextWindow);
+ 
+   if (!item)
