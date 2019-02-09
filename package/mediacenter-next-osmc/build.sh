@@ -16,7 +16,7 @@ sudo apt-get remove --purge armv6l-toolchain-osmc -y
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/f8966438d6035efc2411fe12158d2ea5b24faf27.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/fee377153bae32c850a2291717b9e52e7eeac0b5.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
