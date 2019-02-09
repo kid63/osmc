@@ -4,7 +4,7 @@
 #!/bin/bash
 
 . ../common.sh
-VERSION="3.14.4"
+VERSION="3.13.4"
 pull_source "https://cmake.org/files/v3.13/cmake-${VERSION}.tar.gz" "$(pwd)/src"
 if [ $? != 0 ]; then echo -e "Error fetching CMake source" && exit 1; fi
 # Build in native environment
