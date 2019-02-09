@@ -92,7 +92,7 @@ then
 	handle_dep "libyajl-dev"
         handle_dep "libxkbcommon-dev"
 	handle_dep "nasm"
-	handle_dep "nlohmann-json-dev"
+	#handle_dep "nlohmann-json-dev"
 	handle_dep "pmount"
 	handle_dep "python-dev"
 	handle_dep "python-imaging"
