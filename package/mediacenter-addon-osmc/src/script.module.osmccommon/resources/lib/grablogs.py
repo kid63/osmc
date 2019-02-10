@@ -160,7 +160,7 @@ SETS =  {
                                           ],
                                 },
 
-        'fstab'             : { 'order' : 7,
+        'fstabmounts'       : { 'order' : 7,
                                 'active': False,
                                 'help'  : 'fstab file',
                                 'dest'  : 'fstab',
@@ -173,6 +173,12 @@ SETS =  {
                                                 'ltyp': 'file_log',
                                                 'actn': '/etc/fstab',
                                             },
+                                            {
+                                                'name': 'mounts',
+                                                'key' : 'eWl77s9A',
+                                                'ltyp': 'file_log',
+                                                'actn': '/proc/mounts',
+                                            },                                            
                                           ],
                                 },
 
@@ -219,13 +225,13 @@ SETS =  {
                                                 'name': 'APT term.log',
                                                 'key' : 'RcBRrsRs',
                                                 'ltyp': 'cl_log',
-                                                'actn': 'grep -v "^(Reading database" /var/log/apt/term.log | tail -n 500',
+                                                'actn': 'grep -v -a "^(Reading database" /var/log/apt/term.log | tail -n 500',
                                             },
                                             {
                                                 'name': 'APT history.log',
                                                 'key' : 'B8sj7DO8',
                                                 'ltyp': 'cl_log',
-                                                'actn': 'grep -v "^(Reading database" /var/log/apt/history.log | tail -n 500',
+                                                'actn': 'grep -v -a "^(Reading database" /var/log/apt/history.log | tail -n 500',
                                             },
                                             {
                                                 'name': 'APT sources.list',
