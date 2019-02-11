@@ -1,0 +1,22 @@
+From 43a12c4e622155bdf33512f9c4daf57912de0e54 Mon Sep 17 00:00:00 2001
+From: Alwin Esch <alwin.esch@web.de>
+Date: Fri, 8 Feb 2019 18:23:08 +0100
+Subject: [PATCH] [addons] not pass nullptr to std::string
+
+---
+ xbmc/addons/kodi-addon-dev-kit/include/kodi/AddonBase.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/addons/kodi-addon-dev-kit/include/kodi/AddonBase.h b/xbmc/addons/kodi-addon-dev-kit/include/kodi/AddonBase.h
+index 5325ebfea2ad..db39f8693d07 100644
+--- a/xbmc/addons/kodi-addon-dev-kit/include/kodi/AddonBase.h
++++ b/xbmc/addons/kodi-addon-dev-kit/include/kodi/AddonBase.h
+@@ -354,7 +354,7 @@ class ATTRIBUTE_HIDDEN CAddonBase
+ 
+   static inline ADDON_STATUS ADDONBASE_CreateInstance(int instanceType, const char* instanceID, KODI_HANDLE instance, KODI_HANDLE* addonInstance, KODI_HANDLE parent)
+   {
+-    return ADDONBASE_CreateInstanceEx(instanceType, instanceID, instance, addonInstance, parent, nullptr);
++    return ADDONBASE_CreateInstanceEx(instanceType, instanceID, instance, addonInstance, parent, "");
+   }
+ 
+   static inline ADDON_STATUS ADDONBASE_CreateInstanceEx(int instanceType, const char* instanceID, KODI_HANDLE instance, KODI_HANDLE* addonInstance, KODI_HANDLE parent, const char* version)

@@ -1,0 +1,26 @@
+From 2986a1673b42f77821ccef0c54b2f7e03211f244 Mon Sep 17 00:00:00 2001
+From: Memphiz <memphis@machzwo.de>
+Date: Sat, 9 Feb 2019 20:35:27 +0100
+Subject: [PATCH] Revert "[DetectDVDType]: fix Crash due to non-checked error
+ state"
+
+---
+ xbmc/storage/DetectDVDType.cpp | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/xbmc/storage/DetectDVDType.cpp b/xbmc/storage/DetectDVDType.cpp
+index b2baa1630311..63298390b854 100644
+--- a/xbmc/storage/DetectDVDType.cpp
++++ b/xbmc/storage/DetectDVDType.cpp
+@@ -328,11 +328,6 @@ DWORD CDetectDVDMedia::GetTrayState()
+     }
+     laststatus = status;
+     m_cdio->cdio_destroy(cdio);
+-    
+-    if (status == DRIVER_OP_UNSUPPORTED)
+-    {
+-      return DRIVE_NONE;
+-    }
+   }
+   else
+     return DRIVE_NOT_READY;

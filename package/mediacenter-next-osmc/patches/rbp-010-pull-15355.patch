@@ -1,0 +1,287 @@
+From 5b313b0230051aa4c0b2aada0a55326d27493232 Mon Sep 17 00:00:00 2001
+From: DaveTBlake <oak99sky@yahoo.co.uk>
+Date: Mon, 28 Jan 2019 12:05:28 +0000
+Subject: [PATCH] [JSON]Speed up player and playlist operations using post
+ rather than send for messages that don't need to wait. Fix GUI playist change
+ notification to be done consistently by app rather than partially by JSON.
+
+---
+ xbmc/PlayListPlayer.cpp                       | 23 +++++++++++++++++++
+ xbmc/interfaces/json-rpc/PlayerOperations.cpp | 21 ++++-------------
+ xbmc/interfaces/json-rpc/PlayerOperations.h   |  1 -
+ .../json-rpc/PlaylistOperations.cpp           | 23 +++++--------------
+ xbmc/interfaces/json-rpc/PlaylistOperations.h |  1 -
+ xbmc/interfaces/json-rpc/schema/version.txt   |  2 +-
+ 6 files changed, 35 insertions(+), 36 deletions(-)
+
+diff --git a/xbmc/PlayListPlayer.cpp b/xbmc/PlayListPlayer.cpp
+index 7437fc80dab4..abb080c3a56c 100644
+--- a/xbmc/PlayListPlayer.cpp
++++ b/xbmc/PlayListPlayer.cpp
+@@ -523,6 +523,13 @@ void CPlayListPlayer::SetShuffle(int iPlaylist, bool bYesNo, bool bNotify /* = f
+     }
+   }
+ 
++  // its likely that the playlist changed   
++  if (CServiceBroker::GetGUI() != nullptr)
++  {
++    CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
++    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
++  }
++
+   AnnouncePropertyChanged(iPlaylist, "shuffled", IsShuffled(iPlaylist));
+ }
+ 
+@@ -575,6 +582,14 @@ void CPlayListPlayer::SetRepeat(int iPlaylist, REPEAT_STATE state, bool bNotify
+     data = "off";
+     break;
+   }
++
++  // its likely that the playlist changed   
++  if (CServiceBroker::GetGUI() != nullptr)
++  {
++    CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
++    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
++  }
++
+   AnnouncePropertyChanged(iPlaylist, "repeat", data);
+ }
+ 
+@@ -644,6 +659,10 @@ void CPlayListPlayer::Add(int iPlaylist, const CFileItemList& items)
+   list.Add(items);
+   if (list.IsShuffled())
+     ReShuffle(iPlaylist, iSize);
++
++  // its likely that the playlist changed
++  CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
++  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
+ }
+ 
+ void CPlayListPlayer::Insert(int iPlaylist, const CPlayList& playlist, int iIndex)
+@@ -683,6 +702,10 @@ void CPlayListPlayer::Insert(int iPlaylist, const CFileItemList& items, int iInd
+     ReShuffle(iPlaylist, iSize);
+   else if (m_iCurrentPlayList == iPlaylist && m_iCurrentSong >= iIndex)
+     m_iCurrentSong++;
++
++  // its likely that the playlist changed
++  CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
++  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
+ }
+ 
+ void CPlayListPlayer::Remove(int iPlaylist, int iPosition)
+diff --git a/xbmc/interfaces/json-rpc/PlayerOperations.cpp b/xbmc/interfaces/json-rpc/PlayerOperations.cpp
+index 816d4fd120a8..ca7e1b073a15 100644
+--- a/xbmc/interfaces/json-rpc/PlayerOperations.cpp
++++ b/xbmc/interfaces/json-rpc/PlayerOperations.cpp
+@@ -322,7 +322,7 @@ JSONRPC_STATUS CPlayerOperations::Stop(const std::string &method, ITransportLaye
+   {
+     case Video:
+     case Audio:
+-      CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP, static_cast<int>(parameterObject["playerid"].asInteger()));
++      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP, static_cast<int>(parameterObject["playerid"].asInteger()));
+       return ACK;
+ 
+     case Picture:
+@@ -536,8 +536,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
+     {
+       case PLAYLIST_MUSIC:
+       case PLAYLIST_VIDEO:
+-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PLAY, playlistid, playlistStartPosition);
+-        OnPlaylistChanged();
++        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, playlistid, playlistStartPosition);
+         break;
+ 
+       case PLAYLIST_PICTURE:
+@@ -572,7 +571,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
+   {
+     if (g_partyModeManager.IsEnabled())
+       g_partyModeManager.Disable();
+-    CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + parameterObject["item"]["partymode"].asString() + "))");
++    CApplicationMessenger::GetInstance().PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + parameterObject["item"]["partymode"].asString() + "))");
+     return ACK;
+   }
+   else if (parameterObject["item"].isMember("channelid"))
+@@ -691,7 +690,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
+ 
+         auto l = new CFileItemList(); //don't delete
+         l->Copy(list);
+-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l), playername);
++        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l), playername);
+       }
+ 
+       return ACK;
+@@ -758,7 +757,6 @@ JSONRPC_STATUS CPlayerOperations::GoTo(const std::string &method, ITransportLaye
+       return FailedToExecute;
+   }
+ 
+-  OnPlaylistChanged();
+   return ACK;
+ }
+ 
+@@ -781,7 +779,6 @@ JSONRPC_STATUS CPlayerOperations::SetShuffle(const std::string &method, ITranspo
+             (shuffle.isString() && shuffle.asString() == "toggle"))
+         {
+           CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_SHUFFLE, playlistid, 0);
+-          OnPlaylistChanged();
+         }
+       }
+       else
+@@ -790,7 +787,6 @@ JSONRPC_STATUS CPlayerOperations::SetShuffle(const std::string &method, ITranspo
+             (shuffle.isString() && shuffle.asString() == "toggle"))
+         {
+           CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_SHUFFLE, playlistid, 1);
+-          OnPlaylistChanged();
+         }
+       }
+       break;
+@@ -846,7 +842,6 @@ JSONRPC_STATUS CPlayerOperations::SetRepeat(const std::string &method, ITranspor
+         repeat = (REPEAT_STATE)ParseRepeatState(parameterObject["repeat"]);
+ 
+       CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_REPEAT, playlistid, repeat);
+-      OnPlaylistChanged();
+       break;
+     }
+ 
+@@ -899,7 +894,7 @@ JSONRPC_STATUS CPlayerOperations::SetPartymode(const std::string &method, ITrans
+       }
+ 
+       if (change)
+-        CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + strContext + "))");
++        CApplicationMessenger::GetInstance().PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + strContext + "))");
+       break;
+     }
+ 
+@@ -1168,12 +1163,6 @@ void CPlayerOperations::SendSlideshowAction(int actionID)
+   CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_SLIDESHOW, -1, static_cast<void*>(new CAction(actionID)));
+ }
+ 
+-void CPlayerOperations::OnPlaylistChanged()
+-{
+-  CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
+-  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
+-}
+-
+ JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const std::string &property, CVariant &result)
+ {
+   if (player == None)
+diff --git a/xbmc/interfaces/json-rpc/PlayerOperations.h b/xbmc/interfaces/json-rpc/PlayerOperations.h
+index bf3feb44cfb1..2419f5565a0f 100644
+--- a/xbmc/interfaces/json-rpc/PlayerOperations.h
++++ b/xbmc/interfaces/json-rpc/PlayerOperations.h
+@@ -62,7 +62,6 @@ namespace JSONRPC
+     static int GetPlaylist(PlayerType player);
+     static JSONRPC_STATUS StartSlideshow(const std::string& path, bool recursive, bool random, const std::string &firstPicturePath = "");
+     static void SendSlideshowAction(int actionID);
+-    static void OnPlaylistChanged();
+     static JSONRPC_STATUS GetPropertyValue(PlayerType player, const std::string &property, CVariant &result);
+ 
+     static int ParseRepeatState(const CVariant &repeat);
+diff --git a/xbmc/interfaces/json-rpc/PlaylistOperations.cpp b/xbmc/interfaces/json-rpc/PlaylistOperations.cpp
+index c75d845f390f..54a0ccbe2aac 100644
+--- a/xbmc/interfaces/json-rpc/PlaylistOperations.cpp
++++ b/xbmc/interfaces/json-rpc/PlaylistOperations.cpp
+@@ -119,7 +119,7 @@ JSONRPC_STATUS CPlaylistOperations::Add(const std::string &method, ITransportLay
+     {
+       auto tmpList = new CFileItemList();
+       tmpList->Copy(list);
+-      CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_ADD, playlist, -1, static_cast<void*>(tmpList));
++      CApplicationMessenger::GetInstance().PostMsg(TMSG_PLAYLISTPLAYER_ADD, playlist, -1, static_cast<void*>(tmpList));
+       break;
+     }
+     case PLAYLIST_PICTURE:
+@@ -138,7 +138,6 @@ JSONRPC_STATUS CPlaylistOperations::Add(const std::string &method, ITransportLay
+       return InvalidParams;
+   }
+ 
+-  NotifyAll();
+   return ACK;
+ }
+ 
+@@ -154,10 +153,9 @@ JSONRPC_STATUS CPlaylistOperations::Insert(const std::string &method, ITransport
+ 
+   auto tmpList = new CFileItemList();
+   tmpList->Copy(list);
+-  CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_INSERT, GetPlaylist(parameterObject["playlistid"]),
++  CApplicationMessenger::GetInstance().PostMsg(TMSG_PLAYLISTPLAYER_INSERT, GetPlaylist(parameterObject["playlistid"]),
+     static_cast<int>(parameterObject["position"].asInteger()), static_cast<void*>(tmpList));
+ 
+-  NotifyAll();
+   return ACK;
+ }
+ 
+@@ -171,9 +169,8 @@ JSONRPC_STATUS CPlaylistOperations::Remove(const std::string &method, ITransport
+   if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() == playlist && CServiceBroker::GetPlaylistPlayer().GetCurrentSong() == position)
+     return InvalidParams;
+ 
+-  CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_REMOVE, playlist, position);
++  CApplicationMessenger::GetInstance().PostMsg(TMSG_PLAYLISTPLAYER_REMOVE, playlist, position);
+ 
+-  NotifyAll();
+   return ACK;
+ }
+ 
+@@ -185,19 +182,18 @@ JSONRPC_STATUS CPlaylistOperations::Clear(const std::string &method, ITransportL
+   {
+     case PLAYLIST_MUSIC:
+     case PLAYLIST_VIDEO:
+-      CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_CLEAR, playlist);
++      CApplicationMessenger::GetInstance().PostMsg(TMSG_PLAYLISTPLAYER_CLEAR, playlist);
+       break;
+ 
+     case PLAYLIST_PICTURE:
+       slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+       if (!slideshow)
+         return FailedToExecute;
+-      CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_SLIDESHOW, -1, static_cast<void*>(new CAction(ACTION_STOP)));
++      CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_SLIDESHOW, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+       slideshow->Reset();
+       break;
+   }
+ 
+-  NotifyAll();
+   return ACK;
+ }
+ 
+@@ -210,9 +206,8 @@ JSONRPC_STATUS CPlaylistOperations::Swap(const std::string &method, ITransportLa
+   auto tmpVec = new std::vector<int>();
+   tmpVec->push_back(static_cast<int>(parameterObject["position1"].asInteger()));
+   tmpVec->push_back(static_cast<int>(parameterObject["position2"].asInteger()));
+-  CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_SWAP, playlist, -1, static_cast<void*>(tmpVec));
++  CApplicationMessenger::GetInstance().PostMsg(TMSG_PLAYLISTPLAYER_SWAP, playlist, -1, static_cast<void*>(tmpVec));
+ 
+-  NotifyAll();
+   return ACK;
+ }
+ 
+@@ -225,12 +220,6 @@ int CPlaylistOperations::GetPlaylist(const CVariant &playlist)
+   return PLAYLIST_NONE;
+ }
+ 
+-void CPlaylistOperations::NotifyAll()
+-{
+-  CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
+-  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
+-}
+-
+ JSONRPC_STATUS CPlaylistOperations::GetPropertyValue(int playlist, const std::string &property, CVariant &result)
+ {
+   if (property == "type")
+diff --git a/xbmc/interfaces/json-rpc/PlaylistOperations.h b/xbmc/interfaces/json-rpc/PlaylistOperations.h
+index a8aaeb7a92d3..bfcac811929a 100644
+--- a/xbmc/interfaces/json-rpc/PlaylistOperations.h
++++ b/xbmc/interfaces/json-rpc/PlaylistOperations.h
+@@ -30,7 +30,6 @@ namespace JSONRPC
+     static JSONRPC_STATUS Swap(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result);
+   private:
+     static int GetPlaylist(const CVariant &playlist);
+-    static inline void NotifyAll();
+     static JSONRPC_STATUS GetPropertyValue(int playlist, const std::string &property, CVariant &result);
+     static bool CheckMediaParameter(int playlist, const CVariant &itemObject);
+     static bool HandleItemsParameter(int playlistid, const CVariant &itemParam, CFileItemList &items);
+diff --git a/xbmc/interfaces/json-rpc/schema/version.txt b/xbmc/interfaces/json-rpc/schema/version.txt
+index acd39a4eec7a..1a0b79af8704 100644
+--- a/xbmc/interfaces/json-rpc/schema/version.txt
++++ b/xbmc/interfaces/json-rpc/schema/version.txt
+@@ -1 +1 @@
+-JSONRPC_VERSION 10.1.1
++JSONRPC_VERSION 10.1.2
