@@ -1,0 +1,22 @@
+From f160cf4e383f743c0634669f32c2460c48a651e8 Mon Sep 17 00:00:00 2001
+From: fritsch <fritsch@kodi.tv>
+Date: Sun, 10 Feb 2019 15:35:45 +0100
+Subject: [PATCH] UPNPPlayer: Do not use memset on non-trivial type
+
+---
+ xbmc/network/upnp/UPnPPlayer.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/network/upnp/UPnPPlayer.cpp b/xbmc/network/upnp/UPnPPlayer.cpp
+index d0c306bdf621..82ae8838d9db 100644
+--- a/xbmc/network/upnp/UPnPPlayer.cpp
++++ b/xbmc/network/upnp/UPnPPlayer.cpp
+@@ -54,7 +54,7 @@ class CUPnPPlayerController
+     , m_callback(callback)
+     , m_postime(0)
+   {
+-    memset(&m_posinfo, 0, sizeof(m_posinfo));
++    m_posinfo = {};
+     m_device->FindServiceByType("urn:schemas-upnp-org:service:AVTransport:1", m_transport);
+   }
+ 
