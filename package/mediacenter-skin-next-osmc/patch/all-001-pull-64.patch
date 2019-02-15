@@ -1,0 +1,153 @@
+From a3f17b85d5164b7f3cd4cff6b220a0a211cdeba2 Mon Sep 17 00:00:00 2001
+From: Chillbo <36623079+Ch1llb0@users.noreply.github.com>
+Date: Fri, 15 Feb 2019 01:05:52 +0100
+Subject: [PATCH] "Hide video player OSD during pause" option fix
+
+DialogSeekBar.xml:
+- fix conditional visibility (Player.DisplayAfterSeek is also returning true, if player is paused)
+
+MusicVisualisation.xml:
+- fix conditional visibility of player status to streamline music and video player OSD behaviour
+- add fade animations to player status symbols
+- add play symbol for Player.DisplayAfterSeek
+
+VideoFullScreen.xml:
+- fix conditional visibilty to show player status also after seeking, but not during seeking
+- add fade animations to player status symbols
+- add play symbol for Player.DisplayAfterSeek
+---
+ 16x9/DialogSeekBar.xml      |  4 ++--
+ 16x9/MusicVisualisation.xml | 30 +++++++++++++++++++++++++++++-
+ 16x9/VideoFullScreen.xml    | 30 +++++++++++++++++++++++++++++-
+ 3 files changed, 60 insertions(+), 4 deletions(-)
+
+diff --git a/16x9/DialogSeekBar.xml b/16x9/DialogSeekBar.xml
+index f41da74..1b20d3e 100755
+--- a/16x9/DialogSeekBar.xml
++++ b/16x9/DialogSeekBar.xml
+@@ -2,7 +2,7 @@
+ <window>
+ 	<!-- seekbar -->
+ 	<defaultcontrol always="true">901</defaultcontrol>
+-		<visible>[Player.Seeking | Player.DisplayAfterSeek | Player.Forwarding | Player.Rewinding | Player.IsTempo | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | !String.IsEmpty(PVR.ChannelNumberInput)] + !Window.IsVisible(subtitlesearch) + !Window.IsVisible(gamevideofilter) + !Window.IsVisible(gamestretchmode) + !Window.IsVisible(gamevideorotation) + !Window.IsVisible(gamevideofilter) + !Window.IsVisible(gameosd)</visible>
++		<visible>[Player.Seeking | Player.DisplayAfterSeek + !Player.Paused | Player.Forwarding | Player.Rewinding | Player.IsTempo | Player.Paused + String.IsEqual(Skin.String(HideOSD),Always) | Player.Paused + !System.IdleTime(5) + String.IsEqual(Skin.String(HideOSD),5s) | Player.Paused + !System.IdleTime(10) + String.IsEqual(Skin.String(HideOSD),10s) | Player.Paused + !System.IdleTime(20) + String.IsEqual(Skin.String(HideOSD),20s) | Player.Paused + !System.IdleTime(30) + String.IsEqual(Skin.String(HideOSD),30s) | Player.Paused + !System.IdleTime(60) + String.IsEqual(Skin.String(HideOSD),1 min) | Player.Paused + !System.IdleTime(120) + String.IsEqual(Skin.String(HideOSD),2 min) | Player.Paused + !System.IdleTime(180) + String.IsEqual(Skin.String(HideOSD),3 min) | Player.Paused + !System.IdleTime(300) + String.IsEqual(Skin.String(HideOSD),5 min) | !String.IsEmpty(PVR.ChannelNumberInput)] + !Window.IsVisible(subtitlesearch) + !Window.IsVisible(gamevideofilter) + !Window.IsVisible(gamestretchmode) + !Window.IsVisible(gamevideorotation) + !Window.IsVisible(gameosd)</visible>
+ 		<visible>VideoPlayer.IsFullscreen | Window.IsVisible(visualisation)</visible>
+ 		<zorder>0</zorder>
+ 
+@@ -37,4 +37,4 @@
+ 
+ 	</controls>
+ 
+-</window>
++</window>
+\ No newline at end of file
+diff --git a/16x9/MusicVisualisation.xml b/16x9/MusicVisualisation.xml
+index 5df7966..615eac0 100755
+--- a/16x9/MusicVisualisation.xml
++++ b/16x9/MusicVisualisation.xml
+@@ -126,7 +126,7 @@
+ 			<control type="group">
+ 				<width>140</width>
+ 				<height>60</height>
+-				<visible>player.forwarding | player.rewinding | player.paused | player.istempo</visible>
++				<visible>[player.forwarding | player.rewinding | player.istempo | Player.DisplayAfterSeek | player.paused] + !Player.Seeking</visible>
+ 				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+@@ -151,6 +151,13 @@
+ 					<align>center</align>
+ 					<label>$VAR[PlayerStatus]</label>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
++					<visible>player.forwarding | player.rewinding | player.istempo</visible>
++					<animation type="Visible">
++						<effect type="fade" start="0" end="100" time="200"/>
++					</animation>
++					<animation type="Hidden">
++						<effect type="fade" start="100" end="0" time="200"/>
++					</animation>
+ 				</control>
+ 
+ 				<!-- Pause -->
+@@ -160,6 +167,27 @@
+ 					<height>60</height>
+ 					<texture>osd/OSDPauseNF.png</texture>
+ 					<visible>player.paused</visible>
++					<animation type="Visible">
++						<effect type="fade" start="0" end="100" time="200"/>
++					</animation>
++					<animation type="Hidden">
++						<effect type="fade" start="100" end="0" time="200"/>
++					</animation>
++				</control>
++				
++				<!-- Play after seek -->
++				<control type="image">
++					<left>40</left>
++					<width>60</width>
++					<height>60</height>
++					<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPlayNF.png</texture>
++					<visible>Player.DisplayAfterSeek + ![Player.Paused | player.forwarding | player.rewinding | player.istempo]</visible>
++					<animation type="Visible">
++						<effect type="fade" start="0" end="100" time="200"/>
++					</animation>
++					<animation type="Hidden">
++						<effect type="fade" start="100" end="0" time="200"/>
++					</animation>
+ 				</control>
+ 
+ 			</control>
+diff --git a/16x9/VideoFullScreen.xml b/16x9/VideoFullScreen.xml
+index 0cafe55..01cee40 100755
+--- a/16x9/VideoFullScreen.xml
++++ b/16x9/VideoFullScreen.xml
+@@ -75,7 +75,7 @@
+ 				<width>140</width>
+ 				<height>60</height>
+ 				<visible>!Window.IsVisible(VideoBookmarks)</visible>
+-				<visible>[player.forwarding | player.rewinding | player.istempo] + !Player.HasGame | player.paused</visible>
++				<visible>[player.forwarding | player.rewinding | player.istempo | Player.DisplayAfterSeek] + !Player.HasGame + !Player.Seeking | player.paused</visible>
+ 				<animation type="Visible">
+ 					<effect type="zoom" start="90" end="100" center="auto" tween="back" easing="out" time="200"/>
+ 					<effect type="fade" start="0" end="100" time="200"/>
+@@ -100,6 +100,13 @@
+ 					<align>center</align>
+ 					<label>$VAR[PlayerStatus]</label>
+ 					<textcolor>$VAR[TextColor2]</textcolor>
++					<visible>player.forwarding | player.rewinding | player.istempo</visible>
++					<animation type="Visible">
++						<effect type="fade" start="0" end="100" time="200"/>
++					</animation>
++					<animation type="Hidden">
++						<effect type="fade" start="100" end="0" time="200"/>
++					</animation>
+ 				</control>
+ 
+ 				<!-- Pause -->
+@@ -109,6 +116,27 @@
+ 					<height>60</height>
+ 					<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPauseNF.png</texture>
+ 					<visible>player.paused</visible>
++					<animation type="Visible">
++						<effect type="fade" start="0" end="100" time="200"/>
++					</animation>
++					<animation type="Hidden">
++						<effect type="fade" start="100" end="0" time="200"/>
++					</animation>
++				</control>
++				
++				<!-- Play after seek -->
++				<control type="image" id="1">
++					<left>40</left>
++					<width>60</width>
++					<height>60</height>
++					<texture colordiffuse="$VAR[DialogColor1]">osd/OSDPlayNF.png</texture>
++					<visible>Player.DisplayAfterSeek + ![Player.Paused | player.forwarding | player.rewinding | player.istempo]</visible>
++					<animation type="Visible">
++						<effect type="fade" start="0" end="100" time="200"/>
++					</animation>
++					<animation type="Hidden">
++						<effect type="fade" start="100" end="0" time="200"/>
++					</animation>
+ 				</control>
+ 
+ 			</control>
