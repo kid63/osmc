@@ -351,8 +351,8 @@ then
 game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw \
 game.libretro.beetle-pce-fast \
 game.libretro.bnes game.libretro.nestopia \
-game.libretro.bsnes-mercury-balanced  \
-game.libretro.bluemsx game.libretro.vecx \
+game.libretro.bsnes-mercury-balanced game.libretro.mame2000 game.libretro.mame2003 \
+game.libretro.bluemsx game.libretro.vecx game.libretro.mame2003_plus \
 game.libretro.gambatte game.libretro.beetle-bsnes \
 game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
 game.libretro.quicknes game.libretro.scummvm \
