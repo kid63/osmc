@@ -1,0 +1,23 @@
+From 7e85a6f6e4ddda81ab382eb54a294f481fa87a85 Mon Sep 17 00:00:00 2001
+From: Kai Sommerfeld <kai.sommerfeld@gmx.com>
+Date: Mon, 11 Feb 2019 11:27:51 +0100
+Subject: [PATCH] [estuary] Fix visual glitch when PVR info dialog activated
+ from PVR channels OSD.
+
+---
+ addons/skin.estuary/xml/DialogSeekBar.xml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/addons/skin.estuary/xml/DialogSeekBar.xml b/addons/skin.estuary/xml/DialogSeekBar.xml
+index 91c16b36c1c9..a71dcc0a2caa 100644
+--- a/addons/skin.estuary/xml/DialogSeekBar.xml
++++ b/addons/skin.estuary/xml/DialogSeekBar.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <window>
+ 	<visible>Player.Seeking | Player.DisplayAfterSeek | [Player.Paused + !Player.Caching] | Player.Forwarding | Player.Rewinding | Player.ShowInfo | Player.ShowTime | Window.IsActive(videoosd) | Window.IsActive(musicosd) | Window.IsActive(playerprocessinfo) | !String.IsEmpty(Player.SeekNumeric) | !String.IsEmpty(PVR.ChannelNumberInput)</visible>
+-	<visible>![Window.IsActive(sliderdialog) | Window.IsActive(pvrosdchannels)]</visible>
++	<visible>![Window.IsActive(sliderdialog) | Window.IsActive(pvrosdchannels) | Window.IsActive(pvrguideinfo)]</visible>
+ 	<visible>Window.IsActive(fullscreenvideo) | Window.IsActive(visualisation)</visible>
+ 	<include>Animation_BottomSlide</include>
+ 	<depth>DepthOSD</depth>

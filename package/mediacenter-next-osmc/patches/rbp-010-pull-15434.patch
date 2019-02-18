@@ -1,0 +1,25 @@
+From a013231060b352fa247a1145bd9b17610e621a2d Mon Sep 17 00:00:00 2001
+From: ronie <ronie@kodi.tv>
+Date: Tue, 5 Feb 2019 19:03:15 +0100
+Subject: [PATCH] [python] fix usage of line-breaks in ok dialog
+
+---
+ xbmc/interfaces/legacy/Dialog.cpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/legacy/Dialog.cpp b/xbmc/interfaces/legacy/Dialog.cpp
+index 7ea6b7dbcb9a..77cb46bf86e5 100644
+--- a/xbmc/interfaces/legacy/Dialog.cpp
++++ b/xbmc/interfaces/legacy/Dialog.cpp
+@@ -173,7 +173,10 @@ namespace XBMCAddon
+                     const String& line3)
+     {
+       DelayedCallGuard dcguard(languageHook);
+-      return HELPERS::ShowOKDialogLines(CVariant{heading}, CVariant{line1}, CVariant{line2}, CVariant{line3});
++      if (line2.empty() && line3.empty())
++        return HELPERS::ShowOKDialogText(CVariant{heading}, CVariant{line1});
++      else
++        return HELPERS::ShowOKDialogLines(CVariant{heading}, CVariant{line1}, CVariant{line2}, CVariant{line3});
+     }
+ 
+     void Dialog::textviewer(const String& heading, const String& text, bool usemono)
