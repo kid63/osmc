@@ -1,7 +1,7 @@
 From a3f17b85d5164b7f3cd4cff6b220a0a211cdeba2 Mon Sep 17 00:00:00 2001
 From: Chillbo <36623079+Ch1llb0@users.noreply.github.com>
 Date: Fri, 15 Feb 2019 01:05:52 +0100
-Subject: [PATCH 1/3] "Hide video player OSD during pause" option fix
+Subject: [PATCH 1/4] "Hide video player OSD during pause" option fix
 
 DialogSeekBar.xml:
 - fix conditional visibility (Player.DisplayAfterSeek is also returning true, if player is paused)
@@ -155,7 +155,7 @@ index 0cafe55..01cee40 100755
 From af42f87846b864ba13624df62902127dc643c6d9 Mon Sep 17 00:00:00 2001
 From: Chillbo <36623079+Ch1llb0@users.noreply.github.com>
 Date: Mon, 18 Feb 2019 14:08:42 +0100
-Subject: [PATCH 2/3] Add welcome dialog on non-OSMC devices
+Subject: [PATCH 2/4] Add welcome dialog on non-OSMC devices
 
 AddonBrowser.xml:
 - add onload to show welcome screen after installing the skin from zip
@@ -353,7 +353,7 @@ index b83db11..510e53f 100644
 From af98b4ec6aef3050965aee6563cb261c58593f4a Mon Sep 17 00:00:00 2001
 From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
 Date: Mon, 18 Feb 2019 17:57:35 +0100
-Subject: [PATCH 3/3] PVR Channel number input bugfix
+Subject: [PATCH 3/4] PVR Channel number input bugfix
 
 DialogPVRChannelGuide.xml:
 - set zorder 0 to show PVR channel number input dialog on top
@@ -389,3 +389,162 @@ index 2c60987..fe79a37 100755
  
  	<controls>
  
+
+From c0ff2593097a0aac5d97b7ed520381d2b6fdc8f6 Mon Sep 17 00:00:00 2001
+From: Chillbo <36623079+Ch1llb0@users.noreply.github.com>
+Date: Mon, 18 Feb 2019 21:35:09 +0100
+Subject: [PATCH 4/4] Dialog Favourites Fix
+
+DialogFavourites.xml:
+- change appearance of list to match viewtype50
+- add scrollbar page control
+- add options sidemenu
+---
+ 16x9/DialogFavourites.xml | 98 +++++++++++++++++++++++++++++++++++----
+ 1 file changed, 89 insertions(+), 9 deletions(-)
+
+diff --git a/16x9/DialogFavourites.xml b/16x9/DialogFavourites.xml
+index 08e176d..d13eed7 100755
+--- a/16x9/DialogFavourites.xml
++++ b/16x9/DialogFavourites.xml
+@@ -37,7 +37,7 @@
+ 			</control>
+ 
+ 			<!-- List -->
+-			<control type="list" id="450">
++			<control type="fixedlist" id="450">
+ 				<left>750</left>
+ 				<centertop>50%</centertop>
+ 				<width>1050</width>
+@@ -45,43 +45,123 @@
+ 				<onup>450</onup>
+ 				<ondown>450</ondown>
+ 				<onleft>60</onleft>
++				<onright condition="!Skin.HasSetting(KioskMode)">3001</onright>
++				<pagecontrol>60</pagecontrol>
++				<focusposition>5</focusposition>
+ 				<orientation>vertical</orientation>
+ 				<viewtype label="535">list</viewtype>
+ 				<scrolltime tween="sine" easing="out">240</scrolltime>
+ 
+-				<itemlayout height="90" width="1050">
++				<itemlayout height="60" width="1050">
+ 					<control type="label">
+ 						<left>0</left>
+ 						<top>0</top>
+ 						<width>1050</width>
+-						<height>90</height>
++						<height>60</height>
+ 						<font>Font36</font>
+-						<label>$VAR[Label1]</label>
++						<label>[LIGHT]$VAR[Label1][/LIGHT]</label>
+ 						<textcolor>$VAR[TextColor2]</textcolor>
+ 					</control>
+ 				</itemlayout>
+ 
+-				<focusedlayout height="90" width="1050">
++				<focusedlayout height="120" width="1050">
+ 					<control type="label">
+ 						<left>0</left>
+ 						<top>0</top>
+ 						<width>1050</width>
+-						<height>90</height>
+-						<font>Font48</font>
++						<height>120</height>
++						<font>Font73</font>
+ 						<label>$VAR[Label1]</label>
+ 						<textcolor>$VAR[TextColor1]</textcolor>
++						<scroll>True</scroll>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+ 					</control>
+ 					<control type="image">
+ 						<width>1050</width>
+-						<height>90</height>
+-						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus90]</texture>
++						<height>120</height>
++						<texture colordiffuse="$VAR[TextColor1]">$VAR[focus120]</texture>
+ 						<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="true" condition="!Control.HasFocus(450)">Conditional</animation>
+ 					</control>
+ 				</focusedlayout>
+ 
+ 			</control>
+ 
++			<!-- Scrollbar (list) -->
++			<control type="scrollbar" id="60">
++				<left>690</left>
++				<centertop>50%</centertop>
++				<width>20</width>
++				<height>720</height>
++				<onright>450</onright>
++				<onleft condition="!Skin.HasSetting(KioskMode)">3001</onleft>
++				<showonepage>false</showonepage>
++				<orientation>vertical</orientation>
++				<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++				<texturesliderbackground border="11,1,1,1">common/ScrollBackground.png</texturesliderbackground>
++				<texturesliderbar border="11,1,1,1">common/ScrollbarGripNF.png</texturesliderbar>
++				<texturesliderbarfocus border="11,1,1,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripFO.png</texturesliderbarfocus>
++				<textureslidernib></textureslidernib>
++				<textureslidernibfocus></textureslidernibfocus>
++				<visible>!Skin.HasSetting(Scrollbars)</visible>
++			</control>
++			
++		</control>
++		
++		<!-- Options -->
++		<control type="group" id="9002">
++			<control type="image">
++				<include>FullscreenDimensions</include>
++				<texture colordiffuse="$VAR[DarkenColor]">dialogs/DialogTextBackground.png</texture>
++				<animation effect="fade" start="0" end="100" time="200">Visible</animation>
++				<animation effect="fade" start="100" end="0" time="200">Hidden</animation>
++				<visible>ControlGroup(9002).HasFocus</visible>
++			</control>
++			<control type="group">
++				<left>-450</left>
++				<top>0</top>
++				<animation effect="slide" start="0,0" end="450,0" time="200" condition="ControlGroup(9002).HasFocus">Conditional</animation>
++				<control type="button">
++					<left>0</left>
++					<top>0</top>
++					<width>460</width>
++					<height>1080</height>
++				</control>
++
++				<control type="image">
++					<left>0</left>
++					<top>0</top>
++					<width>450</width>
++					<height>1080</height>
++					<texture colordiffuse="$VAR[OverlayColor]">dialogs/Background.png</texture>
++				</control>
++
++				<!-- Look controls -->
++				<control type="grouplist" id="3001">
++					<left>20</left>
++					<top>10</top> <!-- -10 because there are two spacers -->
++					<width>410</width>
++					<height>1040</height>
++					<onleft>450</onleft>
++					<onright>450</onright>
++					<scrolltime>200</scrolltime>
++					<orientation>vertical</orientation>
++					<itemgap>0</itemgap>
++					<defaultcontrol always="true">94</defaultcontrol>
++
++					<include content="SideMenuAnimation">
++						<param name="containerID">3001</param>
++					</include>
++
++					<!-- Scrollbars -->
++					<control type="radiobutton" id="94">
++						<label>31005</label>
++						<height>52</height>
++						<onclick>Skin.ToggleSetting(Scrollbars)</onclick>
++						<selected>!Skin.HasSetting(Scrollbars)</selected>
++					</control>
++
++				</control>
++			</control>
+ 		</control>
+ 
+ 	</controls>
