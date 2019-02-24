@@ -348,7 +348,7 @@ then
 	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick imagedecoder.raw peripheral.steamcontroller"
 	ADDONS_GAME="game.libretro game.libretro.2048 \
 game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw \
-game.libretro.beetle-pce-fast game.moonlight \
+game.libretro.beetle-pce-fast \
 game.libretro.bnes game.libretro.nestopia \
 game.libretro.bsnes-mercury-balanced game.libretro.mame2000 game.libretro.mame2003 \
 game.libretro.bluemsx game.libretro.vecx game.libretro.mame2003_plus \
