@@ -7,10 +7,9 @@
 
 
 #Workaround
-#Purge toolchain before each build otherwise thumbnails crash
-
-sudo apt-get remove --purge armv7-toolchain-osmc -y
-sudo apt-get remove --purge armv6l-toolchain-osmc -y
+#Delete folder otherwise thumbnails crash and builds fail with crypto errors
+rm -rf /opt/osmc-tc/armv7-toolchain-osmc/usr/local/lib/*
+rm -rf /opt/osmc-tc/armv6l-toolchain-osmc/usr/local/lib/*
 
 
 #Use newclock5 for rbp1/2 builds
