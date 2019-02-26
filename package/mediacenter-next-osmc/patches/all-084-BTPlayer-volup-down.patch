@@ -1,0 +1,4266 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+  <link rel="dns-prefetch" href="https://github.githubassets.com">
+  <link rel="dns-prefetch" href="https://avatars0.githubusercontent.com">
+  <link rel="dns-prefetch" href="https://avatars1.githubusercontent.com">
+  <link rel="dns-prefetch" href="https://avatars2.githubusercontent.com">
+  <link rel="dns-prefetch" href="https://avatars3.githubusercontent.com">
+  <link rel="dns-prefetch" href="https://github-cloud.s3.amazonaws.com">
+  <link rel="dns-prefetch" href="https://user-images.githubusercontent.com/">
+
+
+
+  <link crossorigin="anonymous" media="all" integrity="sha512-RPWwIpqyjxv5EpuWKUKyeZeWz9QEzIbAWTiYOuxGieUq7+AMiZbsLeQMfEdyEIUoNjLagHK0BEm92BmXnvaH4Q==" rel="stylesheet" href="https://github.githubassets.com/assets/frameworks-40c1c9d8ff06284fb441108e6559f019.css" />
+  <link crossorigin="anonymous" media="all" integrity="sha512-FIEp4ofjNZOwIuaCNdkF6w53h1fjud2bVTkAOnOQOL3+uw98WLUVoh+QIC6gJ/fWDkIeNNwkc/+gyn8NUJiWZw==" rel="stylesheet" href="https://github.githubassets.com/assets/site-2a37b0558327c9981d25e3ed83ae9eec.css" />
+    <link crossorigin="anonymous" media="all" integrity="sha512-K0JRkCJvOIeaO/A3nL6b85UBOxVBCU9Kxbm+e8glZcfog2ina8C8V1B8z0wpeMwZFCLPzo7A5aMKdQIwQ7XyXQ==" rel="stylesheet" href="https://github.githubassets.com/assets/github-3a8466323664b20900b92b0008129619.css" />
+    
+    
+    
+    
+
+  <meta name="viewport" content="width=device-width">
+  
+  <title>[BTPlayer] New Python Events on Volume Up and Volume Down · gezb/xbmc@3cb6d9e · GitHub</title>
+    <meta name="description" content="Kodi Main Repository - By using this code you agree with our policy and will follow the GPLv2 license as included - gezb/xbmc">
+    <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="GitHub">
+  <link rel="fluid-icon" href="https://github.com/fluidicon.png" title="GitHub">
+  <meta property="fb:app_id" content="1401488693436528">
+
+    
+    <meta property="og:image" content="https://camo.githubusercontent.com/a3cbc29d0653c69769e536c437b6503bc34bf529/68747470733a2f2f302e67726176617461722e636f6d2f6176617461722f64353464386636313063353062643437303565363439626366363032346264363f643d68747470732533412532462532466769746875622e6769746875626173736574732e636f6d253246696d6167657325324667726176617461727325324667726176617461722d757365722d3432302e706e6726723d6726733d323030" /><meta property="og:site_name" content="GitHub" /><meta property="og:type" content="object" /><meta property="og:title" content="[BTPlayer] New Python Events on Volume Up and Volume Down · gezb/xbmc@3cb6d9e" /><meta property="og:url" content="https://github.com/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57" /><meta property="og:updated_time" content="1551133248" />
+
+  <link rel="assets" href="https://github.githubassets.com/">
+  
+  <meta name="pjax-timeout" content="1000">
+  
+  <meta name="request-id" content="D562:1AF6:2EEA01:5E0D18:5C756E48" data-pjax-transient>
+
+
+  
+
+  <meta name="selected-link" value="repo_commits" data-pjax-transient>
+
+      <meta name="google-site-verification" content="KT5gs8h0wvaagLKAVWq8bbeNwnZZK1r1XQysX3xurLU">
+    <meta name="google-site-verification" content="ZzhVyEFwb7w3e0-uOTltm8Jsck2F5StVihD0exw2fsA">
+    <meta name="google-site-verification" content="GXs5KoUUkNCoaAZn7wPN-t01Pywp9M3sEjnt_3_ZWPc">
+
+  <meta name="octolytics-host" content="collector.githubapp.com" /><meta name="octolytics-app-id" content="github" /><meta name="octolytics-event-url" content="https://collector.githubapp.com/github-external/browser_event" /><meta name="octolytics-dimension-request_id" content="D562:1AF6:2EEA01:5E0D18:5C756E48" /><meta name="octolytics-dimension-region_edge" content="iad" /><meta name="octolytics-dimension-region_render" content="iad" />
+<meta name="analytics-location" content="/&lt;user-name&gt;/&lt;repo-name&gt;/commit/show" data-pjax-transient="true" />
+
+
+
+    <meta name="google-analytics" content="UA-3769691-2">
+
+
+<meta class="js-ga-set" name="dimension1" content="Logged Out">
+
+
+
+  
+
+      <meta name="hostname" content="github.com">
+    <meta name="user-login" content="">
+
+      <meta name="expected-hostname" content="github.com">
+    <meta name="js-proxy-site-detection-payload" content="OTUwYTRlZDc0NjFlNTEyYzAyMGY2ZDBkZjM0YzA5OTY4YzgzODNhY2ExMmRlYzhhNDQ0NzU2ZjE3NTJjOGM3MXx7InJlbW90ZV9hZGRyZXNzIjoiODYuMTI4LjI5LjEyMiIsInJlcXVlc3RfaWQiOiJENTYyOjFBRjY6MkVFQTAxOjVFMEQxODo1Qzc1NkU0OCIsInRpbWVzdGFtcCI6MTU1MTE5OTgxNiwiaG9zdCI6ImdpdGh1Yi5jb20ifQ==">
+
+    <meta name="enabled-features" content="UNIVERSE_BANNER,MARKETPLACE_SOCIAL_PROOF,MARKETPLACE_PLAN_RESTRICTION_EDITOR,MARKETPLACE_BROWSING_V2">
+
+  <meta name="html-safe-nonce" content="bef6b59f7f884bb24210cce50c0fb3086a9eb3f2">
+
+  <meta http-equiv="x-pjax-version" content="523196713fc34cc9c6f75bf01b85123d">
+  
+
+      <link href="/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57.diff" rel="alternate" type="text/plain+diff" data-pjax-transient="true" />
+  <link href="/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57.patch" rel="alternate" type="text/plain+patch" data-pjax-transient="true" />
+
+  <meta name="diff-view" content="unified" data-pjax-transient>
+  <link href="https://github.com/gezb/xbmc/commits/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57.atom" rel="alternate" title="Recent Commits to xbmc:3cb6d9e59afb79f67ba84e83f3f398eafb52bc57" type="application/atom+xml">
+
+  <meta name="go-import" content="github.com/gezb/xbmc git https://github.com/gezb/xbmc.git">
+
+  <meta name="octolytics-dimension-user_id" content="1007291" /><meta name="octolytics-dimension-user_login" content="gezb" /><meta name="octolytics-dimension-repository_id" content="46177612" /><meta name="octolytics-dimension-repository_nwo" content="gezb/xbmc" /><meta name="octolytics-dimension-repository_public" content="true" /><meta name="octolytics-dimension-repository_is_fork" content="true" /><meta name="octolytics-dimension-repository_parent_id" content="1217614" /><meta name="octolytics-dimension-repository_parent_nwo" content="xbmc/xbmc" /><meta name="octolytics-dimension-repository_network_root_id" content="1217614" /><meta name="octolytics-dimension-repository_network_root_nwo" content="xbmc/xbmc" /><meta name="octolytics-dimension-repository_explore_github_marketplace_ci_cta_shown" content="false" />
+
+
+
+
+  <meta name="browser-stats-url" content="https://api.github.com/_private/browser/stats">
+
+  <meta name="browser-errors-url" content="https://api.github.com/_private/browser/errors">
+
+  <link rel="mask-icon" href="https://github.githubassets.com/pinned-octocat.svg" color="#000000">
+  <link rel="icon" type="image/x-icon" class="js-site-favicon" href="https://github.githubassets.com/favicon.ico">
+
+<meta name="theme-color" content="#1e2327">
+
+
+
+
+  <link rel="manifest" href="/manifest.json" crossOrigin="use-credentials">
+
+  </head>
+
+  <body class="logged-out env-production">
+    
+
+  <div class="position-relative js-header-wrapper ">
+    <a href="#start-of-content" tabindex="1" class="px-2 py-4 bg-blue text-white show-on-focus js-skip-to-content">Skip to content</a>
+    <div id="js-pjax-loader-bar" class="pjax-loader-bar"><div class="progress"></div></div>
+
+    
+    
+    
+
+
+        
+<header class="Header header-logged-out  position-relative f4 py-3" role="banner">
+  <div class="container-lg d-flex px-3">
+    <div class="d-flex flex-justify-between flex-items-center">
+        <a class="mr-4" href="https://github.com/" aria-label="Homepage" data-ga-click="(Logged out) Header, go to homepage, icon:logo-wordmark">
+          <svg height="32" class="octicon octicon-mark-github text-white" viewBox="0 0 16 16" version="1.1" width="32" aria-hidden="true"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+    </div>
+
+    <div class="HeaderMenu HeaderMenu--logged-out d-flex flex-justify-between flex-items-center flex-auto">
+      <div class="d-none">
+        <button class="btn-link js-details-target" type="button" aria-label="Toggle navigation" aria-expanded="false">
+          <svg height="24" class="octicon octicon-x text-gray" viewBox="0 0 12 16" version="1.1" width="18" aria-hidden="true"><path fill-rule="evenodd" d="M7.48 8l3.75 3.75-1.48 1.48L6 9.48l-3.75 3.75-1.48-1.48L4.52 8 .77 4.25l1.48-1.48L6 6.52l3.75-3.75 1.48 1.48L7.48 8z"/></svg>
+        </button>
+      </div>
+
+        <nav class="mt-0" aria-label="Global">
+          <ul class="d-flex list-style-none">
+              <li class=" mr-3 mr-lg-3 edge-item-fix position-relative flex-wrap flex-justify-between d-flex flex-items-center ">
+                <details class="HeaderMenu-details details-overlay details-reset width-full">
+                  <summary class="HeaderMenu-summary HeaderMenu-link px-0 py-3 border-0 no-wrap  d-inline-block">
+                    Why GitHub?
+                    <svg x="0px" y="0px" viewBox="0 0 14 8" xml:space="preserve" fill="none" class="icon-chevon-down-mktg position-relative">
+                      <path d="M1,1l6.2,6L13,1"></path>
+                    </svg>
+                  </summary>
+                  <div class="dropdown-menu flex-auto rounded-1 bg-white px-0 mt-0  p-4 left-n4 position-absolute">
+                    <a href="/features" class="py-2 lh-condensed-ultra d-block link-gray-dark no-underline h5 Bump-link--hover" data-ga-click="(Logged out) Header, go to Features">Features <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a>
+                    <ul class="list-style-none f5 pb-3">
+                      <li class="edge-item-fix"><a href="/features/code-review/" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Code review">Code review</a></li>
+                      <li class="edge-item-fix"><a href="/features/project-management/" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Project management">Project management</a></li>
+                      <li class="edge-item-fix"><a href="/features/integrations" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Integrations">Integrations</a></li>
+                      <li class="edge-item-fix"><a href="/features/actions" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Actions">Actions</a>
+                      <li class="edge-item-fix"><a href="/features#team-management" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Team management">Team management</a></li>
+                      <li class="edge-item-fix"><a href="/features#social-coding" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Social coding">Social coding</a></li>
+                      <li class="edge-item-fix"><a href="/features#documentation" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Documentation">Documentation</a></li>
+                      <li class="edge-item-fix"><a href="/features#code-hosting" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Code hosting">Code hosting</a></li>
+                    </ul>
+
+                    <ul class="list-style-none mb-0 border-lg-top pt-lg-3">
+                      <li class="edge-item-fix"><a href="/case-studies" class="py-2 lh-condensed-ultra d-block no-underline link-gray-dark no-underline h5 Bump-link--hover" data-ga-click="(Logged out) Header, go to Case studies">Case Studies <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a></li>
+                      <li class="edge-item-fix"><a href="/security" class="py-2 lh-condensed-ultra d-block no-underline link-gray-dark no-underline h5 Bump-link--hover" data-ga-click="(Logged out) Header, go to Security">Security <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a></li>
+                    </ul>
+                  </div>
+                </details>
+              </li>
+              <li class=" mr-3 mr-lg-3">
+                <a href="/enterprise" class="HeaderMenu-link no-underline py-3 d-block d-lg-inline-block" data-ga-click="(Logged out) Header, click, go to Enterprise">Enterprise</a>
+              </li>
+
+              <li class=" mr-3 mr-lg-3 edge-item-fix position-relative flex-wrap flex-justify-between d-flex flex-items-center ">
+                <details class="HeaderMenu-details details-overlay details-reset width-full">
+                  <summary class="HeaderMenu-summary HeaderMenu-link px-0 py-3 border-0 no-wrap  d-inline-block">
+                    Explore
+                    <svg x="0px" y="0px" viewBox="0 0 14 8" xml:space="preserve" fill="none" class="icon-chevon-down-mktg position-relative">
+                      <path d="M1,1l6.2,6L13,1"></path>
+                    </svg>
+                  </summary>
+
+                  <div class="dropdown-menu flex-auto rounded-1 bg-white px-0 pt-2 pb-0 mt-0  p-4 left-n4 position-absolute">
+                    <ul class="list-style-none mb-3">
+                      <li class="edge-item-fix"><a href="/explore" class="py-2 lh-condensed-ultra d-block link-gray-dark no-underline h5 Bump-link--hover" data-ga-click="(Logged out) Header, go to Features">Explore GitHub <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a></li>
+                    </ul>
+
+                    <h4 class="text-gray-light text-normal text-mono f5 mb-2  border-top pt-3">Learn &amp; contribute</h4>
+                    <ul class="list-style-none mb-3">
+                      <li class="edge-item-fix"><a href="/topics" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Topics">Topics</a></li>
+                      <li class="edge-item-fix"><a href="/collections" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Collections">Collections</a></li>
+                      <li class="edge-item-fix"><a href="/trending" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Trending">Trending</a></li>
+                      <li class="edge-item-fix"><a href="https://lab.github.com/" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Learning lab">Learning Lab</a></li>
+                      <li class="edge-item-fix"><a href="https://opensource.guide" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Open source guides">Open source guides</a></li>
+                    </ul>
+
+                    <h4 class="text-gray-light text-normal text-mono f5 mb-2  border-top pt-3">Connect with others</h4>
+                    <ul class="list-style-none mb-0">
+                      <li class="edge-item-fix"><a href="/events" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Events">Events</a></li>
+                      <li class="edge-item-fix"><a href="https://github.community" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Community forum">Community forum</a></li>
+                      <li class="edge-item-fix"><a href="https://education.github.com" class="py-2 pb-0 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to GitHub Education">GitHub Education</a></li>
+                    </ul>
+                  </div>
+                </details>
+              </li>
+
+              <li class=" mr-3 mr-lg-3">
+                <a href="/marketplace" class="HeaderMenu-link no-underline py-3 d-block d-lg-inline-block" data-ga-click="(Logged out) Header, go to Marketplace">Marketplace</a>
+              </li>
+
+              <li class=" mr-3 mr-lg-3 edge-item-fix position-relative flex-wrap flex-justify-between d-flex flex-items-center ">
+                <details class="HeaderMenu-details details-overlay details-reset width-full">
+                  <summary class="HeaderMenu-summary HeaderMenu-link px-0 py-3 border-0 no-wrap  d-inline-block">
+                    Pricing
+                    <svg x="0px" y="0px" viewBox="0 0 14 8" xml:space="preserve" fill="none" class="icon-chevon-down-mktg position-relative">
+                       <path d="M1,1l6.2,6L13,1"></path>
+                    </svg>
+                  </summary>
+
+                  <div class="dropdown-menu flex-auto rounded-1 bg-white px-0 pt-2 pb-4 mt-0  p-4 left-n4 position-absolute">
+                    <a href="/pricing" class="pb-2 lh-condensed-ultra d-block link-gray-dark no-underline h5 Bump-link--hover" data-ga-click="(Logged out) Header, go to Pricing">Plans <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a>
+
+                    <ul class="list-style-none mb-3">
+                      <li class="edge-item-fix"><a href="/pricing#feature-comparison" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Compare features">Compare plans</a></li>
+                      <li class="edge-item-fix"><a href="https://enterprise.github.com/contact" class="py-2 lh-condensed-ultra d-block link-gray no-underline f5" data-ga-click="(Logged out) Header, go to Compare features">Contact Sales</a></li>
+                    </ul>
+
+                    <ul class="list-style-none mb-0  border-top pt-3">
+                      <li class="edge-item-fix"><a href="/nonprofit" class="py-2 lh-condensed-ultra d-block no-underline link-gray-dark no-underline h5 Bump-link--hover" data-ga-click="(Logged out) Header, go to Nonprofits">Nonprofit <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a></li>
+                      <li class="edge-item-fix"><a href="https://education.github.com" class="py-2 pb-0 lh-condensed-ultra d-block no-underline link-gray-dark no-underline h5 Bump-link--hover"  data-ga-click="(Logged out) Header, go to Education">Education <span class="Bump-link-symbol float-right text-normal text-gray-light">&rarr;</span></a></li>
+                    </ul>
+                  </div>
+                </details>
+              </li>
+          </ul>
+        </nav>
+
+      <div class="d-flex flex-items-center px-0 text-center text-left">
+          <div class="d-lg-flex mr-3">
+            <div class="header-search scoped-search site-scoped-search js-site-search position-relative js-jump-to"
+  role="combobox"
+  aria-owns="jump-to-results"
+  aria-label="Search or jump to"
+  aria-haspopup="listbox"
+  aria-expanded="false"
+>
+  <div class="position-relative">
+    <!-- '"` --><!-- </textarea></xmp> --></option></form><form class="js-site-search-form" data-scope-type="Repository" data-scope-id="46177612" data-scoped-search-url="/gezb/xbmc/search" data-unscoped-search-url="/search" action="/gezb/xbmc/search" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="&#x2713;" />
+      <label class="form-control header-search-wrapper header-search-wrapper-jump-to position-relative d-flex flex-justify-between flex-items-center js-chromeless-input-container">
+        <input type="text"
+          class="form-control header-search-input jump-to-field js-jump-to-field js-site-search-focus js-site-search-field is-clearable"
+          data-hotkey="s,/"
+          name="q"
+          value=""
+          placeholder="Search"
+          data-unscoped-placeholder="Search GitHub"
+          data-scoped-placeholder="Search"
+          autocapitalize="off"
+          aria-autocomplete="list"
+          aria-controls="jump-to-results"
+          aria-label="Search"
+          data-jump-to-suggestions-path="/_graphql/GetSuggestedNavigationDestinations#csrf-token=eFOupeRz+n6Zc+etYlRpz7aIVaAXv+hI1MoDPGP60D8mgKyPOCjBcdRnJFyoE9ECfPMuziiLmxq2s0dBdfqxXw=="
+          spellcheck="false"
+          autocomplete="off"
+          >
+          <input type="hidden" class="js-site-search-type-field" name="type" >
+            <img src="https://github.githubassets.com/images/search-key-slash.svg" alt="" class="mr-2 header-search-key-slash">
+
+            <div class="Box position-absolute overflow-hidden d-none jump-to-suggestions js-jump-to-suggestions-container">
+              
+<ul class="d-none js-jump-to-suggestions-template-container">
+  
+
+<li class="d-flex flex-justify-start flex-items-center p-0 f5 navigation-item js-navigation-item js-jump-to-suggestion" role="option">
+  <a tabindex="-1" class="no-underline d-flex flex-auto flex-items-center jump-to-suggestions-path js-jump-to-suggestion-path js-navigation-open p-2" href="">
+    <div class="jump-to-octicon js-jump-to-octicon flex-shrink-0 mr-2 text-center d-none">
+      <svg height="16" width="16" class="octicon octicon-repo flex-shrink-0 js-jump-to-octicon-repo d-none" title="Repository" aria-label="Repository" viewBox="0 0 12 16" version="1.1" role="img"><path fill-rule="evenodd" d="M4 9H3V8h1v1zm0-3H3v1h1V6zm0-2H3v1h1V4zm0-2H3v1h1V2zm8-1v12c0 .55-.45 1-1 1H6v2l-1.5-1.5L3 16v-2H1c-.55 0-1-.45-1-1V1c0-.55.45-1 1-1h10c.55 0 1 .45 1 1zm-1 10H1v2h2v-1h3v1h5v-2zm0-10H2v9h9V1z"/></svg>
+      <svg height="16" width="16" class="octicon octicon-project flex-shrink-0 js-jump-to-octicon-project d-none" title="Project" aria-label="Project" viewBox="0 0 15 16" version="1.1" role="img"><path fill-rule="evenodd" d="M10 12h3V2h-3v10zm-4-2h3V2H6v8zm-4 4h3V2H2v12zm-1 1h13V1H1v14zM14 0H1a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1z"/></svg>
+      <svg height="16" width="16" class="octicon octicon-search flex-shrink-0 js-jump-to-octicon-search d-none" title="Search" aria-label="Search" viewBox="0 0 16 16" version="1.1" role="img"><path fill-rule="evenodd" d="M15.7 13.3l-3.81-3.83A5.93 5.93 0 0 0 13 6c0-3.31-2.69-6-6-6S1 2.69 1 6s2.69 6 6 6c1.3 0 2.48-.41 3.47-1.11l3.83 3.81c.19.2.45.3.7.3.25 0 .52-.09.7-.3a.996.996 0 0 0 0-1.41v.01zM7 10.7c-2.59 0-4.7-2.11-4.7-4.7 0-2.59 2.11-4.7 4.7-4.7 2.59 0 4.7 2.11 4.7 4.7 0 2.59-2.11 4.7-4.7 4.7z"/></svg>
+    </div>
+
+    <img class="avatar mr-2 flex-shrink-0 js-jump-to-suggestion-avatar d-none" alt="" aria-label="Team" src="" width="28" height="28">
+
+    <div class="jump-to-suggestion-name js-jump-to-suggestion-name flex-auto overflow-hidden text-left no-wrap css-truncate css-truncate-target">
+    </div>
+
+    <div class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none js-jump-to-badge-search">
+      <span class="js-jump-to-badge-search-text-default d-none" aria-label="in this repository">
+        In this repository
+      </span>
+      <span class="js-jump-to-badge-search-text-global d-none" aria-label="in all of GitHub">
+        All GitHub
+      </span>
+      <span aria-hidden="true" class="d-inline-block ml-1 v-align-middle">↵</span>
+    </div>
+
+    <div aria-hidden="true" class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none d-on-nav-focus js-jump-to-badge-jump">
+      Jump to
+      <span class="d-inline-block ml-1 v-align-middle">↵</span>
+    </div>
+  </a>
+</li>
+
+</ul>
+
+<ul class="d-none js-jump-to-no-results-template-container">
+  <li class="d-flex flex-justify-center flex-items-center f5 d-none js-jump-to-suggestion p-2">
+    <span class="text-gray">No suggested jump to results</span>
+  </li>
+</ul>
+
+<ul id="jump-to-results" role="listbox" class="p-0 m-0 js-navigation-container jump-to-suggestions-results-container js-jump-to-suggestions-results-container">
+  
+
+<li class="d-flex flex-justify-start flex-items-center p-0 f5 navigation-item js-navigation-item js-jump-to-scoped-search d-none" role="option">
+  <a tabindex="-1" class="no-underline d-flex flex-auto flex-items-center jump-to-suggestions-path js-jump-to-suggestion-path js-navigation-open p-2" href="">
+    <div class="jump-to-octicon js-jump-to-octicon flex-shrink-0 mr-2 text-center d-none">
+      <svg height="16" width="16" class="octicon octicon-repo flex-shrink-0 js-jump-to-octicon-repo d-none" title="Repository" aria-label="Repository" viewBox="0 0 12 16" version="1.1" role="img"><path fill-rule="evenodd" d="M4 9H3V8h1v1zm0-3H3v1h1V6zm0-2H3v1h1V4zm0-2H3v1h1V2zm8-1v12c0 .55-.45 1-1 1H6v2l-1.5-1.5L3 16v-2H1c-.55 0-1-.45-1-1V1c0-.55.45-1 1-1h10c.55 0 1 .45 1 1zm-1 10H1v2h2v-1h3v1h5v-2zm0-10H2v9h9V1z"/></svg>
+      <svg height="16" width="16" class="octicon octicon-project flex-shrink-0 js-jump-to-octicon-project d-none" title="Project" aria-label="Project" viewBox="0 0 15 16" version="1.1" role="img"><path fill-rule="evenodd" d="M10 12h3V2h-3v10zm-4-2h3V2H6v8zm-4 4h3V2H2v12zm-1 1h13V1H1v14zM14 0H1a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1z"/></svg>
+      <svg height="16" width="16" class="octicon octicon-search flex-shrink-0 js-jump-to-octicon-search d-none" title="Search" aria-label="Search" viewBox="0 0 16 16" version="1.1" role="img"><path fill-rule="evenodd" d="M15.7 13.3l-3.81-3.83A5.93 5.93 0 0 0 13 6c0-3.31-2.69-6-6-6S1 2.69 1 6s2.69 6 6 6c1.3 0 2.48-.41 3.47-1.11l3.83 3.81c.19.2.45.3.7.3.25 0 .52-.09.7-.3a.996.996 0 0 0 0-1.41v.01zM7 10.7c-2.59 0-4.7-2.11-4.7-4.7 0-2.59 2.11-4.7 4.7-4.7 2.59 0 4.7 2.11 4.7 4.7 0 2.59-2.11 4.7-4.7 4.7z"/></svg>
+    </div>
+
+    <img class="avatar mr-2 flex-shrink-0 js-jump-to-suggestion-avatar d-none" alt="" aria-label="Team" src="" width="28" height="28">
+
+    <div class="jump-to-suggestion-name js-jump-to-suggestion-name flex-auto overflow-hidden text-left no-wrap css-truncate css-truncate-target">
+    </div>
+
+    <div class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none js-jump-to-badge-search">
+      <span class="js-jump-to-badge-search-text-default d-none" aria-label="in this repository">
+        In this repository
+      </span>
+      <span class="js-jump-to-badge-search-text-global d-none" aria-label="in all of GitHub">
+        All GitHub
+      </span>
+      <span aria-hidden="true" class="d-inline-block ml-1 v-align-middle">↵</span>
+    </div>
+
+    <div aria-hidden="true" class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none d-on-nav-focus js-jump-to-badge-jump">
+      Jump to
+      <span class="d-inline-block ml-1 v-align-middle">↵</span>
+    </div>
+  </a>
+</li>
+
+  
+
+<li class="d-flex flex-justify-start flex-items-center p-0 f5 navigation-item js-navigation-item js-jump-to-global-search d-none" role="option">
+  <a tabindex="-1" class="no-underline d-flex flex-auto flex-items-center jump-to-suggestions-path js-jump-to-suggestion-path js-navigation-open p-2" href="">
+    <div class="jump-to-octicon js-jump-to-octicon flex-shrink-0 mr-2 text-center d-none">
+      <svg height="16" width="16" class="octicon octicon-repo flex-shrink-0 js-jump-to-octicon-repo d-none" title="Repository" aria-label="Repository" viewBox="0 0 12 16" version="1.1" role="img"><path fill-rule="evenodd" d="M4 9H3V8h1v1zm0-3H3v1h1V6zm0-2H3v1h1V4zm0-2H3v1h1V2zm8-1v12c0 .55-.45 1-1 1H6v2l-1.5-1.5L3 16v-2H1c-.55 0-1-.45-1-1V1c0-.55.45-1 1-1h10c.55 0 1 .45 1 1zm-1 10H1v2h2v-1h3v1h5v-2zm0-10H2v9h9V1z"/></svg>
+      <svg height="16" width="16" class="octicon octicon-project flex-shrink-0 js-jump-to-octicon-project d-none" title="Project" aria-label="Project" viewBox="0 0 15 16" version="1.1" role="img"><path fill-rule="evenodd" d="M10 12h3V2h-3v10zm-4-2h3V2H6v8zm-4 4h3V2H2v12zm-1 1h13V1H1v14zM14 0H1a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1z"/></svg>
+      <svg height="16" width="16" class="octicon octicon-search flex-shrink-0 js-jump-to-octicon-search d-none" title="Search" aria-label="Search" viewBox="0 0 16 16" version="1.1" role="img"><path fill-rule="evenodd" d="M15.7 13.3l-3.81-3.83A5.93 5.93 0 0 0 13 6c0-3.31-2.69-6-6-6S1 2.69 1 6s2.69 6 6 6c1.3 0 2.48-.41 3.47-1.11l3.83 3.81c.19.2.45.3.7.3.25 0 .52-.09.7-.3a.996.996 0 0 0 0-1.41v.01zM7 10.7c-2.59 0-4.7-2.11-4.7-4.7 0-2.59 2.11-4.7 4.7-4.7 2.59 0 4.7 2.11 4.7 4.7 0 2.59-2.11 4.7-4.7 4.7z"/></svg>
+    </div>
+
+    <img class="avatar mr-2 flex-shrink-0 js-jump-to-suggestion-avatar d-none" alt="" aria-label="Team" src="" width="28" height="28">
+
+    <div class="jump-to-suggestion-name js-jump-to-suggestion-name flex-auto overflow-hidden text-left no-wrap css-truncate css-truncate-target">
+    </div>
+
+    <div class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none js-jump-to-badge-search">
+      <span class="js-jump-to-badge-search-text-default d-none" aria-label="in this repository">
+        In this repository
+      </span>
+      <span class="js-jump-to-badge-search-text-global d-none" aria-label="in all of GitHub">
+        All GitHub
+      </span>
+      <span aria-hidden="true" class="d-inline-block ml-1 v-align-middle">↵</span>
+    </div>
+
+    <div aria-hidden="true" class="border rounded-1 flex-shrink-0 bg-gray px-1 text-gray-light ml-1 f6 d-none d-on-nav-focus js-jump-to-badge-jump">
+      Jump to
+      <span class="d-inline-block ml-1 v-align-middle">↵</span>
+    </div>
+  </a>
+</li>
+
+
+</ul>
+
+            </div>
+      </label>
+</form>  </div>
+</div>
+
+          </div>
+
+        <a class="HeaderMenu-link no-underline mr-3" href="/login?return_to=%2Fgezb%2Fxbmc%2Fcommit%2F3cb6d9e59afb79f67ba84e83f3f398eafb52bc57" data-ga-click="(Logged out) Header, clicked Sign in, text:sign-in">Sign&nbsp;in</a>
+          <a class="HeaderMenu-link d-inline-block no-underline border border-gray-dark rounded-1 px-2 py-1" href="/join" data-ga-click="(Logged out) Header, clicked Sign up, text:sign-up">Sign&nbsp;up</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+  </div>
+
+  <div id="start-of-content" class="show-on-focus"></div>
+
+    <div id="js-flash-container">
+
+</div>
+
+
+
+  <div role="main" class="application-main " data-commit-hovercards-enabled>
+        <div itemscope itemtype="http://schema.org/SoftwareSourceCode" class="">
+    <div id="js-repo-pjax-container" data-pjax-container >
+      
+
+  
+
+
+
+
+
+  <div class="pagehead repohead instapaper_ignore readability-menu experiment-repo-nav  ">
+    <div class="repohead-details-container clearfix container">
+
+      <ul class="pagehead-actions">
+
+  <li>
+      <a href="/login?return_to=%2Fgezb%2Fxbmc"
+    class="btn btn-sm btn-with-count tooltipped tooltipped-s"
+    aria-label="You must be signed in to watch a repository" rel="nofollow">
+    <svg class="octicon octicon-eye v-align-text-bottom" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8.06 2C3 2 0 8 0 8s3 6 8.06 6C13 14 16 8 16 8s-3-6-7.94-6zM8 12c-2.2 0-4-1.78-4-4 0-2.2 1.8-4 4-4 2.22 0 4 1.8 4 4 0 2.22-1.78 4-4 4zm2-4c0 1.11-.89 2-2 2-1.11 0-2-.89-2-2 0-1.11.89-2 2-2 1.11 0 2 .89 2 2z"/></svg>
+    Watch
+  </a>
+  <a class="social-count" href="/gezb/xbmc/watchers"
+     aria-label="1 user is watching this repository">
+    1
+  </a>
+
+  </li>
+
+  <li>
+        <a href="/login?return_to=%2Fgezb%2Fxbmc"
+      class="btn btn-sm btn-with-count tooltipped tooltipped-s"
+      aria-label="You must be signed in to star a repository" rel="nofollow">
+      <svg class="octicon octicon-star v-align-text-bottom" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M14 6l-4.9-.64L7 1 4.9 5.36 0 6l3.6 3.26L2.67 14 7 11.67 11.33 14l-.93-4.74L14 6z"/></svg>
+      Star
+    </a>
+
+    <a class="social-count js-social-count" href="/gezb/xbmc/stargazers"
+      aria-label="0 users starred this repository">
+      0
+    </a>
+
+  </li>
+
+  <li>
+      <a href="/login?return_to=%2Fgezb%2Fxbmc"
+        class="btn btn-sm btn-with-count tooltipped tooltipped-s"
+        aria-label="You must be signed in to fork a repository" rel="nofollow">
+        <svg class="octicon octicon-repo-forked v-align-text-bottom" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1a1.993 1.993 0 0 0-1 3.72V6L5 8 3 6V4.72A1.993 1.993 0 0 0 2 1a1.993 1.993 0 0 0-1 3.72V6.5l3 3v1.78A1.993 1.993 0 0 0 5 15a1.993 1.993 0 0 0 1-3.72V9.5l3-3V4.72A1.993 1.993 0 0 0 8 1zM2 4.2C1.34 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm3 10c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm3-10c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2z"/></svg>
+        Fork
+      </a>
+
+    <a href="/gezb/xbmc/network/members" class="social-count"
+       aria-label="4917 users forked this repository">
+      4,917
+    </a>
+  </li>
+</ul>
+
+      <h1 class="public ">
+  <svg class="octicon octicon-repo-forked" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8 1a1.993 1.993 0 0 0-1 3.72V6L5 8 3 6V4.72A1.993 1.993 0 0 0 2 1a1.993 1.993 0 0 0-1 3.72V6.5l3 3v1.78A1.993 1.993 0 0 0 5 15a1.993 1.993 0 0 0 1-3.72V9.5l3-3V4.72A1.993 1.993 0 0 0 8 1zM2 4.2C1.34 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm3 10c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm3-10c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2z"/></svg>
+  <span class="author" itemprop="author"><a class="url fn" rel="author" data-hovercard-type="user" data-hovercard-url="/hovercards?user_id=1007291" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="/gezb">gezb</a></span><!--
+--><span class="path-divider">/</span><!--
+--><strong itemprop="name"><a data-pjax="#js-repo-pjax-container" href="/gezb/xbmc">xbmc</a></strong>
+
+    <span class="fork-flag">
+      <span class="text">forked from <a href="/xbmc/xbmc">xbmc/xbmc</a></span>
+    </span>
+</h1>
+
+    </div>
+    
+<nav class="reponav js-repo-nav js-sidenav-container-pjax container"
+     itemscope
+     itemtype="http://schema.org/BreadcrumbList"
+    aria-label="Repository"
+     data-pjax="#js-repo-pjax-container">
+
+  <span itemscope itemtype="http://schema.org/ListItem" itemprop="itemListElement">
+    <a class="js-selected-navigation-item selected reponav-item" itemprop="url" data-hotkey="g c" aria-current="page" data-selected-links="repo_source repo_downloads repo_commits repo_releases repo_tags repo_branches repo_packages /gezb/xbmc" href="/gezb/xbmc">
+      <svg class="octicon octicon-code" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M9.5 3L8 4.5 11.5 8 8 11.5 9.5 13 14 8 9.5 3zm-5 0L0 8l4.5 5L6 11.5 2.5 8 6 4.5 4.5 3z"/></svg>
+      <span itemprop="name">Code</span>
+      <meta itemprop="position" content="1">
+</a>  </span>
+
+
+  <span itemscope itemtype="http://schema.org/ListItem" itemprop="itemListElement">
+    <a data-hotkey="g p" itemprop="url" class="js-selected-navigation-item reponav-item" data-selected-links="repo_pulls checks /gezb/xbmc/pulls" href="/gezb/xbmc/pulls">
+      <svg class="octicon octicon-git-pull-request" viewBox="0 0 12 16" version="1.1" width="12" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M11 11.28V5c-.03-.78-.34-1.47-.94-2.06C9.46 2.35 8.78 2.03 8 2H7V0L4 3l3 3V4h1c.27.02.48.11.69.31.21.2.3.42.31.69v6.28A1.993 1.993 0 0 0 10 15a1.993 1.993 0 0 0 1-3.72zm-1 2.92c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zM4 3c0-1.11-.89-2-2-2a1.993 1.993 0 0 0-1 3.72v6.56A1.993 1.993 0 0 0 2 15a1.993 1.993 0 0 0 1-3.72V4.72c.59-.34 1-.98 1-1.72zm-.8 10c0 .66-.55 1.2-1.2 1.2-.65 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2zM2 4.2C1.34 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2z"/></svg>
+      <span itemprop="name">Pull requests</span>
+      <span class="Counter">0</span>
+      <meta itemprop="position" content="3">
+</a>  </span>
+
+
+    <a data-hotkey="g b" class="js-selected-navigation-item reponav-item" data-selected-links="repo_projects new_repo_project repo_project /gezb/xbmc/projects" href="/gezb/xbmc/projects">
+      <svg class="octicon octicon-project" viewBox="0 0 15 16" version="1.1" width="15" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 12h3V2h-3v10zm-4-2h3V2H6v8zm-4 4h3V2H2v12zm-1 1h13V1H1v14zM14 0H1a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1z"/></svg>
+      Projects
+      <span class="Counter" >0</span>
+</a>
+
+
+    <a class="js-selected-navigation-item reponav-item" data-selected-links="repo_graphs repo_contributors dependency_graph pulse alerts security people /gezb/xbmc/pulse" href="/gezb/xbmc/pulse">
+      <svg class="octicon octicon-graph" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M16 14v1H0V0h1v14h15zM5 13H3V8h2v5zm4 0H7V3h2v10zm4 0h-2V6h2v7z"/></svg>
+      Insights
+</a>
+
+</nav>
+
+
+  </div>
+<div class="container new-discussion-timeline experiment-repo-nav  ">
+  <div class="repository-content ">
+
+    
+    
+  <a href="/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57" class="d-none js-permalink-shortcut" data-hotkey="y">Permalink</a>
+
+
+  
+
+  
+<div class="commit full-commit px-2 pt-2 ">
+  <a href="/gezb/xbmc/tree/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57" class="btn btn-outline float-right" title="Browse the repository at this point in the history" rel="nofollow">Browse files</a>
+
+    <p class="commit-title">
+      [BTPlayer] New Python Events on Volume Up and Volume Down
+    </p>
+
+
+  <div class="commit-branches">
+  <include-fragment src="/gezb/xbmc/branch_commits/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57">
+    <svg class="octicon octicon-git-branch" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 5c0-1.11-.89-2-2-2a1.993 1.993 0 0 0-1 3.72v.3c-.02.52-.23.98-.63 1.38-.4.4-.86.61-1.38.63-.83.02-1.48.16-2 .45V4.72a1.993 1.993 0 0 0-1-3.72C.88 1 0 1.89 0 3a2 2 0 0 0 1 1.72v6.56c-.59.35-1 .99-1 1.72 0 1.11.89 2 2 2 1.11 0 2-.89 2-2 0-.53-.2-1-.53-1.36.09-.06.48-.41.59-.47.25-.11.56-.17.94-.17 1.05-.05 1.95-.45 2.75-1.25S8.95 7.77 9 6.73h-.02C9.59 6.37 10 5.73 10 5zM2 1.8c.66 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2C1.35 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2zm0 12.41c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm6-8c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2z"/></svg>
+    <ul class="branches-list">
+      <li class="loading">Loading branch information<span class="animated-ellipsis-container"><span class="animated-ellipsis">...</span></span></li>
+    </ul>
+</include-fragment></div>
+
+
+  <div class="commit-meta p-2 d-flex flex-wrap">
+    
+<div class="AvatarStack flex-self-start ">
+  <div class="AvatarStack-body" aria-label="Gerald Barker">
+        <img src="https://camo.githubusercontent.com/03ac53cbd8db65d5fd04c539d412dec8b1f13e38/68747470733a2f2f302e67726176617461722e636f6d2f6176617461722f64353464386636313063353062643437303565363439626366363032346264363f643d68747470732533412532462532466769746875622e6769746875626173736574732e636f6d253246696d6167657325324667726176617461727325324667726176617461722d757365722d3432302e706e6726723d6726733d3430" width="20" height="20" class="avatar" alt="Gerald Barker">
+  </div>
+</div>
+
+    <div class="flex-self-start no-wrap">
+      
+        <span class="commit-author user-mention">Gerald Barker</span>
+
+
+  committed
+  <relative-time datetime="2019-02-25T22:20:48Z">Feb 25, 2019</relative-time>
+
+      
+
+    </div>
+    <div class="flex-auto no-wrap text-right">
+      <span class="sha-block" data-pjax>
+        1 parent
+          
+          <a class="sha" data-hotkey="p" href="/gezb/xbmc/commit/8862458a874094b23c75bc5cd106d46aeac3d77b">8862458</a>
+      </span>
+      <span class="sha-block">commit <span class="sha user-select-contain">3cb6d9e59afb79f67ba84e83f3f398eafb52bc57</span></span>
+    </div>
+  </div>
+</div>
+
+
+
+
+      <a name="diff-stat"></a>
+      <div id="toc" class="details-collapse table-of-contents js-details-container Details">
+  <div class="BtnGroup float-right" data-ga-load="Diff, view, Viewed Unified Diff">
+  <a class="btn btn-sm BtnGroup-item selected"
+    aria-current="true"
+    href="https://github.com/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57?diff=unified">
+    Unified
+  </a>
+  <a class="btn btn-sm BtnGroup-item"
+    
+    href="https://github.com/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57?diff=split">
+    Split
+  </a>
+</div>
+
+
+  <div class="toc-diff-stats">
+    <svg class="octicon octicon-diff" viewBox="0 0 13 16" version="1.1" width="13" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M6 7h2v1H6v2H5V8H3V7h2V5h1v2zm-3 6h5v-1H3v1zM7.5 2L11 5.5V15c0 .55-.45 1-1 1H1c-.55 0-1-.45-1-1V3c0-.55.45-1 1-1h6.5zM10 6L7 3H1v12h9V6zM8.5 0H3v1h5l4 4v8h1V4.5L8.5 0z"/></svg>
+    Showing
+    <button type="button" class="btn-link js-details-target" aria-expanded="false">
+      7 changed files
+    </button>
+    with
+    <strong>104 additions</strong>
+    and <strong>0 deletions</strong>.
+  </div>
+
+  <ol class="content collapse js-transitionable">
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +24
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-63246197ac0f0ac89358c1155ad21d5b" class="tooltipped tooltipped-s" aria-label="24 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-63246197ac0f0ac89358c1155ad21d5b">xbmc/Application.cpp</a>
+    </li>
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +2
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-9e8cb5c05f914d45be73efd6dc7d3d91" class="tooltipped tooltipped-s" aria-label="2 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-9e8cb5c05f914d45be73efd6dc7d3d91">xbmc/Application.h</a>
+    </li>
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +2
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-f6314822cfb482a78dd80bcc8ae43250" class="tooltipped tooltipped-s" aria-label="2 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-f6314822cfb482a78dd80bcc8ae43250">xbmc/cores/IPlayerCallback.h</a>
+    </li>
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +21
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-ceaefd10259f45dabe928140d51c392c" class="tooltipped tooltipped-s" aria-label="21 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-ceaefd10259f45dabe928140d51c392c">xbmc/interfaces/legacy/Player.cpp</a>
+    </li>
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +31
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47" class="tooltipped tooltipped-s" aria-label="31 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47">xbmc/interfaces/legacy/Player.h</a>
+    </li>
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +22
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-4dc81f8c9546344eef0a4692bb46e361" class="tooltipped tooltipped-s" aria-label="22 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-4dc81f8c9546344eef0a4692bb46e361">xbmc/interfaces/python/XBPython.cpp</a>
+    </li>
+    <li>
+      <span class="diffstat float-right">
+          <span class="text-green">
+            +2
+          </span>
+          <span class="text-red">
+            −0
+          </span>
+          <a href="#diff-b8fda08e23c766e4af9e0b117473f2b9" class="tooltipped tooltipped-s" aria-label="2 lines changed">
+            <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span>
+          </a>
+      </span>
+      <svg title="modified" class="octicon octicon-diff-modified" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M13 1H1c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1zm0 13H1V2h12v12zM4 8c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3-3-1.34-3-3z"/></svg>
+      <a href="#diff-b8fda08e23c766e4af9e0b117473f2b9">xbmc/interfaces/python/XBPython.h</a>
+    </li>
+  </ol>
+</div>
+
+    <div id="files" class="diff-view ">
+
+  <div class="js-diff-progressive-container">
+    
+<a name="diff-63246197ac0f0ac89358c1155ad21d5b"></a>
+<div id="diff-0"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/Application.cpp"
+    data-short-path="6324619"
+    data-anchor="diff-63246197ac0f0ac89358c1155ad21d5b"
+    data-file-type=".cpp"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/Application.cpp"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="24 additions &amp; 0 deletions">24 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span></span>
+
+      <a href="#diff-63246197ac0f0ac89358c1155ad21d5b" class="link-gray-dark"
+         title="xbmc/Application.cpp">xbmc/Application.cpp</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-63246197ac0f0ac89358c1155ad21d5b">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-63246197ac0f0ac89358c1155ad21d5b"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/a13bb665f4d823d43d8b036f30e954e7d447a655?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=1958&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2FApplication.cpp&amp;right=1958&amp;right_hunk_size=17"
+              data-left-range="1-1957" data-right-range="1-1957">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -1958,6 +1958,17 @@ bool CApplication::OnAction(const CAction &amp;action)</td>
+  </tr>
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL1958" data-line-number="1958"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1958" data-line-number="1958"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-c"><span class="pl-c">//</span> Check for global volume control</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL1959" data-line-number="1959"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1959" data-line-number="1959"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">if</span> ((action.<span class="pl-c1">GetAmount</span>() &amp;&amp; (action.<span class="pl-c1">GetID</span>() == ACTION_VOLUME_UP || action.<span class="pl-c1">GetID</span>() == ACTION_VOLUME_DOWN)) || action.<span class="pl-c1">GetID</span>() == ACTION_VOLUME_SET)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL1960" data-line-number="1960"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1960" data-line-number="1960"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1961" data-line-number="1961"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1962" data-line-number="1962"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-c"><span class="pl-c">//</span> fire python events</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1963" data-line-number="1963"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">if</span> (action.<span class="pl-c1">GetID</span>() == ACTION_VOLUME_UP)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1964" data-line-number="1964"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1965" data-line-number="1965"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>	    <span class="pl-c1">OnVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1966" data-line-number="1966"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1967" data-line-number="1967"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">if</span> (action.<span class="pl-c1">GetID</span>() == ACTION_VOLUME_DOWN)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1968" data-line-number="1968"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1969" data-line-number="1969"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>	    <span class="pl-c1">OnVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1970" data-line-number="1970"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1971" data-line-number="1971"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL1961" data-line-number="1961"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1972" data-line-number="1972"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    <span class="pl-k">if</span> (!m_appPlayer.<span class="pl-c1">IsPassthrough</span>())</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL1962" data-line-number="1962"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1973" data-line-number="1973"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL1963" data-line-number="1963"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR1974" data-line-number="1974"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      <span class="pl-k">if</span> (m_muted)</span></td>
+</tr>
+
+
+
+      <tr class="js-expandable-line" data-position="18">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-63246197ac0f0ac89358c1155ad21d5b"
+                class="js-expand directional-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/a13bb665f4d823d43d8b036f30e954e7d447a655?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=1963&amp;last_right=1974&amp;left=3316&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2FApplication.cpp&amp;right=3327&amp;right_hunk_size=19"
+                data-left-range="1964-2638" data-right-range="1975-2649">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+          <a href="#diff-63246197ac0f0ac89358c1155ad21d5b"
+              class="js-expand directional-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/a13bb665f4d823d43d8b036f30e954e7d447a655?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=1963&amp;last_right=1974&amp;left=3316&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2FApplication.cpp&amp;right=3327&amp;right_hunk_size=19"
+              data-left-range="2639-3315" data-right-range="2650-3326">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -3316,6 +3327,19 @@ void CApplication::OnNextItem()</td>
+  </tr>
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL3316" data-line-number="3316"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3327" data-line-number="3327"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL3317" data-line-number="3317"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3328" data-line-number="3328"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>}</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL3318" data-line-number="3318"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3329" data-line-number="3329"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3330" data-line-number="3330"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><span class="pl-k">void</span> <span class="pl-en">CApplication::OnVolumeUp</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3331" data-line-number="3331"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>{</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3332" data-line-number="3332"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">ifdef</span> HAS_PYTHON</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3333" data-line-number="3333"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  g_pythonParser.<span class="pl-c1">OnVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3334" data-line-number="3334"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span>  </span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3335" data-line-number="3335"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>}</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3336" data-line-number="3336"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3337" data-line-number="3337"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><span class="pl-k">void</span> <span class="pl-en">CApplication::OnVolumeDown</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3338" data-line-number="3338"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>{</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3339" data-line-number="3339"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">ifdef</span> HAS_PYTHON</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3340" data-line-number="3340"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  g_pythonParser.<span class="pl-c1">OnVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3341" data-line-number="3341"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3342" data-line-number="3342"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>}</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL3319" data-line-number="3319"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3343" data-line-number="3343"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL3320" data-line-number="3320"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3344" data-line-number="3344"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><span class="pl-k">bool</span> <span class="pl-en">CApplication::IsPlayingFullScreenVideo</span>() <span class="pl-k">const</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bL3321" data-line-number="3321"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-63246197ac0f0ac89358c1155ad21d5bR3345" data-line-number="3345"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>{</span></td>
+</tr>
+
+
+
+  <tr class="js-expandable-line" data-position="">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-63246197ac0f0ac89358c1155ad21d5b"
+                class="js-expand directional-expander single-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/a13bb665f4d823d43d8b036f30e954e7d447a655?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=3321&amp;last_right=3345&amp;left=4880&amp;left_hunk_size=&amp;mode=100644&amp;path=xbmc%2FApplication.cpp&amp;right=4880&amp;right_hunk_size="
+                data-left-range="3322-4879" data-right-range="3346-4879">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2"></td>
+  </tr>
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+    
+<a name="diff-9e8cb5c05f914d45be73efd6dc7d3d91"></a>
+<div id="diff-1"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/Application.h"
+    data-short-path="9e8cb5c"
+    data-anchor="diff-9e8cb5c05f914d45be73efd6dc7d3d91"
+    data-file-type=".h"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/Application.h"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="2 additions &amp; 0 deletions">2 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span></span>
+
+      <a href="#diff-9e8cb5c05f914d45be73efd6dc7d3d91" class="link-gray-dark"
+         title="xbmc/Application.h">xbmc/Application.h</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-9e8cb5c05f914d45be73efd6dc7d3d91">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-9e8cb5c05f914d45be73efd6dc7d3d91"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/82b3e683f6ede1c43c7b3b4e373deedc7d17b07c?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=181&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2FApplication.h&amp;right=181&amp;right_hunk_size=8"
+              data-left-range="1-180" data-right-range="1-180">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -181,6 +181,8 @@ friend class CAppInboundProtocol;</td>
+  </tr>
+
+    <tr>
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91L181" data-line-number="181"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R181" data-line-number="181"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnPlayBackSpeedChanged</span>(<span class="pl-k">int</span> iSpeed) <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91L182" data-line-number="182"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R182" data-line-number="182"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnPreviousItem</span>() <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91L183" data-line-number="183"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R183" data-line-number="183"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnNextItem</span>() <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R184" data-line-number="184"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnVolumeUp</span>() <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R185" data-line-number="185"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnVolumeDown</span>() <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91L184" data-line-number="184"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R186" data-line-number="186"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnAVChange</span>() <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91L185" data-line-number="185"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R187" data-line-number="187"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnAVStarted</span>(<span class="pl-k">const</span> CFileItem &amp;file) <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91L186" data-line-number="186"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-9e8cb5c05f914d45be73efd6dc7d3d91R188" data-line-number="188"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">RequestVideoSettings</span>(<span class="pl-k">const</span> CFileItem &amp;fileItem) <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+  <tr class="js-expandable-line" data-position="">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-9e8cb5c05f914d45be73efd6dc7d3d91"
+                class="js-expand directional-expander single-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/82b3e683f6ede1c43c7b3b4e373deedc7d17b07c?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=186&amp;last_right=188&amp;left=490&amp;left_hunk_size=&amp;mode=100644&amp;path=xbmc%2FApplication.h&amp;right=490&amp;right_hunk_size="
+                data-left-range="187-489" data-right-range="189-489">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2"></td>
+  </tr>
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+    
+<a name="diff-f6314822cfb482a78dd80bcc8ae43250"></a>
+<div id="diff-2"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/cores/IPlayerCallback.h"
+    data-short-path="f631482"
+    data-anchor="diff-f6314822cfb482a78dd80bcc8ae43250"
+    data-file-type=".h"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/cores/IPlayerCallback.h"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="2 additions &amp; 0 deletions">2 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span></span>
+
+      <a href="#diff-f6314822cfb482a78dd80bcc8ae43250" class="link-gray-dark"
+         title="xbmc/cores/IPlayerCallback.h">xbmc/cores/IPlayerCallback.h</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-f6314822cfb482a78dd80bcc8ae43250">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-f6314822cfb482a78dd80bcc8ae43250"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/023fa071204f32dccc44ccffd23bd20fefb7f44b?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=35&amp;left_hunk_size=4&amp;mode=100644&amp;path=xbmc%2Fcores%2FIPlayerCallback.h&amp;right=35&amp;right_hunk_size=6"
+              data-left-range="1-34" data-right-range="1-34">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -35,4 +35,6 @@ class IPlayerCallback</td>
+  </tr>
+
+    <tr>
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250L35" data-line-number="35"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250R35" data-line-number="35"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">StoreVideoSettings</span>(<span class="pl-k">const</span> CFileItem &amp;fileItem, CVideoSettings vs) {};</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250L36" data-line-number="36"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250R36" data-line-number="36"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">OnPreviousItem</span>() {};</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250L37" data-line-number="37"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250R37" data-line-number="37"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">OnNextItem</span>() {};</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250R38" data-line-number="38"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">OnVolumeUp</span>() {};</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250R39" data-line-number="39"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">OnVolumeDown</span>() {};</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250L38" data-line-number="38"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-f6314822cfb482a78dd80bcc8ae43250R40" data-line-number="40"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>};</span></td>
+</tr>
+
+
+
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+    
+<a name="diff-ceaefd10259f45dabe928140d51c392c"></a>
+<div id="diff-3"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/interfaces/legacy/Player.cpp"
+    data-short-path="ceaefd1"
+    data-anchor="diff-ceaefd10259f45dabe928140d51c392c"
+    data-file-type=".cpp"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/interfaces/legacy/Player.cpp"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="21 additions &amp; 0 deletions">21 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span></span>
+
+      <a href="#diff-ceaefd10259f45dabe928140d51c392c" class="link-gray-dark"
+         title="xbmc/interfaces/legacy/Player.cpp">xbmc/interfaces/legacy/Player.cpp</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-ceaefd10259f45dabe928140d51c392c">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-ceaefd10259f45dabe928140d51c392c"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/9a9534f9ce2a2c90243333c6c94a54dafaa9f654?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=197&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.cpp&amp;right=197&amp;right_hunk_size=18"
+              data-left-range="1-196" data-right-range="1-196">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -197,6 +197,18 @@ namespace XBMCAddon</td>
+  </tr>
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL197" data-line-number="197"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR197" data-line-number="197"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      <span class="pl-c1">invokeCallback</span>(<span class="pl-k">new</span> CallbackFunction&lt;Player&gt;(<span class="pl-c1">this</span>,&amp;Player::onNextItem));</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL198" data-line-number="198"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR198" data-line-number="198"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL199" data-line-number="199"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR199" data-line-number="199"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR200" data-line-number="200"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">void</span> <span class="pl-en">Player::OnVolumeUp</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR201" data-line-number="201"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR202" data-line-number="202"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR203" data-line-number="203"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c1">invokeCallback</span>(<span class="pl-k">new</span> CallbackFunction&lt;Player&gt;(<span class="pl-c1">this</span>,&amp;Player::onVolumeUp));</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR204" data-line-number="204"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR205" data-line-number="205"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR206" data-line-number="206"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">void</span> <span class="pl-en">Player::OnVolumeDown</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR207" data-line-number="207"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR208" data-line-number="208"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR209" data-line-number="209"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c1">invokeCallback</span>(<span class="pl-k">new</span> CallbackFunction&lt;Player&gt;(<span class="pl-c1">this</span>,&amp;Player::onVolumeDown));</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR210" data-line-number="210"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR211" data-line-number="211"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL200" data-line-number="200"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR212" data-line-number="212"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    <span class="pl-k">void</span> <span class="pl-en">Player::OnAVStarted</span>(<span class="pl-k">const</span> CFileItem &amp;file)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL201" data-line-number="201"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR213" data-line-number="213"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL202" data-line-number="202"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR214" data-line-number="214"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span> We only have fileItem due to us having to</span></span></td>
+</tr>
+
+
+
+      <tr class="js-expandable-line" data-position="19">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-ceaefd10259f45dabe928140d51c392c"
+                class="js-expand directional-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/9a9534f9ce2a2c90243333c6c94a54dafaa9f654?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=202&amp;last_right=214&amp;left=336&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.cpp&amp;right=348&amp;right_hunk_size=15"
+                data-left-range="203-268" data-right-range="215-280">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+          <a href="#diff-ceaefd10259f45dabe928140d51c392c"
+              class="js-expand directional-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/9a9534f9ce2a2c90243333c6c94a54dafaa9f654?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=202&amp;last_right=214&amp;left=336&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.cpp&amp;right=348&amp;right_hunk_size=15"
+              data-left-range="269-335" data-right-range="281-347">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -336,6 +348,15 @@ namespace XBMCAddon</td>
+  </tr>
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL336" data-line-number="336"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR348" data-line-number="348"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL337" data-line-number="337"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR349" data-line-number="349"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL338" data-line-number="338"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR350" data-line-number="350"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR351" data-line-number="351"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">void</span> <span class="pl-en">Player::onVolumeUp</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR352" data-line-number="352"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR353" data-line-number="353"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR354" data-line-number="354"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR355" data-line-number="355"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR356" data-line-number="356"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">void</span> <span class="pl-en">Player::onVolumeDown</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR357" data-line-number="357"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR358" data-line-number="358"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR359" data-line-number="359"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL339" data-line-number="339"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR360" data-line-number="360"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL340" data-line-number="340"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR361" data-line-number="361"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    <span class="pl-k">bool</span> <span class="pl-en">Player::isPlaying</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-ceaefd10259f45dabe928140d51c392cL341" data-line-number="341"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-ceaefd10259f45dabe928140d51c392cR362" data-line-number="362"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    {</span></td>
+</tr>
+
+
+
+  <tr class="js-expandable-line" data-position="">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-ceaefd10259f45dabe928140d51c392c"
+                class="js-expand directional-expander single-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/9a9534f9ce2a2c90243333c6c94a54dafaa9f654?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=341&amp;last_right=362&amp;left=604&amp;left_hunk_size=&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.cpp&amp;right=604&amp;right_hunk_size="
+                data-left-range="342-603" data-right-range="363-603">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2"></td>
+  </tr>
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+    
+<a name="diff-c403255a1a8de83c38dd7edf4f8d7a47"></a>
+<div id="diff-4"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/interfaces/legacy/Player.h"
+    data-short-path="c403255"
+    data-anchor="diff-c403255a1a8de83c38dd7edf4f8d7a47"
+    data-file-type=".h"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/interfaces/legacy/Player.h"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="31 additions &amp; 0 deletions">31 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span></span>
+
+      <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47" class="link-gray-dark"
+         title="xbmc/interfaces/legacy/Player.h">xbmc/interfaces/legacy/Player.h</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-c403255a1a8de83c38dd7edf4f8d7a47">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/651695a2033c20d8c8ca8542d6fbdf2ecfef98cc?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=172&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.h&amp;right=172&amp;right_hunk_size=35"
+              data-left-range="1-171" data-right-range="1-171">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -172,6 +172,35 @@ namespace XBMCAddon</td>
+  </tr>
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L172" data-line-number="172"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R172" data-line-number="172"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      <span class="pl-k">void</span> <span class="pl-en">playprevious</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L173" data-line-number="173"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R173" data-line-number="173"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L174" data-line-number="174"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R174" data-line-number="174"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R175" data-line-number="175"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">ifdef</span> DOXYGEN_SHOULD_USE_THIS</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R176" data-line-number="176"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R177" data-line-number="177"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ \ingroup python_PlayerCB</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R178" data-line-number="178"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ @brief \python_func{ OnVolumeUp()}</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R179" data-line-number="179"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/-----------------------------------------------------------------------</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R180" data-line-number="180"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ OnVolumeUp method.</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R181" data-line-number="181"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R182" data-line-number="182"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ Will be called when the user turns the volume up.</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R183" data-line-number="183"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R184" data-line-number="184"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-en">onVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R185" data-line-number="185"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">else</span> </span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R186" data-line-number="186"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">onVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R187" data-line-number="187"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R188" data-line-number="188"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R189" data-line-number="189"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">ifdef</span> DOXYGEN_SHOULD_USE_THIS</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R190" data-line-number="190"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R191" data-line-number="191"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ \ingroup python_PlayerCB</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R192" data-line-number="192"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ @brief \python_func{ OnVolumeDown()}</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R193" data-line-number="193"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/-----------------------------------------------------------------------</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R194" data-line-number="194"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ OnVolumeDown method.</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R195" data-line-number="195"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R196" data-line-number="196"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ Will be called when the user turns the volume down.</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R197" data-line-number="197"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R198" data-line-number="198"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-en">onVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R199" data-line-number="199"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">else</span> </span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R200" data-line-number="200"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      <span class="pl-k">virtual</span> <span class="pl-k">void</span> <span class="pl-en">onVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R201" data-line-number="201"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span>      </span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R202" data-line-number="202"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R203" data-line-number="203"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L175" data-line-number="175"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R204" data-line-number="204"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>#<span class="pl-k">ifdef</span> DOXYGEN_SHOULD_USE_THIS</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L176" data-line-number="176"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R205" data-line-number="205"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L177" data-line-number="177"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R206" data-line-number="206"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      <span class="pl-c"><span class="pl-c">//</span>/ \ingroup python_Player</span></span></td>
+</tr>
+
+
+
+      <tr class="js-expandable-line" data-position="36">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47"
+                class="js-expand directional-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/651695a2033c20d8c8ca8542d6fbdf2ecfef98cc?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=177&amp;last_right=206&amp;left=834&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.h&amp;right=863&amp;right_hunk_size=8"
+                data-left-range="178-504" data-right-range="207-533">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+          <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47"
+              class="js-expand directional-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/651695a2033c20d8c8ca8542d6fbdf2ecfef98cc?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=177&amp;last_right=206&amp;left=834&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.h&amp;right=863&amp;right_hunk_size=8"
+              data-left-range="505-833" data-right-range="534-862">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -834,6 +863,8 @@ namespace XBMCAddon</td>
+  </tr>
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L834" data-line-number="834"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R863" data-line-number="863"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      SWIGHIDDENVIRTUAL <span class="pl-k">void</span> <span class="pl-en">OnPlayBackSeekChapter</span>(<span class="pl-k">int</span> iChapter) <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L835" data-line-number="835"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R864" data-line-number="864"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      SWIGHIDDENVIRTUAL <span class="pl-k">void</span> <span class="pl-en">OnPreviousItem</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L836" data-line-number="836"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R865" data-line-number="865"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>      SWIGHIDDENVIRTUAL <span class="pl-k">void</span> <span class="pl-en">OnNextItem</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R866" data-line-number="866"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      SWIGHIDDENVIRTUAL <span class="pl-k">void</span> <span class="pl-en">OnVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R867" data-line-number="867"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      SWIGHIDDENVIRTUAL <span class="pl-k">void</span> <span class="pl-en">OnVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L837" data-line-number="837"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R868" data-line-number="868"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>#<span class="pl-k">endif</span></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L838" data-line-number="838"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R869" data-line-number="869"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47L839" data-line-number="839"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-c403255a1a8de83c38dd7edf4f8d7a47R870" data-line-number="870"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>    <span class="pl-k">protected:</span></span></td>
+</tr>
+
+
+
+  <tr class="js-expandable-line" data-position="">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-c403255a1a8de83c38dd7edf4f8d7a47"
+                class="js-expand directional-expander single-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/651695a2033c20d8c8ca8542d6fbdf2ecfef98cc?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=839&amp;last_right=870&amp;left=875&amp;left_hunk_size=&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Flegacy%2FPlayer.h&amp;right=875&amp;right_hunk_size="
+                data-left-range="840-874" data-right-range="871-874">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2"></td>
+  </tr>
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+    
+<a name="diff-4dc81f8c9546344eef0a4692bb46e361"></a>
+<div id="diff-5"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/interfaces/python/XBPython.cpp"
+    data-short-path="4dc81f8"
+    data-anchor="diff-4dc81f8c9546344eef0a4692bb46e361"
+    data-file-type=".cpp"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/interfaces/python/XBPython.cpp"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="22 additions &amp; 0 deletions">22 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-added"></span></span>
+
+      <a href="#diff-4dc81f8c9546344eef0a4692bb46e361" class="link-gray-dark"
+         title="xbmc/interfaces/python/XBPython.cpp">xbmc/interfaces/python/XBPython.cpp</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-4dc81f8c9546344eef0a4692bb46e361">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-4dc81f8c9546344eef0a4692bb46e361"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/e0dc2f60992300ca4209eec1721009f1b5fef84f?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=272&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Fpython%2FXBPython.cpp&amp;right=272&amp;right_hunk_size=28"
+              data-left-range="1-271" data-right-range="1-271">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -272,6 +272,28 @@ void XBPython::OnNextItem()</td>
+  </tr>
+
+    <tr>
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361L272" data-line-number="272"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R272" data-line-number="272"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361L273" data-line-number="273"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R273" data-line-number="273"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>}</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361L274" data-line-number="274"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R274" data-line-number="274"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R275" data-line-number="275"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><span class="pl-k">void</span> <span class="pl-en">XBPython::OnVolumeUp</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R276" data-line-number="276"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>{</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R277" data-line-number="277"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R278" data-line-number="278"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-c1">LOCK_AND_COPY</span>(std::vector&lt;<span class="pl-k">void</span>*&gt;,tmp,m_vecPlayerCallbackList);</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R279" data-line-number="279"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">for</span> (PlayerCallbackList::iterator it = tmp.<span class="pl-c1">begin</span>(); (it != tmp.<span class="pl-c1">end</span>()); ++it)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R280" data-line-number="280"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R281" data-line-number="281"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">if</span> (<span class="pl-c1">CHECK_FOR_ENTRY</span>(m_vecPlayerCallbackList,(*it)))</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R282" data-line-number="282"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>      ((IPlayerCallback*)(*it))-&gt;<span class="pl-c1">OnVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R283" data-line-number="283"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R284" data-line-number="284"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>}</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R285" data-line-number="285"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R286" data-line-number="286"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><span class="pl-k">void</span> <span class="pl-en">XBPython::OnVolumeDown</span>()</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R287" data-line-number="287"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>{</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R288" data-line-number="288"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  XBMC_TRACE;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R289" data-line-number="289"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-c1">LOCK_AND_COPY</span>(std::vector&lt;<span class="pl-k">void</span>*&gt;,tmp,m_vecPlayerCallbackList);</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R290" data-line-number="290"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">for</span> (PlayerCallbackList::iterator it = tmp.<span class="pl-c1">begin</span>(); (it != tmp.<span class="pl-c1">end</span>()); ++it)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R291" data-line-number="291"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  {</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R292" data-line-number="292"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>    <span class="pl-k">if</span> (<span class="pl-c1">CHECK_FOR_ENTRY</span>(m_vecPlayerCallbackList,(*it)))</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R293" data-line-number="293"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>     ((IPlayerCallback*)(*it))-&gt;<span class="pl-c1">OnVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R294" data-line-number="294"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  }</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R295" data-line-number="295"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>}</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R296" data-line-number="296"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'><br></span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361L275" data-line-number="275"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R297" data-line-number="297"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'><span class="pl-k">void</span> <span class="pl-en">XBPython::RegisterPythonPlayerCallBack</span>(IPlayerCallback* pCallback)</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361L276" data-line-number="276"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R298" data-line-number="298"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>{</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361L277" data-line-number="277"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-4dc81f8c9546344eef0a4692bb46e361R299" data-line-number="299"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  XBMC_TRACE;</span></td>
+</tr>
+
+
+
+  <tr class="js-expandable-line" data-position="">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-4dc81f8c9546344eef0a4692bb46e361"
+                class="js-expand directional-expander single-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/e0dc2f60992300ca4209eec1721009f1b5fef84f?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=277&amp;last_right=299&amp;left=777&amp;left_hunk_size=&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Fpython%2FXBPython.cpp&amp;right=777&amp;right_hunk_size="
+                data-left-range="278-776" data-right-range="300-776">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2"></td>
+  </tr>
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+    
+<a name="diff-b8fda08e23c766e4af9e0b117473f2b9"></a>
+<div id="diff-6"
+     class="file js-file js-details-container Details Details--on open
+             
+             
+             
+             
+             
+              show-inline-notes
+           "
+      
+      >
+  <div class="file-header file-header--expandable js-file-header"
+    data-path="xbmc/interfaces/python/XBPython.h"
+    data-short-path="b8fda08"
+    data-anchor="diff-b8fda08e23c766e4af9e0b117473f2b9"
+    data-file-type=".h"
+    data-file-deleted="false"
+    >
+    <div class="file-actions">
+
+        <span class="show-file-notes pt-1">
+          <label>
+            <input type="checkbox" checked="checked" class="js-toggle-file-notes">
+            Show comments
+          </label>
+        </span>
+
+          <div class="BtnGroup">
+            <a href="/gezb/xbmc/blob/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/xbmc/interfaces/python/XBPython.h"
+              class="btn btn-sm tooltipped tooltipped-nw BtnGroup-item"
+              rel="nofollow"
+              aria-label="View the whole file at version 3cb6d9e"
+              >
+              View file
+            </a>
+          </div>
+
+
+
+      <div class="d-inline js-toggle-diff-buttons">
+        <button
+          type="button"
+          class="btn-octicon p-1 pr-2 js-details-target tooltipped tooltipped-nw js-toggle-diff-contents"
+          aria-label="Toggle diff contents"
+          aria-expanded="true"
+          data-collapse-expand-all-files-callout="false"
+          >
+          <svg class="octicon octicon-chevron-down Details-content--hidden" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5 11L0 6l1.5-1.5L5 8.25 8.5 4.5 10 6l-5 5z"/></svg>
+          <svg class="octicon octicon-chevron-up Details-content--shown" viewBox="0 0 10 16" version="1.1" width="10" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 10l-1.5 1.5L5 7.75 1.5 11.5 0 10l5-5 5 5z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="file-info">
+        <span class="diffstat tooltipped tooltipped-e" aria-label="2 additions &amp; 0 deletions">2 <span class="block-diff-added"></span><span class="block-diff-added"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span><span class="block-diff-neutral"></span></span>
+
+      <a href="#diff-b8fda08e23c766e4af9e0b117473f2b9" class="link-gray-dark"
+         title="xbmc/interfaces/python/XBPython.h">xbmc/interfaces/python/XBPython.h</a>
+
+      
+    </div>
+  </div>
+  <div class="js-file-content Details-content--hidden">
+        <div class="data highlight js-blob-wrapper " style="overflow-x: auto">
+          <table class="diff-table js-diff-table tab-size  " data-tab-size="8" data-diff-anchor="diff-b8fda08e23c766e4af9e0b117473f2b9">
+
+                
+      <tr class="js-expandable-line" data-position="0">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-b8fda08e23c766e4af9e0b117473f2b9"
+              class="js-expand directional-expander single-expander" title="Expand Up" aria-label="Expand Up"
+              data-url="/gezb/xbmc/blob_excerpt/97fa8f15e0617eb38163c3a5d7a496aa398f07e0?diff=unified&amp;direction=up&amp;in_wiki_context=&amp;last_left=&amp;last_right=&amp;left=70&amp;left_hunk_size=6&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Fpython%2FXBPython.h&amp;right=70&amp;right_hunk_size=8"
+              data-left-range="1-69" data-right-range="1-69">
+            <svg class="octicon octicon-fold-up" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10 6L7 3 4 6h2v6h2V6h2zm4 0c0-.55-.45-1-1-1h-2.5l1 1h1l-2 2H9v1h1.5l2 2H9v1h4c.55 0 1-.45 1-1l-2.5-2.5L14 6zM3.5 8H5v1H3.5l-2 2H5v1H1c-.55 0-1-.45-1-1l2.5-2.5L0 6c0-.55.45-1 1-1h2.5l-1 1h-1l2 2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2">@@ -70,6 +70,8 @@ class XBPython :</td>
+  </tr>
+
+    <tr>
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9L70" data-line-number="70"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R70" data-line-number="70"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnQueueNextItem</span>() <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9L71" data-line-number="71"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R71" data-line-number="71"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnPreviousItem</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9L72" data-line-number="72"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R72" data-line-number="72"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnNextItem</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R73" data-line-number="73"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnVolumeUp</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td class="blob-num blob-num-addition empty-cell"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R74" data-line-number="74"
+        class="blob-num blob-num-addition js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-addition blob-code-marker-cell"
+      data-code-marker="+">
+  </td>
+
+  <td class="blob-code blob-code-addition">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">OnVolumeDown</span>();</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9L73" data-line-number="73"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R75" data-line-number="75"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">Announce</span>(ANNOUNCEMENT::AnnouncementFlag flag, <span class="pl-k">const</span> <span class="pl-k">char</span> *sender, <span class="pl-k">const</span> <span class="pl-k">char</span> *message, <span class="pl-k">const</span> CVariant &amp;data) <span class="pl-k">override</span>;</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9L74" data-line-number="74"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R76" data-line-number="76"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">RegisterPythonPlayerCallBack</span>(IPlayerCallback* pCallback);</span></td>
+</tr>
+
+
+
+    <tr>
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9L75" data-line-number="75"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+    <td id="diff-b8fda08e23c766e4af9e0b117473f2b9R77" data-line-number="77"
+        class="blob-num blob-num-context js-linkable-line-number"></td>
+
+  <td class="blob-code blob-code-context blob-code-marker-cell"
+      data-code-marker=" ">
+  </td>
+
+  <td class="blob-code blob-code-context">
+    <span class='blob-code-inner'>  <span class="pl-k">void</span> <span class="pl-en">UnregisterPythonPlayerCallBack</span>(IPlayerCallback* pCallback);</span></td>
+</tr>
+
+
+
+  <tr class="js-expandable-line" data-position="">
+    <td class="blob-num blob-num-expandable" colspan="2">
+          <a href="#diff-b8fda08e23c766e4af9e0b117473f2b9"
+                class="js-expand directional-expander single-expander" title="Expand Down" aria-label="Expand Down"
+                data-url="/gezb/xbmc/blob_excerpt/97fa8f15e0617eb38163c3a5d7a496aa398f07e0?diff=unified&amp;direction=down&amp;in_wiki_context=&amp;last_left=75&amp;last_right=77&amp;left=132&amp;left_hunk_size=&amp;mode=100644&amp;path=xbmc%2Finterfaces%2Fpython%2FXBPython.h&amp;right=132&amp;right_hunk_size="
+                data-left-range="76-131" data-right-range="78-131">
+            <svg class="octicon octicon-fold-down" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 11l3 3 3-3H8V5H6v6H4zm-4 0c0 .55.45 1 1 1h2.5l-1-1h-1l2-2H5V8H3.5l-2-2H5V5H1c-.55 0-1 .45-1 1l2.5 2.5L0 11zm10.5-2H9V8h1.5l2-2H9V5h4c.55 0 1 .45 1 1l-2.5 2.5L14 11c0 .55-.45 1-1 1h-2.5l1-1h1l-2-2z"/></svg>
+          </a>
+    </td>
+    <td class="blob-code blob-code-inner blob-code-hunk" colspan="2"></td>
+  </tr>
+
+
+          </table>
+        </div>
+
+  </div>
+</div>
+
+  </div>
+
+</div>
+
+<button type="button" class="js-toggle-all-file-notes" data-hotkey="i" style="display:none">Toggle all file notes</button>
+
+<svg aria-hidden="true" width="340px" height="84px" viewBox="0 0 340 84" version="1.1"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  class="diff-placeholder-svg position-absolute bottom-0">
+  <defs>
+    <clippath id="diff-placeholder">
+      <rect x="0" y="0" width="67.0175439" height="11.9298746" rx="2"></rect>
+      <rect x="18.9473684" y="47.7194983" width="100.701754" height="11.9298746" rx="2"></rect>
+      <rect x="0" y="71.930126" width="37.8947368" height="11.9298746" rx="2"></rect>
+      <rect x="127.017544" y="48.0703769" width="53.3333333" height="11.9298746" rx="2"></rect>
+      <rect x="187.719298" y="48.0703769" width="72.9824561" height="11.9298746" rx="2"></rect>
+      <rect x="76.8421053" y="0" width="140.350877" height="11.9298746" rx="2"></rect>
+      <rect x="17.8947368" y="23.8597491" width="140.350877" height="11.9298746" rx="2"></rect>
+      <rect x="166.315789" y="23.8597491" width="173.684211" height="11.9298746" rx="2"></rect>
+    </clippath>
+
+    <linearGradient id="animated-diff-gradient" x1="0" x2="0" y1="0" y2="1" spreadMethod="reflect">
+      <stop offset="0" stop-color="#eee"></stop>
+      <stop offset="0.2" stop-color="#eee"></stop>
+      <stop offset="0.5" stop-color="#ddd"></stop>
+      <stop offset="0.8" stop-color="#eee"></stop>
+      <stop offset="1" stop-color="#eee"></stop>
+      <animateTransform attributeName="y1" values="0%; 100%; 0" dur="1s" repeatCount="3"></animateTransform>
+      <animateTransform attributeName="y2" values="100%; 200%; 0" dur="1s" repeatCount="3"></animateTransform>
+    </linearGradient>
+  </defs>
+</svg>
+
+
+
+  <div id="all_commit_comments" class="js-quote-selection-container" data-quote-markdown=".js-comment-body">
+
+    <div class="commit-comments-heading">
+      
+<div id="partial-visible-comments-header">
+  <span class="float-right">
+    
+  </span>
+
+  <h4 class="commit-comment-count">
+    0 comments
+    on commit <code class="commit-sha">3cb6d9e</code>
+  </h4>
+
+</div>
+
+    </div>
+
+    <div id="comments" class="comment-holder">
+      
+
+
+  <!-- Rendered timeline since 2019-02-25 14:20:48 -->
+  <div id="partial-timeline-marker"
+        class="js-timeline-marker js-socket-channel js-updatable-content"
+        data-channel="repo:46177612:commit:3cb6d9e59afb79f67ba84e83f3f398eafb52bc57"
+        data-url="/gezb/xbmc/commit/3cb6d9e59afb79f67ba84e83f3f398eafb52bc57/show_partial?partial=commit%2Ftimeline_marker&amp;since=1551133248"
+        data-last-modified="Mon, 25 Feb 2019 22:20:48 GMT">
+
+  </div>
+
+    </div>
+
+    
+
+      Please <a rel="nofollow" href="/login?return_to=https%3A%2F%2Fgithub.com%2Fgezb%2Fxbmc%2Fcommit%2F3cb6d9e59afb79f67ba84e83f3f398eafb52bc57">sign in</a> to comment.
+
+  </div>
+
+
+
+  </div>
+  <div class="modal-backdrop js-touch-events"></div>
+</div>
+
+    </div>
+  </div>
+  
+
+  </div>
+
+        
+<div class="footer container-lg px-3" role="contentinfo">
+  <div class="position-relative d-flex flex-justify-between pt-6 pb-2 mt-6 f6 text-gray border-top border-gray-light ">
+    <ul class="list-style-none d-flex flex-wrap ">
+      <li class="mr-3">&copy; 2019 <span title="0.24616s from unicorn-56f68576f7-5kxdq">GitHub</span>, Inc.</li>
+        <li class="mr-3"><a data-ga-click="Footer, go to terms, text:terms" href="https://github.com/site/terms">Terms</a></li>
+        <li class="mr-3"><a data-ga-click="Footer, go to privacy, text:privacy" href="https://github.com/site/privacy">Privacy</a></li>
+        <li class="mr-3"><a data-ga-click="Footer, go to security, text:security" href="https://github.com/security">Security</a></li>
+        <li class="mr-3"><a href="https://githubstatus.com/" data-ga-click="Footer, go to status, text:status">Status</a></li>
+        <li><a data-ga-click="Footer, go to help, text:help" href="https://help.github.com">Help</a></li>
+    </ul>
+
+    <a aria-label="Homepage" title="GitHub" class="footer-octicon mr-lg-4" href="https://github.com">
+      <svg height="24" class="octicon octicon-mark-github" viewBox="0 0 16 16" version="1.1" width="24" aria-hidden="true"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+</a>
+   <ul class="list-style-none d-flex flex-wrap ">
+        <li class="mr-3"><a data-ga-click="Footer, go to contact, text:contact" href="https://github.com/contact">Contact GitHub</a></li>
+        <li class="mr-3"><a href="https://github.com/pricing" data-ga-click="Footer, go to Pricing, text:Pricing">Pricing</a></li>
+      <li class="mr-3"><a href="https://developer.github.com" data-ga-click="Footer, go to api, text:api">API</a></li>
+      <li class="mr-3"><a href="https://training.github.com" data-ga-click="Footer, go to training, text:training">Training</a></li>
+        <li class="mr-3"><a href="https://github.blog" data-ga-click="Footer, go to blog, text:blog">Blog</a></li>
+        <li><a data-ga-click="Footer, go to about, text:about" href="https://github.com/about">About</a></li>
+
+    </ul>
+  </div>
+  <div class="d-flex flex-justify-center pb-6">
+    <span class="f6 text-gray-light"></span>
+  </div>
+</div>
+
+
+
+  <div id="ajax-error-message" class="ajax-error-message flash flash-error">
+    <svg class="octicon octicon-alert" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"/></svg>
+    <button type="button" class="flash-close js-ajax-error-dismiss" aria-label="Dismiss error">
+      <svg class="octicon octicon-x" viewBox="0 0 12 16" version="1.1" width="12" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M7.48 8l3.75 3.75-1.48 1.48L6 9.48l-3.75 3.75-1.48-1.48L4.52 8 .77 4.25l1.48-1.48L6 6.52l3.75-3.75 1.48 1.48L7.48 8z"/></svg>
+    </button>
+    You can’t perform that action at this time.
+  </div>
+
+
+    <script crossorigin="anonymous" integrity="sha512-DiQPbGWa0ALOwLs02fk5hmD72O2vgBbk95bHBIgqW0LwS8rjQPrv/NBhNnINkjmpEwQWrnX8hwEG0pfL8ptluw==" type="application/javascript" src="https://github.githubassets.com/assets/compat-bootstrap-4857aac6.js"></script>
+    <script crossorigin="anonymous" integrity="sha512-dQvtC5pSFXZtMywADdHZ/WrSJTLtJHIgdmLaQr4S7p6MvToW4vSBCzHTWbtVbwNOT0+NbvN141Y3nZjGDQ9B5g==" type="application/javascript" src="https://github.githubassets.com/assets/frameworks-0e0307a1.js"></script>
+    
+    <script crossorigin="anonymous" async="async" integrity="sha512-ovp6Vd8ts4G3NlT7AZ//VkXxUo+Nvfmng9uuSLUUxdF+7ktSFgV569XzR94UcJTExbf4QSWM43nv7kd5uSKuHQ==" type="application/javascript" src="https://github.githubassets.com/assets/github-bootstrap-01bb88c1.js"></script>
+    
+    
+    
+  <div class="js-stale-session-flash stale-session-flash flash flash-warn flash-banner d-none">
+    <svg class="octicon octicon-alert" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"/></svg>
+    <span class="signed-in-tab-flash">You signed in with another tab or window. <a href="">Reload</a> to refresh your session.</span>
+    <span class="signed-out-tab-flash">You signed out in another tab or window. <a href="">Reload</a> to refresh your session.</span>
+  </div>
+  <template id="site-details-dialog">
+  <details class="details-reset details-overlay details-overlay-dark lh-default text-gray-dark" open>
+    <summary aria-haspopup="dialog" aria-label="Close dialog"></summary>
+    <details-dialog class="Box Box--overlay d-flex flex-column anim-fade-in fast">
+      <button class="Box-btn-octicon m-0 btn-octicon position-absolute right-0 top-0" type="button" aria-label="Close dialog" data-close-dialog>
+        <svg class="octicon octicon-x" viewBox="0 0 12 16" version="1.1" width="12" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M7.48 8l3.75 3.75-1.48 1.48L6 9.48l-3.75 3.75-1.48-1.48L4.52 8 .77 4.25l1.48-1.48L6 6.52l3.75-3.75 1.48 1.48L7.48 8z"/></svg>
+      </button>
+      <div class="octocat-spinner my-6 js-details-dialog-spinner"></div>
+    </details-dialog>
+  </details>
+</template>
+
+  <div class="Popover js-hovercard-content position-absolute" style="display: none; outline: none;" tabindex="0">
+  <div class="Popover-message Popover-message--bottom-left Popover-message--large Box box-shadow-large" style="width:360px;">
+  </div>
+</div>
+
+<div id="hovercard-aria-description" class="sr-only">
+  Press h to open a hovercard with more details.
+</div>
+
+  <div aria-live="polite" class="js-global-screen-reader-notice sr-only"></div>
+
+  </body>
+</html>
+
