@@ -1,0 +1,33 @@
+From 4b055c8b6da7896825fd7481476bb0529e7ba6ba Mon Sep 17 00:00:00 2001
+From: keii3 <48112883+keii3@users.noreply.github.com>
+Date: Fri, 1 Mar 2019 12:42:35 +0900
+Subject: [PATCH] Modified "SystemInfo" on fontset "Arial"
+
+In order to use it in non-English, "fontset Arial" "SystemInfo"
+It returned from LiberationMono-Regular.ttf to teletext.ttf.
+
+~ /.. kodi / media / Fonts / Add an alternative font (teletext.ttf) below.
+---
+ 16x9/Font.xml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/16x9/Font.xml b/16x9/Font.xml
+index 52083b1..5d39c86 100755
+--- a/16x9/Font.xml
++++ b/16x9/Font.xml
+@@ -189,7 +189,7 @@
+ 		<!-- System Info fixed width -->
+ 		<font>
+ 			<name>SystemInfo</name>
+-			<filename>LiberationMono-Regular.ttf</filename>
++			<filename>teletext.ttf</filename>
+ 			<size>24</size>
+ 		</font>
+ 
+@@ -202,4 +202,4 @@
+ 
+ 	</fontset>
+ 
+-</fonts>
+\ No newline at end of file
++</fonts>

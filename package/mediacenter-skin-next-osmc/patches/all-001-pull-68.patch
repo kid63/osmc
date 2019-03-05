@@ -1,0 +1,1412 @@
+From 622520e158be13182e33e7cf0e13912da72e8a80 Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Tue, 5 Mar 2019 09:26:29 +0100
+Subject: [PATCH 1/2] Add new views
+
+Includes.xml:
+- add new include files
+- fix position and size of duration icon
+- prevent size from being shown when file is 0B on all platforms
+
+MusicVisualization.xml:
+- add song/album year
+
+MyGames.xml:
+- remove views not usable for the games section
+
+MyMusicNav.xml:
+- add wide list to music
+- add new scrollbar for new view
+
+MyVideoNav.xml:
+- add new wide list low view to video
+- add new wall low view to video
+- add new wall small view to video
+- add new scrollbars for new views
+
+Viewtype52.xml:
+- add albums and artists as allowed container content to conditional visibility
+- add required image thumbs for artists and albums
+
+Viewtype56.xml:
+- new wide list low view
+
+Viewtype56.xml:
+- new wall low view
+
+Viewtype58.xml:
+- new wall small view
+
+strings.po:
+- add new localizes for new views (31112, 31113, 31114)
+
+addon.xml:
+- update changelog
+
+Changelog.md:
+- update changelog
+---
+ 16x9/Includes.xml           |  15 ++-
+ 16x9/MusicVisualisation.xml |   6 ++
+ 16x9/MyGames.xml            |   6 +-
+ 16x9/MyMusicNav.xml         |  22 +++-
+ 16x9/MyVideoNav.xml         |  62 +++++++++++-
+ 16x9/Viewtype52.xml         |  26 ++++-
+ 16x9/Viewtype56.xml         | 194 +++++++++++++++++++++++++++++++++++
+ 16x9/Viewtype57.xml         | 196 ++++++++++++++++++++++++++++++++++++
+ 16x9/Viewtype58.xml         | 196 ++++++++++++++++++++++++++++++++++++
+ Changelog.md                |  25 +++++
+ addon.xml                   |   2 +-
+ language/English/strings.po |  15 +++
+ 12 files changed, 750 insertions(+), 15 deletions(-)
+ create mode 100644 16x9/Viewtype56.xml
+ create mode 100644 16x9/Viewtype57.xml
+ create mode 100644 16x9/Viewtype58.xml
+
+diff --git a/16x9/Includes.xml b/16x9/Includes.xml
+index 15911e4..f6fce93 100755
+--- a/16x9/Includes.xml
++++ b/16x9/Includes.xml
+@@ -12,6 +12,9 @@
+ 	<include file="Viewtype53.xml" />
+ 	<include file="Viewtype54.xml" />
+ 	<include file="Viewtype55.xml" />
++	<include file="Viewtype56.xml" />
++	<include file="Viewtype57.xml" />
++	<include file="Viewtype58.xml" />
+ 	<include file="Variables.xml" />
+ 
+ 	<!-- Fullscreen dimensions -->
+@@ -762,6 +765,7 @@
+ 				<visible>!String.IsEmpty(ListItem.AudioCodec)</visible>
+ 			</control>
+ 		</control>
++		
+ 		<control type="grouplist">
+ 			<left>120</left>
+ 			<bottom>66</bottom>
+@@ -776,9 +780,10 @@
+ 
+ 			<!-- Duration -->
+ 			<control type="image">
+-				<width>45</width>
+-				<height>35</height>
+-				<top>5</top>
++				<left>9</left>
++				<width>32</width>
++				<height>32</height>
++				<top>7</top>
+ 				<colordiffuse>$VAR[TextColor2]</colordiffuse>
+ 				<texture>Duration.png</texture>
+ 				<aspectratio>keep</aspectratio>
+@@ -800,7 +805,7 @@
+ 				<label>  /  </label>
+ 				<font>Font33</font>
+ 				<textcolor>$VAR[TextColor2]</textcolor>
+-				<visible>!String.IsEmpty(ListItem.Duration) + !Container.Content(tvshows) + !Container.Content(seasons) + !ListItem.IsFolder + !String.IsEqual(ListItem.Size,0 B)</visible>
++				<visible>!String.IsEmpty(ListItem.Duration) + !Container.Content(tvshows) + !Container.Content(seasons) + !ListItem.IsFolder + ![String.IsEqual(ListItem.Size,0 B) | String.IsEqual(ListItem.Size,0.000000 B)]</visible>
+ 			</control>
+ 			<control type="label">
+ 				<width>auto</width>
+@@ -809,7 +814,7 @@
+ 				<label>$INFO[ListItem.Size,$LOCALIZE[289]: ,]</label>
+ 				<font>Font33</font>
+ 				<textcolor>$VAR[TextColor2]</textcolor>
+-				<visible>!ListItem.IsFolder + !String.IsEqual(ListItem.Size,0 B)</visible>
++				<visible>!ListItem.IsFolder + ![String.IsEqual(ListItem.Size,0 B) | String.IsEqual(ListItem.Size,0.000000 B)]</visible>
+ 			</control>
+ 		</control>
+ 	</include>
+diff --git a/16x9/MusicVisualisation.xml b/16x9/MusicVisualisation.xml
+index 615eac0..5231ea7 100755
+--- a/16x9/MusicVisualisation.xml
++++ b/16x9/MusicVisualisation.xml
+@@ -50,6 +50,12 @@
+ 					<label>$INFO[MusicPlayer.Album]</label>
+ 					<visible>!String.IsEmpty(MusicPlayer.Album)</visible>
+ 				</control>
++				<control type="fadelabel">
++					<width>700</width>
++					<pauseatend>5000</pauseatend>
++					<label>$INFO[MusicPlayer.Year,[LIGHT],[/LIGHT]]</label>
++					<visible>!String.IsEmpty(MusicPlayer.Year)</visible>
++				</control>
+ 				<control type="fadelabel">
+ 					<width>700</width>
+ 					<pauseatend>5000</pauseatend>
+diff --git a/16x9/MyGames.xml b/16x9/MyGames.xml
+index 05b91b4..b357bb7 100644
+--- a/16x9/MyGames.xml
++++ b/16x9/MyGames.xml
+@@ -3,7 +3,7 @@
+ 	<!-- Games -->
+ 	<backgroundcolor>0x00000000</backgroundcolor>
+ 	<defaultcontrol always="true">50</defaultcontrol>
+-	<views>50,52,53,55</views>
++	<views>50,55</views>
+ 
+ 	<controls>
+ 
+@@ -16,8 +16,6 @@
+ 
+ 			<!-- Views -->
+ 			<include>Viewtype50</include>
+-			<include>Viewtype52</include>
+-			<include>Viewtype53</include>
+ 			<include>Viewtype55</include>
+ 
+ 			<!-- Scrollbar (list) -->
+@@ -36,7 +34,7 @@
+ 				<texturesliderbarfocus border="8,1,6,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripFO.png</texturesliderbarfocus>
+ 				<textureslidernib></textureslidernib>
+ 				<textureslidernibfocus></textureslidernibfocus>
+-				<visible>!Skin.HasSetting(Scrollbars) + [Control.IsVisible(50) | Control.IsVisible(52) | Control.IsVisible(53) | Control.IsVisible(55)]</visible>
++				<visible>!Skin.HasSetting(Scrollbars) + Control.IsVisible(50)</visible>
+ 			</control>
+ 
+ 			<!-- Scrollbar (wall) -->
+diff --git a/16x9/MyMusicNav.xml b/16x9/MyMusicNav.xml
+index 6f2e670..ad2422d 100755
+--- a/16x9/MyMusicNav.xml
++++ b/16x9/MyMusicNav.xml
+@@ -11,7 +11,7 @@
+ 	<onunload condition="Window.Next(musicplaylisteditor)">SetProperty(ListItem1,$INFO[Container(50).ListItemNoWrap(1).Label])</onunload>
+ 	<onunload condition="Window.Next(musicplaylisteditor)">SetProperty(ListItem2,$INFO[Container(50).ListItemNoWrap(2).Label])</onunload>
+ 	<onunload condition="Window.Next(musicplaylisteditor)">SetProperty(ListItem3,$INFO[Container(50).ListItemNoWrap(3).Label])</onunload>
+-	<views>51,55,54,50</views>
++	<views>51,52,55,54,50</views>
+ 
+ 	<controls>
+ 
+@@ -26,6 +26,7 @@
+ 			<!-- Views -->
+ 			<include>Viewtype50</include>
+ 			<include>Viewtype51</include>
++			<include>Viewtype52</include>
+ 			<include>Viewtype54</include>
+ 			<include>Viewtype55</include>
+ 
+@@ -47,6 +48,25 @@
+ 				<textureslidernibfocus></textureslidernibfocus>
+ 				<visible>!Skin.HasSetting(Scrollbars) + [Control.IsVisible(50) | Control.IsVisible(51) | Control.IsVisible(54)]</visible>
+ 			</control>
++			
++			<!-- Scrollbar (poster) -->
++			<control type="scrollbar" id="61">
++				<centerleft>50%</centerleft>
++				<top>766</top>
++				<width>1680</width>
++				<height>20</height>
++				<onup>50</onup>
++				<ondown condition="!Skin.HasSetting(KioskMode)">3001</ondown>
++				<showonepage>false</showonepage>
++				<orientation>horizontal</orientation>
++				<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++				<texturesliderbackground border="1,12,1,1">common/ScrollBackgroundHorizontal.png</texturesliderbackground>
++				<texturesliderbar border="1,12,1,1">common/ScrollbarGripHorizontalNF.png</texturesliderbar>
++				<texturesliderbarfocus border="1,12,1,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripHorizontalFO.png</texturesliderbarfocus>
++				<textureslidernib></textureslidernib>
++				<textureslidernibfocus></textureslidernibfocus>
++				<visible>!Skin.HasSetting(Scrollbars) + Control.IsVisible(52)</visible>
++			</control>
+ 
+ 			<!-- Scrollbar (wall) -->
+ 			<control type="scrollbar" id="65">
+diff --git a/16x9/MyVideoNav.xml b/16x9/MyVideoNav.xml
+index 3051f6d..e944dad 100755
+--- a/16x9/MyVideoNav.xml
++++ b/16x9/MyVideoNav.xml
+@@ -4,7 +4,7 @@
+ 	<backgroundcolor>0x00000000</backgroundcolor>
+ 	<defaultcontrol always="true">50</defaultcontrol>
+ 	<onload condition="System.HasAddon(script.tvtunes)">XBMC.RunScript(script.tvtunes,backend=True)</onload>
+-	<views>52,53,51,50</views>
++	<views>52,56,53,58,57,51,50</views>
+ 
+ 	<controls>
+ 
+@@ -20,6 +20,9 @@
+ 			<include>Viewtype51</include>
+ 			<include>Viewtype52</include>
+ 			<include>Viewtype53</include>
++			<include>Viewtype56</include>
++			<include>Viewtype57</include>
++			<include>Viewtype58</include>
+ 
+ 			<!-- Scrollbar (list) -->
+ 			<control type="scrollbar" id="60">
+@@ -77,6 +80,63 @@
+ 				<textureslidernibfocus></textureslidernibfocus>
+ 				<visible>!Skin.HasSetting(Scrollbars) + Control.IsVisible(53)</visible>
+ 			</control>
++			
++			<!-- Scrollbar (poster low) -->
++			<control type="scrollbar" id="66">
++				<centerleft>50%</centerleft>
++				<top>850</top>
++				<width>1680</width>
++				<height>20</height>
++				<onup>50</onup>
++				<ondown condition="!Skin.HasSetting(KioskMode)">3001</ondown>
++				<showonepage>false</showonepage>
++				<orientation>horizontal</orientation>
++				<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++				<texturesliderbackground border="1,12,1,1">common/ScrollBackgroundHorizontal.png</texturesliderbackground>
++				<texturesliderbar border="1,12,1,1">common/ScrollbarGripHorizontalNF.png</texturesliderbar>
++				<texturesliderbarfocus border="1,12,1,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripHorizontalFO.png</texturesliderbarfocus>
++				<textureslidernib></textureslidernib>
++				<textureslidernibfocus></textureslidernibfocus>
++				<visible>!Skin.HasSetting(Scrollbars) + Control.IsVisible(56)</visible>
++			</control>
++			
++			<!-- Scrollbar (wall low) -->
++			<control type="scrollbar" id="67">
++				<left>120</left>
++				<top>442</top>
++				<width>20</width>
++				<height>362</height>
++				<onleft condition="!Skin.HasSetting(KioskMode)">3001</onleft>
++				<onright>50</onright>
++				<showonepage>false</showonepage>
++				<orientation>vertical</orientation>
++				<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++				<texturesliderbackground border="6,1,8,1">common/ScrollBackground.png</texturesliderbackground>
++				<texturesliderbar border="8,1,6,1">common/ScrollbarGripNF.png</texturesliderbar>
++				<texturesliderbarfocus border="8,1,6,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripFO.png</texturesliderbarfocus>
++				<textureslidernib></textureslidernib>
++				<textureslidernibfocus></textureslidernibfocus>
++				<visible>!Skin.HasSetting(Scrollbars) + Control.IsVisible(57)</visible>
++			</control>
++			
++			<!-- Scrollbar (wall small) -->
++			<control type="scrollbar" id="68">
++				<left>120</left>
++				<top>242</top>
++				<width>20</width>
++				<height>562</height>
++				<onleft condition="!Skin.HasSetting(KioskMode)">3001</onleft>
++				<onright>50</onright>
++				<showonepage>false</showonepage>
++				<orientation>vertical</orientation>
++				<colordiffuse>$VAR[OverlayColorNF]</colordiffuse>
++				<texturesliderbackground border="6,1,8,1">common/ScrollBackground.png</texturesliderbackground>
++				<texturesliderbar border="8,1,6,1">common/ScrollbarGripNF.png</texturesliderbar>
++				<texturesliderbarfocus border="8,1,6,1" colordiffuse="$VAR[DialogColor1]">common/ScrollbarGripFO.png</texturesliderbarfocus>
++				<textureslidernib></textureslidernib>
++				<textureslidernibfocus></textureslidernibfocus>
++				<visible>!Skin.HasSetting(Scrollbars) + Control.IsVisible(58)</visible>
++			</control>
+ 
+ 			<!-- Media flags -->
+ 			<include>MediaFlags</include>
+diff --git a/16x9/Viewtype52.xml b/16x9/Viewtype52.xml
+index ddd8d26..8b95a33 100644
+--- a/16x9/Viewtype52.xml
++++ b/16x9/Viewtype52.xml
+@@ -22,7 +22,7 @@
+ 				<orientation>horizontal</orientation>
+ 				<viewtype label="539">list</viewtype>
+ 				<scrolltime tween="sine" easing="out">240</scrolltime>
+-				<visible>Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons)</visible>
++				<visible>Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons) | Container.Content(albums) | Container.Content(artists)</visible>
+ 
+ 				<itemlayout width="253" height="666">
+ 					<!-- Image - Movies -->
+@@ -30,10 +30,20 @@
+ 						<param name="fallback">DefaultMovie.png</param>
+ 						<param name="visible">Container.Content(movies)</param>
+ 					</include>
++					<!-- Image - Albums -->
++					<include content="image-52">
++						<param name="fallback">DefaultAlbumCover.png</param>
++						<param name="visible">Container.Content(albums)</param>
++					</include>
++					<!-- Image - Artists -->
++					<include content="image-52">
++						<param name="fallback">DefaultUser.png</param>
++						<param name="visible">Container.Content(artists)</param>
++					</include>
+ 					<!-- Image - TV Shows -->
+ 					<include content="image-52">
+ 						<param name="fallback">DefaultTVShows.png</param>
+-						<param name="visible">!Container.Content(movies)</param>
++						<param name="visible">Container.Content(tvshows)</param>
+ 					</include>
+ 					<!-- Collection -->
+ 					<control type="group">
+@@ -78,10 +88,20 @@
+ 							<param name="fallback">DefaultMovie.png</param>
+ 							<param name="visible">Container.Content(movies)</param>
+ 						</include>
++						<!-- Image - Albums -->
++						<include content="image-52-focus">
++							<param name="fallback">DefaultAlbumCover.png</param>
++							<param name="visible">Container.Content(albums)</param>
++						</include>
++						<!-- Image - Artists -->
++						<include content="image-52-focus">
++							<param name="fallback">DefaultUser.png</param>
++							<param name="visible">Container.Content(artists)</param>
++						</include>
+ 						<!-- Image - TV Shows -->
+ 						<include content="image-52-focus">
+ 							<param name="fallback">DefaultTVShows.png</param>
+-							<param name="visible">!Container.Content(movies)</param>
++							<param name="visible">Container.Content(tvshows)</param>
+ 						</include>
+ 						<!-- Collection -->
+ 						<control type="group">
+diff --git a/16x9/Viewtype56.xml b/16x9/Viewtype56.xml
+new file mode 100644
+index 0000000..7c49d53
+--- /dev/null
++++ b/16x9/Viewtype56.xml
+@@ -0,0 +1,194 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<includes>
++
++	<include name="Viewtype56">
++
++		<control type="group">
++			<visible>Control.IsVisible(56)</visible>
++
++			<!-- Wide list low -->
++			<control type="fixedlist" id="56">
++				<left>0</left>
++				<top>546</top>
++				<width>1920</width>
++				<height>274</height>
++				<onup condition="!Skin.HasSetting(KioskMode)">3001</onup>
++				<ondown>66</ondown>
++				<onleft>56</onleft>
++				<onright>56</onright>
++				<pagecontrol>66</pagecontrol>
++				<preloaditems>6</preloaditems>
++				<focusposition>5</focusposition>
++				<orientation>horizontal</orientation>
++				<viewtype label="$LOCALIZE[31112]">icon</viewtype>
++				<scrolltime tween="sine" easing="out">240</scrolltime>
++				<visible>Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons)</visible>
++
++				<itemlayout width="174" height="274">
++					<!-- Image - Movies -->
++					<include content="image-56">
++						<param name="fallback">DefaultMovie.png</param>
++						<param name="visible">Container.Content(movies)</param>
++					</include>
++					<!-- Image - TV Shows -->
++					<include content="image-56">
++						<param name="fallback">DefaultTVShows.png</param>
++						<param name="visible">!Container.Content(movies)</param>
++					</include>
++					<!-- Collection -->
++					<control type="group">
++						<left>21</left>
++						<bottom>0</bottom>
++						<width>28</width>
++						<height>28</height>
++						<visible>ListItem.IsCollection</visible>
++						<control type="image">
++							<texture background="true">views/OverlayCornerLeft.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++						<control type="image">
++							<texture background="true">views/OverlayCollection.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++					</control>
++					<!-- Watched status -->
++					<control type="group">
++						<right>21</right>
++						<bottom>0</bottom>
++						<width>28</width>
++						<height>28</height>
++						<visible>!ListItem.IsCollection</visible>
++						<control type="image">
++							<texture background="true">views/OverlayCornerRight.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++							<visible>!ListItem.IsCollection + [[ListItem.IsFolder + Integer.IsGreater(ListItem.Property(WatchedEpisodes),0) + Integer.IsGreater(ListItem.Property(UnWatchedEpisodes),0)] | String.IsEqual(ListItem.Overlay,OverlayWatched.png) | ListItem.IsResumable | !String.IsEmpty(ListItem.PlayCount)]</visible>
++						</control>
++						<control type="image">
++							<texture background="true">$VAR[StatusOverlayWide]</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++					</control>
++				</itemlayout>
++
++				<focusedlayout width="180" height="274">
++					<control type="group">
++						<animation effect="zoom" start="73" end="100" center="90,137" time="300" tween="back" easing="out" reversible="false">Focus</animation>
++						<!-- Image - Movies -->
++						<include content="image-56-focus">
++							<param name="fallback">DefaultMovie.png</param>
++							<param name="visible">Container.Content(movies)</param>
++						</include>
++						<!-- Image - TV Shows -->
++						<include content="image-56-focus">
++							<param name="fallback">DefaultTVShows.png</param>
++							<param name="visible">!Container.Content(movies)</param>
++						</include>
++						<!-- Collection -->
++						<control type="group">
++							<left>0</left>
++							<bottom>0</bottom>
++							<width>39</width>
++							<height>39</height>
++							<fadetime>200</fadetime>
++							<visible>ListItem.IsCollection</visible>
++							<control type="image">
++								<texture background="true">views/OverlayCornerLeft.png</texture>
++							</control>
++							<control type="image">
++								<texture background="true">views/OverlayCollection.png</texture>
++							</control>
++						</control>
++						<!-- Watched status -->
++						<control type="group">
++							<right>0</right>
++							<bottom>0</bottom>
++							<width>39</width>
++							<height>39</height>
++							<fadetime>200</fadetime>
++							<visible>!ListItem.IsCollection</visible>
++							<control type="image">
++								<texture background="true">views/OverlayCornerRight.png</texture>
++								<visible>[ListItem.IsFolder + Integer.IsGreater(ListItem.Property(WatchedEpisodes),0) + Integer.IsGreater(ListItem.Property(UnWatchedEpisodes),0)] | String.IsEqual(ListItem.Overlay,OverlayWatched.png) | ListItem.IsResumable | !String.IsEmpty(ListItem.PlayCount)</visible>
++							</control>
++							<control type="image">
++								<texture background="true">$VAR[StatusOverlayWide]</texture>
++							</control>
++						</control>
++					</control>
++				</focusedlayout>
++
++			</control>
++
++			<control type="group">
++				<centerleft>50%</centerleft>
++				<top>888</top>
++				<width>1920</width>
++				<height>126</height>
++
++				<!-- Title -->
++				<control type="fadelabel">
++					<left>120</left>
++					<top>0</top>
++					<width>1680</width>
++					<height>72</height>
++					<font>Font72</font>
++					<align>center</align>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<label>$VAR[Label1]</label>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(56)">Conditional</animation>
++				</control>
++
++				<!-- Details -->
++				<control type="fadelabel">
++					<left>500</left>
++					<top>88</top>
++					<width>920</width>
++					<height>54</height>
++					<font>Font27</font>
++					<align>center</align>
++					<aligny>top</aligny>
++					<label>$VAR[Label2]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(56)">Conditional</animation>
++				</control>
++
++			</control>
++
++		</control>
++
++	</include>
++
++	<include name="image-56">
++		<param name="fallback">DefaultVideos.png</param>
++		<param name="visible">False</param>
++		<definition>
++			<control type="image">
++				<bottom>0</bottom>
++				<left>21</left>
++				<width>132</width>
++				<height>200</height>
++				<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++				<texture background="true" fallback="$PARAM[fallback]">$VAR[mediaImages]</texture>
++				<aspectratio align="center" aligny="bottom">keep</aspectratio>
++				<visible>$PARAM[visible]</visible>
++			</control>
++		</definition>
++	</include>
++
++	<include name="image-56-focus">
++		<param name="fallback">DefaultVideos.png</param>
++		<param name="visible">False</param>
++		<definition>
++			<control type="image">
++				<bottom>0</bottom>
++				<left>0</left>
++				<width>180</width>
++				<height>274</height>
++				<texture background="true" fallback="$PARAM[fallback]">$VAR[mediaImages]</texture>
++				<aspectratio align="center" aligny="bottom">keep</aspectratio>
++				<visible>$PARAM[visible]</visible>
++			</control>
++		</definition>
++	</include>
++
++</includes>
+diff --git a/16x9/Viewtype57.xml b/16x9/Viewtype57.xml
+new file mode 100644
+index 0000000..2cac32a
+--- /dev/null
++++ b/16x9/Viewtype57.xml
+@@ -0,0 +1,196 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<includes>
++
++	<include name="Viewtype57">
++
++		<control type="group">
++			<visible>Control.IsVisible(57)</visible>
++
++			<!-- Thumbs -->
++			<control type="panel" id="57">
++				<left>150</left>
++				<top>420</top>
++				<width>1620</width>
++				<height>400</height>
++				<onleft>67</onleft>
++				<onright condition="!Skin.HasSetting(KioskMode)">3001</onright>
++				<onup>57</onup>
++				<ondown>57</ondown>
++				<pagecontrol>67</pagecontrol>
++				<preloaditems>4</preloaditems>
++				<viewtype label="$LOCALIZE[31113]">icon</viewtype>
++				<scrolltime tween="sine" easing="out">240</scrolltime>
++				<visible>Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons)</visible>
++
++				<itemlayout width="162" height="200">
++					<!-- Image - Movies -->
++					<include content="image-57">
++						<param name="fallback">DefaultMovie.png</param>
++						<param name="colordiffuse">$VAR[DiffusePosterNF]</param>
++						<param name="visible">Container.Content(movies)</param>
++					</include>
++					<!-- Image - TV -->
++					<include content="image-57">
++						<param name="fallback">DefaultTVShows.png</param>
++						<param name="colordiffuse">$VAR[DiffusePosterNF]</param>
++						<param name="visible">!Container.Content(movies)</param>
++					</include>
++					<!-- Collection -->
++					<control type="group">
++						<left>24</left>
++						<bottom>6</bottom>
++						<width>51</width>
++						<height>51</height>
++						<visible>ListItem.IsCollection</visible>
++						<control type="image">
++							<texture background="true">views/OverlayCornerLeft.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++						<control type="image">
++							<texture background="true">views/OverlayCollection.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++					</control>
++					<!-- Watched status -->
++					<control type="group">
++						<right>24</right>
++						<bottom>6</bottom>
++						<width>51</width>
++						<height>51</height>
++						<visible>!ListItem.IsCollection</visible>
++						<control type="image">
++							<texture background="true">views/OverlayCornerRight.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++							<visible>[ListItem.IsFolder + Integer.IsGreater(ListItem.Property(WatchedEpisodes),0) + Integer.IsGreater(ListItem.Property(UnWatchedEpisodes),0)] | String.IsEqual(ListItem.Overlay,OverlayWatched.png) | ListItem.IsResumable | !String.IsEmpty(ListItem.PlayCount)</visible>
++						</control>
++						<control type="image">
++							<texture background="true">$VAR[StatusOverlayWide]</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++					</control>
++				</itemlayout>
++
++				<focusedlayout width="162" height="200">
++					<control type="group">
++						<animation effect="zoom" start="87" end="100" center="auto" time="300" tween="back" easing="out" reversible="false">Focus</animation>
++						<animation effect="zoom" start="100" end="87" center="auto" time="30" tween="linear" reversible="false">Unfocus</animation>
++						<!-- Image - Movies -->
++						<include content="image-57-focused">
++							<param name="fallback">DefaultMovie.png</param>
++							<param name="visible">Container.Content(movies)</param>
++						</include>
++						<!-- Image - TV -->
++						<include content="image-57-focused">
++							<param name="fallback">DefaultTVShows.png</param>
++							<param name="visible">!Container.Content(movies)</param>
++						</include>
++						<!-- Collection -->
++						<control type="group">
++							<left>15</left>
++							<bottom>0</bottom>
++							<width>60</width>
++							<height>60</height>
++							<visible>ListItem.IsCollection</visible>
++							<control type="image">
++								<texture background="true">views/OverlayCornerLeft.png</texture>
++							</control>
++							<control type="image">
++								<texture background="true">views/OverlayCollection.png</texture>
++							</control>
++						</control>
++						<!-- Watched status -->
++						<control type="group">
++							<right>15</right>
++							<bottom>0</bottom>
++							<width>60</width>
++							<height>60</height>
++							<visible>!ListItem.IsCollection</visible>
++							<control type="image">
++								<texture background="true">views/OverlayCornerRight.png</texture>
++								<visible>[ListItem.IsFolder + Integer.IsGreater(ListItem.Property(WatchedEpisodes),0) + Integer.IsGreater(ListItem.Property(UnWatchedEpisodes),0)] | String.IsEqual(ListItem.Overlay,OverlayWatched.png) | ListItem.IsResumable | !String.IsEmpty(ListItem.PlayCount)</visible>
++							</control>
++							<control type="image">
++								<texture background="true">$VAR[StatusOverlayWide]</texture>
++							</control>
++						</control>
++					</control>
++				</focusedlayout>
++			</control>
++
++			<control type="group">
++				<!-- <centerleft>75%</centerleft> -->
++				<left>410</left>
++				<top>850</top>
++				<width>920</width>
++				<height>100</height>
++
++				<!-- Title -->
++				<control type="fadelabel">
++					<left>90</left>
++					<top>0</top>
++					<width>920</width>
++					<height>72</height>
++					<font>Font72</font>
++					<align>center</align>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<label>$VAR[Label1]</label>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(57)">Conditional</animation>
++				</control>
++
++				<!-- Details -->
++				<control type="fadelabel">
++					<left>90</left>
++					<top>88</top>
++					<width>920</width>
++					<height>54</height>
++					<font>Font27</font>
++					<align>center</align>
++					<aligny>top</aligny>
++					<label>$VAR[Label2]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(57)">Conditional</animation>
++				</control>
++
++			</control>
++
++		</control>
++
++	</include>
++
++	<include name="image-57">
++		<param name="fallback">DefaultVideos.png</param>
++		<param name="colordiffuse">FFFFFFFF</param>
++		<param name="visible">False</param>
++		<definition>
++			<control type="image">
++				<bottom>6</bottom>
++				<left>24</left>
++				<width>114</width>
++				<height>173</height>
++				<colordiffuse>$PARAM[colordiffuse]</colordiffuse>
++				<texture fallback="$PARAM[fallback]" background="true">$VAR[mediaImages]</texture>
++				<aspectratio align="center" aligny="bottom">keep</aspectratio>
++				<visible>$PARAM[visible]</visible>
++			</control>
++		</definition>
++	</include>
++	
++	<include name="image-57-focused">
++		<param name="fallback">DefaultVideos.png</param>
++		<param name="colordiffuse">FFFFFFFF</param>
++		<param name="visible">False</param>
++		<definition>
++			<control type="image">
++				<bottom>0</bottom>
++				<left>15</left>
++				<width>132</width>
++				<height>200</height>
++				<colordiffuse>$PARAM[colordiffuse]</colordiffuse>
++				<texture fallback="$PARAM[fallback]" background="true">$VAR[mediaImages]</texture>
++				<aspectratio align="center" aligny="bottom">keep</aspectratio>
++				<visible>$PARAM[visible]</visible>
++			</control>
++		</definition>
++	</include>
++
++</includes>
+diff --git a/16x9/Viewtype58.xml b/16x9/Viewtype58.xml
+new file mode 100644
+index 0000000..a01b342
+--- /dev/null
++++ b/16x9/Viewtype58.xml
+@@ -0,0 +1,196 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<includes>
++
++	<include name="Viewtype58">
++
++		<control type="group">
++			<visible>Control.IsVisible(58)</visible>
++
++			<!-- Thumbs -->
++			<control type="panel" id="58">
++				<left>150</left>
++				<top>220</top>
++				<width>1620</width>
++				<height>600</height>
++				<onleft>68</onleft>
++				<onright condition="!Skin.HasSetting(KioskMode)">3001</onright>
++				<onup>58</onup>
++				<ondown>58</ondown>
++				<pagecontrol>68</pagecontrol>
++				<preloaditems>4</preloaditems>
++				<viewtype label="$LOCALIZE[31114]">icon</viewtype>
++				<scrolltime tween="sine" easing="out">240</scrolltime>
++				<visible>Container.Content(movies) | Container.Content(tvshows) | Container.Content(seasons)</visible>
++
++				<itemlayout width="162" height="200">
++					<!-- Image - Movies -->
++					<include content="image-58">
++						<param name="fallback">DefaultMovie.png</param>
++						<param name="colordiffuse">$VAR[DiffusePosterNF]</param>
++						<param name="visible">Container.Content(movies)</param>
++					</include>
++					<!-- Image - TV -->
++					<include content="image-58">
++						<param name="fallback">DefaultTVShows.png</param>
++						<param name="colordiffuse">$VAR[DiffusePosterNF]</param>
++						<param name="visible">!Container.Content(movies)</param>
++					</include>
++					<!-- Collection -->
++					<control type="group">
++						<left>24</left>
++						<bottom>6</bottom>
++						<width>51</width>
++						<height>51</height>
++						<visible>ListItem.IsCollection</visible>
++						<control type="image">
++							<texture background="true">views/OverlayCornerLeft.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++						<control type="image">
++							<texture background="true">views/OverlayCollection.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++					</control>
++					<!-- Watched status -->
++					<control type="group">
++						<right>24</right>
++						<bottom>6</bottom>
++						<width>51</width>
++						<height>51</height>
++						<visible>!ListItem.IsCollection</visible>
++						<control type="image">
++							<texture background="true">views/OverlayCornerRight.png</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++							<visible>[ListItem.IsFolder + Integer.IsGreater(ListItem.Property(WatchedEpisodes),0) + Integer.IsGreater(ListItem.Property(UnWatchedEpisodes),0)] | String.IsEqual(ListItem.Overlay,OverlayWatched.png) | ListItem.IsResumable | !String.IsEmpty(ListItem.PlayCount)</visible>
++						</control>
++						<control type="image">
++							<texture background="true">$VAR[StatusOverlayWide]</texture>
++							<colordiffuse>$VAR[DiffusePosterNF]</colordiffuse>
++						</control>
++					</control>
++				</itemlayout>
++
++				<focusedlayout width="162" height="200">
++					<control type="group">
++						<animation effect="zoom" start="87" end="100" center="auto" time="300" tween="back" easing="out" reversible="false">Focus</animation>
++						<animation effect="zoom" start="100" end="87" center="auto" time="30" tween="linear" reversible="false">Unfocus</animation>
++						<!-- Image - Movies -->
++						<include content="image-58-focused">
++							<param name="fallback">DefaultMovie.png</param>
++							<param name="visible">Container.Content(movies)</param>
++						</include>
++						<!-- Image - TV -->
++						<include content="image-58-focused">
++							<param name="fallback">DefaultTVShows.png</param>
++							<param name="visible">!Container.Content(movies)</param>
++						</include>
++						<!-- Collection -->
++						<control type="group">
++							<left>15</left>
++							<bottom>0</bottom>
++							<width>60</width>
++							<height>60</height>
++							<visible>ListItem.IsCollection</visible>
++							<control type="image">
++								<texture background="true">views/OverlayCornerLeft.png</texture>
++							</control>
++							<control type="image">
++								<texture background="true">views/OverlayCollection.png</texture>
++							</control>
++						</control>
++						<!-- Watched status -->
++						<control type="group">
++							<right>15</right>
++							<bottom>0</bottom>
++							<width>60</width>
++							<height>60</height>
++							<visible>!ListItem.IsCollection</visible>
++							<control type="image">
++								<texture background="true">views/OverlayCornerRight.png</texture>
++								<visible>[ListItem.IsFolder + Integer.IsGreater(ListItem.Property(WatchedEpisodes),0) + Integer.IsGreater(ListItem.Property(UnWatchedEpisodes),0)] | String.IsEqual(ListItem.Overlay,OverlayWatched.png) | ListItem.IsResumable | !String.IsEmpty(ListItem.PlayCount)</visible>
++							</control>
++							<control type="image">
++								<texture background="true">$VAR[StatusOverlayWide]</texture>
++							</control>
++						</control>
++					</control>
++				</focusedlayout>
++			</control>
++
++			<control type="group">
++				<!-- <centerleft>75%</centerleft> -->
++				<left>410</left>
++				<top>850</top>
++				<width>920</width>
++				<height>100</height>
++
++				<!-- Title -->
++				<control type="fadelabel">
++					<left>90</left>
++					<top>0</top>
++					<width>920</width>
++					<height>72</height>
++					<font>Font72</font>
++					<align>center</align>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<label>$VAR[Label1]</label>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(58)">Conditional</animation>
++				</control>
++
++				<!-- Details -->
++				<control type="fadelabel">
++					<left>90</left>
++					<top>88</top>
++					<width>920</width>
++					<height>54</height>
++					<font>Font27</font>
++					<align>center</align>
++					<aligny>top</aligny>
++					<label>$VAR[Label2]</label>
++					<textcolor>$VAR[TextColor1]</textcolor>
++					<animation effect="fade" start="100" end="50" time="200" tween="cubic" easing="out" reversible="false" condition="!Control.HasFocus(58)">Conditional</animation>
++				</control>
++
++			</control>
++
++		</control>
++
++	</include>
++
++	<include name="image-58">
++		<param name="fallback">DefaultVideos.png</param>
++		<param name="colordiffuse">FFFFFFFF</param>
++		<param name="visible">False</param>
++		<definition>
++			<control type="image">
++				<bottom>6</bottom>
++				<left>24</left>
++				<width>114</width>
++				<height>173</height>
++				<colordiffuse>$PARAM[colordiffuse]</colordiffuse>
++				<texture fallback="$PARAM[fallback]" background="true">$VAR[mediaImages]</texture>
++				<aspectratio align="center" aligny="bottom">keep</aspectratio>
++				<visible>$PARAM[visible]</visible>
++			</control>
++		</definition>
++	</include>
++	
++	<include name="image-58-focused">
++		<param name="fallback">DefaultVideos.png</param>
++		<param name="colordiffuse">FFFFFFFF</param>
++		<param name="visible">False</param>
++		<definition>
++			<control type="image">
++				<bottom>0</bottom>
++				<left>15</left>
++				<width>132</width>
++				<height>200</height>
++				<colordiffuse>$PARAM[colordiffuse]</colordiffuse>
++				<texture fallback="$PARAM[fallback]" background="true">$VAR[mediaImages]</texture>
++				<aspectratio align="center" aligny="bottom">keep</aspectratio>
++				<visible>$PARAM[visible]</visible>
++			</control>
++		</definition>
++	</include>
++
++</includes>
+diff --git a/Changelog.md b/Changelog.md
+index 95d14f8..a70fb96 100644
+--- a/Changelog.md
++++ b/Changelog.md
+@@ -11,6 +11,7 @@ _New_
+ - add PVR timeshift status dialog
+ - add welcome dialog on non-OSMC devices
+ - add director button to video info dialog
++- add new views (wide low, wall small, wall low)
+ 
+ _Improved_
+ - adjust syntax, values, labels and infobools to match v18 requirements
+@@ -20,6 +21,8 @@ _Improved_
+ - add missing adjustable plot fonts
+ - let favourites dialog behave like a normal window
+ - add file path and name to refresh button in video info dialog
++- add song/album year to music player
++- add wide list as music view
+ 
+ _Fixed_
+ - show proper game widget title when not using skinshortcuts script
+@@ -245,6 +248,9 @@ Includes.xml:
+ - rework Overlay include
+ - remove Custom color Overlay include
+ - replace colors by new color variables
++- add new include files
++- fix position and size of duration icon
++- prevent size from being shown when file is 0B on all platforms
+ 
+ Includes_Widgets.xml:
+ - replace colors by new color variables
+@@ -258,12 +264,15 @@ MusicOSD.xml:
+ 
+ MusicVisualisation.xml:
+ - replace colors by new color variables
++- add song/album year
+ 
+ MyGames.xml:
+ - replace colors by new color variables
+ 
+ MyMusicNav.xml:
+ - replace colors by new color variables
++- add wide list to music
++- add new scrollbar for new view
+ 
+ MyMusicPlaylistEditor.xml:
+ - replace colors by new color variables
+@@ -305,6 +314,10 @@ MyPVRTimers.xml:
+ 
+ MyVideoNav.xml:
+ - replace colors by new color variables
++- add new wide list low view to video
++- add new wall low view to video
++- add new wall small view to video
++- add new scrollbars for new views
+ 
+ MyWeather.xml:
+ - replace colors by new color variables
+@@ -411,6 +424,8 @@ Viewtype51.xml:
+ 
+ Viewtype52.xml:
+ - replace colors by new color variables
++- add albums and artists as allowed container content to conditional visibility
++- add required image thumbs for artists and albums
+ 
+ Viewtype53.xml:
+ - replace colors by new color variables
+@@ -422,8 +437,18 @@ Viewtype54.xml:
+ Viewtype55.xml:
+ - replace colors by new color variables
+ 
++Viewtype56.xml:
++- new wide list low view
++
++Viewtype56.xml:
++- new wall low view
++
++Viewtype58.xml:
++- new wall small view
++
+ strings.po:
+ - add new localizes for reworked skin settings (31052, 31097, 31107, 31108, 31109, 31110, 31111)
++- add new localizes for new views (31112, 31113, 31114)
+ 
+ Textures.xbt:
+ - update file with new resolution select icon included
+diff --git a/addon.xml b/addon.xml
+index 5d12406..8ecde04 100644
+--- a/addon.xml
++++ b/addon.xml
+@@ -14,7 +14,7 @@
+ 		<platform>all</platform>
+ 		<summary lang="en">The default skin for OSMC</summary>
+ 		<description lang="en">Original skin: Andy Morton[CR]Original design: Simon Brunton[CR]Skinner: Julian Michel</description>
+-		<news>OSMC Kodi v18 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR]- add welcome dialog on non-OSMC devices[CR]- add director button to video info dialog[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR]- add missing adjustable plot fonts[CR]- let favourites dialog behave like a normal window[CR]- add file path and name to refresh button in video info dialog[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window[CR]- fix layout of PVR playback dialogs</news>
++		<news>OSMC Kodi v18 update[CR][CR][B]New[/B][CR]- add new v18 subtitle settings OSD during fullscreen video playback[CR]- add new games section to match v18 requirements[CR]- add games section[CR]- add new resolution select button/dialog in video player[CR]- add player icon to now playing dialog[CR]- add new dependency button in addon info dialog to match v18 requirements[CR]- new color options (color sets, background gradients, adjustable opacity)[CR]- add PVR channel number input dialog[CR]- add PVR timeshift status dialog[CR]- add welcome dialog on non-OSMC devices[CR]- add director button to video info dialog[CR]- add new views (wide low, wall small, wall low)[CR][CR][B]Improved[/B][CR]- adjust syntax, values, labels and infobools to match v18 requirements[CR]- adjust PVR section to match v18 requirements[CR]- highlighting color now adjusts according to text color[CR]- streamline OSD animations[CR]- add missing adjustable plot fonts[CR]- let favourites dialog behave like a normal window[CR]- add file path and name to refresh button in video info dialog[CR]- add song/album year to music player[CR]- add wide list as music view[CR][CR][B]Fixed[/B][CR]- show proper game widget title when not using skinshortcuts script[CR]- highlighting is now more consistent[CR]- fix current position/time remaining and current time/end time for PVR playback[CR]- hide deprecated previous/next channel buttons in PVR playback OSD[CR]- fix background of subtitle settings window[CR]- fix layout of PVR playback dialogs</news>
+ 	</extension>
+ 	<assets>
+ 		<icon>icon.png</icon>
+diff --git a/language/English/strings.po b/language/English/strings.po
+index 609dbd4..dadea6a 100644
+--- a/language/English/strings.po
++++ b/language/English/strings.po
+@@ -523,4 +523,19 @@ msgstr ""
+ #: /16x9/SkinSettings.xml
+ msgctxt "#31111"
+ msgid "Background color gradient (default: Left-right)"
++msgstr ""
++
++#: /16x9/Viewtype56.xml
++msgctxt "#31112"
++msgid "Wide low"
++msgstr ""
++
++#: /16x9/Viewtype57.xml
++msgctxt "#31113"
++msgid "Wall low"
++msgstr ""
++
++#: /16x9/Viewtype58.xml
++msgctxt "#31114"
++msgid "Wall small"
+ msgstr ""
+\ No newline at end of file
+
+From f9d1b4b9cdd36379e1e72b6e43b0e0e2f55e8102 Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Tue, 5 Mar 2019 13:36:22 +0100
+Subject: [PATCH 2/2] Bug fix
+
+AddonBrowser.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+DialogFavourites.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+EventLog.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+Include_Home_OSMC.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyGames.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyMusicNav.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPics.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPlaylist.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPrograms.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPVRChannels.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPVRGuide.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPVRRecordings.xml
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyPVRTimers.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyVideoNav.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+MyWeather.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+SettingsCategory.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+SettingsProfile.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+SettingsSystemInfo.xml:
+- hide focus texture of invisble side menu button (relevant for mouse control)
+
+Variables.xml:
+- fix addon-skinhelperbackup variable to show install state of script correctly
+---
+ 16x9/AddonBrowser.xml       | 1 +
+ 16x9/DialogFavourites.xml   | 1 +
+ 16x9/EventLog.xml           | 1 +
+ 16x9/Include_Home_OSMC.xml  | 1 +
+ 16x9/MyGames.xml            | 1 +
+ 16x9/MyMusicNav.xml         | 1 +
+ 16x9/MyPVRChannels.xml      | 1 +
+ 16x9/MyPVRGuide.xml         | 1 +
+ 16x9/MyPVRRecordings.xml    | 1 +
+ 16x9/MyPVRSearch.xml        | 1 +
+ 16x9/MyPVRTimers.xml        | 1 +
+ 16x9/MyPics.xml             | 1 +
+ 16x9/MyPlaylist.xml         | 1 +
+ 16x9/MyPrograms.xml         | 1 +
+ 16x9/MyVideoNav.xml         | 1 +
+ 16x9/MyWeather.xml          | 1 +
+ 16x9/SettingsCategory.xml   | 1 +
+ 16x9/SettingsProfile.xml    | 1 +
+ 16x9/SettingsSystemInfo.xml | 1 +
+ 16x9/Variables.xml          | 2 +-
+ 20 files changed, 20 insertions(+), 1 deletion(-)
+
+diff --git a/16x9/AddonBrowser.xml b/16x9/AddonBrowser.xml
+index 6fe52bd..396345e 100755
+--- a/16x9/AddonBrowser.xml
++++ b/16x9/AddonBrowser.xml
+@@ -185,6 +185,7 @@
+ 						<top>0</top>
+ 						<width>460</width>
+ 						<height>1080</height>
++						<texturefocus>noop</texturefocus>
+ 					</control>
+ 
+ 					<control type="image">
+diff --git a/16x9/DialogFavourites.xml b/16x9/DialogFavourites.xml
+index d13eed7..49d4fde 100755
+--- a/16x9/DialogFavourites.xml
++++ b/16x9/DialogFavourites.xml
+@@ -125,6 +125,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/EventLog.xml b/16x9/EventLog.xml
+index 135061c..27379b4 100644
+--- a/16x9/EventLog.xml
++++ b/16x9/EventLog.xml
+@@ -109,6 +109,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/Include_Home_OSMC.xml b/16x9/Include_Home_OSMC.xml
+index e94b4d7..dcb690e 100644
+--- a/16x9/Include_Home_OSMC.xml
++++ b/16x9/Include_Home_OSMC.xml
+@@ -105,6 +105,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/MyGames.xml b/16x9/MyGames.xml
+index b357bb7..ec9e527 100644
+--- a/16x9/MyGames.xml
++++ b/16x9/MyGames.xml
+@@ -82,6 +82,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/MyMusicNav.xml b/16x9/MyMusicNav.xml
+index ad2422d..7f99140 100755
+--- a/16x9/MyMusicNav.xml
++++ b/16x9/MyMusicNav.xml
+@@ -123,6 +123,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPVRChannels.xml b/16x9/MyPVRChannels.xml
+index df853e3..b0c1dc2 100755
+--- a/16x9/MyPVRChannels.xml
++++ b/16x9/MyPVRChannels.xml
+@@ -285,6 +285,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPVRGuide.xml b/16x9/MyPVRGuide.xml
+index 8f7e55d..ecbf365 100755
+--- a/16x9/MyPVRGuide.xml
++++ b/16x9/MyPVRGuide.xml
+@@ -364,6 +364,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPVRRecordings.xml b/16x9/MyPVRRecordings.xml
+index 61db8ff..a7ec06e 100755
+--- a/16x9/MyPVRRecordings.xml
++++ b/16x9/MyPVRRecordings.xml
+@@ -259,6 +259,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPVRSearch.xml b/16x9/MyPVRSearch.xml
+index a655141..0e835fd 100755
+--- a/16x9/MyPVRSearch.xml
++++ b/16x9/MyPVRSearch.xml
+@@ -343,6 +343,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPVRTimers.xml b/16x9/MyPVRTimers.xml
+index 6e22474..cc3f2f0 100755
+--- a/16x9/MyPVRTimers.xml
++++ b/16x9/MyPVRTimers.xml
+@@ -258,6 +258,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPics.xml b/16x9/MyPics.xml
+index 6b3431a..8b72d31 100755
+--- a/16x9/MyPics.xml
++++ b/16x9/MyPics.xml
+@@ -79,6 +79,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyPlaylist.xml b/16x9/MyPlaylist.xml
+index 1cceb08..f912f58 100644
+--- a/16x9/MyPlaylist.xml
++++ b/16x9/MyPlaylist.xml
+@@ -62,6 +62,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/MyPrograms.xml b/16x9/MyPrograms.xml
+index 5c6eb62..ae73b54 100755
+--- a/16x9/MyPrograms.xml
++++ b/16x9/MyPrograms.xml
+@@ -89,6 +89,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<!-- Look controls -->
+diff --git a/16x9/MyVideoNav.xml b/16x9/MyVideoNav.xml
+index e944dad..a7dbb9f 100755
+--- a/16x9/MyVideoNav.xml
++++ b/16x9/MyVideoNav.xml
+@@ -167,6 +167,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/MyWeather.xml b/16x9/MyWeather.xml
+index 8191095..0ee7883 100755
+--- a/16x9/MyWeather.xml
++++ b/16x9/MyWeather.xml
+@@ -303,6 +303,7 @@
+ 						<top>0</top>
+ 						<width>460</width>
+ 						<height>1080</height>
++						<texturefocus>noop</texturefocus>
+ 					</control>
+ 
+ 					<!-- Look controls -->
+diff --git a/16x9/SettingsCategory.xml b/16x9/SettingsCategory.xml
+index 3da0ef2..c7aaf65 100755
+--- a/16x9/SettingsCategory.xml
++++ b/16x9/SettingsCategory.xml
+@@ -146,6 +146,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/SettingsProfile.xml b/16x9/SettingsProfile.xml
+index 6eb84fe..c5f4511 100755
+--- a/16x9/SettingsProfile.xml
++++ b/16x9/SettingsProfile.xml
+@@ -138,6 +138,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/SettingsSystemInfo.xml b/16x9/SettingsSystemInfo.xml
+index 8cf33db..7cd656d 100755
+--- a/16x9/SettingsSystemInfo.xml
++++ b/16x9/SettingsSystemInfo.xml
+@@ -237,6 +237,7 @@
+ 					<top>0</top>
+ 					<width>460</width>
+ 					<height>1080</height>
++					<texturefocus>noop</texturefocus>
+ 				</control>
+ 
+ 				<control type="image">
+diff --git a/16x9/Variables.xml b/16x9/Variables.xml
+index f9ba0f6..01cd660 100755
+--- a/16x9/Variables.xml
++++ b/16x9/Variables.xml
+@@ -1297,7 +1297,7 @@
+ 		<value>[COLOR red]$LOCALIZE[31092][/COLOR]</value>
+ 	</variable> -->
+ 	<variable name="addon-skinhelperbackup">
+-		<value condition="System.HasAddon(script.skin.helper.widgets)">[COLOR lightgreen]v$INFO[System.AddonVersion(script.skin.helper.widgets)] $LOCALIZE[31093][/COLOR]</value>
++		<value condition="System.HasAddon(script.skin.helper.skinbackup)">[COLOR lightgreen]v$INFO[System.AddonVersion(script.skin.helper.skinbackup)] $LOCALIZE[31093][/COLOR]</value>
+ 		<value>[COLOR red]$LOCALIZE[31092][/COLOR]</value>
+ 	</variable>
+ 	<variable name="addon-autocompletion">
