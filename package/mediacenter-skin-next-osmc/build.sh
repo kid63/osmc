@@ -7,10 +7,10 @@
 
 make clean
 
-REV="6a0573da842cc100d9f3765a4eec67d14914291d"
+REV="541794126e426f7cc65c3f3bf8f929104d0b4b3d"
 echo -e "Building package mediacenter-skin-osmc"
 echo -e "Downloading skin"
-pull_source "https://github.com/Ch1llb0/skin.osmc/archive/${REV}.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/osmc/skin.osmc/archive/${REV}.tar.gz" "$(pwd)/src"
 if [ $? != 0 ]; then echo -e "Error downloading" && exit 1; fi
 pushd src/skin.osmc-*
 install_patch "../../patches" "all"
