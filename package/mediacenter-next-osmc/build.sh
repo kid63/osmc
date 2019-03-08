@@ -20,7 +20,7 @@ API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/847f1e88573e5d821993667f79d414a6a68a33cd.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/386045c3c60c02f31de824781e68e9096a0c3ce1.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
@@ -359,7 +359,7 @@ game.libretro.vbam game.libretro.yabause game.libretro.genplus"
 # Remove  game.libretro.mame game.libretro.bsnes-mercury-accuracy game.libretro.mupen64plus game.libretro.pcsx-rearmed
 	ADDONS_PVR="pvr.sledovanitv.cz pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.hdhomerun pvr.iptvsimple pvr.demo pvr.mediaportal.tvserver vfs.libarchive vfs.rar vfs.sftp"  
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
-	ADDONS_VISUALIZATIONS="visualization.projectm visualization.shadertoy visualization.spectrum visualization.waveform"
+	#ADDONS_VISUALIZATIONS="visualization.projectm visualization.shadertoy visualization.spectrum visualization.waveform"
 	#ADDONS_GLES_EXCL="screensaver.shadertoy visualization.shadertoy"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
