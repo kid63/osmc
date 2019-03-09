@@ -1,0 +1,40 @@
+From 38c2c5bd039b891ccca14221c41935489d70722e Mon Sep 17 00:00:00 2001
+From: "Ch1llb0/skin.osmc" <36623079+Ch1llb0@users.noreply.github.com>
+Date: Sat, 9 Mar 2019 17:34:45 +0100
+Subject: [PATCH] Widget playlist fix
+
+random_movies.xsp:
+- only show unwatched movies
+
+random_TV_shows.xsp:
+- only show unwatched TV shows
+---
+ extras/playlists/random_TV_shows.xsp | 2 ++
+ extras/playlists/random_movies.xsp   | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/extras/playlists/random_TV_shows.xsp b/extras/playlists/random_TV_shows.xsp
+index 1202a2a..1f7d133 100644
+--- a/extras/playlists/random_TV_shows.xsp
++++ b/extras/playlists/random_TV_shows.xsp
+@@ -3,5 +3,7 @@
+     <name>Random TV shows</name>
+     <match>all</match>
+ 	<limit>20</limit>
++	<rule field="playcount" operator="lessthan">
++        <value>1</value>
+     <order direction="descending">random</order>
+ </smartplaylist>
+diff --git a/extras/playlists/random_movies.xsp b/extras/playlists/random_movies.xsp
+index a0bfb5f..1d6a181 100644
+--- a/extras/playlists/random_movies.xsp
++++ b/extras/playlists/random_movies.xsp
+@@ -2,6 +2,8 @@
+ <smartplaylist type="movies">
+     <name>Random movies</name>
+     <match>all</match>
++	<rule field="playcount" operator="lessthan">
++        <value>1</value>
+     <limit>20</limit>
+     <order direction="descending">random</order>
+ </smartplaylist>
