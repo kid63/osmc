@@ -30,7 +30,7 @@ pull_source "https://github.com/kodi-community-addons/script.skin.helper.service
 cp -ar src/script.skin.helper.service-master files/usr/share/kodi/addons/script.skin.helper.service
 
 pull_source "https://github.com/kodi-community-addons/script.skin.helper.skinbackup/archive/master.zip" "$(pwd)/src"
-cp -ar src/script.skin.helper/skinbackup-master files/usr/share/kodi/addons/script.skin.helper.skinbackup
+cp -ar src/script.skin.helper.skinbackup-master files/usr/share/kodi/addons/script.skin.helper.skinbackup
 
 pull_source "https://github.com/kodi-community-addons/script.skin.helper.widgets/archive/master.zip" "$(pwd)/src"
 cp -ar src/script.skin.helper.widgets-master files/usr/share/kodi/addons/script.helper.widgets
