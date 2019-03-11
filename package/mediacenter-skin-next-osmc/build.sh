@@ -25,4 +25,18 @@ then
     find . ! -name 'Textures.xbt' -delete
     popd
 fi
+
+pull_source "https://github.com/kodi-community-addons/script.skin.helper.service/master.tar.gz" "$(pwd)/src"
+cp -ar src/script.skin.helper.service files/usr/share/kodi/addons/script.skin.helper.service
+
+pull_source "https://github.com/kodi-community-addons/script.skin.helper.skinbackup/master.tar.gz" "$(pwd)/src"
+cp -ar src/script.skin.helper/skinbackup files/usr/share/kodi/addons/script.skin.helper.skinbackup
+
+pull_source "https://github.com/kodi-community-addons/script.skin.helper.widgets/master.tar.gz" "$(pwd)/src"
+cp -ar src/script.skin.helper.widgets files/usr/share/kodi/addons/script.helper.widgets
+
+pull_source "https://github.com/kodi-community-addons/script.skinshortcuts/master.tar.gz" "$(pwd)/src"
+cp -ar src/script.skinshortcuts files/usr/share/kodi/addons/script.skinshortcuts
+
+
 dpkg_build files/ mediacenter-skin-osmc.deb
