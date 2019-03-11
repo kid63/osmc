@@ -26,16 +26,16 @@ then
     popd
 fi
 
-pull_source "https://github.com/kodi-community-addons/script.skin.helper.service/archive/master.zip" "$(pwd)/src"
+pull_source "https://github.com/kodi-community-addons/script.skin.helper.service/archive/6b8a82e3ba97bbcba8c44eece0a4ca93bf4c571b.tar.gz" "$(pwd)/src"
 cp -ar src/script.skin.helper.service-master files/usr/share/kodi/addons/script.skin.helper.service
 
-pull_source "https://github.com/kodi-community-addons/script.skin.helper.skinbackup/archive/master.zip" "$(pwd)/src"
+pull_source "https://github.com/kodi-community-addons/script.skin.helper.skinbackup/archive/b9121fbedb4db29b0d4aa16a97a0fa1de5cc589b.tar.gz" "$(pwd)/src"
 cp -ar src/script.skin.helper.skinbackup-master files/usr/share/kodi/addons/script.skin.helper.skinbackup
 
-pull_source "https://github.com/kodi-community-addons/script.skin.helper.widgets/archive/master.zip" "$(pwd)/src"
+pull_source "https://github.com/kodi-community-addons/script.skin.helper.widgets/archive/612999dc3021e1fcd57a01ef14ce473f47bfc48f.tar.gz" "$(pwd)/src"
 cp -ar src/script.skin.helper.widgets-master files/usr/share/kodi/addons/script.skin.helper.widgets
 
-pull_source "https://github.com/marcelveldt/script.skinshortcuts/archive/master.zip" "$(pwd)/src"
+pull_source "https://github.com/marcelveldt/script.skinshortcuts/archive/03a8905267082466a7b4b7e66c01a28fad46c19b.tar.gz" "$(pwd)/src"
 cp -ar src/script.skinshortcuts-master files/usr/share/kodi/addons/script.skinshortcuts
 
 
