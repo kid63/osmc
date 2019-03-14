@@ -15,6 +15,6 @@ index 8674f06..0263dfb 100644
 @@ -1 +1 @@
 -binary-addons https://github.com/xbmc/repo-binary-addons.git master
 \ No newline at end of file
-+binary-addons https://github.com/StormTrooper/repo-binary-addons rbp-leia
++binary-addons https://github.com/kid63/repo-binary-addons rbp-leia
 --
 2.1.0
