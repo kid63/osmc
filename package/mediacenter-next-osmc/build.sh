@@ -3,24 +3,31 @@
 
 #!/bin/bash
 
+#sudo rm -rf /opt/osmc-tc
+#sudo rm -rf /opt/osmc-tc/armv7-ccache-osmc
+
 . ../common.sh
 
 
 #Workaround
 #Delete folder otherwise thumbnails crash and builds fail with crypto errors
+
 rm -rf /opt/osmc-tc/armv7-toolchain-osmc/usr/local/lib/*
-rm -rf /opt/osmc-tc/armv6l-toolchain-osmc/usr/local/lib/*
+#rm -rf /opt/osmc-tc/armv6l-toolchain-osmc/usr/local/lib/*
+
+#sudo apt-get remove --purge armv7-toolchain-osmc -y
+#sudo apt-get autoremove -y
 
 
 #Use newclock5 for rbp1/2 builds
 if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]    
 then
-pull_source "https://github.com/popcornmix/xbmc/archive/ab525816ec3c4bafacb0410e8d17de850a8a8714.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/popcornmix/xbmc/archive/f8966438d6035efc2411fe12158d2ea5b24faf27.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 
 #use xbmc top of tree for vero builds
 else
-pull_source "https://github.com/xbmc/xbmc/archive/adf1da5c461a4c10bae5858d89e75d86d641bedf.tar.gz" "$(pwd)/src"
+pull_source "https://github.com/xbmc/xbmc/archive/089d3573fa061687640846ff3db9ca63ab6da2de.tar.gz" "$(pwd)/src"
 API_VERSION="18"
 fi
 if [ $? != 0 ]; then echo -e "Error fetching Kodi source" && exit 1; fi
@@ -65,13 +72,13 @@ then
 	handle_dep "libinput-dev"
 	handle_dep "libiso9660-dev"
 	handle_dep "libjpeg62-turbo-dev"
-        handle_dep "liblirc-dev"
+    handle_dep "liblirc-dev"
 	handle_dep "liblzo2-dev"
 	handle_dep "libmad0-dev"
 	handle_dep "libmicrohttpd-dev"
 	handle_dep "libmodplug-dev"
-	#handle_dep "libmpeg2-4-dev"
-	#handle_dep "libmpeg3-dev"
+#	handle_dep "libmpeg2-4-dev"
+#	handle_dep "libmpeg3-dev"
 	handle_dep "libmariadbclient-dev-compat" 
 	handle_dep "libpcre3-dev"
 	handle_dep "libplist-dev"
@@ -89,7 +96,7 @@ then
 	handle_dep "libxslt1-dev"
 	handle_dep "libxt-dev"
 	handle_dep "libyajl-dev"
-        handle_dep "libxkbcommon-dev"
+    handle_dep "libxkbcommon-dev"
 	handle_dep "nasm"
 	handle_dep "pmount"
 	handle_dep "python-dev"
@@ -106,6 +113,8 @@ then
 	handle_dep "libgnutls28-dev"
 	handle_dep "libgcrypt11-dev"
 	handle_dep "git"
+	handle_dep "wget"
+	handle_dep "doxygen"
 	handle_dep "uuid-dev"
 	handle_dep "libcrossguid-dev"
 	handle_dep "cmake"
@@ -141,12 +150,12 @@ then
 		handle_dep "vero2-libcec-dev-osmc"
 		handle_dep "vero2-userland-dev-osmc"
 		handle_dep "vero2-libamcodec-dev-osmc"
-                handle_dep "armv7-libshairplay-dev-osmc"
-                handle_dep "armv7-librtmp-dev-osmc"
-                handle_dep "armv7-libnfs-dev-osmc"
-                handle_dep "armv7-libplatform-dev-osmc"
-                handle_dep "armv7-libbluray-dev-osmc"
-                handle_dep "armv7-libsqlite-dev-osmc"
+        handle_dep "armv7-libshairplay-dev-osmc"
+        handle_dep "armv7-librtmp-dev-osmc"
+        handle_dep "armv7-libnfs-dev-osmc"
+        handle_dep "armv7-libplatform-dev-osmc"
+        handle_dep "armv7-libbluray-dev-osmc"
+        handle_dep "armv7-libsqlite-dev-osmc"
 		handle_dep "armv7-libass-dev-osmc"
 
         fi
@@ -156,12 +165,12 @@ then
  		handle_dep "vero3-userland-dev-osmc"
  		handle_dep "vero3-libamcodec-dev-osmc"
  		handle_dep "armv7-libshairplay-dev-osmc"
-                handle_dep "armv7-librtmp-dev-osmc"
-                handle_dep "armv7-libnfs-dev-osmc"
-                handle_dep "armv7-libplatform-dev-osmc"
-                handle_dep "armv7-libbluray-dev-osmc"
-                handle_dep "armv7-libsqlite-dev-osmc"
-                handle_dep "armv7-libass-dev-osmc"
+        handle_dep "armv7-librtmp-dev-osmc"
+        handle_dep "armv7-libnfs-dev-osmc"
+        handle_dep "armv7-libplatform-dev-osmc"
+        handle_dep "armv7-libbluray-dev-osmc"
+        handle_dep "armv7-libsqlite-dev-osmc"
+        handle_dep "armv7-libass-dev-osmc"
 
 	fi
 	if [ "$1" == "pc" ]
@@ -180,8 +189,8 @@ then
 		handle_dep "libglew-dev"
 		handle_dep "amd64-libass-dev-osmc"
 		handle_dep "libgbm-dev"
-                handle_dep "libva-dev"
-                handle_dep "libvdpau-dev"
+        handle_dep "libva-dev"
+        handle_dep "libvdpau-dev"
 	fi
 	sed '/Package/d' -i files/DEBIAN/control
 	sed '/Depends/d' -i files/DEBIAN/control
@@ -206,7 +215,7 @@ then
 	test "$1" == vero2 && install_patch "../../patches" "vero2"
 	test "$1" == vero3 && install_patch "../../patches" "vero3"
 	
-        #Copy libjli.so  otherwise build fails
+	#Copy libjli.so  otherwise build fails
 	cp /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/jli/libjli.so /usr/lib/libjli.so
 
 	#Setup git otherwise addons build fails
@@ -232,7 +241,7 @@ then
             -DCORE_PLATFORM_NAME=gbm \
             -DWITH_CPU=${CPU} \
             -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON \
+			-DENABLE_INTERNAL_FMT=ON \
             -DENABLE_INTERNAL_FLATBUFFERS=ON \
 	 .
 	if [ "$1" == "rbp1" ]
@@ -264,12 +273,12 @@ then
             -DENABLE_OPTICAL=1 \
             -DENABLE_DVDCSS=1 \
             -DCORE_SYSTEM_NAME=linux \
-	    -DCORE_PLATFORM_NAME=rbpi \
+			-DCORE_PLATFORM_NAME=rbpi \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
-	    -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON \
-            -DENABLE_INTERNAL_FLATBUFFERS=ON \
+			-DENABLE_APP_AUTONAME=OFF \
+			-DENABLE_INTERNAL_FMT=ON
+            -DENABLE_INTERNAL_FLATBUFFERS=ON
 	.
 	fi
 	if [ "$1" == "vero2" ]; then
@@ -297,8 +306,8 @@ then
             -DWITH_CPU=${CPU} \
             -DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
-	    -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON \
+			-DENABLE_APP_AUTONAME=OFF \
+			-DENABLE_INTERNAL_FMT=ON \
             -DENABLE_INTERNAL_FLATBUFFERS=ON \
 	. 
 	fi
@@ -316,19 +325,19 @@ then
             -DCMAKE_LIBRARY_PATH=/usr/osmc/lib \
             -DOPENGLES_gl_LIBRARY=/opt/vero3/lib \
             -DENABLE_AML=ON \
-	    -DASS_INCLUDE_DIR=/usr/osmc/lib \
+			-DASS_INCLUDE_DIR=/usr/osmc/lib \
             -DAML_INCLUDE_DIR=/opt/vero3/include \
             -DRapidJSON_INCLUDE_DIR=/opt/vero3/include \
-	    -DENABLE_OPENGLES=ON \
+			-DENABLE_OPENGLES=ON \
             -DENABLE_OPENGL=OFF \
             -DENABLE_OPTICAL=1 \
             -DENABLE_DVDCSS=1 \
             -DWITH_ARCH=arm \
             -DWITH_CPU=${CPU} \
-	    -DCORE_PLATFORM_NAME=aml \
+			-DCORE_PLATFORM_NAME=aml \
             -DCORE_SYSTEM_NAME=linux \
             -DENABLE_APP_AUTONAME=OFF \
-            -DENABLE_INTERNAL_FMT=ON \
+			-DENABLE_INTERNAL_FMT=ON \
             -DENABLE_INTERNAL_FLATBUFFERS=ON \
 	.
 	fi
@@ -345,22 +354,22 @@ then
 	ADDONS_AUDIO_ENCODERS="audioencoder.flac audioencoder.lame audioencoder.vorbis audioencoder.wav"
 	ADDONS_INPUTSTREAM="inputstream.adaptive inputstream.mpd inputstream.rtmp"
 	ADDONS_PERIPHERAL="peripheral.xarcade peripheral.joystick imagedecoder.raw peripheral.steamcontroller"
-	ADDONS_GAME="game.libretro game.libretro.2048 \
-game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw \
-game.libretro.beetle-pce-fast \
-game.libretro.bnes game.libretro.nestopia \
-game.libretro.bsnes-mercury-balanced game.libretro.mame2000 game.libretro.mame2003 \
-game.libretro.bluemsx game.libretro.vecx game.libretro.mame2003_plus \
-game.libretro.gambatte game.libretro.beetle-bsnes \
-game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
-game.libretro.quicknes game.libretro.scummvm \
-game.libretro.snes9x game.libretro.stella game.libretro.dosbox \
-game.libretro.vbam game.libretro.yabause game.libretro.genplus"
+#	ADDONS_GAME="game.libretro game.libretro.2048 \
+#game.libretro.beetle-gba game.libretro.fceumm game.libretro.gw \
+#game.libretro.beetle-pce-fast \
+#game.libretro.bnes game.libretro.nestopia \
+#game.libretro.bsnes-mercury-balanced  \
+#game.libretro.bluemsx \
+#game.libretro.gambatte game.libretro.beetle-bsnes \
+#game.libretro.meteor game.libretro.mgba game.libretro.vba-next \
+#game.libretro.quicknes game.libretro.scummvm \
+#game.libretro.snes9x game.libretro.stella game.libretro.dosbox \
+#game.libretro.vbam game.libretro.yabause game.libretro.genplus"
 # Remove  game.libretro.mame game.libretro.bsnes-mercury-accuracy game.libretro.mupen64plus game.libretro.pcsx-rearmed
-	ADDONS_PVR="pvr.sledovanitv.cz pvr.argustv pvr.mythtv pvr.hts pvr.pctv pvr.stalker pvr.filmon pvr.octonet pvr.zattoo pvr.vbox pvr.wmc pvr.nextpvr pvr.njoy pvr.teleboy pvr.vdr.vnsi pvr.vuplus pvr.dvbviewer pvr.dvblink pvr.hdhomerun pvr.iptvsimple pvr.demo pvr.mediaportal.tvserver vfs.libarchive vfs.rar vfs.sftp"  
+	ADDONS_PVR="pvr.vuplus vfs.libarchive vfs.rar vfs.sftp"  
 	ADDONS_SCREENSAVERS="screensaver.asteroids screensaver.biogenesis screensaver.greynetic screensaver.matrixtrails screensaver.pingpong screensaver.pyro screensavers.rsxs screensaver.stars screensaver.shadertoy"
-	#ADDONS_VISUALIZATIONS="visualization.projectm visualization.shadertoy visualization.spectrum visualization.waveform"
-	#ADDONS_GLES_EXCL="screensaver.shadertoy visualization.shadertoy"
+#	ADDONS_VISUALIZATIONS="visualization.projectm visualization.shadertoy visualization.spectrum visualization.vsxu visualization.waveform"
+#	ADDONS_GLES_EXCL="screensaver.shadertoy visualization.shadertoy"
 	if [ "$1" == "rbp1" ] || [ "$1" == "rbp2" ]
 	then
 	   ADDONS_TO_BUILD="${ADDONS_VISUALIZATIONS} ${ADDONS_GAME} ${ADDONS_ADSP} ${ADDONS_AUDIO_DECODERS} ${ADDONS_AUDIO_ENCODERS} ${ADDONS_INPUTSTREAM} ${ADDONS_PERIPHERAL} ${ADDONS_PVR} ${ADDONS_GLES_EXCL}"
